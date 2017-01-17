@@ -1,0 +1,5 @@
+target
+
+# vim swap files
+*.swp
+*.swo

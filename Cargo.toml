@@ -1,0 +1,10 @@
+[package]
+name = "refunct-tas"
+version = "0.1.0"
+authors = ["oberien <jaro.fietz@gmx.de>"]
+
+[dependencies]
+#gdb = "0.1.0"
+#gdb = { path = "../rust-gdb" }
+gdb = { git = "https://github.com/oberien/rust-gdb" }
+error-chain = "0.7.2"
