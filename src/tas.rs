@@ -43,4 +43,8 @@ impl Tas {
     pub fn release_key(&mut self, key: char) -> Result<()> {
         self.send_cmd(&format!("call {0}($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYUP, key as u8)).map(|_| ())
     }
+
+    pub fn move_mouse(&mut self, x: i32, y: i32) -> Result<()> {
+        self.send_cmd(&format!("call {}($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
+    }
 }
