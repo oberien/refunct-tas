@@ -1,5 +1,11 @@
+mod parser;
+
+pub use self::parser::Frame;
+pub use self::parser::parse_lines;
+
 use gdb::Debugger;
 use error::*;
+use config::Inputs;
 use consts;
 
 pub struct Tas {
@@ -47,4 +53,52 @@ impl Tas {
     pub fn move_mouse(&mut self, x: i32, y: i32) -> Result<()> {
         self.send_cmd(&format!("call {}($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
     }
+
+    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Inputs) -> Result<()> {
+        let last = Frame::default();
+        for frame in frames {
+            // new inputs
+            if frame.forward && !last.forward {
+                self.press_key(inputs.forward)?;
+            }
+            if frame.backward && !last.backward {
+                self.press_key(inputs.backward)?;
+            }
+            if frame.left && !last.left {
+                self.press_key(inputs.left)?;
+            }
+            if frame.right && !last.right {
+                self.press_key(inputs.right)?;
+            }
+            if frame.jump && !last.jump {
+                self.press_key(inputs.jump)?;
+            }
+
+            // old inputs
+            if last.forward && !frame.forward {
+                self.release_key(inputs.forward)?;
+            }
+            if last.backward && !frame.backward {
+                self.release_key(inputs.backward)?;
+            }
+            if last.left && !frame.left {
+                self.release_key(inputs.left)?;
+            }
+            if last.right && !frame.right {
+                self.release_key(inputs.right)?;
+            }
+            if last.jump && !frame.jump {
+                self.release_key(inputs.jump)?;
+            }
+
+            // mouse movements
+            if frame.mouse_x != 0 || frame.mouse_y != 0 {
+                 self.move_mouse(frame.mouse_x, frame.mouse_y)?;
+            }
+
+            self.step()?;
+        }
+        Ok(())
+    }
 }
+
