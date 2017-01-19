@@ -34,11 +34,13 @@ impl Tas {
         self.send_cmd("c")?;
         self.send_cmd("call $fslateapplication = $rdi")?;
         self.send_cmd("del $slatetickbp")?;
-        let break_tick = format!("break *{:#}", consts::FENGINELOOP_TICK);
+        let break_tick = format!("break *{:#}", consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
         self.send_cmd(&break_tick).map(|_| ())
     }
 
     pub fn step(&mut self) -> Result<()> {
+        // set delta float for smooth fps
+        self.send_cmd(&format!("set {{double}} {:#} = {}", consts::APP_DELTATIME, 1f64 / 60f64))?;
         self.send_cmd("c").map(|_| ())
     }
 
