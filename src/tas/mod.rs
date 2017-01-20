@@ -69,7 +69,7 @@ impl Tas {
 
     pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Inputs) -> Result<()> {
         self.send_cmd("enable $tickbp")?;
-        let last = Frame::default();
+        let mut last = Frame::default();
         for frame in frames {
             // new inputs
             if frame.forward && !last.forward {
@@ -104,6 +104,8 @@ impl Tas {
             if last.jump && !frame.jump {
                 self.release_key(inputs.jump)?;
             }
+
+            last = frame.clone();
 
             // mouse movements
             if frame.mouse_x != 0 || frame.mouse_y != 0 {
