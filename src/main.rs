@@ -40,5 +40,6 @@ fn main() {
 
     let mut tas = Tas::new(pid).unwrap();
     handle_err!(tas.init());
+    handle_err!(tas.wait_for_new_game());
     handle_err!(tas.play(&frames, &inputs));
 }

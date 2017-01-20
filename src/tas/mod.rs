@@ -35,7 +35,12 @@ impl Tas {
         self.send_cmd("call $fslateapplication = $rdi")?;
         self.send_cmd("del $slatetickbp")?;
         let break_tick = format!("break *{:#}", consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
-        self.send_cmd(&break_tick).map(|_| ())
+        self.send_cmd(&break_tick)?;
+        self.send_cmd("call $tickbp = $bpnum")?;
+        self.send_cmd(&format!("break {}", consts::AMYCHARACTER_EXECFORCEDUNCROUCH))?;
+        self.send_cmd("call $newgamebp = $bpnum")?;
+        self.send_cmd("disable $newgamebp")?;
+        self.send_cmd("disable $tickbp").map(|_| ())
     }
 
     pub fn step(&mut self) -> Result<()> {
@@ -56,7 +61,14 @@ impl Tas {
         self.send_cmd(&format!("call {}($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
     }
 
+    pub fn wait_for_new_game(&mut self) -> Result<()> {
+        self.send_cmd("enable $newgamebp")?;
+        self.send_cmd("c")?;
+        self.send_cmd("disable $newgamebp").map(|_| ())
+    }
+
     pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Inputs) -> Result<()> {
+        self.send_cmd("enable $tickbp")?;
         let last = Frame::default();
         for frame in frames {
             // new inputs
@@ -100,7 +112,7 @@ impl Tas {
 
             self.step()?;
         }
-        Ok(())
+        self.send_cmd("disable $tickbp").map(|_| ())
     }
 }
 
