@@ -37,7 +37,7 @@ impl Tas {
         let break_tick = format!("break *{:#}", consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
         self.send_cmd(&break_tick)?;
         self.send_cmd("call $tickbp = $bpnum")?;
-        self.send_cmd(&format!("break {}", consts::AMYCHARACTER_EXECFORCEDUNCROUCH))?;
+        self.send_cmd(&format!("break *{:#}", consts::AMYCHARACTER_EXECFORCEDUNCROUCH))?;
         self.send_cmd("call $newgamebp = $bpnum")?;
         self.send_cmd("disable $newgamebp")?;
         self.send_cmd("disable $tickbp").map(|_| ())
@@ -50,15 +50,15 @@ impl Tas {
     }
 
     pub fn press_key(&mut self, key: char) -> Result<()> {
-        self.send_cmd(&format!("call {0}($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYDOWN, key as u8)).map(|_| ())
+        self.send_cmd(&format!("call ((void(*)(void*, int, int, int)){0})($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYDOWN, key as u8)).map(|_| ())
     }
 
     pub fn release_key(&mut self, key: char) -> Result<()> {
-        self.send_cmd(&format!("call {0}($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYUP, key as u8)).map(|_| ())
+        self.send_cmd(&format!("call ((void(*)(void*, int, int, int)){0})($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYUP, key as u8)).map(|_| ())
     }
 
     pub fn move_mouse(&mut self, x: i32, y: i32) -> Result<()> {
-        self.send_cmd(&format!("call {}($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
+        self.send_cmd(&format!("call ((void(*)(void*, int, int)){})($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
     }
 
     pub fn wait_for_new_game(&mut self) -> Result<()> {
