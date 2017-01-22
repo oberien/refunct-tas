@@ -55,6 +55,6 @@ fn pidof() -> u32 {
         .expect("Cannot get pid of Refunct");
     let s = String::from_utf8(output.stdout).expect("Output of pidof is not utf8");
     let mut lines = s.lines();
-    assert_eq!(lines.next(), Some("ProcessId"), "could not get pid of Refunct");
-    lines.next().expect("No line containing pid").parse().expect("Pidof returned non-number")
+    assert_eq!(lines.next().map(|s| s.trim()), Some("ProcessId"), "could not get pid of Refunct");
+    lines.next().expect("No line containing pid").trim().parse().expect("Pidof returned non-number")
 }
