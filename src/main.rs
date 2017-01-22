@@ -18,6 +18,10 @@ use tas::Tas;
 use config::Inputs;
 
 fn main() {
+    // set gdb path
+    if cfg!(windows) {
+        ::std::env::set_var("GDB_BINARY", "./gdb.exe");
+    }
     let pid = pidof();
     println!("pid: {}", pid);
 
