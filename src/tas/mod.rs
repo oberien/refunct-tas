@@ -109,7 +109,6 @@ impl Tas {
 
             // press ESC
             if frame.esc {
-                println!("ESC");
                  self.press_key(0x1b as char)?;
             }
 
