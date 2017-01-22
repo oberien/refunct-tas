@@ -107,6 +107,12 @@ impl Tas {
 
             last = frame.clone();
 
+            // press ESC
+            if frame.esc {
+                println!("ESC");
+                 self.press_key(0x1b as char)?;
+            }
+
             // mouse movements
             if frame.mouse_x != 0 || frame.mouse_y != 0 {
                  self.move_mouse(frame.mouse_x, frame.mouse_y)?;

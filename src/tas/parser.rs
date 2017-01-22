@@ -8,18 +8,20 @@ pub struct Frame {
     pub left: bool,
     pub right: bool,
     pub jump: bool,
+    pub esc: bool,
     pub mouse_x: i32,
     pub mouse_y: i32,
 }
 
 impl Frame {
-    pub fn new(forward: bool, backward: bool, left: bool, right: bool, jump: bool, mouse_x: i32, mouse_y: i32) -> Frame {
+    pub fn new(forward: bool, backward: bool, left: bool, right: bool, jump: bool, esc: bool, mouse_x: i32, mouse_y: i32) -> Frame {
         Frame {
             forward: forward,
             backward: backward,
             left: left,
             right: right,
             jump: jump,
+            esc: esc,
             mouse_x: mouse_x,
             mouse_y: mouse_y,
         }
@@ -65,6 +67,12 @@ pub fn parse_lines<B: BufRead>(lines: Lines<B>, inputs: &Inputs) -> Vec<Frame> {
             let mut split = mouse.split(|c| c == ' ' || c == ':');
             frame.mouse_x = split.next().map(|x| x.parse().expect(&format!("Line {}: cannot convert {} to number", i, x))).unwrap_or(0);
             frame.mouse_y = split.next().map(|y| y.parse().expect(&format!("Line {}: cannot convert {} to number", i, y))).unwrap_or(0);
+        }
+
+        // check if ESC should be pressed
+        if let Some(esc) = split.next() {
+            assert_eq!(esc, "ESC", "Line {}: expected `ESC`", i);
+            frame.esc = true;
         }
         frames.push(frame);
     }
