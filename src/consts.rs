@@ -15,28 +15,28 @@ pub const APP_DELTATIME: usize = 0x2239A68;
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_TICK: usize = 0x1cd13f0;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_TICK: usize = 0x730560;
+pub const FSLATEAPPLICATION_TICK: usize = 0x730be0;
 // AMyCharacter::ForcedUnCrouch(AMyCharacter *__hidden this)
 // _ZN12AMyCharacter14ForcedUnCrouchEv
 #[cfg(unix)]
 pub const AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0x192b0a0;
 #[cfg(windows)]
-pub const AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0x5005D0;
+pub const AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0x500840;
 // FSlateApplication::OnKeyDown(FSlateApplication *this, unsigned int, unsigned int, bool)
 // _ZN17FSlateApplication9OnKeyDownEijb
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x1ce0b10;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x721090;
+pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x721750;
 // FSlateApplication::OnKeyUp(FSlateApplication *this, unsigned int, unsigned int, bool)
 // _ZN17FSlateApplication7OnKeyUpEijb
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x1ce1c40;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x721230;
+pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x7218f0;
 // FSlateApplication::OnRawMouseMove(FSlateApplication *this, int, int)
 // _ZN17FSlateApplication14OnRawMouseMoveEii
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x1ce9cd0;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x721F50;
+pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x722610;
