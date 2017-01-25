@@ -5,7 +5,7 @@ pub use self::parser::parse_lines;
 
 use gdb::Debugger;
 use error::*;
-use config::Inputs;
+use config::Ingame;
 use consts;
 
 pub struct Tas {
@@ -67,7 +67,7 @@ impl Tas {
         self.send_cmd("disable $newgamebp").map(|_| ())
     }
 
-    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Inputs) -> Result<()> {
+    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Ingame) -> Result<()> {
         self.send_cmd("enable $tickbp")?;
         let mut last = Frame::default();
         for frame in frames {

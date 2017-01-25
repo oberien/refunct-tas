@@ -6,7 +6,13 @@ use toml::{Parser, Decoder, Value};
 use rustc_serialize::Decodable;
 
 #[derive(Debug, RustcDecodable)]
-pub struct Inputs {
+pub struct Config {
+    pub infile: Infile,
+    pub ingame: Ingame,
+}
+
+#[derive(Debug, RustcDecodable)]
+pub struct Infile {
     pub forward: char,
     pub backward: char,
     pub left: char,
@@ -14,8 +20,17 @@ pub struct Inputs {
     pub jump: char,
 }
 
-impl Inputs {
-    pub fn load<P: AsRef<Path>>(path: P) -> Inputs {
+#[derive(Debug, RustcDecodable)]
+pub struct Ingame {
+    pub forward: char,
+    pub backward: char,
+    pub left: char,
+    pub right: char,
+    pub jump: char,
+}
+
+impl Config {
+    pub fn load<P: AsRef<Path>>(path: P) -> Config {
         let mut config = String::new();
         {
             let mut config_file = File::open(path).expect("Failed to open config file");

@@ -1,5 +1,5 @@
 use std::io::{Lines, BufRead};
-use config::Inputs;
+use config::Infile;
 
 #[derive(Clone, Debug, Default)]
 pub struct Frame {
@@ -28,7 +28,7 @@ impl Frame {
     }
 }
 
-pub fn parse_lines<B: BufRead>(lines: Lines<B>, inputs: &Inputs) -> Vec<Frame> {
+pub fn parse_lines<B: BufRead>(lines: Lines<B>, inputs: &Infile) -> Vec<Frame> {
     let mut frames: Vec<Frame> = Vec::new();
     for (i, l) in lines.enumerate() {
         let mut l = l.expect(&format!("Line {}: Error reading line", i));

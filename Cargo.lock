@@ -69,7 +69,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "gdb"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rust-gdb#34ce92a21337fee1e63db43076439ddaf3ea1217"
+source = "git+https://github.com/oberien/rust-gdb#3a9b6ddb7bfec25e8675bfca5a8c33c6828ce75a"
 dependencies = [
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.80 (registry+https://github.com/rust-lang/crates.io-index)",
