@@ -29,11 +29,18 @@ fn main() {
 
     let std = ::std::io::stdin();
     let lock = std.lock();
+    println!("Starting parsing...");
     let frames = tas::parse_lines(lock.lines(), &inputs);
+    println!("Parsing finished successfully.");
 
+    println!("Creating tas...");
     let mut tas = Tas::new(pid).unwrap();
+    println!("TaS created successfully.");
     handle_err!(tas.init());
+    println!("TaS initiated successfully.");
+    println!("Waiting for 'New Game'...");
     handle_err!(tas.wait_for_new_game());
+    println!("New Game detected. Starting TaS execution");
     handle_err!(tas.play(&frames, &inputs));
 }
 
