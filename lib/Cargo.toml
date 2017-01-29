@@ -1,0 +1,14 @@
+[package]
+name = "refunct-tas-ingame-lib"
+version = "0.1.0"
+authors = ["oberien <jaro.fietz@gmx.de>"]
+
+[dependencies]
+lazy_static = "0.1.*"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.20"
+
+[lib]
+name = "RTIL"
+crate_type = ["dylib"]
