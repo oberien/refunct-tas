@@ -5,10 +5,12 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 
 [dependencies]
 lazy_static = "0.1.*"
+byteorder = "1.0.0"
+error-chain = "0.8.1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"
 
 [lib]
-name = "RTIL"
+name = "rtil"
 crate_type = ["dylib"]

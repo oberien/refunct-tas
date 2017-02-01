@@ -1,6 +1,7 @@
 use std::slice;
 
 use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
+use byteorder::{WriteBytesExt, LittleEndian};
 
 use consts;
 
@@ -25,12 +26,10 @@ pub fn make_rx(addr: usize) {
 pub fn hook_slateapp() {
     make_rw(consts::FSLATEAPPLICATION_TICK);
     let hook_fn = get_slateapp as *const () as usize;
-    let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut _, 13) }; 
+    let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut u8, 13) }; 
     // mov r14, addr
     tick[..2].copy_from_slice(&[0x49, 0xbe]);
-    for i in 0..8 {
-        tick[2+i] = (hook_fn >> i*8) as u8;
-    }
+    (&mut tick[2..10]).write_u64::<LittleEndian>(hook_fn as u64);
     // jmp r14
     tick[10..].copy_from_slice(&[0x41, 0xff, 0xe6]);
     log!("Injected Code: {:?}", tick);
