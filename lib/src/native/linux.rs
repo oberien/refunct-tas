@@ -4,6 +4,7 @@ use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
 use byteorder::{WriteBytesExt, LittleEndian};
 
 use consts;
+use native::SLATEAPP;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
@@ -29,7 +30,7 @@ pub fn hook_slateapp() {
     let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut u8, 13) }; 
     // mov r14, addr
     tick[..2].copy_from_slice(&[0x49, 0xbe]);
-    (&mut tick[2..10]).write_u64::<LittleEndian>(hook_fn as u64);
+    (&mut tick[2..10]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
     // jmp r14
     tick[10..].copy_from_slice(&[0x41, 0xff, 0xe6]);
     log!("Injected Code: {:?}", tick);
@@ -52,7 +53,7 @@ unsafe extern fn get_slateapp() -> ! {
 #[inline(never)]
 extern fn save_slateapp(this: usize) {
     make_rw(consts::FSLATEAPPLICATION_TICK);
-    *::SLATEAPP.lock().unwrap() = this;
+    *SLATEAPP.lock().unwrap() = this;
     let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut _, 13) }; 
     tick.copy_from_slice(&consts::FSLATEAPPLICATION_TICK_BEGIN);
     make_rx(consts::FSLATEAPPLICATION_TICK);

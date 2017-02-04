@@ -11,6 +11,7 @@ Each packet has variable length.
 The first byte defines which command is sent.
 For each request to the library there will be a response after execution,
   usually indicating success or containing an error code.
+Any unexpected behaviour results in a disconnect.
 
 Endianess of multibyte primitive types is little endian.
 
@@ -24,3 +25,6 @@ Packets from the tool to the lib:
 * `5`: Move the mouse by the following int32 `x` and int32 `y`.
 * `6`: Set all following time deltas between frames to the following float64.
 
+Responses:
+* `0`: Command executed successfully
+* `255`: Unknown command.
