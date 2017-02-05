@@ -1,16 +1,11 @@
 use std::io::Write;
-use std::sync::Mutex;
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::net::{TcpListener, TcpStream};
 
 use byteorder::{ReadBytesExt, LittleEndian};
 
 use error::*;
-
-lazy_static! {
-    pub static ref RECEIVER: Mutex<Option<Receiver<Event>>> = Mutex::new(None);
-    pub static ref SENDER: Mutex<Option<Sender<()>>> = Mutex::new(None);
-}
+use statics::{SENDER, RECEIVER};
 
 pub enum Event {
     Stop,
@@ -44,8 +39,8 @@ pub fn main_loop() -> Result<()> {
         // setup channels
         let (tx, rx) = mpsc::channel();
         let (tx2, rx2) = mpsc::channel();
-        *RECEIVER.lock().unwrap() = Some(rx);
-        *SENDER.lock().unwrap() = Some(tx2);
+        RECEIVER.set(rx);
+        SENDER.set(tx2);
         handler_loop(con, tx, rx2)?;
     }
 }

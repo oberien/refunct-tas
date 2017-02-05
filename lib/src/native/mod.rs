@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use std::sync::mpsc::TryRecvError;
 
 use libc;
@@ -10,12 +9,16 @@ mod windows;
 
 
 #[cfg(unix)]
-use native::linux::*;
+use self::linux::*;
 #[cfg(windows)]
-use native::windows::*;
+use self::windows::*;
 use error::*;
 use consts;
-use loops::{Event, SENDER, RECEIVER};
+use loops::Event;
+use statics::{Static, SENDER, RECEIVER};
+
+#[cfg(unix)]
+pub use self::linux::INITIALIZE_CTOR;
 
 struct State {
     typ: StateType,
@@ -28,8 +31,8 @@ enum StateType {
 }
 
 lazy_static! {
-    static ref SLATEAPP: Mutex<usize> = Mutex::new(0);
-    static ref STATE: Mutex<State> = Mutex::new(State { typ: StateType::Stopping, delta: 1.0/60.0 });
+    static ref SLATEAPP: Static<usize> = Static::new();
+    static ref STATE: Static<State> = Static::from(State { typ: StateType::Stopping, delta: 1.0/60.0 });
 }
 
 pub fn init() {
@@ -41,16 +44,16 @@ pub struct FSlateApplication;
 impl FSlateApplication {
     pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
         let fun: unsafe extern fn(this: libc::uintptr_t, key_code: libc::int32_t, character_code: libc::uint32_t, is_repeat: libc::uint32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYDOWN);
-        fun(*SLATEAPP.lock().unwrap(), key_code, character_code, is_repeat as u32)
+        fun(*SLATEAPP.get(), key_code, character_code, is_repeat as u32)
     }
     pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
         let fun: unsafe extern fn(this: libc::uintptr_t, key_code: libc::int32_t, character_code: libc::uint32_t, is_repeat: libc::uint32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYUP);
-        fun(*SLATEAPP.lock().unwrap(), key_code, character_code, is_repeat as u32)
+        fun(*SLATEAPP.get(), key_code, character_code, is_repeat as u32)
     }
 
     pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
         let fun: unsafe extern fn(this: libc::uintptr_t, x: libc::int32_t, y: libc::int32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE);
-        fun(*SLATEAPP.lock().unwrap(), x, y)
+        fun(*SLATEAPP.get(), x, y)
     }
 }
 
@@ -66,11 +69,11 @@ pub unsafe fn tick_intercept() {
 }
 
 unsafe fn tick_internal() -> Result<()> {
-    SENDER.lock().unwrap().as_mut().unwrap().send(()).chain_err(|| "Error during send")?;
-    let mut state = STATE.lock().unwrap();
+    SENDER.get().send(()).chain_err(|| "Error during send")?;
+    let mut state = STATE.get();
     let event = match state.typ {
         StateType::Running => {
-            match RECEIVER.lock().unwrap().as_mut().unwrap().try_recv() {
+            match RECEIVER.get().try_recv() {
                 Ok(evt) => evt,
                 Err(TryRecvError::Empty) => {
                     set_delta(state.delta);
@@ -79,7 +82,7 @@ unsafe fn tick_internal() -> Result<()> {
                 err => err.chain_err(|| "Receiver is disconnected")?
             }
         },
-        StateType::Stopping => RECEIVER.lock().unwrap().as_mut().unwrap().recv().chain_err(|| "Cannot receive")?,
+        StateType::Stopping => RECEIVER.get().recv().chain_err(|| "Cannot receive")?,
     };
     
     match event {

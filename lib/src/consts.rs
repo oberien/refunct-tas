@@ -19,9 +19,7 @@ pub const GENGINE: usize = 0x5B0D740;
 // FSlateApplication::Tick(FSlateApplication *__hidden this)
 // _ZN17FSlateApplication4TickEv
 #[cfg(unix)]
-pub const FSLATEAPPLICATION_TICK: usize = 0x1CD1390;
-#[cfg(unix)]
-pub const FSLATEAPPLICATION_TICK_BEGIN: [u8; 13] = [0x41, 0x56, 0x53, 0x50, 0x48, 0x89, 0xfb, 0x4c, 0x8d, 0xb3, 0xf0, 0x9, 0x0];
+pub const FSLATEAPPLICATION_TICK: usize = 0x1cd1390;
 #[cfg(windows)]
 pub const FSLATEAPPLICATION_TICK: usize = OFFSET + 0x730be0;
 // AMyCharacter::ForcedUnCrouch(AMyCharacter *__hidden this)

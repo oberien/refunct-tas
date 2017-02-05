@@ -11,35 +11,19 @@ extern crate byteorder;
 #[cfg(unix)]
 extern crate libc;
 
-use std::fs::{OpenOptions, File};
-use std::sync::{Mutex, Once, ONCE_INIT};
+use std::sync::{Once, ONCE_INIT};
 use std::thread;
 
-macro_rules! log {
-    () => {{
-        use ::std::io::Write;
-        writeln!(&mut ::LOGFILE.lock().unwrap(), "").unwrap();
-    }};
-    ($fmt:expr) => {{
-        use ::std::io::Write;
-        writeln!(&mut ::LOGFILE.lock().unwrap(), $fmt).unwrap()
-    }};
-    ($fmt:expr, $($vars:tt)*) => {{
-        use ::std::io::Write;
-        writeln!(&mut ::LOGFILE.lock().unwrap(), $fmt, $($vars)*).unwrap()
-    }};
-}
-
 mod error;
+#[macro_use]
+mod statics;
 mod consts;
 mod loops;
 mod native;
 
-lazy_static! {
-    static ref LOGFILE: Mutex<File> = Mutex::new(OpenOptions::new()
-        .create(true).write(true)
-        .open("/tmp/refunct-tas.log").unwrap());
-}
+pub use native::tick_intercept;
+#[cfg(unix)]
+pub use native::INITIALIZE_CTOR;
 
 static INIT: Once = ONCE_INIT;
 
@@ -48,13 +32,16 @@ pub extern fn initialize() {
         let exe = ::std::env::current_exe().unwrap();
         let file = exe.file_name().unwrap();
         if file == "Refunct-Linux-Shipping" {
-            // hook stuff
-            native::init();
             thread::spawn(|| {
-                match loops::main_loop() {
-                    Ok(_) => log!("Main Loop finished successful, exiting..."),
-                    Err(err) => log!("Main Loop experienced an error: {:?}", err)
-                }
+                ::std::thread::sleep(::std::time::Duration::from_secs(5));
+                // hook stuff
+                native::init();
+                thread::spawn(|| {
+                    match loops::main_loop() {
+                        Ok(_) => log!("Main Loop finished successful, exiting..."),
+                        Err(err) => log!("Main Loop experienced an error: {:?}", err)
+                    }
+                });
             });
         }
     });

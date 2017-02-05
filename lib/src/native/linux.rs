@@ -5,12 +5,17 @@ use byteorder::{WriteBytesExt, LittleEndian};
 
 use consts;
 use native::SLATEAPP;
+use statics::Static;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern fn() = ::initialize;
+
+lazy_static! {
+    static ref SLATEAPP_START: Static<[u8; 13]> = Static::new();
+}
 
 pub fn make_rw(addr: usize) {
     let page = addr & !0xfff;
@@ -28,11 +33,17 @@ pub fn hook_slateapp() {
     make_rw(consts::FSLATEAPPLICATION_TICK);
     let hook_fn = get_slateapp as *const () as usize;
     let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut u8, 13) }; 
-    // mov r14, addr
-    tick[..2].copy_from_slice(&[0x49, 0xbe]);
-    (&mut tick[2..10]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
-    // jmp r14
-    tick[10..].copy_from_slice(&[0x41, 0xff, 0xe6]);
+    let mut saved = [0u8; 13];
+    saved[..].copy_from_slice(tick);
+    SLATEAPP_START.set(saved);
+    log!("orig tick: {:?}", tick);
+    // push rax
+    tick[0] = 0x50;
+    // mov rax, addr
+    tick[1..3].copy_from_slice(&[0x48, 0xb8]);
+    (&mut tick[3..11]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
+    // jmp rax
+    tick[11..].copy_from_slice(&[0xff, 0xe0]);
     log!("Injected Code: {:?}", tick);
     make_rx(consts::FSLATEAPPLICATION_TICK);
 }
@@ -41,10 +52,9 @@ pub fn hook_slateapp() {
 unsafe extern fn get_slateapp() -> ! {
     asm!("push rdi" :::: "intel");
     asm!("call r14" :: "{r14}"(save_slateapp as usize) :: "intel");
-    asm!("push rax" :::: "intel");
     asm!(r"
-        pop rax
         pop rdi
+        pop rax
         jmp r14
     ":: "{r14}"(consts::FSLATEAPPLICATION_TICK) :: "intel");
     ::std::intrinsics::unreachable()
@@ -52,10 +62,15 @@ unsafe extern fn get_slateapp() -> ! {
 
 #[inline(never)]
 extern fn save_slateapp(this: usize) {
+    log!("before sleep");
+    ::std::thread::sleep(::std::time::Duration::from_secs(5));
+    log!("after sleep");
     make_rw(consts::FSLATEAPPLICATION_TICK);
-    *SLATEAPP.lock().unwrap() = this;
+    SLATEAPP.set(this);
     let mut tick = unsafe { slice::from_raw_parts_mut(consts::FSLATEAPPLICATION_TICK as *mut _, 13) }; 
-    tick.copy_from_slice(&consts::FSLATEAPPLICATION_TICK_BEGIN);
+    tick.copy_from_slice(&*SLATEAPP_START.get());
     make_rx(consts::FSLATEAPPLICATION_TICK);
     log!("Got FSlateApplication: {:#x}", this);
 }
+
+
