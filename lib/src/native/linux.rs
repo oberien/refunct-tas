@@ -15,6 +15,25 @@ pub static INITIALIZE_CTOR: extern fn() = ::initialize;
 
 lazy_static! {
     static ref SLATEAPP_START: Static<[u8; 12]> = Static::new();
+    static ref UNCROUCH_START: Static<[u8; 12]> = Static::new();
+}
+
+macro_rules! alignstack_pre {
+    () => {{
+        asm!(r"
+            push rbp
+            mov rbp, rsp
+            and rsp, 0xfffffffffffffff0
+        " :::: "intel");
+    }}
+}
+macro_rules! alignstack_post {
+    () => {{
+        asm!(r"
+            mov rsp, rbp
+            pop rbp
+        " :::: "intel");
+    }}
 }
 
 pub fn make_rw(addr: usize) {
@@ -50,15 +69,14 @@ pub fn hook_slateapp() {
 
 #[naked]
 unsafe extern fn get_slateapp() -> ! {
+    // push argument
     asm!("push rdi" :::: "intel");
-    asm!("push rbp" :::: "intel");
-    // align stack
-    asm!("mov rbp, rsp" :::: "intel");
-    asm!("and rsp, 0xfffffffffffffff0" :::: "intel");
+    alignstack_pre!();
+    // call interceptor
     asm!("call rax" :: "{rax}"(save_slateapp as usize) :: "intel");
+    alignstack_post!();
+    // restore everything and jump to original function
     asm!(r"
-        mov rsp, rbp
-        pop rbp
         pop rdi
         jmp rax
     ":: "{rax}"(consts::FSLATEAPPLICATION_TICK) :: "intel");
@@ -73,6 +91,68 @@ extern fn save_slateapp(this: usize) {
     tick.copy_from_slice(&*SLATEAPP_START.get());
     make_rx(consts::FSLATEAPPLICATION_TICK);
     log!("Got FSlateApplication: {:#x}", this);
+}
+
+pub fn hook_newgame() {
+    log!("Hooking AMyCharacter::execForcedUnCrouch");
+    make_rw(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);
+    let hook_fn = new_game as *const () as usize;
+    let mut tick = unsafe { slice::from_raw_parts_mut(consts::AMYCHARACTER_EXECFORCEDUNCROUCH as *mut u8, 12) }; 
+    let mut saved = [0u8; 12];
+    saved[..].copy_from_slice(tick);
+    UNCROUCH_START.set(saved);
+    log!("orig execforceduncrouch: {:?}", tick);
+    // mov rax, addr
+    tick[..2].copy_from_slice(&[0x48, 0xb8]);
+    (&mut tick[2..10]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
+    // jmp rax
+    tick[10..].copy_from_slice(&[0xff, 0xe0]);
+    log!("Injected Code: {:?}", tick);
+    make_rx(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);
+    log!("AMyCharacter::execForcedUnCrouch successfully hooked");
+}
+
+fn restore_newgame() {
+    log!("Restoring AMyCharacter::execForcedUnCrouch");
+    make_rw(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);
+    let hook_fn = new_game as *const () as usize;
+    let mut tick = unsafe { slice::from_raw_parts_mut(consts::AMYCHARACTER_EXECFORCEDUNCROUCH as *mut u8, 12) }; 
+    tick[..].copy_from_slice(&*UNCROUCH_START.get());
+    make_rx(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);
+    log!("AMyCharacter::execForcedUnCrouch successfully restored");
+}
+
+#[naked]
+unsafe extern fn new_game() -> ! {
+    // push arguments
+    asm!("push rdi" :::: "intel");
+    asm!("push rsi" :::: "intel");
+    alignstack_pre!();
+    // call interceptor
+    asm!("call rax" :: "{rax}"(::native::new_game as usize) :: "intel");
+    // restore original function
+    asm!("call rax" :: "{rax}"(restore_newgame as usize) :: "intel");
+    alignstack_post!();
+    // restore registers
+    asm!(r"
+        pop rsi
+        pop rdi
+    " :::: "intel");
+    alignstack_pre!();
+    // call original function
+    asm!("call rax" :: "{rax}"(consts::AMYCHARACTER_EXECFORCEDUNCROUCH) :: "intel");
+    alignstack_post!();
+    // save rax (return value of original function)
+    asm!("push rax" :::: "intel");
+    alignstack_pre!();
+    // hook method again
+    asm!("call rax" :: "{rax}"(hook_newgame as usize) :: "intel");
+    alignstack_post!();
+    // restore rax
+    asm!("pop rax" :::: "intel");
+    // return to the original caller
+    asm!("ret" :::: "intel");
+    ::std::intrinsics::unreachable()
 }
 
 pub fn hook_tick() {
@@ -95,7 +175,7 @@ pub fn hook_tick() {
 }
 
 #[naked]
-unsafe extern fn tick() {
+unsafe extern fn tick() -> ! {
     // we are inside a function, so we need to push everything
     asm!(r"
         push rax
@@ -124,13 +204,10 @@ unsafe extern fn tick() {
         movdqu [rsp], xmm7
     " :::: "intel");
 
-    // align stack and call our function
-    asm!(r"
-        mov rbp, rsp
-        and rsp, 0xfffffffffffffff0
-        call rax
-        mov rsp, rbp
-    " :: "{rax}"(::native::tick_intercept as usize) :: "intel");
+    alignstack_pre!();
+    // call our function
+    asm!("call rax" :: "{rax}"(::native::tick_intercept as usize) :: "intel");
+    alignstack_post!();
 
     // restore all registers
     asm!(r"
@@ -170,4 +247,5 @@ unsafe extern fn tick() {
         mov rax, $0
         jmp rax
     " :: "i"(consts::FENGINELOOP_TICK_AFTER_UPDATETIME + 14) :: "intel");
+    ::std::intrinsics::unreachable()
 }

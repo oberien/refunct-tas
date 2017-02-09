@@ -1,6 +1,7 @@
 #![feature(asm)]
 #![feature(core_intrinsics)]
 #![feature(naked_functions)]
+#![feature(mpsc_select)]
 
 #[macro_use]
 extern crate error_chain;

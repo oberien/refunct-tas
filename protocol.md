@@ -27,4 +27,7 @@ Packets from the tool to the lib:
 
 Responses:
 * `0`: Command executed successfully
+* `1`: New Game detected
+
+Error Responses:
 * `255`: Unknown command.

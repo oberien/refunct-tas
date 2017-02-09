@@ -14,7 +14,7 @@ use self::linux::*;
 use self::windows::*;
 use error::*;
 use consts;
-use loops::Event;
+use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
 #[cfg(unix)]
@@ -37,6 +37,7 @@ lazy_static! {
 
 pub fn init() {
     hook_slateapp();
+    hook_newgame();
     hook_tick();
 }
 
@@ -63,6 +64,11 @@ unsafe fn set_delta(d: f64) {
     *delta = d;
 }
 
+pub fn new_game() {
+    log!("New Game detected");
+    SENDER.get().send(Response::NewGame).unwrap();
+}
+
 pub unsafe fn tick_intercept() {
     if let Err(err) = tick_internal() {
         log!("Error in tick_intercept: {:?}", err);
@@ -70,7 +76,6 @@ pub unsafe fn tick_intercept() {
 }
 
 unsafe fn tick_internal() -> Result<()> {
-    SENDER.get().send(()).chain_err(|| "Error during send")?;
     let mut state = STATE.get();
     let event = match state.typ {
         StateType::Running => {
@@ -83,7 +88,10 @@ unsafe fn tick_internal() -> Result<()> {
                 err => err.chain_err(|| "Receiver is disconnected")?
             }
         },
-        StateType::Stopping => RECEIVER.get().recv().chain_err(|| "Cannot receive")?,
+        StateType::Stopping => {
+            SENDER.get().send(Response::Stopped).chain_err(|| "Error during send")?;
+            RECEIVER.get().recv().chain_err(|| "Cannot receive")?
+        },
     };
     
     match event {
@@ -102,4 +110,3 @@ unsafe fn tick_internal() -> Result<()> {
     Ok(())
 }
 // TODO: detect game starts
-// TODO: hook tick method

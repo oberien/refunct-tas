@@ -1,3 +1,4 @@
+use std::thread;
 use std::io::Write;
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::net::{TcpListener, TcpStream};
@@ -15,6 +16,11 @@ pub enum Event {
     Release(i32),
     Mouse(i32, i32),
     SetDelta(f64),
+}
+
+pub enum Response {
+    Stopped,
+    NewGame,
 }
 
 pub fn main_loop() -> Result<()> {
@@ -45,18 +51,47 @@ pub fn main_loop() -> Result<()> {
     }
 }
 
-pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<()>) -> Result<()> {
+pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<Response>) -> Result<()> {
+    let mut stopping = false;
+    let (contx, conrx) = mpsc::channel();
+    let (stoptx, stoprx) = mpsc::channel();
+    let mut con2 = con.try_clone().unwrap();
+    // channel-thread
+    thread::spawn(move || {
+        loop {
+            select! {
+                res = rx.recv() => match res.unwrap() {
+                    Response::NewGame => con2.write_all(&[1]).unwrap(),
+                    Response::Stopped => contx.send(()).unwrap(),
+                },
+                _ = stoprx.recv() => return
+            }
+        }
+    });
     loop {
-        let cmd = con.read_u8()?;
+        // if we are stopping, wait for the next tick
+        if stopping {
+            conrx.recv()?;
+        }
+        // if the TcpStream has an error, inform the channel-thread
+        let cmd = match con.read_u8() {
+            Ok(val) => val,
+            Err(err) => {
+                stoptx.send(()).unwrap();
+                return Err(err.into());
+            }
+        };
         match cmd {
             0 => {
                 tx.send(Event::Stop).chain_err(|| "error during send")?;
+                stopping = true;
             },
             1 => {
                 tx.send(Event::Step).chain_err(|| "error during send")?;
             },
             2 => {
                 tx.send(Event::Continue).chain_err(|| "error during send")?;
+                stopping = false;
             },
             3 => {
                 let key = con.read_i32::<LittleEndian>()?;

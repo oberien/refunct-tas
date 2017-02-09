@@ -2,7 +2,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 use std::fs::{File, OpenOptions};
 use std::sync::mpsc::{Sender, Receiver};
-use loops::Event;
+use loops::{Event, Response};
 
 macro_rules! log {
     () => {{
@@ -30,7 +30,7 @@ lazy_static! {
         .create(true).write(true)
         .open("/tmp/refunct-tas.log").unwrap());
     pub static ref RECEIVER: Static<Receiver<Event>> = Static::new();
-    pub static ref SENDER: Static<Sender<()>> = Static::new();
+    pub static ref SENDER: Static<Sender<Response>> = Static::new();
 }
 
 pub struct Static<T> {
