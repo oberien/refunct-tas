@@ -1,13 +1,13 @@
 # Protocol
 
-The protocol used to communicate between the tool and the library is raw bytes
+The protocol used to communicate between the tool and the library uses raw bytes
   sent over a TCP connection.
 The library listens on `localhost:21337` and accepts only one connection at a
   time.
 After one connection is established, the listener no longer waits for another
   connection until the current one is finished.
   
-Each packet has variable length.
+Packets have a variable length.
 The first byte defines which command is sent.
 For each request to the library there will be a response after execution,
   usually indicating success or containing an error code.
