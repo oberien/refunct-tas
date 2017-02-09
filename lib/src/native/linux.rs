@@ -115,7 +115,6 @@ pub fn hook_newgame() {
 fn restore_newgame() {
     log!("Restoring AMyCharacter::execForcedUnCrouch");
     make_rw(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);
-    let hook_fn = new_game as *const () as usize;
     let mut tick = unsafe { slice::from_raw_parts_mut(consts::AMYCHARACTER_EXECFORCEDUNCROUCH as *mut u8, 12) }; 
     tick[..].copy_from_slice(&*UNCROUCH_START.get());
     make_rx(consts::AMYCHARACTER_EXECFORCEDUNCROUCH);

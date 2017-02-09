@@ -1,6 +1,14 @@
 error_chain! {
     foreign_links {
-        Gdb(::gdb::Error);
+        Io(::std::io::Error);
+        Recv(::std::sync::mpsc::RecvError);
+    }
+
+    errors {
+        UnknownCommand {
+            description("Unknown Command")
+            display("Unknown Command")
+        }
     }
 }
 

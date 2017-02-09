@@ -3,72 +3,121 @@ mod parser;
 pub use self::parser::Frame;
 pub use self::parser::parse_lines;
 
-use gdb::Debugger;
+use std::net::TcpStream;
+use std::io::{Read, BufRead, Write};
+
+use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
+
 use error::*;
 use config::Ingame;
-use consts;
 
 pub struct Tas {
-    dbg: Debugger,
+    con: TcpStream,
 }
 
 impl Tas {
-    pub fn new(pid: u32) -> Result<Tas> {
-        let dbg = Debugger::start().chain_err(|| "Cannot start gdb")?;
-        let mut this = Tas {
-            dbg: dbg,
-        };
-        this.send_cmd(&format!("attach {}", pid))?;
-        Ok(this)
+    pub fn new() -> Result<Tas> {
+        let con = TcpStream::connect("localhost:21337")?;
+        Ok(Tas {
+            con: con,
+        })
     }
 
-    fn send_cmd(&mut self, cmd: &str) -> Result<()> {
-        self.dbg.send_cmd_raw(&cmd)
-            .chain_err(|| "Cannot send_cmd").map(|_| ())
+    #[allow(unused)]
+    pub fn test_loop(&mut self) -> Result<()> {
+        let mut con2 = self.con.try_clone().unwrap();
+        ::std::thread::spawn(move || {
+            let stdin = ::std::io::stdin();
+            for line in stdin.lock().lines() {
+                let byte: u8 = line.unwrap().parse().unwrap();
+                con2.write_all(&[byte]).unwrap();
+            }
+        });
+        loop {
+            let mut buf = [0u8; 1];
+            self.con.read_exact(&mut buf)?;
+            println!("received {:?}", buf);
+        }
     }
 
-    pub fn init(&mut self) -> Result<()> {
-        let break_slate = format!("break *{:#}", consts::FSLATEAPPLICATION_TICK);
-        self.send_cmd(&break_slate)?;
-        self.send_cmd("call $slatetickbp = $bpnum")?;
-        self.send_cmd("c")?;
-        self.send_cmd("call $fslateapplication = $rdi")?;
-        self.send_cmd("del $slatetickbp")?;
-        let break_tick = format!("break *{:#}", consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
-        self.send_cmd(&break_tick)?;
-        self.send_cmd("call $tickbp = $bpnum")?;
-        self.send_cmd(&format!("break *{:#}", consts::AMYCHARACTER_EXECFORCEDUNCROUCH))?;
-        self.send_cmd("call $newgamebp = $bpnum")?;
-        self.send_cmd("disable $newgamebp")?;
-        self.send_cmd("disable $tickbp").map(|_| ())
+    pub fn stop(&mut self) -> Result<()> {
+        self.con.write_u8(0)?;
+        self.read_result_until_success().chain_err(|| "Error executing stop")?;
+        Ok(())
     }
 
-    pub fn step(&mut self) -> Result<()> {
-        // set delta float for smooth fps
-        self.send_cmd(&format!("set {{double}} {:#} = {}", consts::APP_DELTATIME, 1f64 / 60f64))?;
-        self.send_cmd("c").map(|_| ())
+    pub fn step(&mut self) -> Result<u8> {
+        self.con.write_u8(1)?;
+        self.read_result()
+    }
+
+    pub fn cont(&mut self) -> Result<()> {
+        self.con.write_u8(2)?;
+        self.read_result_until_success().chain_err(|| "Error executing cont")?;
+        Ok(())
     }
 
     pub fn press_key(&mut self, key: char) -> Result<()> {
-        self.send_cmd(&format!("call ((void(*)(void*, int, int, int)){0})($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYDOWN, key as u8)).map(|_| ())
+        self.con.write_u8(3)?;
+        self.con.write_i32::<LittleEndian>(key as i32)?;
+        self.read_result_until_success().chain_err(|| "Error executing press_key")?;
+        Ok(())
     }
 
     pub fn release_key(&mut self, key: char) -> Result<()> {
-        self.send_cmd(&format!("call ((void(*)(void*, int, int, int)){0})($fslateapplication,{1},{1},0)", consts::FSLATEAPPLICATION_ONKEYUP, key as u8)).map(|_| ())
+        self.con.write_u8(4)?;
+        self.con.write_i32::<LittleEndian>(key as i32)?;
+        self.read_result_until_success().chain_err(|| "Error executing release_key")?;
+        Ok(())
     }
 
     pub fn move_mouse(&mut self, x: i32, y: i32) -> Result<()> {
-        self.send_cmd(&format!("call ((void(*)(void*, int, int)){})($fslateapplication,{},{})", consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE, x, y)).map(|_| ())
+        self.con.write_u8(5)?;
+        self.con.write_i32::<LittleEndian>(x)?;
+        self.con.write_i32::<LittleEndian>(y)?;
+        self.read_result_until_success().chain_err(|| "Error executing move_mouse")?;
+        Ok(())
+    }
+
+    pub fn set_delta(&mut self, delta: f64) -> Result<()> {
+        self.con.write_u8(6)?;
+        self.con.write_f64::<LittleEndian>(delta)?;
+        self.read_result_until_success().chain_err(|| "Error executing set_delta")?;
+        Ok(())
     }
 
     pub fn wait_for_new_game(&mut self) -> Result<()> {
-        self.send_cmd("enable $newgamebp")?;
-        self.send_cmd("c")?;
-        self.send_cmd("disable $newgamebp").map(|_| ())
+        self.stop()?;
+        loop {
+            let res = self.step()?;
+            if res == 1 {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn read_result(&mut self) -> Result<u8> {
+        let res = self.con.read_u8()?;
+        // no error → early return
+        if res != 255 {
+            return Ok(res);
+        }
+        let code = self.con.read_u8()?;
+        match code {
+            0 => Err(ErrorKind::UnknownCommand.into()),
+            _ => unimplemented!()
+        }
+    }
+
+    fn read_result_until_success(&mut self) -> Result<()> {
+        while self.read_result()? != 0 {}
+        Ok(())
     }
 
     pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Ingame) -> Result<()> {
-        self.send_cmd("enable $tickbp")?;
+        self.stop()?;
+        self.set_delta(1.0/60.0)?;
         let mut last = Frame::default();
         for frame in frames {
             // new inputs
@@ -119,7 +168,9 @@ impl Tas {
 
             self.step()?;
         }
-        self.send_cmd("disable $tickbp").map(|_| ())
+        self.set_delta(0.0)?;
+        self.cont()?;
+        Ok(())
     }
 }
 

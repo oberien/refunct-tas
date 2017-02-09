@@ -23,12 +23,12 @@ pub enum Response {
     NewGame,
 }
 
-pub fn main_loop() -> Result<()> {
+pub fn main_loop() {
     let listener = match TcpListener::bind("localhost:21337") {
         Ok(l) => l,
         Err(err) => {
             log!("Cannot bind TcpListener: {:?}", err);
-            return Ok(());
+            return;
         }
     };
     loop {
@@ -44,10 +44,15 @@ pub fn main_loop() -> Result<()> {
             },
             Err(err) => {
                 log!("Cannot accept connection: {:?}", err);
-                return Ok(());
+                return;
             }
         };
-        handler_loop(con, tx, rx2)?;
+        // clear all events that happened before the client connected
+        while let Ok(_) = rx2.try_recv() {}
+        match handler_loop(con, tx, rx2) {
+            Ok(_) => log!("Handler Loop finished successful"),
+            Err(err) => log!("Handler Loop experienced an error: {:?}", err)
+        }
     }
 }
 
@@ -111,7 +116,7 @@ pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<Response
                 tx.send(Event::SetDelta(delta)).chain_err(|| "error during send")?;
             },
             _ => {
-                con.write_all(&[255])?;
+                con.write_all(&[255, 0])?;
                 return Ok(());
             }
         }

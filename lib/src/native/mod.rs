@@ -22,7 +22,7 @@ pub use self::linux::INITIALIZE_CTOR;
 
 struct State {
     typ: StateType,
-    delta: f64,
+    delta: Option<f64>,
 }
 
 enum StateType {
@@ -32,7 +32,7 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
-    static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: 1.0/60.0 });
+    static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
 
 pub fn init() {
@@ -60,6 +60,7 @@ impl FSlateApplication {
 }
 
 unsafe fn set_delta(d: f64) {
+    log!("set_delta: {}", d);
     let mut delta = consts::APP_DELTATIME as *mut u8 as *mut f64;
     *delta = d;
 }
@@ -77,36 +78,65 @@ pub unsafe fn tick_intercept() {
 
 unsafe fn tick_internal() -> Result<()> {
     let mut state = STATE.get();
-    let event = match state.typ {
-        StateType::Running => {
-            match RECEIVER.get().try_recv() {
-                Ok(evt) => evt,
-                Err(TryRecvError::Empty) => {
-                    set_delta(state.delta);
-                    return Ok(());
-                },
-                err => err.chain_err(|| "Receiver is disconnected")?
-            }
-        },
-        StateType::Stopping => {
-            SENDER.get().send(Response::Stopped).chain_err(|| "Error during send")?;
-            RECEIVER.get().recv().chain_err(|| "Cannot receive")?
-        },
-    };
-    
-    match event {
-        Event::Stop => state.typ = StateType::Stopping,
-        Event::Step => return Ok(()),
-        Event::Continue => {
-            state.typ = StateType::Running;
-            return Ok(());
-        },
-        Event::Press(key) => FSlateApplication::on_key_down(key, key as u32, false),
-        Event::Release(key) => FSlateApplication::on_key_up(key, key as u32, false),
-        Event::Mouse(x, y) => FSlateApplication::on_raw_mouse_move(x, y),
-        Event::SetDelta(delta) => state.delta = delta,
+    loop {
+        let event = match state.typ {
+            StateType::Running => {
+                match RECEIVER.get().try_recv() {
+                    Ok(evt) => evt,
+                    Err(TryRecvError::Empty) => {
+                        if let Some(delta) = state.delta {
+                            set_delta(delta);
+                        }
+                        break;
+                    },
+                    err => err.chain_err(|| "Receiver is disconnected")?
+                }
+            },
+            StateType::Stopping => {
+                SENDER.get().send(Response::Stopped).chain_err(|| "Error during send")?;
+                RECEIVER.get().recv().chain_err(|| "Cannot receive")?
+            },
+        };
+        
+        match event {
+            Event::Stop => {
+                log!("Received stop");
+                state.typ = StateType::Stopping
+            },
+            Event::Step => {
+                log!("Received step");
+                break;
+            },
+            Event::Continue => {
+                log!("Received continue");
+                state.typ = StateType::Running;
+                break;
+            },
+            Event::Press(key) => {
+                log!("Received press {}", key);
+                FSlateApplication::on_key_down(key, key as u32, false)
+            },
+            Event::Release(key) => {
+                log!("Received release {}", key);
+                FSlateApplication::on_key_up(key, key as u32, false)
+            },
+            Event::Mouse(x, y) => {
+                log!("Received mouse {}:{}", x, y);
+                FSlateApplication::on_raw_mouse_move(x, y)
+            },
+            Event::SetDelta(delta) => {
+                log!("Received setDelta {}", delta);
+                if delta == 0.0 {
+                    state.delta = None;
+                } else {
+                    state.delta = Some(delta);
+                }
+            },
+        }
     }
-    set_delta(state.delta);
+    if let Some(delta) = state.delta {
+        set_delta(delta);
+    }
     Ok(())
 }
 // TODO: detect game starts

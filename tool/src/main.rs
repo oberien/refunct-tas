@@ -1,12 +1,11 @@
-extern crate gdb;
 #[macro_use]
 extern crate error_chain;
 extern crate toml;
 extern crate rustc_serialize;
+extern crate byteorder;
 
 #[macro_use]
 mod error;
-mod consts;
 mod tas;
 mod config;
 mod pidof;
@@ -31,15 +30,14 @@ fn main() {
     let frames = tas::parse_lines(lock.lines(), &config.infile);
     println!("Parsing finished successfully.");
 
-    println!("Get PID of Refunct...");
-    let pid = pidof::pidof();
-    println!("Got PID: {}", pid);
+    //println!("Get PID of Refunct...");
+    //let pid = pidof::pidof();
+    //println!("Got PID: {}", pid);
 
     println!("Create tas...");
-    let mut tas = Tas::new(pid).unwrap();
+    let mut tas = Tas::new().unwrap();
     println!("TaS created successfully.");
-    handle_err!(tas.init());
-    println!("TaS initiated successfully.");
+    //handle_err!(tas.test_loop())
     println!("Wait for click on 'New Game'...");
     handle_err!(tas.wait_for_new_game());
     println!("New Game detected. Starting TaS execution");

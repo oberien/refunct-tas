@@ -38,10 +38,8 @@ pub extern fn initialize() {
                 // hook stuff
                 native::init();
                 thread::spawn(|| {
-                    match loops::main_loop() {
-                        Ok(_) => log!("Main Loop finished successful, exiting..."),
-                        Err(err) => log!("Main Loop experienced an error: {:?}", err)
-                    }
+                    loops::main_loop();
+                    unreachable!();
                 });
             });
         }

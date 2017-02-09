@@ -24,10 +24,12 @@ Packets from the tool to the lib:
 * `4`: Release the key in the following int32.
 * `5`: Move the mouse by the following int32 `x` and int32 `y`.
 * `6`: Set all following time deltas between frames to the following float64.
+        If the given delta is 0, no custom delta will be used.
 
 Responses:
 * `0`: Command executed successfully
 * `1`: New Game detected
+* `255`: Error occured. The error code can be found in the next byte.
 
-Error Responses:
-* `255`: Unknown command.
+Error Codes:
+* `0`: Unknown command.
