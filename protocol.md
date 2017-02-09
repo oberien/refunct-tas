@@ -15,8 +15,7 @@ Any unexpected behaviour results in a disconnect.
 
 Endianess of multibyte primitive types is little endian.
 
-Packets from the tool to the lib:
-
+Requests:
 * `0`: Stop execution before the next frame.
 * `1`: Continue execution until the next frame.
 * `2`: Continue execution without stopping.
