@@ -32,11 +32,12 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
-    static ref STATE: Static<State> = Static::from(State { typ: StateType::Stopping, delta: 1.0/60.0 });
+    static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: 1.0/60.0 });
 }
 
 pub fn init() {
     hook_slateapp();
+    hook_tick();
 }
 
 pub struct FSlateApplication;

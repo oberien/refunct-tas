@@ -6,6 +6,11 @@ pub const OFFSET: usize = -0x60000;
 pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0x1905D98;
 #[cfg(windows)]
 pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize = OFFSET + 0x4E8BCC;
+
+#[cfg(unix)]
+pub const GMALLOC: usize = 0x58d8e20;
+// TODO: windows
+
 // FApp::DeltaTime
 // static variable inside the binary
 #[cfg(unix)]

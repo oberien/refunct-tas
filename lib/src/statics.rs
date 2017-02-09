@@ -7,15 +7,21 @@ use loops::Event;
 macro_rules! log {
     () => {{
         use ::std::io::Write;
-        writeln!(&mut ::statics::LOGFILE.lock().unwrap(), "").unwrap();
+        let mut lock = ::statics::LOGFILE.lock().unwrap();
+        writeln!(&mut lock, "").unwrap();
+        lock.flush().unwrap();
     }};
     ($fmt:expr) => {{
         use ::std::io::Write;
-        writeln!(&mut ::statics::LOGFILE.lock().unwrap(), $fmt).unwrap()
+        let mut lock = ::statics::LOGFILE.lock().unwrap();
+        writeln!(&mut lock, $fmt).unwrap();
+        lock.flush().unwrap();
     }};
     ($fmt:expr, $($vars:tt)*) => {{
         use ::std::io::Write;
-        writeln!(&mut ::statics::LOGFILE.lock().unwrap(), $fmt, $($vars)*).unwrap()
+        let mut lock = ::statics::LOGFILE.lock().unwrap();
+        writeln!(&mut lock, $fmt, $($vars)*).unwrap();
+        lock.flush().unwrap();
     }};
 }
 

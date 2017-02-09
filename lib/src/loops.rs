@@ -26,6 +26,11 @@ pub fn main_loop() -> Result<()> {
         }
     };
     loop {
+        // setup channels
+        let (tx, rx) = mpsc::channel();
+        let (tx2, rx2) = mpsc::channel();
+        RECEIVER.set(rx);
+        SENDER.set(tx2);
         let con = match listener.accept() {
             Ok((con, addr)) => {
                 log!("Got connection from {}", addr);
@@ -36,11 +41,6 @@ pub fn main_loop() -> Result<()> {
                 return Ok(());
             }
         };
-        // setup channels
-        let (tx, rx) = mpsc::channel();
-        let (tx2, rx2) = mpsc::channel();
-        RECEIVER.set(rx);
-        SENDER.set(tx2);
         handler_loop(con, tx, rx2)?;
     }
 }
