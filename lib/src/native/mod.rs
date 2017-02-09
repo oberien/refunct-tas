@@ -60,7 +60,6 @@ impl FSlateApplication {
 }
 
 unsafe fn set_delta(d: f64) {
-    log!("set_delta: {}", d);
     let mut delta = consts::APP_DELTATIME as *mut u8 as *mut f64;
     *delta = d;
 }
