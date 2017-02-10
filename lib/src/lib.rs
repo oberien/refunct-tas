@@ -11,6 +11,10 @@ extern crate byteorder;
 
 #[cfg(unix)]
 extern crate libc;
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
+extern crate kernel32;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;
@@ -25,16 +29,23 @@ mod native;
 pub use native::tick_intercept;
 #[cfg(unix)]
 pub use native::INITIALIZE_CTOR;
+#[cfg(windows)]
+pub use native::DllMain;
 
 static INIT: Once = ONCE_INIT;
 
 pub extern fn initialize() {
     INIT.call_once(|| {
+        log!("initialize");
         let exe = ::std::env::current_exe().unwrap();
         let file = exe.file_name().unwrap();
-        if file == "Refunct-Linux-Shipping" {
+        if cfg!(unix) && file == "Refunct-Linux-Shipping" || cfg!(windows) && file == "Refunct-Win32-Shipping.exe" {
             thread::spawn(|| {
-                ::std::thread::sleep(::std::time::Duration::from_secs(5));
+                log!("Starting initialize");
+                // on Linux we need to wait for the packer to finish
+                if cfg!(unix) {
+                    ::std::thread::sleep(::std::time::Duration::from_secs(5));
+                }
                 // hook stuff
                 native::init();
                 thread::spawn(|| {

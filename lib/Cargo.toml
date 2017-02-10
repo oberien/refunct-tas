@@ -11,6 +11,13 @@ error-chain = "0.8.1"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"
 
+[target.'cfg(windows)'.dependencies]
+winapi = "0.2.8"
+kernel32-sys = "0.2.2"
+
+[build.'cfg(windows)']
+target = "i686-pc-windows-msvc"
+
 [lib]
 name = "rtil"
 crate_type = ["dylib"]

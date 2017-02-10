@@ -26,9 +26,13 @@ macro_rules! log {
 }
 
 lazy_static! {
-    pub static ref LOGFILE: Mutex<File> = Mutex::new(OpenOptions::new()
+    pub static ref LOGFILE: Mutex<File> = {
+        let mut path = ::std::env::temp_dir();
+        path.push("refunct-tas.log");
+        Mutex::new(OpenOptions::new()
         .create(true).write(true)
-        .open("/tmp/refunct-tas.log").unwrap());
+        .open(path).unwrap())
+    };
     pub static ref RECEIVER: Static<Receiver<Event>> = Static::new();
     pub static ref SENDER: Static<Sender<Response>> = Static::new();
 }

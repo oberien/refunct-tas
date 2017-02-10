@@ -3,12 +3,17 @@ extern crate error_chain;
 extern crate toml;
 extern crate rustc_serialize;
 extern crate byteorder;
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
+extern crate kernel32;
 
 #[macro_use]
 mod error;
 mod tas;
 mod config;
-mod pidof;
+#[cfg(windows)]
+mod inject;
 
 use std::io::BufRead;
 
@@ -16,9 +21,12 @@ use tas::Tas;
 use config::Config;
 
 fn main() {
-    // set gdb path
+    // inject dll
     if cfg!(windows) {
-        ::std::env::set_var("GDB_BINARY", "./gdb.exe");
+        inject::inject();
+        println!("DLL Injected");
+        // TODO: remove
+        ::std::thread::sleep(::std::time::Duration::from_secs(5));
     }
     println!("Read config...");
     let config = Config::load("Config.toml");
