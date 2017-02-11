@@ -33,8 +33,9 @@ fn main() {
 
     let mut tas;
 
-    // inject dll
-    if cfg!(windows) {
+    #[cfg(windows)]
+    {
+        // inject dll
         println!("Testing if DLL is already injected");
         match Tas::new() {
             Ok(val) => {
@@ -50,7 +51,9 @@ fn main() {
                 println!("TaS created successfully.");
             }
         }
-    } else {
+    }
+    #[cfg(unix)]
+    {
         println!("Create tas...");
         tas = Tas::new().unwrap();
         println!("TaS created successfully.");

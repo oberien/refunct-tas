@@ -36,20 +36,17 @@ lazy_static! {
 }
 
 pub fn init() {
-    if cfg!(windows) {
-        windows::init();
-    }
+    #[cfg(windows)] windows::init();
     hook_slateapp();
     hook_newgame();
     hook_tick();
 }
 
 unsafe fn set_delta(d: f64) {
-    let mut delta = if cfg!(unix) {
-        consts::APP_DELTATIME as *mut u8 as *mut f64
-    } else {
-        windows::APP_DELTATIME as *mut u8 as *mut f64
-    };
+    #[cfg(unix)] 
+    let mut delta = consts::APP_DELTATIME as *mut u8 as *mut f64;
+    #[cfg(windows)]
+    let mut delta = windows::APP_DELTATIME as *mut u8 as *mut f64;
     *delta = d;
 }
 
