@@ -1,7 +1,8 @@
 use std::slice;
 use std::ptr::null;
 
-use winapi::{self, c_void};
+use winapi::c_void;
+use winapi::minwindef::BOOL;
 use winapi::winnt::{PAGE_READWRITE, PAGE_EXECUTE_READ};
 use kernel32::{VirtualProtect, GetModuleHandleA};
 use byteorder::{WriteBytesExt, LittleEndian};
@@ -11,8 +12,10 @@ use native::SLATEAPP;
 use statics::Static;
 
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/123333-demo-pure-rust-internal-coding.html
-#[no_mangle]
 // Entry Point
+#[no_mangle]
+#[allow(non_snake_case)]
+#[allow(unused_variables)]
 pub extern "stdcall" fn DllMain(module: u32, reason: u32, reserved: *mut c_void) {
     match reason {
         1 => ::initialize(),
@@ -26,6 +29,7 @@ lazy_static! {
     static ref BASE: usize = unsafe { GetModuleHandleA(null()) as usize };
 }
 
+pub static mut FSLATEAPPLICATION: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
 pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0;
 pub static mut FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0;
@@ -48,23 +52,35 @@ pub fn init() {
     }
 }
 
-macro_rules! alignstack_pre {
-    () => {{
-        asm!(r"
-            push ebp
-            mov ebp, esp
-            and esp, 0xfffffffffffffff0
-        " :::: "intel");
-    }}
+pub struct FSlateApplication;
+
+impl FSlateApplication {
+    pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
+        // set arguments
+        asm!("push ecx" :: "{ecx}"(is_repeat as BOOL) :: "intel");
+        asm!("push ecx" :: "{ecx}"(character_code) :: "intel");
+        asm!("push ecx" :: "{ecx}"(key_code) :: "intel");
+        // call function with thiscall
+        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONKEYDOWN as usize) :: "intel");
+    }
+    pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
+        // set arguments
+        asm!("push ecx" :: "{ecx}"(is_repeat as BOOL) :: "intel");
+        asm!("push ecx" :: "{ecx}"(character_code) :: "intel");
+        asm!("push ecx" :: "{ecx}"(key_code) :: "intel");
+        // call function with thiscall
+        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONKEYUP as usize) :: "intel");
+    }
+
+    pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
+        // set arguments
+        asm!("push ecx" :: "{ecx}"(y) :: "intel");
+        asm!("push ecx" :: "{ecx}"(x) :: "intel");
+        // call function with thiscall
+        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONRAWMOUSEMOVE as usize) :: "intel");
+    }
 }
-macro_rules! alignstack_post {
-    () => {{
-        asm!(r"
-            mov esp, ebp
-            pop ebp
-        " :::: "intel");
-    }}
-}
+
 macro_rules! pushall {
     () => {{
         asm!(r"
@@ -147,7 +163,6 @@ pub fn hook_slateapp() {
 }
 
 #[inline(never)]
-#[no_mangle]
 #[naked]
 unsafe extern fn get_slateapp() -> ! {
     // push argument
@@ -164,12 +179,12 @@ unsafe extern fn get_slateapp() -> ! {
 }
 
 #[inline(never)]
-#[no_mangle]
 extern fn save_slateapp(this: usize) {
     log!("save_slateapp");
     let addr = unsafe { FSLATEAPPLICATION_TICK };
     make_rw(addr);
-    SLATEAPP.set(this);
+    SLATEAPP.set(this + 0x3c);
+    unsafe { FSLATEAPPLICATION = this + 0x3c };
     let mut tick = unsafe { slice::from_raw_parts_mut(addr as *mut _, 7) }; 
     tick.copy_from_slice(&*SLATEAPP_START.get());
     make_rx(addr);
@@ -194,38 +209,6 @@ pub extern fn hook_newgame() {
     log!("Injected Code: {:?}", tick);
     make_rx(addr);
     log!("AMyCharacter::execForcedUnCrouch successfully hooked");
-}
-
-extern fn restore_newgame() {
-    log!("Restoring AMyCharacter::execForcedUnCrouch");
-    let addr = unsafe { AMYCHARACTER_EXECFORCEDUNCROUCH };
-    make_rw(addr);
-    let mut tick = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) }; 
-    tick[..].copy_from_slice(&*UNCROUCH_START.get());
-    make_rx(addr);
-    log!("AMyCharacter::execForcedUnCrouch successfully restored");
-}
-
-extern fn print0() {
-    log!("0");
-}
-extern fn print1() {
-    log!("1");
-}
-extern fn print2() {
-    log!("2");
-}
-extern fn print_arg(val: usize) {
-    log!("arg: {:#x}", val);
-    //::std::thread::sleep(::std::time::Duration::from_secs(5000));
-}
-unsafe extern fn print_more(ecx: usize) {
-    log!("ecx: {:#x}", ecx);
-    log!("[ecx]: {:#x}", *(ecx as *const usize));
-    log!("[ecx+0x2fc]: {:#x}", *((ecx+0x2fc) as *const usize));
-    log!("[[ecx+0x2fc]]: {:#x}", **((ecx+0x2fc) as *const *const usize));
-    log!("[[[ecx+0x2fc]]+0x364]: {:#x}", *((**((ecx+0x2fc) as *const *const usize) + 0x364) as *const usize));
-    //::std::thread::sleep(::std::time::Duration::from_secs(5000));
 }
 
 #[naked]

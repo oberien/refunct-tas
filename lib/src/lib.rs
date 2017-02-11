@@ -47,7 +47,9 @@ pub extern fn initialize() {
                     ::std::thread::sleep(::std::time::Duration::from_secs(5));
                 }
                 // start main loop, which internally spawns a new thread
-                loops::main_loop();
+                if let Err(err) = loops::main_loop() {
+                    panic!("Got error trying to start the main_loop");
+                }
                 // hook stuff
                 native::init();
             });

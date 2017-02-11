@@ -59,7 +59,6 @@ pub fn main_loop() -> Result<()> {
                 Err(err) => log!("Handler Loop experienced an error: {:?}", err)
             }
         }
-        unreachable!();
     });
     Ok(())
 }

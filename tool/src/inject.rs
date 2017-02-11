@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::path::Path;
 use std::ffi::CString;
 use std::ptr::null_mut;
 use std::mem;
@@ -17,7 +18,12 @@ use winapi::winnt::{PROCESS_ALL_ACCESS, MEM_RESERVE, MEM_COMMIT, PAGE_READWRITE}
 // http://resources.infosecinstitute.com/using-createremotethread-for-dll-injection-on-windows/
 pub fn inject() {
     unsafe {
-        let lib = CString::new("C:\\Users\\black\\workspace\\refunct-tas\\lib\\target\\i686-pc-windows-msvc\\debug\\rtil.dll").unwrap();
+        let rtil = ::std::env::var("RTIL").unwrap_or("./rtil.dll".to_string());
+        let path = Path::new(&rtil);
+        let absolute = path.canonicalize().unwrap();
+        let s = absolute.to_str().unwrap();
+        println!("Trying to inject {}", s);
+        let lib = CString::new(s).unwrap();
         let pid = pidof();
         let handle = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
         if handle.is_null() {

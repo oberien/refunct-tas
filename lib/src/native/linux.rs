@@ -1,6 +1,6 @@
 use std::slice;
 
-use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
+use libc::{self, c_void, uintptr_t, int32_t, uint32_t, PROT_READ, PROT_WRITE, PROT_EXEC};
 use byteorder::{WriteBytesExt, LittleEndian};
 
 use consts;
@@ -16,6 +16,27 @@ pub static INITIALIZE_CTOR: extern fn() = ::initialize;
 lazy_static! {
     static ref SLATEAPP_START: Static<[u8; 12]> = Static::new();
     static ref UNCROUCH_START: Static<[u8; 12]> = Static::new();
+}
+
+pub struct FSlateApplication;
+
+impl FSlateApplication {
+    pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
+        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYDOWN);
+        fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
+    }
+    pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
+        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYUP);
+        fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
+    }
+
+    pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
+        let fun: unsafe extern fn(this: uintptr_t, x: int32_t, y: int32_t) =
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE);
+        fun(*SLATEAPP.get() as uintptr_t, x, y)
+    }
 }
 
 macro_rules! alignstack_pre {
