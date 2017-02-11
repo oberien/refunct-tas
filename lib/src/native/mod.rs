@@ -16,6 +16,11 @@ use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
 #[cfg(unix)]
+use libc::{uintptr_t, int32_t, uint32_t};
+#[cfg(windows)]
+use winapi::basetsd::{UINT_PTR as uintptr_t, INT32 as int32_t, UINT32 as uint32_t};
+
+#[cfg(unix)]
 pub use self::linux::INITIALIZE_CTOR;
 #[cfg(windows)]
 pub use self::windows::DllMain;
@@ -25,6 +30,7 @@ struct State {
     delta: Option<f64>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum StateType {
     Running,
     Stopping,
@@ -40,30 +46,49 @@ pub fn init() {
         windows::init();
     }
     hook_slateapp();
-    //hook_newgame();
-    //hook_tick();
+    hook_newgame();
+    hook_tick();
 }
 
 pub struct FSlateApplication;
 
-//impl FSlateApplication {
-    //pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
-        //let fun: unsafe extern fn(this: libc::uintptr_t, key_code: libc::int32_t, character_code: libc::uint32_t, is_repeat: libc::uint32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYDOWN);
-        //fun(*SLATEAPP.get(), key_code, character_code, is_repeat as u32)
-    //}
-    //pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
-        //let fun: unsafe extern fn(this: libc::uintptr_t, key_code: libc::int32_t, character_code: libc::uint32_t, is_repeat: libc::uint32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYUP);
-        //fun(*SLATEAPP.get(), key_code, character_code, is_repeat as u32)
-    //}
+impl FSlateApplication {
+    pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
+        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+            if cfg!(unix) {
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYDOWN)
+            } else {
+                ::std::mem::transmute(windows::FSLATEAPPLICATION_ONKEYDOWN)
+            };
+        fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
+    }
+    pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
+        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+            if cfg!(unix) {
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONKEYUP)
+            } else {
+                ::std::mem::transmute(windows::FSLATEAPPLICATION_ONKEYUP)
+            };
+        fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
+    }
 
-    //pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
-        //let fun: unsafe extern fn(this: libc::uintptr_t, x: libc::int32_t, y: libc::int32_t) = ::std::mem::transmute(consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE);
-        //fun(*SLATEAPP.get(), x, y)
-    //}
-//}
+    pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
+        let fun: unsafe extern fn(this: uintptr_t, x: int32_t, y: int32_t) =
+            if cfg!(unix) {
+                ::std::mem::transmute(consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE)
+            } else {
+                ::std::mem::transmute(windows::FSLATEAPPLICATION_ONRAWMOUSEMOVE)
+            };
+        fun(*SLATEAPP.get() as uintptr_t, x, y)
+    }
+}
 
 unsafe fn set_delta(d: f64) {
-    let mut delta = consts::APP_DELTATIME as *mut u8 as *mut f64;
+    let mut delta = if cfg!(unix) {
+        consts::APP_DELTATIME as *mut u8 as *mut f64
+    } else {
+        windows::APP_DELTATIME as *mut u8 as *mut f64
+    };
     *delta = d;
 }
 
@@ -114,18 +139,18 @@ unsafe fn tick_internal() -> Result<()> {
                 state.typ = StateType::Running;
                 break;
             },
-            //Event::Press(key) => {
-                //log!("Received press {}", key);
-                //FSlateApplication::on_key_down(key, key as u32, false)
-            //},
-            //Event::Release(key) => {
-                //log!("Received release {}", key);
-                //FSlateApplication::on_key_up(key, key as u32, false)
-            //},
-            //Event::Mouse(x, y) => {
-                //log!("Received mouse {}:{}", x, y);
-                //FSlateApplication::on_raw_mouse_move(x, y)
-            //},
+            Event::Press(key) => {
+                log!("Received press {}", key);
+                FSlateApplication::on_key_down(key, key as u32, false)
+            },
+            Event::Release(key) => {
+                log!("Received release {}", key);
+                FSlateApplication::on_key_up(key, key as u32, false)
+            },
+            Event::Mouse(x, y) => {
+                log!("Received mouse {}:{}", x, y);
+                FSlateApplication::on_raw_mouse_move(x, y)
+            },
             Event::SetDelta(delta) => {
                 log!("Received setDelta {}", delta);
                 if delta == 0.0 {
@@ -134,11 +159,11 @@ unsafe fn tick_internal() -> Result<()> {
                     state.delta = Some(delta);
                 }
             },
-            _ => unimplemented!()
         }
     }
     if let Some(delta) = state.delta {
         set_delta(delta);
     }
+    //::std::thread::sleep(::std::time::Duration::from_secs(5000));
     Ok(())
 }

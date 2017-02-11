@@ -8,6 +8,7 @@ use byteorder::{ReadBytesExt, LittleEndian};
 use error::*;
 use statics::{SENDER, RECEIVER};
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     Stop,
     Step,
@@ -23,37 +24,44 @@ pub enum Response {
     NewGame,
 }
 
-pub fn main_loop() {
+pub fn main_loop() -> Result<()> {
+    log!("Starting TCPListener");
     let listener = match TcpListener::bind("localhost:21337") {
         Ok(l) => l,
         Err(err) => {
-            log!("Cannot bind TcpListener: {:?}", err);
-            return;
+            return Err(err).chain_err(|| format!("Cannot bind TcpListener"));
         }
     };
-    loop {
-        // setup channels
-        let (tx, rx) = mpsc::channel();
-        let (tx2, rx2) = mpsc::channel();
-        RECEIVER.set(rx);
-        SENDER.set(tx2);
-        let con = match listener.accept() {
-            Ok((con, addr)) => {
-                log!("Got connection from {}", addr);
-                con
-            },
-            Err(err) => {
-                log!("Cannot accept connection: {:?}", err);
-                return;
+    log!("TCPListener is listening");
+    thread::spawn(move || {
+        loop {
+            log!("Setting up channels");
+            // setup channels
+            let (tx, rx) = mpsc::channel();
+            let (tx2, rx2) = mpsc::channel();
+            RECEIVER.set(rx);
+            SENDER.set(tx2);
+            log!("Channels set up");
+            let con = match listener.accept() {
+                Ok((con, addr)) => {
+                    log!("Got connection from {}", addr);
+                    con
+                },
+                Err(err) => {
+                    log!("Cannot accept connection: {:?}", err);
+                    return;
+                }
+            };
+            // clear all events that happened before the client connected
+            while let Ok(_) = rx2.try_recv() {}
+            match handler_loop(con, tx, rx2) {
+                Ok(_) => log!("Handler Loop finished successful"),
+                Err(err) => log!("Handler Loop experienced an error: {:?}", err)
             }
-        };
-        // clear all events that happened before the client connected
-        while let Ok(_) = rx2.try_recv() {}
-        match handler_loop(con, tx, rx2) {
-            Ok(_) => log!("Handler Loop finished successful"),
-            Err(err) => log!("Handler Loop experienced an error: {:?}", err)
         }
-    }
+        unreachable!();
+    });
+    Ok(())
 }
 
 pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<Response>) -> Result<()> {

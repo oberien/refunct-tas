@@ -30,7 +30,7 @@ lazy_static! {
         let mut path = ::std::env::temp_dir();
         path.push("refunct-tas.log");
         Mutex::new(OpenOptions::new()
-        .create(true).write(true)
+        .create(true).write(true).truncate(true)
         .open(path).unwrap())
     };
     pub static ref RECEIVER: Static<Receiver<Event>> = Static::new();

@@ -46,12 +46,10 @@ pub extern fn initialize() {
                 if cfg!(unix) {
                     ::std::thread::sleep(::std::time::Duration::from_secs(5));
                 }
+                // start main loop, which internally spawns a new thread
+                loops::main_loop();
                 // hook stuff
                 native::init();
-                thread::spawn(|| {
-                    loops::main_loop();
-                    unreachable!();
-                });
             });
         }
     });

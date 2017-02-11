@@ -155,7 +155,6 @@ unsafe extern fn new_game() -> ! {
 }
 
 pub fn hook_tick() {
-    ::std::thread::sleep(::std::time::Duration::from_secs(5));
     log!("Hooking FEngineLoop::Tick");
     make_rw(consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
     let hook_fn = tick as *const () as usize;
