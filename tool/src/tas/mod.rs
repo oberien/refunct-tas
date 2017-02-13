@@ -1,7 +1,7 @@
 mod parser;
 
 pub use self::parser::Frame;
-pub use self::parser::parse_lines;
+//pub use self::parser::parse_lines;
 
 use std::net::TcpStream;
 use std::io::{Read, BufRead, Write};
@@ -9,7 +9,7 @@ use std::io::{Read, BufRead, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
 use error::*;
-use config::Ingame;
+use config::Config;
 
 pub struct Tas {
     con: TcpStream,
@@ -115,7 +115,7 @@ impl Tas {
         Ok(())
     }
 
-    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Ingame) -> Result<()> {
+    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Config) -> Result<()> {
         self.stop()?;
         self.set_delta(1.0/60.0)?;
         let mut last = Frame::default();

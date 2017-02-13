@@ -1,13 +1,9 @@
-[infile]
-forward = '↑'
-backward = '↓'
-left = '←'
-right = '→'
-jump = '↷'
-
-[ingame]
 forward = 'v'
 backward = 'i'
 left = 'u'
 right = 'a'
 jump = ' '
+# shift
+crouch = 16
+# esc
+menu = 27

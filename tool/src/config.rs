@@ -5,28 +5,15 @@ use std::io::Read;
 use toml::{Parser, Decoder, Value};
 use rustc_serialize::Decodable;
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, RustcDecodable, Clone)]
 pub struct Config {
-    pub infile: Infile,
-    pub ingame: Ingame,
-}
-
-#[derive(Debug, RustcDecodable)]
-pub struct Infile {
     pub forward: char,
     pub backward: char,
     pub left: char,
     pub right: char,
     pub jump: char,
-}
-
-#[derive(Debug, RustcDecodable)]
-pub struct Ingame {
-    pub forward: char,
-    pub backward: char,
-    pub left: char,
-    pub right: char,
-    pub jump: char,
+    pub crouch: u8,
+    pub menu: u8,
 }
 
 impl Config {
