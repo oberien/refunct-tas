@@ -48,7 +48,7 @@ pub extern fn initialize() {
                 }
                 // start main loop, which internally spawns a new thread
                 if let Err(err) = loops::main_loop() {
-                    panic!("Got error trying to start the main_loop");
+                    panic!("Got error trying to start the main_loop: {:?}", err);
                 }
                 // hook stuff
                 native::init();

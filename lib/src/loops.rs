@@ -1,4 +1,6 @@
 use std::thread;
+use std::time::Duration;
+use std::collections::HashSet;
 use std::io::Write;
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::net::{TcpListener, TcpStream};
@@ -54,16 +56,28 @@ pub fn main_loop() -> Result<()> {
             };
             // clear all events that happened before the client connected
             while let Ok(_) = rx2.try_recv() {}
-            match handler_loop(con, tx, rx2) {
+
+            // setup HashSet containing all currently pressed keys to clean up in the end
+            let mut keys = HashSet::new();
+            match handler_loop(con, &tx, rx2, &mut keys) {
                 Ok(_) => log!("Handler Loop finished successful"),
                 Err(err) => log!("Handler Loop experienced an error: {:?}", err)
             }
+
+            // If an error happened or it's finished, clean up
+            tx.send(Event::Continue).unwrap();
+            tx.send(Event::SetDelta(0.0)).unwrap();
+            for key in keys.iter().cloned() {
+                tx.send(Event::Release(key)).unwrap();
+            }
+            // wait half a second to make sure the mainthread has received all our events
+            thread::sleep(Duration::from_millis(500));
         }
     });
     Ok(())
 }
 
-pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<Response>) -> Result<()> {
+pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: Receiver<Response>, keys: &mut HashSet<i32>) -> Result<()> {
     let mut stopping = false;
     let (contx, conrx) = mpsc::channel();
     let (stoptx, stoprx) = mpsc::channel();
@@ -107,10 +121,12 @@ pub fn handler_loop(mut con: TcpStream, tx: Sender<Event>, rx: Receiver<Response
             },
             3 => {
                 let key = con.read_i32::<LittleEndian>()?;
+                keys.insert(key);
                 tx.send(Event::Press(key)).chain_err(|| "error during send")?;
             },
             4 => {
                 let key = con.read_i32::<LittleEndian>()?;
+                keys.remove(&key);
                 tx.send(Event::Release(key)).chain_err(|| "error during send")?;
             },
             5 => {
