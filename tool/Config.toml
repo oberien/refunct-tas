@@ -3,7 +3,13 @@ backward = 'i'
 left = 'u'
 right = 'a'
 jump = ' '
-# shift
-crouch = 16
+
+# left shift
+# Linux: (1<<30) + 225 = 1073742049
+# Windows: 160
+# For different keys on Windows check out https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+# For Linux try using the ascii key code.
+crouch = 1073742049
+
 # esc
 menu = 27

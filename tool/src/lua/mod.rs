@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+
 use hlua::{self, Lua};
 
 use tas::Tas;
@@ -30,15 +31,15 @@ pub fn init_tas(lua: &mut Lua, outer: Rc<RefCell<Tas>>, config: Config) {
     }));
 }
 
-fn to_key(key: &str, cfg: &Config) -> char {
+fn to_key(key: &str, cfg: &Config) -> i32 {
     match key {
-        "forward" => cfg.forward,
-        "backward" => cfg.backward,
-        "left" => cfg.left,
-        "right" => cfg.right,
-        "jump" => cfg.jump,
-        "crouch" => cfg.crouch as char,
-        "menu" => cfg.menu as char,
+        "forward" => cfg.forward as i32,
+        "backward" => cfg.backward as i32,
+        "left" => cfg.left as i32,
+        "right" => cfg.right as i32,
+        "jump" => cfg.jump as i32,
+        "crouch" => cfg.crouch as i32,
+        "menu" => cfg.menu as i32,
         s => panic!("Unknown key {}", s)
     }
 }

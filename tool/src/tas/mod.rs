@@ -1,15 +1,9 @@
-mod parser;
-
-pub use self::parser::Frame;
-//pub use self::parser::parse_lines;
-
 use std::net::TcpStream;
 use std::io::{Read, BufRead, Write};
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
 use error::*;
-use config::Config;
 
 pub struct Tas {
     con: TcpStream,
@@ -57,16 +51,16 @@ impl Tas {
         Ok(())
     }
 
-    pub fn press_key(&mut self, key: char) -> Result<()> {
+    pub fn press_key(&mut self, key: i32) -> Result<()> {
         self.con.write_u8(3)?;
-        self.con.write_i32::<LittleEndian>(key as i32)?;
+        self.con.write_i32::<LittleEndian>(key)?;
         self.read_result_until_success().chain_err(|| "Error executing press_key")?;
         Ok(())
     }
 
-    pub fn release_key(&mut self, key: char) -> Result<()> {
+    pub fn release_key(&mut self, key: i32) -> Result<()> {
         self.con.write_u8(4)?;
-        self.con.write_i32::<LittleEndian>(key as i32)?;
+        self.con.write_i32::<LittleEndian>(key)?;
         self.read_result_until_success().chain_err(|| "Error executing release_key")?;
         Ok(())
     }
@@ -112,64 +106,6 @@ impl Tas {
 
     fn read_result_until_success(&mut self) -> Result<()> {
         while self.read_result()? != 0 {}
-        Ok(())
-    }
-
-    pub fn play(&mut self, frames: &Vec<Frame>, inputs: &Config) -> Result<()> {
-        self.stop()?;
-        self.set_delta(1.0/60.0)?;
-        let mut last = Frame::default();
-        for frame in frames {
-            // new inputs
-            if frame.forward && !last.forward {
-                self.press_key(inputs.forward)?;
-            }
-            if frame.backward && !last.backward {
-                self.press_key(inputs.backward)?;
-            }
-            if frame.left && !last.left {
-                self.press_key(inputs.left)?;
-            }
-            if frame.right && !last.right {
-                self.press_key(inputs.right)?;
-            }
-            if frame.jump && !last.jump {
-                self.press_key(inputs.jump)?;
-            }
-
-            // old inputs
-            if last.forward && !frame.forward {
-                self.release_key(inputs.forward)?;
-            }
-            if last.backward && !frame.backward {
-                self.release_key(inputs.backward)?;
-            }
-            if last.left && !frame.left {
-                self.release_key(inputs.left)?;
-            }
-            if last.right && !frame.right {
-                self.release_key(inputs.right)?;
-            }
-            if last.jump && !frame.jump {
-                self.release_key(inputs.jump)?;
-            }
-
-            last = frame.clone();
-
-            // press ESC
-            if frame.esc {
-                 self.press_key(0x1b as char)?;
-            }
-
-            // mouse movements
-            if frame.mouse_x != 0 || frame.mouse_y != 0 {
-                 self.move_mouse(frame.mouse_x, frame.mouse_y)?;
-            }
-
-            self.step()?;
-        }
-        self.set_delta(0.0)?;
-        self.cont()?;
         Ok(())
     }
 }

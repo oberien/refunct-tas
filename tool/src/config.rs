@@ -12,8 +12,8 @@ pub struct Config {
     pub left: char,
     pub right: char,
     pub jump: char,
-    pub crouch: u8,
-    pub menu: u8,
+    pub crouch: u32,
+    pub menu: u32,
 }
 
 impl Config {
