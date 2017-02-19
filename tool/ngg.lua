@@ -1,9 +1,12 @@
 require "prelude"
 
+waitfornewgame()
+setdelta(1/60)
 -- frame is a function you can call to easily execute one or multiple frames.
 -- The first argument is a list of all keys pressed.
 -- Allowed values are forward, backward, left, right, jump, crouch and menu.
--- The second and third arguments are for mouse x and y values respectively.
+-- The second and third arguments are for roll and pitch (turning) values
+--  respectively.
 -- The fourth argument is the number of frames the previous values should be
 --  executed.
 -- Arguments are optional and may be omitted, but if you want to specify a rear
@@ -12,18 +15,16 @@ require "prelude"
 --  provided.
 -- For example `frame({forward, right, jump}, 69, 21, 10)` means that the
 --  keys forward, right and jump will be pressed for the next 10 frames, while
---  the mouse moves to the right by 69 and down by 21 each of the 10 frames.
-frame({}, 0, 0, 100)
-frame({}, 1490, 0)
-frame({}, 0, 0, 113)
-frame({jump, forward}, 0, 0, 40)
-frame({forward}, 0, 0, 11)
-frame({}, -1000, 0)
-frame({}, 0, 0, 6)
-frame({forward}, 0, 0)
+--  the character turns right by 69 degrees and down by 21 degrees by moving
+--  the mouse accordingly over the span of the next 10 frames.
+frame({}, 90, -40, 214)
+frame({jump, forward}, 0, 90, 40)
+frame({}, -40, 0, 7)
+frame({}, 0, 0, 7)
+frame({forward})
 frame({forward, jump}, 0, 0, 11)
 frame({}, 0, 0, 26)
-frame({menu}, 0, 0)
-frame({})
+frame({menu})
+frame()
 frame({jump})
-frame({})
+frame()
