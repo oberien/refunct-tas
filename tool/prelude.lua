@@ -131,7 +131,6 @@ local function generatedegfn(name, totaldeg, totalframes, mousepervalue, debug)
     return function() return 0 end
   end
 
-
   local startvalue = getplayerstats()[name]
   local lastvalue = nil
   local mouse = nil
@@ -146,10 +145,13 @@ local function generatedegfn(name, totaldeg, totalframes, mousepervalue, debug)
       minuend = subtrahend
       subtrahend = tmp
     end
+    return (minuend - subtrahend)
+  end
+  local function modsubtract(minuend, subtrahend)
     if direction > 0 then
-      return (minuend - subtrahend) % 360
+      return subtract(minuend, subtrahend) % 360
     else
-      return -(-(minuend - subtrahend) % 360)
+      return -(-subtract(minuend, subtrahend) % 360)
     end
   end
   local function degfn(framesleft)
@@ -168,7 +170,8 @@ local function generatedegfn(name, totaldeg, totalframes, mousepervalue, debug)
     else
       -- let's assume we'll never turn more than 359 degrees per frame
       if debug then print("getvalue", getplayerstats()[name]) end
-      local delta = subtract(getplayerstats()[name], lastvalue)
+      local delta = modsubtract(getplayerstats()[name], lastvalue)
+      -- for pitch we can't get above 90.1 and below 270.1, so delta will be 0
       if delta == 0 then
         if debug then print("early return because delta is 0") end
         if debug then print() end
@@ -178,18 +181,20 @@ local function generatedegfn(name, totaldeg, totalframes, mousepervalue, debug)
       mousepervalue.value = mouse / delta
       if debug then print("mouseperval", mousepervalue.value) end
       if debug then print("1/mouseperval", 1/mousepervalue.value) end
+      local olddateline = dateline
       if name == "roll" then
         if direction > 0 and lastvalue + delta >= 360
-            or direction < 0 and lastvalue + delta < 0 and -1 then
+            or direction < 0 and lastvalue + delta < 0 then
           dateline = dateline + direction
         end
       else
-        if direction > 0 and lastvalue - delta >= 360
-            or direction < 0 and lastvalue - delta < 0 and -1 then
+        if direction > 0 and lastvalue - delta < 0
+            or direction < 0 and lastvalue - delta >= 360 then
           dateline = dateline + direction
         end
       end
       if debug then print("dateline", dateline) end
+      if debug then print("startvalue", startvalue) end
       local sofar = subtract(getplayerstats()[name], startvalue) + dateline * 360
       if debug then print("sofar", sofar) end
       local leftdeg = (totaldeg - sofar)
@@ -198,6 +203,8 @@ local function generatedegfn(name, totaldeg, totalframes, mousepervalue, debug)
       if math.abs(leftdeg) < 1/mousepervalue.value then
         if debug then print("early return") end
         if debug then print() end
+        -- reset dateline ifneedbe
+        dateline = olddateline
         return 0
       end
       mouse = mousepervalue.value * leftdeg / framesleft
