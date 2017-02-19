@@ -79,10 +79,7 @@ fn main() {
     println!("Script successfully parsed");
 
     //handle_err!(tas.test_loop())
-    println!("Wait for click on 'New Game'...");
-    handle_err!(tas.borrow_mut().wait_for_new_game());
-    handle_err!(tas.borrow_mut().set_delta(1.0/60.0));
-    println!("New Game detected. Starting TAS execution");
+    println!("Executing TAS...");
     function.call::<()>().unwrap();
     println!("TAS successfully finished");
     println!("Cleaning up...");

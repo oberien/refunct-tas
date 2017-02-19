@@ -15,9 +15,9 @@ use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
 #[cfg(unix)]
-pub use self::linux::INITIALIZE_CTOR;
+pub use self::linux::{INITIALIZE_CTOR, AController};
 #[cfg(windows)]
-pub use self::windows::DllMain;
+pub use self::windows::{DllMain, AController};
 
 struct State {
     typ: StateType,
@@ -32,6 +32,7 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
+    static ref CONTROLLER: Static<usize> = Static::new();
     static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
 
@@ -40,6 +41,7 @@ pub fn init() {
     hook_slateapp();
     hook_newgame();
     hook_tick();
+    hook_controller();
 }
 
 unsafe fn set_delta(d: f64) {
@@ -63,6 +65,9 @@ pub unsafe fn tick_intercept() {
 
 unsafe fn tick_internal() -> Result<()> {
     let mut state = STATE.get();
+    if state.typ == StateType::Stopping {
+        SENDER.get().send(Response::Stopped).chain_err(|| "Error during send")?;
+    }
     loop {
         let event = match state.typ {
             StateType::Running => {
@@ -72,13 +77,12 @@ unsafe fn tick_internal() -> Result<()> {
                         if let Some(delta) = state.delta {
                             set_delta(delta);
                         }
-                        break;
+                        return Ok(());
                     },
                     err => err.chain_err(|| "Receiver is disconnected")?
                 }
             },
             StateType::Stopping => {
-                SENDER.get().send(Response::Stopped).chain_err(|| "Error during send")?;
                 RECEIVER.get().recv().chain_err(|| "Cannot receive")?
             },
         };
@@ -86,7 +90,8 @@ unsafe fn tick_internal() -> Result<()> {
         match event {
             Event::Stop => {
                 log!("Received stop");
-                state.typ = StateType::Stopping
+                state.typ = StateType::Stopping;
+                break;
             },
             Event::Step => {
                 log!("Received step");

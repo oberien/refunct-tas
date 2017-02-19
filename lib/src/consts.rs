@@ -45,3 +45,12 @@ pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x3218f0;
 pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x1ce9c70;
 #[cfg(windows)]
 pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x322610;
+
+// ACharacter::CheckJumpInput(ACharacter* this, float)
+// _ZN10ACharacter14CheckJumpInputEf
+
+// AController::GetControlRotation(AController* this)
+// _ZNK11AController18GetControlRotationEv
+#[cfg(unix)]
+pub const ACONTROLLER_GETCONTROLROTATION: usize = 0x2b151e0;
+// TODO: Windows

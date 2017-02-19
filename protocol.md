@@ -9,8 +9,8 @@ After one connection is established, the listener no longer waits for another
   
 Packets have a variable length.
 The first byte defines which command is sent.
-For each request to the library there will be a response after execution,
-  usually indicating success or containing an error code.
+Only some requests result in a response.
+If an error occurs, it'll be sent as soon as possible.
 Any unexpected behaviour results in a disconnect.
 
 Endianess of multibyte primitive types is little endian.
@@ -18,6 +18,7 @@ Endianess of multibyte primitive types is little endian.
 Requests:
 * `0`: Stop execution before the next frame.
 * `1`: Continue execution until the next frame.
+        This request will get response `0`.
 * `2`: Continue execution without stopping.
 * `3`: Press the key in the following int32.
 * `4`: Release the key in the following int32.
@@ -26,7 +27,8 @@ Requests:
         If the given delta is 0, no custom delta will be used.
 
 Responses:
-* `0`: Command executed successfully
+* `0`: Response to `1`, followed by the player's status:
+  + Rotation: 3 float32: Pitch, Roll and Yaw.
 * `1`: New Game detected
 * `255`: Error occured. The error code can be found in the next byte.
 

@@ -4,10 +4,11 @@ use std::io::Write;
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::net::{TcpListener, TcpStream};
 
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
 use error::*;
 use statics::{SENDER, RECEIVER};
+use native;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
@@ -111,45 +112,60 @@ pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: &Receiver<()>, k
         // if we are stopping, wait for the next tick
         if stopping {
             rx.recv()?;
+            let mut buf = [0u8; 13];
+            buf[0] = 0;
+            let (pitch, roll, yaw) = native::AController::rotation();
+            log!("Sending {} {} {}", pitch, roll, yaw);
+            (&mut buf[1..5]).write_f32::<LittleEndian>(pitch)?;
+            (&mut buf[5..9]).write_f32::<LittleEndian>(roll)?;
+            (&mut buf[9..13]).write_f32::<LittleEndian>(yaw)?;
+            con.write_all(&buf)?;
         }
 
-        let cmd = con.read_u8()?;
-        match cmd {
-            0 => {
-                tx.send(Event::Stop).chain_err(|| "error during send")?;
-                stopping = true;
-            },
-            1 => {
-                tx.send(Event::Step).chain_err(|| "error during send")?;
-            },
-            2 => {
-                tx.send(Event::Continue).chain_err(|| "error during send")?;
-                stopping = false;
-            },
-            3 => {
-                let key = con.read_i32::<LittleEndian>()?;
-                keys.insert(key);
-                tx.send(Event::Press(key)).chain_err(|| "error during send")?;
-            },
-            4 => {
-                let key = con.read_i32::<LittleEndian>()?;
-                keys.remove(&key);
-                tx.send(Event::Release(key)).chain_err(|| "error during send")?;
-            },
-            5 => {
-                let x = con.read_i32::<LittleEndian>()?;
-                let y = con.read_i32::<LittleEndian>()?;
-                tx.send(Event::Mouse(x, y)).chain_err(|| "error during send")?;
-            },
-            6 => {
-                let delta = con.read_f64::<LittleEndian>()?;
-                tx.send(Event::SetDelta(delta)).chain_err(|| "error during send")?;
-            },
-            _ => {
-                con.write_all(&[255, 0])?;
-                return Ok(());
+        loop {
+            let cmd = con.read_u8()?;
+            match cmd {
+                0 => {
+                    log!("stop");
+                    tx.send(Event::Stop).chain_err(|| "error during send")?;
+                    stopping = true;
+                    break;
+                },
+                1 => {
+                    log!("step");
+                    tx.send(Event::Step).chain_err(|| "error during send")?;
+                    break;
+                },
+                2 => {
+                    log!("cont");
+                    tx.send(Event::Continue).chain_err(|| "error during send")?;
+                    stopping = false;
+                    break;
+                },
+                3 => {
+                    let key = con.read_i32::<LittleEndian>()?;
+                    keys.insert(key);
+                    tx.send(Event::Press(key)).chain_err(|| "error during send")?;
+                },
+                4 => {
+                    let key = con.read_i32::<LittleEndian>()?;
+                    keys.remove(&key);
+                    tx.send(Event::Release(key)).chain_err(|| "error during send")?;
+                },
+                5 => {
+                    let x = con.read_i32::<LittleEndian>()?;
+                    let y = con.read_i32::<LittleEndian>()?;
+                    tx.send(Event::Mouse(x, y)).chain_err(|| "error during send")?;
+                },
+                6 => {
+                    let delta = con.read_f64::<LittleEndian>()?;
+                    tx.send(Event::SetDelta(delta)).chain_err(|| "error during send")?;
+                },
+                _ => {
+                    con.write_all(&[255, 0])?;
+                    return Ok(());
+                }
             }
         }
-        con.write_all(&[0])?;
     }
 }
