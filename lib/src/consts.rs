@@ -53,4 +53,5 @@ pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x322610;
 // _ZNK11AController18GetControlRotationEv
 #[cfg(unix)]
 pub const ACONTROLLER_GETCONTROLROTATION: usize = 0x2b151e0;
-// TODO: Windows
+#[cfg(windows)]
+pub const ACONTROLLER_GETCONTROLROTATION: usize = 0xb9ef40;

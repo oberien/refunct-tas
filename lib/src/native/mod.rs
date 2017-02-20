@@ -10,6 +10,7 @@ use self::linux::*;
 #[cfg(windows)]
 use self::windows::*;
 use error::*;
+#[cfg(unix)]
 use consts;
 use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
