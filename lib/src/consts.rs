@@ -6,7 +6,7 @@ pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0x16f2208;
 pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe8e67;
 
 #[cfg(unix)]
-pub const GMALLOC: usize = 0x5a17ea0;
+pub const GENGINE: usize = 0x505fd40;
 
 // FApp::DeltaTime
 // static variable inside the binary

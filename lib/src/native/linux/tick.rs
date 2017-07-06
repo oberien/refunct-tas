@@ -8,7 +8,7 @@ pub fn hook_tick() {
     log!("Hooking FEngineLoop::Tick");
     super::make_rw(consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
     let hook_fn = tick as *const () as usize;
-    let mut bytes = unsafe { slice::from_raw_parts_mut(consts::FENGINELOOP_TICK_AFTER_UPDATETIME as *mut u8, 14) };
+    let mut bytes = unsafe { slice::from_raw_parts_mut(consts::FENGINELOOP_TICK_AFTER_UPDATETIME as *mut u8, 15) };
     // mov rax, addr
     bytes[..2].copy_from_slice(&[0x48, 0xb8]);
     (&mut bytes[2..10]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
@@ -17,6 +17,7 @@ pub fn hook_tick() {
     // nop
     bytes[12] = 0x90;
     bytes[13] = 0x90;
+    bytes[14] = 0x90;
     log!("Injected Code: {:?}", bytes);
     super::make_rx(consts::FENGINELOOP_TICK_AFTER_UPDATETIME);
     log!("FEngineLoop::Tick hooked successfully");
@@ -87,13 +88,13 @@ unsafe extern fn tick() -> ! {
     // execute the 3 instructions which we overwrote
     asm!(r"
         mov rdi, [$0]
-        mov rax, [rdi]
-        call [rax+0x60]
-    " :: "i"(consts::GMALLOC) :: "intel");
+        movsd xmm0, [$1]
+        cvtsd2ss xmm0, xmm0
+    " :: "i"(consts::GENGINE), "i"(consts::APP_DELTATIME) :: "intel");
     // jump to original tick function after our hook
     asm!(r"
         mov rax, $0
         jmp rax
-    " :: "i"(consts::FENGINELOOP_TICK_AFTER_UPDATETIME + 14) :: "intel");
+    " :: "i"(consts::FENGINELOOP_TICK_AFTER_UPDATETIME + 15) :: "intel");
     ::std::intrinsics::unreachable()
 }
