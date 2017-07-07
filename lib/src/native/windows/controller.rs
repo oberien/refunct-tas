@@ -14,10 +14,28 @@ pub struct AController;
 
 impl AController {
     pub fn rotation() -> (f32, f32, f32) {
-        let pitch = unsafe { *((&*CONTROLLER.get() + 0x2d0) as *const f32) };
-        let roll = unsafe { *((&*CONTROLLER.get() + 0x2d4) as *const f32) };
-        let yaw = unsafe { *((&*CONTROLLER.get() + 0x2d8) as *const f32) };
-        (pitch, roll, yaw)
+        let pitch = unsafe { *AController::pitch_ptr() };
+        let roll = unsafe { *AController::roll_ptr() };
+        let yaw = unsafe { *AController::yaw_ptr() };
+        (pitch, yaw, roll)
+    }
+
+    pub fn set_rotation(pitch: f32, yaw: f32, roll: f32) {
+        unsafe {
+            *AController::pitch_ptr() = pitch;
+            *AController::yaw_ptr() = yaw;
+            *AController::roll_ptr() = roll;
+        }
+    }
+
+    unsafe fn pitch_ptr() -> *mut f32 {
+        (&*CONTROLLER.get() + 0x2d0) as *mut f32
+    }
+    unsafe fn yaw_ptr() -> *mut f32 {
+        (&*CONTROLLER.get() + 0x2d4) as *mut f32
+    }
+    unsafe fn roll_ptr() -> *mut f32 {
+        (&*CONTROLLER.get() + 0x2d8) as *mut f32
     }
 }
 

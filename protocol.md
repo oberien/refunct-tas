@@ -25,10 +25,11 @@ Requests:
 * `5`: Move the mouse by the following int32 `x` and int32 `y`.
 * `6`: Set all following time deltas between frames to the following float64.
         If the given delta is 0, no custom delta will be used.
+* `7`: Set the rotation of the player to the following 3 float32: Pitch, Yaw and Roll.
 
 Responses:
 * `0`: Response to `1`, followed by the player's status:
-  + Rotation: 3 float32: Pitch, Roll and Yaw.
+  + Rotation: 3 float32: Pitch, Yaw and Roll.
 * `1`: New Game detected
 * `255`: Error occured. The error code can be found in the next byte.
 

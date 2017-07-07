@@ -19,6 +19,7 @@ pub enum Event {
     Release(i32),
     Mouse(i32, i32),
     SetDelta(f64),
+    SetRotation(f32, f32, f32),
 }
 
 pub enum Response {
@@ -114,11 +115,11 @@ pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: &Receiver<()>, k
             rx.recv()?;
             let mut buf = [0u8; 13];
             buf[0] = 0;
-            let (pitch, roll, yaw) = native::AController::rotation();
-            log!("Sending {} {} {}", pitch, roll, yaw);
+            let (pitch, yaw, roll) = native::AController::rotation();
+            log!("Sending {} {} {}", pitch, yaw, roll);
             (&mut buf[1..5]).write_f32::<LittleEndian>(pitch)?;
-            (&mut buf[5..9]).write_f32::<LittleEndian>(roll)?;
-            (&mut buf[9..13]).write_f32::<LittleEndian>(yaw)?;
+            (&mut buf[5..9]).write_f32::<LittleEndian>(yaw)?;
+            (&mut buf[9..13]).write_f32::<LittleEndian>(roll)?;
             con.write_all(&buf)?;
         }
 
@@ -161,6 +162,12 @@ pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: &Receiver<()>, k
                     let delta = con.read_f64::<LittleEndian>()?;
                     tx.send(Event::SetDelta(delta)).chain_err(|| "error during send")?;
                 },
+                7 => {
+                    let pitch = con.read_f32::<LittleEndian>()?;
+                    let yaw = con.read_f32::<LittleEndian>()?;
+                    let roll = con.read_f32::<LittleEndian>()?;
+                    tx.send(Event::SetRotation(pitch, yaw, roll)).chain_err(|| "error during send")?;
+                }
                 _ => {
                     con.write_all(&[255, 0])?;
                     return Ok(());

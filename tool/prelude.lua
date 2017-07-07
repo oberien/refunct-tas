@@ -47,6 +47,10 @@ function setdelta(delta)
   __set_delta(delta)
 end
 
+function setrotation(pitch, yaw, roll)
+  __set_rotation(pitch, yaw, roll)
+end
+
 function step()
   playerstats = getmetatable(__step())
 end

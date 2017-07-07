@@ -86,6 +86,14 @@ impl Tas {
         Ok(())
     }
 
+    pub fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) -> Result<()> {
+        self.buf.write_u8(7)?;
+        self.buf.write_f32::<LittleEndian>(pitch)?;
+        self.buf.write_f32::<LittleEndian>(yaw)?;
+        self.buf.write_f32::<LittleEndian>(roll)?;
+        Ok(())
+    }
+
     pub fn wait_for_new_game(&mut self) -> Result<PlayerStats> {
         while self.step()? != Response::NewGame {}
         self.read_stats()
@@ -103,12 +111,12 @@ impl Tas {
         match code {
             0 => {
                 let pitch = self.con.read_f32::<LittleEndian>()?;
-                let roll = self.con.read_f32::<LittleEndian>()?;
                 let yaw = self.con.read_f32::<LittleEndian>()?;
+                let roll = self.con.read_f32::<LittleEndian>()?;
                 Ok(Response::Stopped(PlayerStats {
                     pitch: pitch,
-                    roll: roll,
                     yaw: yaw,
+                    roll: roll,
                 }))
             },
             1 => Ok(Response::NewGame),
@@ -127,8 +135,8 @@ impl Tas {
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerStats {
     pitch: f32,
-    roll: f32,
     yaw: f32,
+    roll: f32,
 }
 
 impl<'lua, L> hlua::Push<L> for PlayerStats where L: hlua::AsMutLua<'lua> {
@@ -138,8 +146,8 @@ impl<'lua, L> hlua::Push<L> for PlayerStats where L: hlua::AsMutLua<'lua> {
         let stats = self.clone();
         Ok(hlua::push_userdata(self, lua, move |mut metatable| {
             metatable.set("pitch", stats.pitch);
-            metatable.set("roll", stats.roll);
             metatable.set("yaw", stats.yaw);
+            metatable.set("roll", stats.roll);
         }))
     }
 }

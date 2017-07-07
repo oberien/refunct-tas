@@ -123,6 +123,10 @@ unsafe fn tick_internal() -> Result<()> {
                     state.delta = Some(delta);
                 }
             },
+            Event::SetRotation(pitch, yaw, roll) => {
+                log!("Received setRotation {} {} {}", pitch, yaw, roll);
+                AController::set_rotation(pitch, yaw, roll);
+            }
         }
     }
     if let Some(delta) = state.delta {
