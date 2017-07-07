@@ -25,8 +25,8 @@ pub const FSLATEAPPLICATION_TICK: usize = 0x338d60;
 #[cfg(unix)]
 pub const AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0x1705090;
 #[cfg(windows)]
-// on Windows we hook before the return
-pub const AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0x1092f0;
+// on Windows we hook 7 bytes before the return
+pub const AMYCHARACTER_EXECFORCEDUNCROUCH_END: usize = 0x109309;
 // FSlateApplication::OnKeyDown(FSlateApplication *this, unsigned int, unsigned int, bool)
 // _ZN17FSlateApplication9OnKeyDownEijb
 #[cfg(unix)]

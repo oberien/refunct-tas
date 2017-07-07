@@ -2,11 +2,11 @@ use std::slice;
 
 use byteorder::{WriteBytesExt, LittleEndian};
 
-use super::{AMYCHARACTER_EXECFORCEDUNCROUCH, make_rw, make_rx};
+use super::{AMYCHARACTER_EXECFORCEDUNCROUCH_END, make_rw, make_rx};
 
 pub extern fn hook_newgame() {
     log!("Hooking AMyCharacter::execForcedUnCrouch");
-    let addr = unsafe { AMYCHARACTER_EXECFORCEDUNCROUCH };
+    let addr = unsafe { AMYCHARACTER_EXECFORCEDUNCROUCH_END };
     make_rw(addr);
     let hook_fn = new_game as *const () as usize;
     let mut tick = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) }; 
