@@ -14,11 +14,13 @@ copy tool\Config.toml build\windows
 copy tool\prelude.lua build\windows
 copy tool\ngg.lua build\windows
 copy tool\turn.lua build\windows
+copy tool\rotation.lua build\windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert prelude.lua
 call :convert ngg.lua
 call :convert turn.lua
+call :convert rotation.lua
 echo Don't forget to change default bindings in Config.toml and to create a zip
 
 exit /b 0
