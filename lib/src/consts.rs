@@ -3,7 +3,7 @@
 #[cfg(unix)]
 pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0x16f2208;
 #[cfg(windows)]
-pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe8e67;
+pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe8e6c;
 
 #[cfg(unix)]
 pub const GENGINE: usize = 0x505fd40;
