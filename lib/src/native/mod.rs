@@ -39,6 +39,7 @@ lazy_static! {
 
 pub fn init() {
     #[cfg(windows)] windows::init();
+    #[cfg(unix)] linux::init();
     hook_slateapp();
     hook_newgame();
     hook_tick();

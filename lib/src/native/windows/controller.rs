@@ -15,8 +15,8 @@ pub struct AController;
 impl AController {
     pub fn rotation() -> (f32, f32, f32) {
         let pitch = unsafe { *AController::pitch_ptr() };
-        let roll = unsafe { *AController::roll_ptr() };
         let yaw = unsafe { *AController::yaw_ptr() };
+        let roll = unsafe { *AController::roll_ptr() };
         (pitch, yaw, roll)
     }
 
