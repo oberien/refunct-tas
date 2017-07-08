@@ -47,8 +47,8 @@ function setdelta(delta)
   __set_delta(delta)
 end
 
-function setrotation(pitch, yaw, roll)
-  __set_rotation(pitch, yaw, roll)
+function setrotation(pitch, yaw)
+  __set_rotation(pitch, yaw, playerstats.roll)
 end
 
 function step()
@@ -109,7 +109,7 @@ function execframe(frame)
   -- rotation
   if frame.degx ~= 0 or frame.degy ~= 0 then
     local stats = getplayerstats()
-    setrotation(stats.pitch + frame.degy, stats.yaw + frame.degx, stats.roll)
+    setrotation(stats.pitch + frame.degy, stats.yaw + frame.degx)
   end
 
   lastframe = frame
@@ -123,14 +123,21 @@ function frame(keys, degx, degy, repeatnum)
   degy = degy or 0
   degy = -degy
   repeatnum = repeatnum or 1
+  stats = getplayerstats()
+  startx = stats.yaw
+  starty = stats.pitch
 
   for i=1,repeatnum do
     local currentframe = Frame:new()
     for _, key in pairs(keys) do
       currentframe[key] = true
     end
-    currentframe.degx = degx / repeatnum
-    currentframe.degy = degy / repeatnum
+    framesleft = repeatnum - i + 1
+    stats = getplayerstats()
+    remainingx = startx + degx - stats.yaw
+    remainingy = starty + degy - stats.pitch
+    currentframe.degx = remainingx / framesleft
+    currentframe.degy = remainingy / framesleft
     execframe(currentframe)
   end
 end

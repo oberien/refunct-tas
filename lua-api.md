@@ -37,10 +37,6 @@ These are the exposed functions:
   the passed float values in degrees.
   This is done by memory-editing the values and is therefore super consistent.
   It should be preferred over `__move_mouse` for the time being.
-  Pitch is the x-axis with positive values turning right and negative ones
-  turning left.
-  Yaw is the y-axis with positive values making the character look down and
-  negative values look up.
 * `__wait_for_new_game()`: This function does what its name says:
   It stops execution of the lua script until the `New Game` button was clicked
   in Refunct.
@@ -54,7 +50,11 @@ functions and provide a nicer interface.
 
 * `waitfornewgame()`: Simple wrapper around `__wait_for_new_game`.
 * `setdelta(delta)`: Simple wrapper around `__set_delta`.
-* `setrotation(pitch, yaw, roll)`: Simple wrapper around `__set_rotation`.
+* `setrotation(pitch, yaw)`: Sets the rotation of your character to the
+  passed float values in degrees.
+  Pitch is the y-axis with positive values making the character look down and
+  negative values look up.
+  Yaw is the x-axis with positive values turning right and negative ones left.
 * `step()`: Smart wrapper around `__step`.
 * `getplayerstats()`: Returns the player stats object containing the character's
   pitch, yaw and roll.

@@ -9,7 +9,7 @@ print(stats.pitch, stats.yaw, stats.roll)
 function rotate(degx, degy, frames)
   for i=1,frames do
     local stats = getplayerstats();
-    setrotation(stats.pitch + degy / frames, stats.yaw + degx / frames, stats.roll)
+    setrotation(stats.pitch + degy / frames, stats.yaw + degx / frames)
     frame({}, 0, 0, 1)
   end
 end
