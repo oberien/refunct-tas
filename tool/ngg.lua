@@ -5,7 +5,7 @@ setdelta(1/60)
 -- frame is a function you can call to easily execute one or multiple frames.
 -- The first argument is a list of all keys pressed.
 -- Allowed values are forward, backward, left, right, jump, crouch and menu.
--- The second and third arguments are for roll and pitch (turning) values
+-- The second and third arguments are for pitch (x-axis) and yaw (y-axis) values
 --  respectively.
 -- The fourth argument is the number of frames the previous values should be
 --  executed.
