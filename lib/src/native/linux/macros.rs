@@ -63,6 +63,16 @@ macro_rules! popall {
 
 macro_rules! hook_beginning {
     ($hook_name:ident, $restore_name:ident, $hook_fn:path, $name:expr, $addr:expr,) => {
+        hook_beginning! {
+            $hook_name,
+            $restore_name,
+            $hook_fn,
+            $name,
+            $addr,
+            true,
+        }
+    };
+    ($hook_name:ident, $restore_name:ident, $hook_fn:path, $name:expr, $addr:expr, $log:expr,) => {
         use std::slice;
         use byteorder::{WriteBytesExt, LittleEndian};
         use statics::Static;
@@ -72,7 +82,7 @@ macro_rules! hook_beginning {
         }
 
         pub fn $hook_name() {
-            log!("Hooking {}", $name);
+            if $log { log!("Hooking {}", $name); }
             let addr = unsafe { $addr };
             super::make_rw(addr);
             let hook_fn = $hook_fn as *const () as usize;
@@ -80,25 +90,25 @@ macro_rules! hook_beginning {
             let mut saved = [0u8; 12];
             saved[..].copy_from_slice(slice);
             ORIGINAL.set(saved);
-            log!("Original {}: {:?}", $name, slice);
+            if $log { log!("Original {}: {:?}", $name, slice); }
             // mov rax, addr
             slice[..2].copy_from_slice(&[0x48, 0xb8]);
             (&mut slice[2..10]).write_u64::<LittleEndian>(hook_fn as u64).unwrap();
             // jmp rax
             slice[10..].copy_from_slice(&[0xff, 0xe0]);
-            log!("Injected Code: {:?}", slice);
+            if $log { log!("Injected Code: {:?}", slice); }
             super::make_rx(addr);
-            log!("{} successfully hooked", $name);
+            if $ log { log!("{} successfully hooked", $name); }
         }
 
         fn $restore_name() {
-            log!("Restoring {}", $name);
+            if $log { log!("Restoring {}", $name); }
             let addr = unsafe { $addr };
             super::make_rw(addr);
             let mut slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
             slice[..].copy_from_slice(&*ORIGINAL.get());
             super::make_rx(addr);
-            log!("{} successfully restored", $name);
+            if $log { log!("{} successfully restored", $name); }
         }
     }
 }

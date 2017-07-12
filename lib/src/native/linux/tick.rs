@@ -6,6 +6,7 @@ hook_beginning! {
     tick,
     "UEngine::UpdateTimeAndHandleMaxTickRate",
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE,
+    false,
 }
 
 hook_fn_always! {

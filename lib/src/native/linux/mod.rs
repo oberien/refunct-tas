@@ -4,6 +4,7 @@ mod slateapp;
 mod newgame;
 mod tick;
 mod controller;
+mod character;
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -17,6 +18,7 @@ pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::newgame::hook_newgame;
 pub use self::tick::hook_tick;
 pub use self::controller::{hook_controller, AController};
+pub use self::character::{hook_character, AMyCharacter};
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
@@ -31,6 +33,7 @@ pub static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
 pub static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
 pub static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
 pub static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
+pub static mut AMYCHARACTER_TICK: usize = 0;
 
 pub fn init() {
     let pages = refunct_pages();
@@ -65,6 +68,10 @@ pub fn init() {
             find_signature(&pages, &consts::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE)
                 - consts::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE_OFFSET;
         log!("found UEngine::UpdateTimeAndHandleMaxTickRate: {:#x}", UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE);
+        AMYCHARACTER_TICK =
+            find_signature(&pages, &consts::AMYCHARACTER_TICK)
+                - consts::AMYCHARACTER_TICK_OFFSET;
+        log!("found AMyCharacter::Tick: {:#x}", AMYCHARACTER_TICK);
     }
 }
 

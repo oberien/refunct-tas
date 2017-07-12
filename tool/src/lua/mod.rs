@@ -44,8 +44,18 @@ pub fn init_tas(lua: &mut Lua, outer: Rc<RefCell<Tas>>, config: Config) {
     }));
 
     let tas = outer.clone();
+    lua.set("__set_location", hlua::function3(move |x: f32, y: f32, z: f32| {
+        tas.borrow_mut().set_location(x, y, z).expect("error setting location")
+    }));
+
+    let tas = outer.clone();
     lua.set("__set_rotation", hlua::function3(move |pitch: f32, yaw: f32, roll: f32| {
         tas.borrow_mut().set_rotation(pitch, yaw, roll).expect("error setting rotation")
+    }));
+
+    let tas = outer.clone();
+    lua.set("__set_velocity", hlua::function3(move |x: f32, y: f32, z: f32| {
+        tas.borrow_mut().set_velocity(x, y, z).expect("error setting location")
     }));
 
     let tas = outer.clone();

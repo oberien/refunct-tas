@@ -26,10 +26,15 @@ Requests:
 * `6`: Set all following time deltas between frames to the following float64.
         If the given delta is 0, no custom delta will be used.
 * `7`: Set the rotation of the player to the following 3 float32: Pitch, Yaw and Roll.
+* `8`: Set the location of the character to the following 3 float32: x, y, z.
+* `9`: Set the velocity of the character to the following 3 float32: x, y, z.
 
 Responses:
 * `0`: Response to `1`, followed by the player's status:
-  + Rotation: 3 float32: Pitch, Yaw and Roll.
+    + Location: 3 float32: x, y, z.
+    + Rotation: 3 float32: Pitch, Yaw and Roll.
+    + Velocity: 3 float32: x, y, z.
+    + Acceleration: 2 float32: x, y.
 * `1`: New Game detected
 * `255`: Error occured. The error code can be found in the next byte.
 

@@ -1,6 +1,6 @@
 use std::thread;
 use std::collections::HashSet;
-use std::io::Write;
+use std::io::{Cursor, Write};
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::net::{TcpListener, TcpStream};
 
@@ -19,7 +19,9 @@ pub enum Event {
     Release(i32),
     Mouse(i32, i32),
     SetDelta(f64),
+    SetLocation(f32, f32, f32),
     SetRotation(f32, f32, f32),
+    SetVelocity(f32, f32, f32),
 }
 
 pub enum Response {
@@ -113,13 +115,20 @@ pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: &Receiver<()>, k
         // if we are stopping, wait for the next tick
         if stopping {
             rx.recv()?;
-            let mut buf = [0u8; 13];
+            let mut buf = [0u8; 1 + 11*4];
             buf[0] = 0;
+            let (x, y, z) = native::AMyCharacter::location();
             let (pitch, yaw, roll) = native::AController::rotation();
-            log!("Sending {} {} {}", pitch, yaw, roll);
-            (&mut buf[1..5]).write_f32::<LittleEndian>(pitch)?;
-            (&mut buf[5..9]).write_f32::<LittleEndian>(yaw)?;
-            (&mut buf[9..13]).write_f32::<LittleEndian>(roll)?;
+            let (velx, vely, velz) = native::AMyCharacter::velocity();
+            let (accx, accy) = native::AMyCharacter::acceleration();
+            let values = [x, y, z, pitch, yaw, roll, velx, vely, velz, accx, accy];
+            log!("Sending {:?}", values);
+            {
+                let mut buf = Cursor::new(&mut buf[1..]);
+                for val in values.iter() {
+                    buf.write_f32::<LittleEndian>(*val)?;
+                }
+            }
             con.write_all(&buf)?;
         }
 
@@ -167,7 +176,19 @@ pub fn handler_loop(mut con: TcpStream, tx: &Sender<Event>, rx: &Receiver<()>, k
                     let yaw = con.read_f32::<LittleEndian>()?;
                     let roll = con.read_f32::<LittleEndian>()?;
                     tx.send(Event::SetRotation(pitch, yaw, roll)).chain_err(|| "error during send")?;
-                }
+                },
+                8 => {
+                    let x = con.read_f32::<LittleEndian>()?;
+                    let y = con.read_f32::<LittleEndian>()?;
+                    let z = con.read_f32::<LittleEndian>()?;
+                    tx.send(Event::SetLocation(x, y, z)).chain_err(|| "error during send")?;
+                },
+                9 => {
+                    let x = con.read_f32::<LittleEndian>()?;
+                    let y = con.read_f32::<LittleEndian>()?;
+                    let z = con.read_f32::<LittleEndian>()?;
+                    tx.send(Event::SetVelocity(x, y, z)).chain_err(|| "error during send")?;
+                },
                 _ => {
                     con.write_all(&[255, 0])?;
                     return Ok(());

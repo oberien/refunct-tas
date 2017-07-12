@@ -5,6 +5,12 @@
 #[cfg(windows)]
 pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe8e6c;
 
+#[cfg(unix)]
+pub const AMYCHARACTER_TICK: [u8; 16] = [0xf3, 0x0f, 0x59, 0xc0, 0xf3, 0x0f, 0x59, 0xc9, 0xf3, 0x0f,
+    0x58, 0xc8, 0xf3, 0x0f, 0x51, 0xc9];
+#[cfg(unix)]
+pub const AMYCHARACTER_TICK_OFFSET: usize = 73;
+
 // UEngine::UpdateTimeAndHandleMaxTickRate()
 // _ZN7UEngine30UpdateTimeAndHandleMaxTickRateEv
 #[cfg(unix)]

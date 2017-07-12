@@ -86,11 +86,27 @@ impl Tas {
         Ok(())
     }
 
+    pub fn set_location(&mut self, x: f32, y: f32, z: f32) -> Result<()> {
+        self.buf.write_u8(8)?;
+        self.buf.write_f32::<LittleEndian>(x)?;
+        self.buf.write_f32::<LittleEndian>(y)?;
+        self.buf.write_f32::<LittleEndian>(z)?;
+        Ok(())
+    }
+
     pub fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) -> Result<()> {
         self.buf.write_u8(7)?;
         self.buf.write_f32::<LittleEndian>(pitch)?;
         self.buf.write_f32::<LittleEndian>(yaw)?;
         self.buf.write_f32::<LittleEndian>(roll)?;
+        Ok(())
+    }
+
+    pub fn set_velocity(&mut self, x: f32, y: f32, z: f32) -> Result<()> {
+        self.buf.write_u8(9)?;
+        self.buf.write_f32::<LittleEndian>(x)?;
+        self.buf.write_f32::<LittleEndian>(y)?;
+        self.buf.write_f32::<LittleEndian>(z)?;
         Ok(())
     }
 
@@ -110,13 +126,22 @@ impl Tas {
         let code = self.con.read_u8()?;
         match code {
             0 => {
+                let x = self.con.read_f32::<LittleEndian>()?;
+                let y = self.con.read_f32::<LittleEndian>()?;
+                let z = self.con.read_f32::<LittleEndian>()?;
                 let pitch = self.con.read_f32::<LittleEndian>()?;
                 let yaw = self.con.read_f32::<LittleEndian>()?;
                 let roll = self.con.read_f32::<LittleEndian>()?;
+                let velx = self.con.read_f32::<LittleEndian>()?;
+                let vely = self.con.read_f32::<LittleEndian>()?;
+                let velz = self.con.read_f32::<LittleEndian>()?;
+                let accx = self.con.read_f32::<LittleEndian>()?;
+                let accy = self.con.read_f32::<LittleEndian>()?;
                 Ok(Response::Stopped(PlayerStats {
-                    pitch: pitch,
-                    yaw: yaw,
-                    roll: roll,
+                    x, y, z,
+                    pitch, yaw, roll,
+                    velx, vely, velz,
+                    accx, accy
                 }))
             },
             1 => Ok(Response::NewGame),
@@ -124,19 +149,27 @@ impl Tas {
                 let code = self.con.read_u8()?;
                 match code {
                     0 => Err(ErrorKind::UnknownCommand.into()),
-                    _ => unimplemented!()
+                    _ => panic!("not yet implemented: Code: {}", code)
                 }
             }
-            _ => unimplemented!()
+            _ => panic!("not yet implemented: Code: {}", code)
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerStats {
+    x: f32,
+    y: f32,
+    z: f32,
     pitch: f32,
     yaw: f32,
     roll: f32,
+    velx: f32,
+    vely: f32,
+    velz: f32,
+    accx: f32,
+    accy: f32,
 }
 
 impl<'lua, L> hlua::Push<L> for PlayerStats where L: hlua::AsMutLua<'lua> {
@@ -145,9 +178,17 @@ impl<'lua, L> hlua::Push<L> for PlayerStats where L: hlua::AsMutLua<'lua> {
     fn push_to_lua(self, lua: L) -> ::std::result::Result<hlua::PushGuard<L>, (Self::Err, L)> {
         let stats = self.clone();
         Ok(hlua::push_userdata(self, lua, move |mut metatable| {
+            metatable.set("x", stats.x);
+            metatable.set("y", stats.y);
+            metatable.set("z", stats.z);
             metatable.set("pitch", stats.pitch);
             metatable.set("yaw", stats.yaw);
             metatable.set("roll", stats.roll);
+            metatable.set("velx", stats.velx);
+            metatable.set("vely", stats.vely);
+            metatable.set("velz", stats.velz);
+            metatable.set("accx", stats.accx);
+            metatable.set("accy", stats.accy);
         }))
     }
 }

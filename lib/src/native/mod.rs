@@ -16,7 +16,7 @@ use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
 #[cfg(unix)]
-pub use self::linux::{INITIALIZE_CTOR, AController};
+pub use self::linux::{INITIALIZE_CTOR, AController, AMyCharacter};
 #[cfg(windows)]
 pub use self::windows::{DllMain, AController};
 
@@ -33,6 +33,7 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
+    static ref CHARACTER: Static<usize> = Static::new();
     static ref CONTROLLER: Static<usize> = Static::new();
     static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
@@ -44,6 +45,7 @@ pub fn init() {
     hook_newgame();
     hook_tick();
     hook_controller();
+    hook_character();
 }
 
 unsafe fn set_delta(d: f64) {
@@ -127,6 +129,14 @@ unsafe fn tick_internal() -> Result<()> {
             Event::SetRotation(pitch, yaw, roll) => {
                 log!("Received setRotation {} {} {}", pitch, yaw, roll);
                 AController::set_rotation(pitch, yaw, roll);
+            },
+            Event::SetLocation(x, y, z) => {
+                log!("Received setLocation {} {} {}", x, y, z);
+                AMyCharacter::set_location(x, y, z);
+            },
+            Event::SetVelocity(x, y, z) => {
+                log!("Received setVelocity {} {} {}", x, y, z);
+                AMyCharacter::set_velocity(x, y, z);
             }
         }
     }

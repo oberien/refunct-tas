@@ -47,8 +47,16 @@ function setdelta(delta)
   __set_delta(delta)
 end
 
+function setlocation(x, y, z)
+  __set_location(x, y, z)
+end
+
 function setrotation(pitch, yaw)
   __set_rotation(pitch, yaw, playerstats.roll)
+end
+
+function setvelocity(x, y, z)
+  __set_velocity(x, y, z)
 end
 
 function step()
@@ -132,12 +140,14 @@ function frame(keys, degx, degy, repeatnum)
     for _, key in pairs(keys) do
       currentframe[key] = true
     end
-    framesleft = repeatnum - i + 1
-    stats = getplayerstats()
-    remainingx = startx + degx - stats.yaw
-    remainingy = starty + degy - stats.pitch
-    currentframe.degx = remainingx / framesleft
-    currentframe.degy = remainingy / framesleft
+    if degx ~= 0 or degy ~= 0 then
+      framesleft = repeatnum - i + 1
+      stats = getplayerstats()
+      remainingx = startx + degx - stats.yaw
+      remainingy = starty + degy - stats.pitch
+      currentframe.degx = remainingx / framesleft
+      currentframe.degy = remainingy / framesleft
+    end
     execframe(currentframe)
   end
 end
