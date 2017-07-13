@@ -36,6 +36,7 @@ lazy_static! {
 
 pub static mut FSLATEAPPLICATION: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
+pub static mut AMYCHARACTER_TICK: usize = 0;
 pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH_END: usize = 0;
 pub static mut FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0;
 pub static mut APP_DELTATIME: usize = 0;
@@ -49,6 +50,7 @@ pub fn init() {
     log!("Got Base address: {:#x}", base);
     unsafe {
         FSLATEAPPLICATION_TICK = base + consts::FSLATEAPPLICATION_TICK;
+        AMYCHARACTER_TICK = base + costs::AMYCHARACTER_TICK;
         AMYCHARACTER_EXECFORCEDUNCROUCH_END = base + consts::AMYCHARACTER_EXECFORCEDUNCROUCH_END;
         FENGINELOOP_TICK_AFTER_UPDATETIME = base + consts::FENGINELOOP_TICK_AFTER_UPDATETIME;
         APP_DELTATIME = base + consts::APP_DELTATIME;
