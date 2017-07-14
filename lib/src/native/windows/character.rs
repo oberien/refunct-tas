@@ -60,7 +60,7 @@ struct FVector {
 
 #[repr(C, packed)]
 struct USceneComponent {
-    _pad: [u8; 0x108],
+    _pad: [u8; 0x140],
     location: FVector,
 }
 

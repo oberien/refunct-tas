@@ -1,6 +1,7 @@
 echo Preparing build
 md build
 md build\windows
+del /Q build\windows\*
 echo Building
 cd lib
 rustup run nightly cargo build --target=i686-pc-windows-msvc
@@ -15,16 +16,20 @@ copy tool\prelude.lua build\windows
 copy tool\ngg.lua build\windows
 copy tool\turn.lua build\windows
 copy tool\rotation.lua build\windows
-copy tool\printlocation.lua build\windows
+copy tool\printstats.lua build\windows
 copy tool\teleportbuttons.lua build\windows
+copy tool\setvelocity.lua build\windows
+copy tool\setposition.lua build\windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert prelude.lua
 call :convert ngg.lua
 call :convert turn.lua
 call :convert rotation.lua
-call :convert printlocation.lua
+call :convert printstats.lua
 call :convert teleportbuttons.lua
+call :convert setvelocity.lua
+call :convert setposition.lua
 echo Don't forget to change default bindings in Config.toml and to create a zip
 
 exit /b 0
