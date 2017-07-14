@@ -1,5 +1,8 @@
 use super::AMYCHARACTER_TICK;
 use native::CHARACTER;
+use statics::Static;
+use std::slice;
+use byteorder::{WriteBytesExt, LittleEndian};
 
 lazy_static! {
     static ref START: Static<[u8; 7]> = Static::new();
@@ -41,10 +44,10 @@ impl AMyCharacter {
         }
     }
     fn root_component() -> *mut USceneComponent {
-        unsafe { *((&*CHARACTER.get() + 0x168) as *const *mut USceneComponent) }
+        unsafe { *((&*CHARACTER.get() + 0x11c) as *const *mut USceneComponent) }
     }
     fn movement() -> *mut UCharacterMovementComponent {
-        unsafe { *((&*CHARACTER.get() + 0x3f0) as *const *mut UCharacterMovementComponent) }
+        unsafe { *((&*CHARACTER.get() + 0x2fc) as *const *mut UCharacterMovementComponent) }
     }
 }
 
@@ -57,15 +60,15 @@ struct FVector {
 
 #[repr(C, packed)]
 struct USceneComponent {
-    _pad: [u8; 0x1a0],
+    _pad: [u8; 0x108],
     location: FVector,
 }
 
 #[repr(C, packed)]
 struct UCharacterMovementComponent {
-    _pad: [u8; 0x104],
+    _pad: [u8; 0xb4],
     velocity: FVector,
-    _pad2: [u8; 0x178],
+    _pad2: [u8; 0x14c],
     acceleration: FVector,
 }
 
@@ -94,7 +97,7 @@ unsafe extern fn get_character() -> ! {
     // push argument
     asm!("push ecx" :::: "intel");
     // call interceptor
-    asm!("call eax" :: "{eax}"(save_controller as usize) :: "intel");
+    asm!("call eax" :: "{eax}"(save_character as usize) :: "intel");
     // restore everything and jump to original function
     asm!(r"
         pop ecx
@@ -111,7 +114,7 @@ extern fn save_character(this: usize) {
     let mut code = unsafe { slice::from_raw_parts_mut(addr as *mut _, 7) };
     code.copy_from_slice(&*START.get());
     super::make_rx(addr);
-    log!("Got AController: {:#x}", this);
+    log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", AMyCharacter::root_component() as usize);
     log!("Got AMyCharacter::Movement: {:#x}", AMyCharacter::movement() as usize);
 }

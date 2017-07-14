@@ -4,11 +4,13 @@ mod slateapp;
 mod newgame;
 mod tick;
 mod controller;
+mod character;
 
 pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::newgame::hook_newgame;
 pub use self::tick::hook_tick;
 pub use self::controller::{hook_controller, AController};
+pub use self::character::{hook_character, AMyCharacter};
 
 use std::ptr::null;
 
@@ -50,7 +52,7 @@ pub fn init() {
     log!("Got Base address: {:#x}", base);
     unsafe {
         FSLATEAPPLICATION_TICK = base + consts::FSLATEAPPLICATION_TICK;
-        AMYCHARACTER_TICK = base + costs::AMYCHARACTER_TICK;
+        AMYCHARACTER_TICK = base + consts::AMYCHARACTER_TICK;
         AMYCHARACTER_EXECFORCEDUNCROUCH_END = base + consts::AMYCHARACTER_EXECFORCEDUNCROUCH_END;
         FENGINELOOP_TICK_AFTER_UPDATETIME = base + consts::FENGINELOOP_TICK_AFTER_UPDATETIME;
         APP_DELTATIME = base + consts::APP_DELTATIME;

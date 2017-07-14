@@ -18,7 +18,7 @@ use statics::{Static, SENDER, RECEIVER};
 #[cfg(unix)]
 pub use self::linux::{INITIALIZE_CTOR, AController, AMyCharacter};
 #[cfg(windows)]
-pub use self::windows::{DllMain, AController};
+pub use self::windows::{DllMain, AController, AMyCharacter};
 
 struct State {
     typ: StateType,
