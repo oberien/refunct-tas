@@ -37,6 +37,8 @@ These are the exposed functions:
   the passed float values in degrees.
   This is done by memory-editing the values and is therefore super consistent.
   It should be preferred over `__move_mouse` for the time being.
+* `__set_location(x, y, z)`: Sets the position of the character.
+* `__set_velocity(velx, vely, velz)`: Sets the velocity of the character.
 * `__wait_for_new_game()`: This function does what its name says:
   It stops execution of the lua script until the `New Game` button was clicked
   in Refunct.
@@ -55,12 +57,27 @@ functions and provide a nicer interface.
   Pitch is the y-axis with positive values making the character look down and
   negative values look up.
   Yaw is the x-axis with positive values turning right and negative ones left.
+* `setlocation(x, y, z)`: Sets the location of the character.
+* `setvelocity(velx, vely, velz)`: Sets the velocity of the character.
 * `step()`: Smart wrapper around `__step`.
-* `getplayerstats()`: Returns the player stats object containing the character's
-  pitch, yaw and roll.
+* `getplayerstats()`: Returns the player stats object containing the following
+  values of your character:
+    + `pitch`: Pitch of your player (left / right rotation).
+    + `yaw`: Yaw of your character (up / down rotation).
+    + `roll`: Roll of your character (tilt of your head).
+    + `x`: X-coordinate of your character in the world.
+    + `y`: Y-coordinate of your character in the world.
+    + `z`: Z-coordinate of your character in the world.
+    + `velx`: Velocity of your character in the X direction.
+    + `vely`: Velocity of your character in the Y direction.
+    + `velz`: Velocity of your character in the Z direction.
+    + `accx`: Acceleration of your character in the X direction.
+      This is only the acceleration caused by keyboard input.
+    + `accy`: Acceleration of your character in the Y direction.
+      This is only the acceleration caused by keyboard input.
 * `frame(keys, degx, degy, repeatnum)`: Executes `repeatnum` frames.
-  During those frames, it turns the character by `degx` degrees on the x-axis
-  and `degy` degrees on the y-axis.
+  During those frames, it turns the character by `degx` degrees to the
+  left / right and `degy` degrees up / down.
   It also keeps all keys inside the `keys` list pressed, which can contain
   any combination of the following keys:
     + `forward`
