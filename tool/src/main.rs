@@ -1,7 +1,9 @@
 #[macro_use]
 extern crate error_chain;
 extern crate toml;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 extern crate byteorder;
 #[cfg(windows)]
 extern crate winapi;

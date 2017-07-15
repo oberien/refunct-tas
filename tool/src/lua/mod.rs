@@ -66,13 +66,13 @@ pub fn init_tas(lua: &mut Lua, outer: Rc<RefCell<Tas>>, config: Config) {
 
 fn to_key(key: &str, cfg: &Config) -> i32 {
     match key {
-        "forward" => cfg.forward as i32,
-        "backward" => cfg.backward as i32,
-        "left" => cfg.left as i32,
-        "right" => cfg.right as i32,
-        "jump" => cfg.jump as i32,
-        "crouch" => cfg.crouch as i32,
-        "menu" => cfg.menu as i32,
+        "forward" => cfg.forward.into(),
+        "backward" => cfg.backward.into(),
+        "left" => cfg.left.into(),
+        "right" => cfg.right.into(),
+        "jump" => cfg.jump.into(),
+        "crouch" => cfg.crouch.into(),
+        "menu" => cfg.menu.into(),
         s => panic!("Unknown key {}", s)
     }
 }

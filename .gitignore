@@ -3,3 +3,7 @@ target
 # vim swap files
 *.swp
 *.swo
+
+# intellij idea
+.idea/
+*.iml

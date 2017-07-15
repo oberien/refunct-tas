@@ -1,3 +1,12 @@
+# All keys can be either a single character inside single-ticks or the decimal
+# number belonging to the virtual-key code.
+# A list of virtual-key codes on Linux can be found at http://cherrytree.at/misc/vk.htm .
+# Characters must be uppercase on Windows and lowercase on Linux.
+#
+# For example if you want to use RMB for Jump, the according virtual-key code
+# is called VK_RBUTTON and its decimal value is 2. So you'll need to specify
+# `jump = 2`.
+
 forward = 'v'
 backward = 'i'
 left = 'u'
@@ -7,7 +16,6 @@ jump = ' '
 # left shift
 # Linux: (1<<30) + 225 = 1073742049
 # Windows: 160
-# For different keys on Windows check out https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
 # For Linux try using the ascii key code.
 crouch = 1073742049
 
