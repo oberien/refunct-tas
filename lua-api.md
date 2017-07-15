@@ -49,6 +49,7 @@ These are the exposed functions:
 
 The file `prelude.lua` contains some functions which wrap the exported
 functions and provide a nicer interface.
+To use the prelude in your own scripts, insert `require "prelude"` as first line.
 
 * `waitfornewgame()`: Simple wrapper around `__wait_for_new_game`.
 * `setdelta(delta)`: Simple wrapper around `__set_delta`.

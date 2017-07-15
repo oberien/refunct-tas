@@ -1,6 +1,6 @@
 # All keys can be either a single character inside single-ticks or the decimal
 # number belonging to the virtual-key code.
-# A list of virtual-key codes on Linux can be found at http://cherrytree.at/misc/vk.htm .
+# A list of virtual-key codes on Windows can be found at http://cherrytree.at/misc/vk.htm .
 # Characters must be uppercase on Windows and lowercase on Linux.
 #
 # For example if you want to use RMB for Jump, the according virtual-key code

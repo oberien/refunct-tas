@@ -15,8 +15,8 @@ setdelta(1/60)
 --  provided.
 -- For example `frame({forward, right, jump}, 69, 21, 10)` means that the
 --  keys forward, right and jump will be pressed for the next 10 frames, while
---  the character turns right by 69 degrees and down by 21 degrees by moving
---  the mouse accordingly over the span of the next 10 frames.
+--  the character turns right by 69 degrees and down by 21 degrees over the span
+--  of the next 10 frames.
 frame({}, 90, -40, 214)
 frame({jump, forward}, 0, 90, 40)
 frame({}, -40, 0, 7)
