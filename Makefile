@@ -4,6 +4,13 @@ LIB := build/linux/librtil.so
 
 all: $(TOOL) $(LIB) lua
 
+zip: all
+	cd build/linux && zip refunct-tas-linux.zip *
+
+clippy:
+	cd lib && cargo clippy
+	cd tool && cargo clippy
+
 $(TOOL): $(BUILDDIR)
 	cd tool && cargo build
 	cp tool/target/debug/refunct-tas $(TOOL)
@@ -16,7 +23,7 @@ $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
 lua: $(BUILDDIR)
-	cp tool/{crouch,ngg,prelude,printstats,rotation,setposition,setvelocity,teleportbuttons,turn}.lua $(BUILDDIR)
+	bash -c 'cp tool/{crouch,ngg,prelude,printstats,rotation,setposition,setvelocity,teleportbuttons,turn}.lua $(BUILDDIR)'
 
 clean:
 	$(RM) -r build/

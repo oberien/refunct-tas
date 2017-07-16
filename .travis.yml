@@ -1,0 +1,28 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+dist: trusty
+install:
+  - rustup install nightly
+  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cargo install clippy; fi
+script:
+  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then make all clippy; else make all zip; fi
+matrix:
+  fast_finish: true
+  allow_failures:
+    - rust: beta
+    - rust: nightly
+deploy:
+  provider: releases
+  tag_name: $TRAVIS_TAG
+  api_key:
+    secure: TNH2zYRST7B2mCB/XxonAxKGof2LTdOZMumR6sh7meQOqWN+qL3/hsQmXkEzkzga2RNOepSipQ8lPixy2M0PqRWz7QWnuDUulG1qLvApSGRjsGHp7aWjXXqhQQQdq6OpkJBk2nPUyGZXJbHxcPvvwruKuaOWUbh/OPZEVpaOMAVD6QKkO2qwr9cXHVr5+PQMajYKF2iJt4YwUjLUaINN5E+0cm+c5UuQMYth5PG/pdRqdv7+0hEC8cN96NVahrQKS2SaLXDt0tukxzpCvXQt5gnalYby0i57AsSeggozMsplPushI0finLTWCDnk2QrRAmPKK9+RuToef4hfUer2cYp2ODfh+Urt+adewx5lN7eJyaoEqGJILDLxE+8DHVRhOIXTkjXxkTNoXBRespks388qBTyozPATM7yGHELa5Q4SjH8pfWRMWFM7JAOH2Q1tTMNm6K460ijnaxqi4epxYmOfQGtPll2AfPwqqfDvb9PaO6XEYJeWAXSTsRqWsSwjW5GXNcSoeFMl/mYeaRENp4ZAE/qgWjnddPasOe7Ebx6i7a0h0INtuMjiq285JNK6OY+ZGyozwNX0M431xWQAYA14d+sZxopoCvlsbsw3iFbk9QkAO9BaqgpGci36/YQRjvTGV9jtT249GrHL8crjELoTwSRai/nX4gsDytgvtKc=
+  file: build/linux/refunct-tas-linux.zip
+  skip_cleanup: true
+  draft: true
+  on:
+    rust: stable
+    repo: oberien/refunct-tas
+    tags: true
