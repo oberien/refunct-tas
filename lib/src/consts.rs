@@ -16,8 +16,8 @@ pub const AMYCHARACTER_TICK: usize = 0xef9b0;
 // UEngine::UpdateTimeAndHandleMaxTickRate()
 // _ZN7UEngine30UpdateTimeAndHandleMaxTickRateEv
 #[cfg(unix)]
-pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: [u8; 20] = [0xbf, 0x50, 0x73, 0x20, 0x04, 0xbe,
-    0xdc, 0x04, 0x00, 0x00, 0xba, 0x10, 0x19, 0x20, 0x04, 0xb0, 0x02, 0x41, 0x89, 0xe8];
+pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: [u8; 20] = [0xbf, 0x10, 0x95, 0x20, 0x04, 0xbe,
+    0xdc, 0x04, 0x00, 0x00, 0xba, 0xd0, 0x3a, 0x20, 0x04, 0xb0, 0x02, 0x41, 0x89, 0xe8];
 #[cfg(unix)]
 pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE_OFFSET: usize = 374;
 
@@ -25,9 +25,10 @@ pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE_OFFSET: usize = 374;
 //pub const GENGINE: usize = 0x505fd40;
 
 // FApp::DeltaTime
+// _ZN4FApp9DeltaTimeE
 // static variable inside the binary
 #[cfg(unix)]
-pub const APP_DELTATIME: usize = 0x4d7a9c0;
+pub const APP_DELTATIME: usize = 0x4d7d9c0;
 #[cfg(windows)]
 pub const APP_DELTATIME: usize = 0x1e1eb08;
 

@@ -30,7 +30,9 @@ call :convert printstats.lua
 call :convert teleportbuttons.lua
 call :convert setvelocity.lua
 call :convert setposition.lua
+
 powershell -Command "(gc build\windows\Config.toml) -replace \"forward = 'v'\", \"forward = 'W'\" -replace \"backward = 'i'\", \"backward = 'S'\" -replace \"left = 'u'\", \"left = 'A'\" -replace \"right = 'a'\", \"right = 'D'\" -replace \"crouch = 1073742049\", \"crouch = 160\" | sc build\windows\Config.toml"
+
 echo Don't forget to create a zip
 exit /b 0
 
