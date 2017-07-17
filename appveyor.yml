@@ -18,16 +18,19 @@ build: false
 test_script:
   - make.bat
 after_test:
-  - cd build\windows\ && 7z a refunct-tas-windows.zip *
+  - cd build\windows
+  - 7z a refunct-tas-windows.zip *
+  - move spiral.lua tas.lua && 7z a spiral-windows.zip refunct-tas.exe rtil.dll prelude.lua teleportbutton-prelude.lua tas.lua Config.toml
 matrix:
   allow_failures:
     - channel: beta
     - channel: nightly
 artifacts:
   - path: build\windows\refunct-tas-windows.zip
+  - path: build\windows\spiral-windows.zip
 deploy:
   provider: GitHub
-  artifact: build\windows\refunct-tas-windows.zip
+  artifact: /.*\.zip/
   auth_token:
     secure: 0VDU7wyyTjt7PotLoL6zwNjlWXiYekw4p/FI5C9/YY54mxiSnGwE9rPh6nIr8vA4
   draft: true
