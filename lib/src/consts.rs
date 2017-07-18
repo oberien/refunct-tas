@@ -1,9 +1,7 @@
 // FEngineLoop::Tick(FEngineLoop *__hidden this)
 // _ZN11FEngineLoop4TickEv
-//#[cfg(unix)]
-//pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0x16f2208;
 #[cfg(windows)]
-pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe8e6c;
+pub const FENGINELOOP_TICK_AFTER_UPDATETIME: usize =  0xe903c;
 
 #[cfg(unix)]
 pub const AMYCHARACTER_TICK: [u8; 16] = [0xf3, 0x0f, 0x59, 0xc0, 0xf3, 0x0f, 0x59, 0xc9, 0xf3, 0x0f,
@@ -11,7 +9,7 @@ pub const AMYCHARACTER_TICK: [u8; 16] = [0xf3, 0x0f, 0x59, 0xc0, 0xf3, 0x0f, 0x5
 #[cfg(unix)]
 pub const AMYCHARACTER_TICK_OFFSET: usize = 73;
 #[cfg(windows)]
-pub const AMYCHARACTER_TICK: usize = 0xef9b0;
+pub const AMYCHARACTER_TICK: usize = 0xefbd0;
 
 // UEngine::UpdateTimeAndHandleMaxTickRate()
 // _ZN7UEngine30UpdateTimeAndHandleMaxTickRateEv
@@ -21,16 +19,13 @@ pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: [u8; 20] = [0xbf, 0x10, 0x95, 
 #[cfg(unix)]
 pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE_OFFSET: usize = 374;
 
-//#[cfg(unix)]
-//pub const GENGINE: usize = 0x505fd40;
-
 // FApp::DeltaTime
 // _ZN4FApp9DeltaTimeE
 // static variable inside the binary
 #[cfg(unix)]
 pub const APP_DELTATIME: usize = 0x4d7d9c0;
 #[cfg(windows)]
-pub const APP_DELTATIME: usize = 0x1e1eb08;
+pub const APP_DELTATIME: usize = 0x1e20b08;
 
 // FSlateApplication::Tick(FSlateApplication *__hidden this)
 // _ZN17FSlateApplication4TickEv
@@ -41,7 +36,7 @@ pub const FSLATEAPPLICATION_TICK: [u8; 35] = [0xf2, 0x0f, 0x10, 0x83, 0x70, 0x04
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_TICK_OFFSET: usize = 22;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_TICK: usize = 0x338d60;
+pub const FSLATEAPPLICATION_TICK: usize = 0x339170;
 
 // AMyCharacter::ForcedUnCrouch(AMyCharacter *__hidden this)
 // _ZN12AMyCharacter14ForcedUnCrouchEv
@@ -52,7 +47,7 @@ pub const AMYCHARACTER_EXECFORCEDUNCROUCH: [u8; 21] = [0x48, 0x8b, 0xbf, 0x68, 0
 pub const AMYCHARACTER_EXECFORCEDUNCROUCH_OFFSET: usize = 0;
 #[cfg(windows)]
 // on Windows we hook 7 bytes before the return
-pub const AMYCHARACTER_EXECFORCEDUNCROUCH_END: usize = 0x109309;
+pub const AMYCHARACTER_EXECFORCEDUNCROUCH_END: usize = 0x109e29;
 
 // FSlateApplication::OnKeyDown(FSlateApplication *this, unsigned int, unsigned int, bool)
 // _ZN17FSlateApplication9OnKeyDownEijb
@@ -62,7 +57,7 @@ pub const FSLATEAPPLICATION_ONKEYDOWN: [u8; 18] = [0x66, 0x89, 0x44, 0x24, 0x08,
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_ONKEYDOWN_OFFSET: usize = 82;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x329680;
+pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x329c50;
 
 // FSlateApplication::OnKeyUp(FSlateApplication *this, unsigned int, unsigned int, bool)
 // _ZN17FSlateApplication7OnKeyUpEijb
@@ -73,7 +68,7 @@ pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x329680;
 //#[cfg(unix)]
 //pub const FSLATEAPPLICATION_ONKEYUP_OFFSET: usize = 76;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x329820;
+pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x329df0;
 
 // FSlateApplication::OnRawMouseMove(FSlateApplication *this, int, int)
 // _ZN17FSlateApplication14OnRawMouseMoveEii
@@ -84,10 +79,7 @@ pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: [u8; 33] = [0x48, 0x8b, 0x07, 0xff, 
 #[cfg(unix)]
 pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE_OFFSET: usize = 110;
 #[cfg(windows)]
-pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x32a540;
-
-// ACharacter::CheckJumpInput(ACharacter* this, float)
-// _ZN10ACharacter14CheckJumpInputEf
+pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x32ab10;
 
 // AController::GetControlRotation(AController* this)
 // _ZNK11AController18GetControlRotationEv
@@ -97,4 +89,4 @@ pub const ACONTROLLER_GETCONTROLROTATION: [u8; 17] = [0xf3, 0x0f, 0x7e, 0x87, 0x
 #[cfg(unix)]
 pub const ACONTROLLER_GETCONTROLROTATION_OFFSET: usize = 0;
 #[cfg(windows)]
-pub const ACONTROLLER_GETCONTROLROTATION: usize = 0xba1120;
+pub const ACONTROLLER_GETCONTROLROTATION: usize = 0xba1e40;

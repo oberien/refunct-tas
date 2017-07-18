@@ -17,7 +17,9 @@ copy tool\ngg.lua build\windows
 copy tool\turn.lua build\windows
 copy tool\rotation.lua build\windows
 copy tool\printstats.lua build\windows
+copy tool\teleportbutton-prelude.lua build\windows
 copy tool\teleportbuttons.lua build\windows
+copy tool\spiral.lua build\windows
 copy tool\setvelocity.lua build\windows
 copy tool\setposition.lua build\windows
 echo Converting lf to crlf
@@ -27,7 +29,9 @@ call :convert ngg.lua
 call :convert turn.lua
 call :convert rotation.lua
 call :convert printstats.lua
+call :convert teleportbutton-prelude.lua
 call :convert teleportbuttons.lua
+call :convert spiral.lua
 call :convert setvelocity.lua
 call :convert setposition.lua
 

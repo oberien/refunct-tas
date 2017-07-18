@@ -34,7 +34,7 @@ unsafe extern fn tick() -> ! {
     asm!("movsd xmm0, [eax]" :: "{eax}"(APP_DELTATIME) :: "intel");
     // jump to original tick function after our hook
     asm!("
-        add eax, 7
+        add eax, 8
         jmp eax
     " :: "{eax}"(FENGINELOOP_TICK_AFTER_UPDATETIME) :: "intel");
     ::std::intrinsics::unreachable()

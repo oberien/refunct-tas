@@ -93,7 +93,7 @@ You can find code examples in the [tool directory](tool/).
         Properties → Local Files → Verify Integrity of Game Files...
     1. It could mean that I was too lazy to update all pointers to the latest version
         of Refunct.
-        Currently refunct-tas is updated for Refunct BuildID 1898242.
+        Currently refunct-tas is updated for Refunct BuildID 1964685.
         You can find your BuildID in Steam: Library → Right Click on Refunct →
         Properties → Local Files → bottom left
 * **The TAS tool doesn't move correctly**:
