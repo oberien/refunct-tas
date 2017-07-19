@@ -16,6 +16,11 @@ To use the prelude in your own scripts, insert `require "prelude"` as first line
   This function should be used to start a TAS in order to always start from the
   very beginning.
   This function will update the stats returned by `getplayerstats`.
+
+  **Warning**: This function will execute the first frame after pressing
+  "New Game" before returning to the Lua script.
+  Therefore, you should make sure to execute `setdelta` before calling this
+  function to avoid desync.
 * `setdelta(delta)`: Set the delta time between frames.
   Unreal Engine uses that delta time for calculations of physics.
   If this function is not used, the time between frames used by UE may differ
@@ -78,7 +83,8 @@ To use the prelude in your own scripts, insert `require "prelude"` as first line
 
 # Exposed functions
 
-These functions are exposed from Rust:
+These functions are exposed from Rust and should only be used if you know
+exactly what you're doing:
 
 * `__stop()`: Stops execution of Refunct before the next frame will be calculated
   and rendered.

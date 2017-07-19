@@ -71,7 +71,7 @@ There, execute `refunct-tas.exe <file>` to run a lua TAS script file.
 
 TAS files are written in the [LUA](https://www.lua.org/) programming language.
 The TAS tool exposes an API which can be used to perform the TAS.
-The API documentation of the exposed API can be found [in lua-api.md](lua-api.md).
+The API documentation of the exposed API can be found [in lua-api.md](/docs/lua-api.md).
 You can find code examples in the [tool directory](tool/).
 
 # Troubleshooting

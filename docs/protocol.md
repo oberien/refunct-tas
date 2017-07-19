@@ -6,7 +6,7 @@ The library listens on `localhost:21337` and accepts only one connection at a
   time.
 After one connection is established, the listener no longer waits for another
   connection until the current one is finished.
-  
+
 Packets have a variable length.
 The first byte defines which command is sent.
 Only some requests result in a response.
