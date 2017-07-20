@@ -96,9 +96,18 @@ You can find code examples in the [tool directory](tool/).
         Currently refunct-tas is updated for Refunct BuildID 1964685.
         You can find your BuildID in Steam: Library → Right Click on Refunct →
         Properties → Local Files → bottom left
+* **Refunct / the TAS tool crashes and the file `refunct-tas.exe` disappears:**
+  Refunct uses library injection, which some antivirus programs see as malicious
+  action.
+  Therefore your antivirus might have stopped execution and moves the executable
+  into quarantine.
+  Redownload the zip file and either whitelist `refunct-tas.exe` or disable it
+  while you are using the TAS tool.
 * **The TAS tool doesn't move correctly**:
   Please make sure that the keys configured in `Config.toml` match the ones
   configured ingame.
+* **I got EAC banned**:
+  No, you didn't. Refunct does not come with EAC. Period.
 
 If your issue is not mentioned in this section, or you couldn't resolve it,
 please contact me and provide the file `%temp%/refunct-tas.log` as well as all
