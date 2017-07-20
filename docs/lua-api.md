@@ -5,7 +5,7 @@ They are rather low-level, but can be called from everywhere within lua scripts.
 To provide an easier interface, these low level functions are wrapped inside
 `prelude.lua`.
 
-# Prelude
+## Prelude
 
 The file `prelude.lua` contains functions which wrap the exported
 functions and provide a more accessible interface.
@@ -81,7 +81,20 @@ To use the prelude in your own scripts, insert `require "prelude"` as first line
     + `menu`
   This function will update the stats returned by `getplayerstats`.
 
-# Exposed functions
+## Teleportbutton Prelude
+
+This prelude contains one single method.
+You can use it by adding `require "teleportbutton-prelude"`.
+
+* `teleportbutton(num)`: Teleports your character to the passed button number.
+  If multiple buttons are needed to raise the next platform, this function
+  will treat them as one button.
+  This means that Button `7` corresponds to both buttons needed to press to
+  raise the 8th platform.
+  So if you call `teleportbuttons(7)`, both buttons needed to raise the next
+  platform are pressed.
+
+## Exposed functions
 
 These functions are exposed from Rust and should only be used if you know
 exactly what you're doing:
