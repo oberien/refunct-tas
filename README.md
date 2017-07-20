@@ -87,7 +87,8 @@ You can find code examples in the [tool directory](tool/).
   On Windows this can happen from time to time when you start the tool.
   Try restarting Refunct and the tool.
   If the game continues to FATAL ERROR after multiple tries (2-3 should be enough),
-  it could be due to multiple causes:
+  try to change your ingame FPS to a fixed value (e.g. 60 FPS) and try again 2-3 times.
+  If it continues to crash, it could be due to multiple causes:
     1. You are not using the latest version of Refunct.
         Please verify your game files with Steam: Library → Right Click on Refunct →
         Properties → Local Files → Verify Integrity of Game Files...
