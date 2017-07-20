@@ -4,6 +4,7 @@
 
 * [Build, Execute a TAS and Troubleshooting](/README.md)
 * [Lua API](/docs/lua-api.md)
+* ["Savestates"](/docs/savestates.md)
 * Lua / TAS introduction guide (TODO)
 
 ## Programming
