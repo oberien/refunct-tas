@@ -8,7 +8,9 @@ extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
 extern crate byteorder;
-extern crate memmem;
+extern crate memmap;
+extern crate object;
+extern crate cpp_demangle;
 
 #[cfg(unix)]
 extern crate libc;

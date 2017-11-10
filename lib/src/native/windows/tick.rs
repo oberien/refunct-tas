@@ -2,7 +2,7 @@ use std::slice;
 
 use byteorder::{WriteBytesExt, LittleEndian};
 
-use super::{FENGINELOOP_TICK_AFTER_UPDATETIME, APP_DELTATIME, make_rw, make_rx};
+use super::{FENGINELOOP_TICK_AFTER_UPDATETIME, FAPP_DELTATIME, make_rw, make_rx};
 
 pub fn hook_tick() {
     log!("Hooking FEngineLoop::Tick");

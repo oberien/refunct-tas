@@ -1,3 +1,4 @@
+/// Preamble code to align the stack to 16 bytes
 macro_rules! alignstack_pre {
     () => {{
         asm!(r"
@@ -7,6 +8,8 @@ macro_rules! alignstack_pre {
         " :::: "intel");
     }}
 }
+
+/// Epilogue code to restore the aligned stack to its original state
 macro_rules! alignstack_post {
     () => {{
         asm!(r"
@@ -16,6 +19,7 @@ macro_rules! alignstack_post {
     }}
 }
 
+/// Push all registers including xmm0-7
 macro_rules! pushall {
     () => {{
         asm!(r"
@@ -38,6 +42,7 @@ macro_rules! pushall {
         " :::: "intel");
     }}
 }
+/// Pop all registers including xmm0-7
 macro_rules! popall {
     () => {{
         asm!(r"
@@ -61,6 +66,16 @@ macro_rules! popall {
     }}
 }
 
+/// Generates functions to hook the beginning of a function and restore it
+///
+/// # Parameters
+///
+/// * **hook_name**: Name of the hook function
+/// * **restore_name**: Name of the restore function
+/// * **hook_fn**: Function to call from within the hook
+/// * **name**: Name of the original function to hook (for logging purposes)
+/// * **addr**: Address of the original function to hook
+/// * **log**: `true` if logging should be enabled (Optional)
 macro_rules! hook_beginning {
     ($hook_name:ident, $restore_name:ident, $hook_fn:path, $name:expr, $addr:expr,) => {
         hook_beginning! {
@@ -86,7 +101,7 @@ macro_rules! hook_beginning {
             let addr = unsafe { $addr };
             super::make_rw(addr);
             let hook_fn = $hook_fn as *const () as usize;
-            let mut slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
+            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
             let mut saved = [0u8; 12];
             saved[..].copy_from_slice(slice);
             ORIGINAL.set(saved);
@@ -105,7 +120,7 @@ macro_rules! hook_beginning {
             if $log { log!("Restoring {}", $name); }
             let addr = unsafe { $addr };
             super::make_rw(addr);
-            let mut slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
+            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
             slice[..].copy_from_slice(&*ORIGINAL.get());
             super::make_rx(addr);
             if $log { log!("{} successfully restored", $name); }
@@ -113,6 +128,14 @@ macro_rules! hook_beginning {
     }
 }
 
+/// Generates a hook function with given name, which executes the the interceptor once and unhooks afterwards
+///
+/// # Parameters
+///
+/// * **hook_fn**: Name of the hook function that is generated
+/// * **interceptor**: Interceptor function which is called from within the hook
+/// * **restore_name**: Name of the restore function
+/// * **addr**: Address of the original function
 macro_rules! hook_fn_once {
     ($hook_fn:ident, $interceptor:path, $restore_name:path, $addr:expr,) => {
         #[naked]
@@ -134,6 +157,16 @@ macro_rules! hook_fn_once {
     }
 }
 
+/// Keeps the passed function always hooked, calling the interceptor every time the original function is called
+///
+/// # Parameters
+///
+/// * **hook_fn**: Name of the hook function that is generated
+/// * **interceptor**: Interceptor function to call every time the original function is called
+/// * **hook_name**: Name of the function which hooks the original function
+/// * **restore_name**: Name of the restore function
+/// * **addr**: Address of the original function
+/// * **order**: `intercept before original` or `intercept after original`, defaults to the former
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $restore_name:path, $addr:expr,) => {
         hook_fn_always! {

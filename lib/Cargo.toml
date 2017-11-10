@@ -7,7 +7,9 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 lazy_static = "0.1.*"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
-memmem = "0.1.1"
+object = { git = "https://github.com/oberien/object", rev = "3ae266f861129df4a610bbc067956314783b2f3e" }
+memmap = "0.6.0"
+cpp_demangle = "0.2.5"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"
@@ -16,7 +18,7 @@ libc = "0.2.20"
 winapi = "0.2.8"
 kernel32-sys = "0.2.2"
 
-[build.'cfg(windows)']
+[target.'cfg(windows)'.build]
 target = "i686-pc-windows-msvc"
 
 [lib]

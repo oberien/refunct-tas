@@ -11,7 +11,6 @@ use self::linux::*;
 use self::windows::*;
 use error::*;
 #[cfg(unix)]
-use consts;
 use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
@@ -50,9 +49,9 @@ pub fn init() {
 
 unsafe fn set_delta(d: f64) {
     #[cfg(unix)] 
-    let mut delta = consts::APP_DELTATIME as *mut u8 as *mut f64;
+    let delta = linux::FAPP_DELTATIME as *mut f64;
     #[cfg(windows)]
-    let mut delta = windows::APP_DELTATIME as *mut u8 as *mut f64;
+    let delta = windows::FAPP_DELTATIME as *mut f64;
     *delta = d;
 }
 
