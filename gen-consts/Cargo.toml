@@ -1,0 +1,8 @@
+[package]
+name = "gen-consts"
+version = "0.1.0"
+authors = ["oberien <jaro.fietz@gmx.de>"]
+
+[dependencies]
+goblin = "0.0.11"
+pdb = "0.1.6"

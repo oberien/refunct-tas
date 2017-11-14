@@ -25,7 +25,6 @@ use std::thread;
 mod error;
 #[macro_use]
 mod statics;
-mod consts;
 mod loops;
 mod native;
 

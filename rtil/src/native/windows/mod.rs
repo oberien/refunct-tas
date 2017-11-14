@@ -5,6 +5,7 @@ mod newgame;
 mod tick;
 mod controller;
 mod character;
+mod consts;
 
 pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::newgame::hook_newgame;
@@ -17,8 +18,6 @@ use std::ptr::null;
 use winapi::c_void;
 use winapi::winnt::{PAGE_READWRITE, PAGE_EXECUTE_READ};
 use kernel32::{VirtualProtect, GetModuleHandleA};
-
-use consts;
 
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/123333-demo-pure-rust-internal-coding.html
 // Entry Point
@@ -39,8 +38,8 @@ lazy_static! {
 pub static mut FSLATEAPPLICATION: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
 pub static mut AMYCHARACTER_TICK: usize = 0;
-pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH_END: usize = 0;
-pub static mut FENGINELOOP_TICK_AFTER_UPDATETIME: usize = 0;
+pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0;
+pub static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
 pub static mut FAPP_DELTATIME: usize = 0;
 pub static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
 pub static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
@@ -53,9 +52,9 @@ pub fn init() {
     unsafe {
         FSLATEAPPLICATION_TICK = base + consts::FSLATEAPPLICATION_TICK;
         AMYCHARACTER_TICK = base + consts::AMYCHARACTER_TICK;
-        AMYCHARACTER_EXECFORCEDUNCROUCH_END = base + consts::AMYCHARACTER_EXECFORCEDUNCROUCH_END;
-        FENGINELOOP_TICK_AFTER_UPDATETIME = base + consts::FENGINELOOP_TICK_AFTER_UPDATETIME;
-        FAPP_DELTATIME = base + consts::APP_DELTATIME;
+        AMYCHARACTER_EXECFORCEDUNCROUCH = base + consts::AMYCHARACTER_EXECFORCEDUNCROUCH;
+        UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE = base + consts::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
+        FAPP_DELTATIME = base + consts::FAPP_DELTATIME;
         FSLATEAPPLICATION_ONKEYDOWN = base + consts::FSLATEAPPLICATION_ONKEYDOWN;
         FSLATEAPPLICATION_ONKEYUP = base + consts::FSLATEAPPLICATION_ONKEYUP;
         FSLATEAPPLICATION_ONRAWMOUSEMOVE = base + consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE;

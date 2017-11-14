@@ -58,16 +58,6 @@ macro_rules! popall {
 /// * `hook_fn`: Function to call when the hook triggers.
 ///      Can be generated with `hook_fn_once!` or `hook_fn_always!`.
 macro_rules! hook {
-    ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path,) => {
-        hook! {
-            $orig_name,
-            $orig_addr,
-            $hook_name,
-            $unhook_name,
-            $hook_fn,
-        }
-    };
-
     ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {
         lazy_static!{
             static ref ORIGINAL: Static<[u8; 7]> = Static::new();
@@ -143,18 +133,9 @@ macro_rules! hook_fn_once {
 /// * `hook_name`: Name of the hooking function to hook the original function
 /// * `unhook_name`: Name of the unhooking function to restore the original function
 /// * `orig_addr`: Address of the original function
+/// * `order`: `intercept before original` or `intercept after original`
 macro_rules! hook_fn_always {
-    ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr,) => {
-        hook_fn_always! {
-            $hook_fn,
-            $interceptor,
-            $hook_name,
-            $unhook_name,
-            $orig_addr,
-            intercept before original
-        }
-    };
-    ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original) => {
+    ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
         #[naked]
         unsafe extern fn $hook_fn() -> ! {
             pushall!();
@@ -181,7 +162,7 @@ macro_rules! hook_fn_always {
             ::std::intrinsics::unreachable()
         }
     };
-    ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept after original) => {
+    ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept after original,) => {
         #[naked]
         unsafe extern fn $hook_fn() -> ! {
             // restore original function
