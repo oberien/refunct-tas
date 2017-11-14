@@ -17,7 +17,7 @@ $(TOOL): $(BUILDDIR)
 
 $(LIB): $(BUILDDIR)
 	cd rtil && rustup run nightly cargo build --release
-	cp rtil/target/debug/librtil.so $(LIB)
+	cp rtil/target/release/librtil.so $(LIB)
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)

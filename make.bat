@@ -9,7 +9,7 @@ cd ..\tool
 rustup run nightly cargo build --target=i686-pc-windows-msvc
 cd ..
 echo Copying files
-copy rtil\target\i686-pc-windows-msvc\debug\rtil.dll build\windows
+copy rtil\target\i686-pc-windows-msvc\release\rtil.dll build\windows
 copy tool\target\i686-pc-windows-msvc\debug\refunct-tas.exe build\windows
 copy tool\Config.toml build\windows
 copy tool\prelude.lua build\windows
