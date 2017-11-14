@@ -8,7 +8,7 @@ zip: all
 	cd build/linux && zip refunct-tas-linux.zip *
 
 clippy:
-	cd lib && cargo clippy
+	cd rtil && cargo clippy
 	cd tool && cargo clippy
 
 $(TOOL): $(BUILDDIR)
@@ -16,8 +16,8 @@ $(TOOL): $(BUILDDIR)
 	cp tool/target/debug/refunct-tas $(TOOL)
 
 $(LIB): $(BUILDDIR)
-	cd lib && rustup run nightly cargo build --release
-	cp lib/target/debug/librtil.so $(LIB)
+	cd rtil && rustup run nightly cargo build --release
+	cp rtil/target/debug/librtil.so $(LIB)
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
@@ -28,6 +28,6 @@ lua: $(BUILDDIR)
 clean:
 	$(RM) -r build/
 	cd tool && cargo clean
-	cd lib && cargo clean
+	cd rtil && cargo clean
 
 .PHONY: all clean $(TOOL) $(LIB) # always execute cargo and let it handle sources
