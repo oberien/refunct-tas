@@ -16,7 +16,7 @@ const NAMES: [(&str, &str); 9] = [
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
     ("?GetControlRotation@AController", "ACONTROLLER_GETCONTROLROTATION"),
-    ("?execForcedUnCrouch@AMyCharacter", "AMYCHARACTER_EXECFORCEDUNCROUCH"),
+    ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_EXECFORCEDUNCROUCH"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
     ("FApp::DeltaTime", "FAPP_DELTATIME"),
 ];
