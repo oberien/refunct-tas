@@ -16,7 +16,7 @@ $(TOOL): $(BUILDDIR)
 	cp tool/target/debug/refunct-tas $(TOOL)
 
 $(LIB): $(BUILDDIR)
-	cd lib && rustup run nightly cargo build
+	cd lib && rustup run nightly cargo build --release
 	cp lib/target/debug/librtil.so $(LIB)
 
 $(BUILDDIR):

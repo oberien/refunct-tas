@@ -24,3 +24,11 @@ target = "i686-pc-windows-msvc"
 [lib]
 name = "rtil"
 crate_type = ["dylib"]
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+debug = true
+debug-assertions = true
+panic = 'abort'
