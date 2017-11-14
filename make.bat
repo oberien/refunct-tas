@@ -4,7 +4,7 @@ md build\windows
 del /Q build\windows\*
 echo Building
 cd rtil
-rustup run nightly cargo build --target=i686-pc-windows-msvc
+rustup run nightly cargo build --release --target=i686-pc-windows-msvc
 cd ..\tool
 rustup run nightly cargo build --target=i686-pc-windows-msvc
 cd ..

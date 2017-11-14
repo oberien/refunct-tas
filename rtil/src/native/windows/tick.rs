@@ -1,7 +1,3 @@
-use std::slice;
-
-use byteorder::{WriteBytesExt, LittleEndian};
-
 use super::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
 
 hook! {

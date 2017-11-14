@@ -2,6 +2,7 @@
 #![feature(core_intrinsics)]
 #![feature(naked_functions)]
 #![feature(mpsc_select)]
+#![feature(abi_thiscall)]
 
 #[macro_use]
 extern crate error_chain;

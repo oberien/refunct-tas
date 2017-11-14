@@ -18,7 +18,7 @@ macro_rules! pushall {
             movdqu [esp+0x20], xmm5
             movdqu [esp+0x10], xmm6
             movdqu [esp], xmm7
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 
@@ -42,7 +42,7 @@ macro_rules! popall {
             pop ecx
             pop ebx
             pop eax
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 
@@ -57,9 +57,14 @@ macro_rules! popall {
 /// * `unhook_name`: Name of the function unhooking the original function
 /// * `hook_fn`: Function to call when the hook triggers.
 ///      Can be generated with `hook_fn_once!` or `hook_fn_always!`.
+/// * `log`: Indicates whether to log messages or not
 macro_rules! hook {
     ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {
-        lazy_static!{
+        use std::slice;
+        use byteorder::{WriteBytesExt, LittleEndian};
+        use statics::Static;
+
+        lazy_static! {
             static ref ORIGINAL: Static<[u8; 7]> = Static::new();
         }
 
@@ -69,7 +74,7 @@ macro_rules! hook {
             super::make_rw(addr);
             let hook_fn = $hook_fn as *const () as usize;
             let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) };
-            let mut saved = [0u8; 12];
+            let mut saved = [0u8; 7];
             saved[..].copy_from_slice(slice);
             ORIGINAL.set(saved);
             if $log { log!("Original {}: {:?}", $orig_name, slice); }
@@ -77,13 +82,13 @@ macro_rules! hook {
             slice[0] = 0xb8;
             (&mut slice[1..5]).write_u32::<LittleEndian>(hook_fn as u32).unwrap();
             // jmp rax
-            slice[5..].copy_from_sclice(&[0xff, 0xe0]);
+            slice[5..].copy_from_slice(&[0xff, 0xe0]);
             if $log { log!("Injected {:?}", slice); }
             super::make_rx(addr);
             if $log { log!("{} hooked successfully", $orig_name); }
         }
 
-        pub fn $unhook_name {
+        pub fn $unhook_name() {
             if $log { log!("Unhooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             super::make_rw(addr);
@@ -107,17 +112,17 @@ macro_rules! hook {
 macro_rules! hook_fn_once {
     ($hook_fn:ident, $interceptor:path, $unhook_name:path, $orig_addr:expr,) => {
         #[naked]
-        unsafe extern fn $hook_fn -> ! {
+        unsafe extern fn $hook_fn() -> ! {
             // save registers
             pushall!();
             // call interceptor
-            asm!("call eax" :: "{eax}"($interceptor as usize) :: "intel");
+            asm!("call eax" :: "{eax}"($interceptor as usize) :: "intel","volatile");
             // unhook original function
-            asm!("call eax" :: "{eax}"($unhook_name as usize) :: "intel");
+            asm!("call eax" :: "{eax}"($unhook_name as usize) :: "intel","volatile");
             // restore registers
             popall!();
             // jump to original function
-            asm!("jmp eax" :: "{eax}"($orig_addr) :: "intel");
+            asm!("jmp eax" :: "{eax}"($orig_addr) :: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }
@@ -140,25 +145,25 @@ macro_rules! hook_fn_always {
         unsafe extern fn $hook_fn() -> ! {
             pushall!();
             // call interceptor
-            asm!("call $0" :: "i"($interceptor as usize) :: "intel");
+            asm!("call $0" :: "i"($interceptor as usize) :: "intel","volatile");
             // restore original function
-            asm!("call $0" :: "i"($unhook_name as usize) :: "intel");
+            asm!("call $0" :: "i"($unhook_name as usize) :: "intel","volatile");
             popall!();
 
             // call original function
-            asm!("call $0" :: "i"($orig_addr) :: "intel");
+            asm!("call eax" :: "{eax}"($orig_addr) :: "intel","volatile");
 
-            // save rax (return value of original function)
-            asm!("push eax" :::: "intel");
+            // save eax (return value of original function)
+            asm!("push eax" :::: "intel","volatile");
 
             // hook method again
-            asm!("call $0" :: "i"($hook_name as usize) :: "intel");
+            asm!("call $0" :: "i"($hook_name as usize) :: "intel","volatile");
 
-            // restore rax
-            asm!("pop rax" :::: "intel");
+            // restore eax
+            asm!("pop eax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel");
+            asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     };
@@ -167,25 +172,25 @@ macro_rules! hook_fn_always {
         unsafe extern fn $hook_fn() -> ! {
             // restore original function
             pushall!();
-            asm!("call $0" :: "i"($unhook_name as usize) :: "intel");
+            asm!("call $0" :: "i"($unhook_name as usize) :: "intel","volatile");
             popall!();
 
             // call original function
-            asm!("call $0" :: "i"($orig_addr) :: "intel");
+            asm!("call eax" :: "{eax}"($orig_addr) :: "intel","volatile");
 
-            // save rax (return value of original function)
-            asm!("push rax" :::: "intel");
+            // save eax (return value of original function)
+            asm!("push eax" :::: "intel","volatile");
 
             // hook method again
-            asm!("call $0" :: "i"($hook_name as usize) :: "intel");
+            asm!("call $0" :: "i"($hook_name as usize) :: "intel","volatile");
             // call interceptor
-            asm!("call $0" :: "i"($interceptor as usize) :: "intel");
+            asm!("call $0" :: "i"($interceptor as usize) :: "intel","volatile");
 
-            // restore rax
-            asm!("pop rax" :::: "intel");
+            // restore eax
+            asm!("pop eax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel");
+            asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }

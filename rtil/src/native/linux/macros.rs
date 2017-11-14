@@ -5,7 +5,7 @@ macro_rules! alignstack_pre {
             push rbp
             mov rbp, rsp
             and rsp, 0xfffffffffffffff0
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 
@@ -15,7 +15,7 @@ macro_rules! alignstack_post {
         asm!(r"
             mov rsp, rbp
             pop rbp
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 
@@ -39,7 +39,7 @@ macro_rules! pushall {
             movdqu [rsp+0x20], xmm5
             movdqu [rsp+0x10], xmm6
             movdqu [rsp], xmm7
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 /// Pop all registers including xmm0-7
@@ -62,7 +62,7 @@ macro_rules! popall {
             pop rcx
             pop rbx
             pop rax
-        " :::: "intel");
+        " :::: "intel","volatile");
     }}
 }
 
@@ -144,14 +144,14 @@ macro_rules! hook_fn_once {
             pushall!();
             alignstack_pre!();
             // call interceptor
-            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel","volatile");
             // restore original function
-            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel","volatile");
             alignstack_post!();
             // restore register
             popall!();
             // jump to original function
-            asm!("jmp rax" :: "{rax}"($addr) :: "intel");
+            asm!("jmp rax" :: "{rax}"($addr) :: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }
@@ -184,30 +184,30 @@ macro_rules! hook_fn_always {
             pushall!();
             alignstack_pre!();
             // call interceptor
-            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel","volatile");
             // restore original function
-            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel","volatile");
             alignstack_post!();
             popall!();
 
             // call original function
             alignstack_pre!();
-            asm!("call rax" :: "{rax}"($addr) :: "intel");
+            asm!("call rax" :: "{rax}"($addr) :: "intel","volatile");
             alignstack_post!();
 
             // save rax (return value of original function
-            asm!("push rax" :::: "intel");
+            asm!("push rax" :::: "intel","volatile");
 
             // hook method again
             alignstack_pre!();
-            asm!("call rax" :: "{rax}"($hook_name as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($hook_name as usize) :: "intel","volatile");
             alignstack_post!();
 
             // restore rax
-            asm!("pop rax" :::: "intel");
+            asm!("pop rax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel");
+            asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     };
@@ -217,30 +217,30 @@ macro_rules! hook_fn_always {
             // restore original function
             pushall!();
             alignstack_pre!();
-            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($restore_name as usize) :: "intel","volatile");
             alignstack_post!();
             popall!();
 
             // call original function
             alignstack_pre!();
-            asm!("call rax" :: "{rax}"($addr) :: "intel");
+            asm!("call rax" :: "{rax}"($addr) :: "intel","volatile");
             alignstack_post!();
 
             // save rax (return value of original function
-            asm!("push rax" :::: "intel");
+            asm!("push rax" :::: "intel","volatile");
 
             alignstack_pre!();
             // hook method again
-            asm!("call rax" :: "{rax}"($hook_name as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($hook_name as usize) :: "intel","volatile");
             // call interceptor
-            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel");
+            asm!("call rax" :: "{rax}"($interceptor as usize) :: "intel","volatile");
             alignstack_post!();
 
             // restore rax
-            asm!("pop rax" :::: "intel");
+            asm!("pop rax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel");
+            asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }

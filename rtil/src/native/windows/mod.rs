@@ -38,7 +38,7 @@ lazy_static! {
 pub static mut FSLATEAPPLICATION: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
 pub static mut AMYCHARACTER_TICK: usize = 0;
-pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0;
+pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
 pub static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
 pub static mut FAPP_DELTATIME: usize = 0;
 pub static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
@@ -52,7 +52,7 @@ pub fn init() {
     unsafe {
         FSLATEAPPLICATION_TICK = base + consts::FSLATEAPPLICATION_TICK;
         AMYCHARACTER_TICK = base + consts::AMYCHARACTER_TICK;
-        AMYCHARACTER_EXECFORCEDUNCROUCH = base + consts::AMYCHARACTER_EXECFORCEDUNCROUCH;
+        AMYCHARACTER_FORCEDUNCROUCH = base + consts::AMYCHARACTER_FORCEDUNCROUCH;
         UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE = base + consts::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
         FAPP_DELTATIME = base + consts::FAPP_DELTATIME;
         FSLATEAPPLICATION_ONKEYDOWN = base + consts::FSLATEAPPLICATION_ONKEYDOWN;
@@ -63,7 +63,7 @@ pub fn init() {
 }
 
 pub fn make_rw(addr: usize) {
-    log!("make_rw: {:#x}", addr);
+//    log!("make_rw: {:#x}", addr);
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     let mut out = 0;
@@ -71,7 +71,7 @@ pub fn make_rw(addr: usize) {
 }
 
 pub fn make_rx(addr: usize) {
-    log!("make_rx: {:#x}", addr);
+//    log!("make_rx: {:#x}", addr);
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     let mut out = 0;

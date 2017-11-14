@@ -1,16 +1,12 @@
-use std::slice;
-
-use byteorder::{WriteBytesExt, LittleEndian};
-
-use super::AMYCHARACTER_EXECFORCEDUNCROUCH;
+use super::AMYCHARACTER_FORCEDUNCROUCH;
 
 hook! {
-    "AMyCharacter::execForcedUnCrouch",
-    AMYCHARACTER_EXECFORCEDUNCROUCH,
+    "AMyCharacter::ForcedUnCrouch",
+    AMYCHARACTER_FORCEDUNCROUCH,
     hook_newgame,
     unhook_newgame,
     new_game,
-    true
+    true,
 }
 
 hook_fn_always! {
@@ -18,6 +14,6 @@ hook_fn_always! {
     ::native::new_game,
     hook_newgame,
     unhook_newgame,
-    AMYCHARACTER_EXECFORCEDUNCROUCH,
+    AMYCHARACTER_FORCEDUNCROUCH,
     intercept before original,
 }

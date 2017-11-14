@@ -1,12 +1,5 @@
 use super::AMYCHARACTER_TICK;
 use native::CHARACTER;
-use statics::Static;
-use std::slice;
-use byteorder::{WriteBytesExt, LittleEndian};
-
-lazy_static! {
-    static ref START: Static<[u8; 7]> = Static::new();
-}
 
 pub struct AMyCharacter;
 
@@ -72,48 +65,25 @@ struct UCharacterMovementComponent {
     acceleration: FVector,
 }
 
-pub fn hook_character() {
-    log!("Hooking AMyCharacter::Tick");
-    let addr = unsafe { AMYCHARACTER_TICK };
-    super::make_rw(addr);
-    let hook_fn = get_character as *const () as usize;
-    let mut code = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) };
-    let mut saved = [0u8; 7];
-    saved[..].copy_from_slice(code);
-    START.set(saved);
-    log!("Original: {:?}", code);
-    // mov eax, addr
-    code[0] = 0xb8;
-    (&mut code[1..5]).write_u32::<LittleEndian>(hook_fn as u32).unwrap();
-    // jmp rax
-    code[5..].copy_from_slice(&[0xff, 0xe0]);
-    log!("Injected: {:?}", code);
-    super::make_rx(addr);
-    log!("AMyCharacter::Tick successfully hooked");
+hook! {
+    "AMyCharacter::Tick",
+    AMYCHARACTER_TICK,
+    hook_character,
+    unhook_character,
+    get_character,
+    true,
 }
 
-#[naked]
-unsafe extern fn get_character() -> ! {
-    // push argument
-    asm!("push ecx" :::: "intel");
-    // call interceptor
-    asm!("call eax" :: "{eax}"(save_character as usize) :: "intel");
-    // restore everything and jump to original function
-    asm!(r"
-        pop ecx
-        jmp eax
-    ":: "{eax}"(AMYCHARACTER_TICK) :: "intel");
-    ::std::intrinsics::unreachable()
+hook_fn_once! {
+    get_character,
+    save_character,
+    unhook_character,
+    AMYCHARACTER_TICK,
 }
 
 #[inline(never)]
-extern fn save_character(this: usize) {
-    let addr = unsafe { AMYCHARACTER_TICK };
-    super::make_rw(addr);
+extern "thiscall" fn save_character(this: usize) {
     CHARACTER.set(this);
-    let mut code = unsafe { slice::from_raw_parts_mut(addr as *mut _, 7) };
-    code.copy_from_slice(&*START.get());
-    super::make_rx(addr);
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", AMyCharacter::root_component() as usize);
     log!("Got AMyCharacter::Movement: {:#x}", AMyCharacter::movement() as usize);
