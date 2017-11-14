@@ -55,10 +55,11 @@ pub fn init() {
     let file = ElfFile::parse(&*file).unwrap();
     let options = DemangleOptions { no_params: true };
     let addrs: HashMap<_, _> = file.dynamic_symbols().into_iter()
-        .flat_map(|sym| sym.name().map(|name| (name, sym.address() as usize)))
-        .flat_map(|(name, addr)| Symbol::new(name).ok().map(|symbol| (symbol, addr)))
-        .flat_map(|(symbol, addr)| symbol.demangle(&options).ok().map(|name| (name, addr)))
-        .map(|(name, addr)| (name.split(' ').next().unwrap().to_string(), addr))
+        .flat_map(|sym| sym.name()
+            .and_then(|name| Symbol::new(name).ok())
+            .and_then(|symbol| symbol.demangle(&options).ok())
+            .map(|name| name.split(' ').next().unwrap().to_string())
+            .map(|name| (name, sym.address() as usize)))
         .filter(|&(ref name, _)| NAMES.contains(&name.as_str()))
         .collect();
     unsafe {
