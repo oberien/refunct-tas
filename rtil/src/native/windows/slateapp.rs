@@ -21,7 +21,7 @@ impl FSlateApplication {
     pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
         let fun: unsafe extern "thiscall" fn(this: UINT_PTR, key_code: INT32, character_code: UINT32, is_repeat: BOOL) =
             ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP);
-        fun(FSLATEAPPLICATION as UINT_PTR, key_code, character_code, is_repeat as UINT_PTR)
+        fun(FSLATEAPPLICATION as UINT_PTR, key_code, character_code, is_repeat as BOOL)
     }
 
     pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
