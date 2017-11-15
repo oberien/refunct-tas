@@ -1,4 +1,5 @@
 use winapi::minwindef::BOOL;
+use winapi::basetsd::{UINT_PTR, INT32, UINT32};
 
 use native::SLATEAPP;
 use super::{
@@ -13,28 +14,20 @@ pub struct FSlateApplication;
 
 impl FSlateApplication {
     pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
-        // set arguments
-        asm!("push ecx" :: "{ecx}"(is_repeat as BOOL) :: "intel","volatile");
-        asm!("push ecx" :: "{ecx}"(character_code) :: "intel","volatile");
-        asm!("push ecx" :: "{ecx}"(key_code) :: "intel","volatile");
-        // call function with thiscall
-        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONKEYDOWN as usize) :: "intel","volatile");
+        let fun: unsafe extern "thiscall" fn(this: UINT_PTR, key_code: INT32, character_code: UINT32, is_repeat: BOOL) =
+            ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN);
+        fun(FSLATEAPPLICATION_ONKEYDOWN, key_code, character_code, is_repeat)
     }
     pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
-        // set arguments
-        asm!("push ecx" :: "{ecx}"(is_repeat as BOOL) :: "intel","volatile");
-        asm!("push ecx" :: "{ecx}"(character_code) :: "intel","volatile");
-        asm!("push ecx" :: "{ecx}"(key_code) :: "intel","volatile");
-        // call function with thiscall
-        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONKEYUP as usize) :: "intel","volatile");
+        let fun: unsafe extern "thiscall" fn(this: UINT_PTR, key_code: INT32, character_code: UINT32, is_repeat: BOOL) =
+            ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP);
+        fun(FSLATEAPPLICATION, key_code, character_code, is_repeat)
     }
 
     pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
-        // set arguments
-        asm!("push ecx" :: "{ecx}"(y) :: "intel","volatile");
-        asm!("push ecx" :: "{ecx}"(x) :: "intel","volatile");
-        // call function with thiscall
-        asm!("call eax" :: "{ecx}"(FSLATEAPPLICATION), "{eax}"(FSLATEAPPLICATION_ONRAWMOUSEMOVE as usize) :: "intel","volatile");
+        let fun: unsafe extern "thiscall" fn(this: UINT_PTR, x: INT32, y: INT32) =
+            ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE);
+        fun(FSLATEAPPLICATION, x, y)
     }
 }
 
