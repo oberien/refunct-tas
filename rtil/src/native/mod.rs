@@ -1,21 +1,18 @@
 use std::sync::mpsc::TryRecvError;
 
-#[cfg(unix)]
-mod linux;
-#[cfg(windows)]
-mod windows;
+#[cfg(unix)] #[macro_use] mod linux;
+#[cfg(windows)] #[macro_use] mod windows;
 mod ue;
+mod character;
 
-#[cfg(unix)]
-use self::linux::*;
-#[cfg(windows)]
-use self::windows::*;
+#[cfg(unix)] use self::linux::*;
+#[cfg(windows)] use self::windows::*;
 use error::*;
 use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
-#[cfg(unix)]
-pub use self::linux::{INITIALIZE_CTOR, AController, AMyCharacter};
+#[cfg(unix)] pub use self::linux::{INITIALIZE_CTOR, AController};
+#[cfg(unix)] pub use self::character::AMyCharacter;
 #[cfg(windows)]
 pub use self::windows::{DllMain, AController, AMyCharacter};
 
@@ -32,7 +29,6 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
-    static ref CHARACTER: Static<usize> = Static::new();
     static ref CONTROLLER: Static<usize> = Static::new();
     static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
@@ -44,7 +40,7 @@ pub fn init() {
     hook_newgame();
     hook_tick();
     hook_controller();
-    hook_character();
+    character::hook();
 }
 
 unsafe fn set_delta(d: f64) {

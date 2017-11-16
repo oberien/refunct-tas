@@ -1,10 +1,9 @@
-#[macro_use]
-mod macros;
-mod slateapp;
-mod newgame;
-mod tick;
-mod controller;
-mod character;
+#[macro_use] mod macros;
+pub(in native) mod slateapp;
+pub(in native) mod newgame;
+pub(in native) mod tick;
+pub(in native) mod controller;
+pub(in native) mod character;
 
 use std::fs::File;
 use std::env;
@@ -19,7 +18,6 @@ pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::newgame::hook_newgame;
 pub use self::tick::hook_tick;
 pub use self::controller::{hook_controller, AController};
-pub use self::character::{hook_character, AMyCharacter};
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
