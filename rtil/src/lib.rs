@@ -4,35 +4,27 @@
 #![feature(mpsc_select)]
 #![feature(abi_thiscall)]
 
-#[macro_use]
-extern crate error_chain;
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate error_chain;
+#[macro_use] extern crate lazy_static;
 extern crate byteorder;
 extern crate memmap;
 extern crate object;
 extern crate cpp_demangle;
 
-#[cfg(unix)]
-extern crate libc;
-#[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate kernel32;
+#[cfg(unix)] extern crate libc;
+#[cfg(windows)] extern crate winapi;
+#[cfg(windows)] extern crate kernel32;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;
 
 mod error;
-#[macro_use]
-mod statics;
+#[macro_use] mod statics;
 mod loops;
 mod native;
 
-#[cfg(unix)]
-pub use native::INITIALIZE_CTOR;
-#[cfg(windows)]
-pub use native::DllMain;
+#[cfg(unix)] pub use native::INITIALIZE_CTOR;
+#[cfg(windows)] pub use native::DllMain;
 
 static INIT: Once = ONCE_INIT;
 
