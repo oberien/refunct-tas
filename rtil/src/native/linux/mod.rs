@@ -13,7 +13,6 @@ use memmap::Mmap;
 use object::{ElfFile, Object};
 use cpp_demangle::{Symbol, DemangleOptions};
 
-pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::tick::hook_tick;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18

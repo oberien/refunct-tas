@@ -30,7 +30,6 @@ lazy_static! {
     static ref BASE: usize = unsafe { GetModuleHandleA(null()) as usize };
 }
 
-pub static mut FSLATEAPPLICATION: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
 pub static mut AMYCHARACTER_TICK: usize = 0;
 pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;

@@ -6,12 +6,14 @@ mod ue;
 mod character;
 mod controller;
 mod newgame;
+mod slateapp;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
 use error::*;
 use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
+use self::slateapp::FSlateApplication;
 
 #[cfg(unix)] pub use self::linux::INITIALIZE_CTOR;
 #[cfg(windows)] pub use self::windows::DllMain;
@@ -30,14 +32,13 @@ enum StateType {
 }
 
 lazy_static! {
-    static ref SLATEAPP: Static<usize> = Static::new();
     static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
 
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
-    hook_slateapp();
+    slateapp::hook();
     newgame::hook();
     hook_tick();
     controller::hook();
