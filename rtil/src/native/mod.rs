@@ -4,6 +4,7 @@ use std::sync::mpsc::TryRecvError;
 #[cfg(windows)] #[macro_use] mod windows;
 mod ue;
 mod character;
+mod controller;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -11,10 +12,10 @@ use error::*;
 use loops::{Event, Response};
 use statics::{Static, SENDER, RECEIVER};
 
-#[cfg(unix)] pub use self::linux::{INITIALIZE_CTOR, AController};
-#[cfg(unix)] pub use self::character::AMyCharacter;
-#[cfg(windows)]
-pub use self::windows::{DllMain, AController, AMyCharacter};
+#[cfg(unix)] pub use self::linux::INITIALIZE_CTOR;
+#[cfg(windows)] pub use self::windows::DllMain;
+pub use self::character::AMyCharacter;
+pub use self::controller::AController;
 
 struct State {
     typ: StateType,
@@ -29,7 +30,6 @@ enum StateType {
 
 lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
-    static ref CONTROLLER: Static<usize> = Static::new();
     static ref STATE: Static<State> = Static::from(State { typ: StateType::Running, delta: None });
 }
 
@@ -39,7 +39,7 @@ pub fn init() {
     hook_slateapp();
     hook_newgame();
     hook_tick();
-    hook_controller();
+    controller::hook();
     character::hook();
 }
 

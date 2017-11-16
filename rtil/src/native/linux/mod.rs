@@ -17,7 +17,6 @@ use cpp_demangle::{Symbol, DemangleOptions};
 pub use self::slateapp::{hook_slateapp, FSlateApplication};
 pub use self::newgame::hook_newgame;
 pub use self::tick::hook_tick;
-pub use self::controller::{hook_controller, AController};
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this

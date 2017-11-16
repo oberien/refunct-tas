@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["oberien <jaro.fietz@gmx.de>"]
 
 [dependencies]
-lazy_static = "0.1.*"
+lazy_static = "0.2.10"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
 object = { git = "https://github.com/oberien/object", rev = "3ae266f861129df4a610bbc067956314783b2f3e" }

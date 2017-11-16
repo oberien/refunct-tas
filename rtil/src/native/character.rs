@@ -4,7 +4,7 @@ use super::ue::FVector;
 #[cfg(windows)] use native::windows::character::save;
 
 lazy_static! {
-    pub static ref CHARACTER: Static<usize> = Static::new();
+    pub(in native) static ref CHARACTER: Static<usize> = Static::new();
 }
 
 pub struct AMyCharacter;
