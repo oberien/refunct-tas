@@ -1,4 +1,4 @@
-use super::AMYCHARACTER_FORCEDUNCROUCH;
+use native::AMYCHARACTER_FORCEDUNCROUCH;
 
 hook! {
     "AMyCharacter::ForcedUnCrouch",

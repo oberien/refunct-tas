@@ -90,7 +90,7 @@ macro_rules! hook {
         pub fn $hook_name() {
             if $log { log!("Hooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
-            super::make_rw(addr);
+            ::native::make_rw(addr);
             let hook_fn = $hook_fn as *const () as usize;
             let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
             let mut saved = [0u8; 12];
@@ -103,17 +103,17 @@ macro_rules! hook {
             // jmp rax
             slice[10..].copy_from_slice(&[0xff, 0xe0]);
             if $log { log!("Injected Code: {:?}", slice); }
-            super::make_rx(addr);
+            ::native::make_rx(addr);
             if $ log { log!("{} successfully hooked", $orig_name); }
         }
 
         fn $unhook_name() {
             if $log { log!("Restoring {}", $orig_name); }
             let addr = unsafe { $orig_addr };
-            super::make_rw(addr);
+            ::native::make_rw(addr);
             let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
             slice[..].copy_from_slice(&*ORIGINAL.get());
-            super::make_rx(addr);
+            ::native::make_rx(addr);
             if $log { log!("{} successfully restored", $orig_name); }
         }
     }

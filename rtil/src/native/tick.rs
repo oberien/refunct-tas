@@ -1,4 +1,4 @@
-use super::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
+use native::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
 
 hook! {
     "UEngine::UpdateTimeAndHandleMaxTickRate",

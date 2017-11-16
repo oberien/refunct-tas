@@ -1,4 +1,4 @@
-use super::FSLATEAPPLICATION_TICK;
+use native::FSLATEAPPLICATION_TICK;
 
 #[cfg(unix)] use native::linux::slateapp::save;
 #[cfg(windows)] use native::windows::slateapp::save;

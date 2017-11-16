@@ -1,4 +1,4 @@
-use super::ACONTROLLER_GETCONTROLROTATION;
+use native::ACONTROLLER_GETCONTROLROTATION;
 #[cfg(unix)] use native::linux::controller::save;
 #[cfg(windows)] use native::windows::controller::save;
 

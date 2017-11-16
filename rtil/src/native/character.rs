@@ -1,5 +1,5 @@
-use super::AMYCHARACTER_TICK;
-use super::ue::FVector;
+use native::AMYCHARACTER_TICK;
+use native::ue::FVector;
 #[cfg(unix)] use native::linux::character::save;
 #[cfg(windows)] use native::windows::character::save;
 

@@ -2,7 +2,7 @@ use native::slateapp::{SLATEAPP, FSlateApplication};
 
 use libc::{uintptr_t, int32_t, uint32_t};
 
-use super::{
+use native::{
     FSLATEAPPLICATION_ONKEYDOWN,
     FSLATEAPPLICATION_ONKEYUP,
     FSLATEAPPLICATION_ONRAWMOUSEMOVE,

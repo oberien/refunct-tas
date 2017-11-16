@@ -3,7 +3,7 @@ use native::slateapp::{SLATEAPP, FSlateApplication};
 use winapi::minwindef::BOOL;
 use winapi::basetsd::{UINT_PTR, INT32, UINT32};
 
-use super::{
+use native::{
     FSLATEAPPLICATION_ONKEYDOWN,
     FSLATEAPPLICATION_ONKEYUP,
     FSLATEAPPLICATION_ONRAWMOUSEMOVE,
