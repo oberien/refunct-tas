@@ -1,5 +1,6 @@
 use super::AMYCHARACTER_TICK;
 use native::CHARACTER;
+use native::ue::FVector;
 
 pub struct AMyCharacter;
 
@@ -42,13 +43,6 @@ impl AMyCharacter {
     fn movement() -> *mut UCharacterMovementComponent {
         unsafe { *((&*CHARACTER.get() + 0x2fc) as *const *mut UCharacterMovementComponent) }
     }
-}
-
-#[repr(C, packed)]
-struct FVector {
-    x: f32,
-    y: f32,
-    z: f32,
 }
 
 #[repr(C, packed)]
