@@ -54,12 +54,12 @@ unsafe fn set_delta(d: f64) {
     *delta = d;
 }
 
-pub fn new_game() {
+fn new_game() {
     log!("New Game detected");
     SENDER.get().send(Response::NewGame).unwrap();
 }
 
-pub unsafe fn tick_intercept() {
+unsafe fn tick_intercept() {
     if let Err(err) = tick_internal() {
         log!("Error in tick_intercept: {:?}", err);
     }

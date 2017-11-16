@@ -18,15 +18,15 @@ use cpp_demangle::{Symbol, DemangleOptions};
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 
-pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
-pub static mut FSLATEAPPLICATION_TICK: usize = 0;
-pub static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
-pub static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
-pub static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
-pub static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
-pub static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
-pub static mut AMYCHARACTER_TICK: usize = 0;
-pub static mut FAPP_DELTATIME: usize = 0;
+pub(in native) static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_TICK: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
+pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
+pub(in native) static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
+pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
+pub(in native) static mut FAPP_DELTATIME: usize = 0;
 
 const NAMES: [&str; 9] = [
     "AMyCharacter::ForcedUnCrouch",
@@ -40,7 +40,7 @@ const NAMES: [&str; 9] = [
     "FApp::DeltaTime",
 ];
 
-pub fn init() {
+pub(in native) fn init() {
     let file = File::open(env::current_exe().unwrap()).unwrap();
     let file = unsafe { Mmap::map(&file) }.unwrap();
     let file = ElfFile::parse(&*file).unwrap();
@@ -75,13 +75,13 @@ pub fn init() {
     }
 }
 
-pub fn make_rw(addr: usize) {
+pub(in native) fn make_rw(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_WRITE); }
 }
 
-pub fn make_rx(addr: usize) {
+pub(in native) fn make_rx(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_EXEC); }

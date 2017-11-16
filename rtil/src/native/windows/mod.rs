@@ -26,17 +26,17 @@ lazy_static! {
     static ref BASE: usize = unsafe { GetModuleHandleA(null()) as usize };
 }
 
-pub static mut FSLATEAPPLICATION_TICK: usize = 0;
-pub static mut AMYCHARACTER_TICK: usize = 0;
-pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
-pub static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
-pub static mut FAPP_DELTATIME: usize = 0;
-pub static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
-pub static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
-pub static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
-pub static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_TICK: usize = 0;
+pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
+pub(in native) static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
+pub(in native) static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
+pub(in native) static mut FAPP_DELTATIME: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
+pub(in native) static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
+pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
 
-pub fn init() {
+pub(in native) fn init() {
     let base = &*BASE;
     log!("Got Base address: {:#x}", base);
     unsafe {
@@ -52,7 +52,7 @@ pub fn init() {
     }
 }
 
-pub fn make_rw(addr: usize) {
+pub(in native) fn make_rw(addr: usize) {
 //    log!("make_rw: {:#x}", addr);
     let page = addr & !0xfff;
     let page = page as *mut c_void;
@@ -60,7 +60,7 @@ pub fn make_rw(addr: usize) {
     unsafe { VirtualProtect(page, 0x1000, PAGE_READWRITE, &mut out); }
 }
 
-pub fn make_rx(addr: usize) {
+pub(in native) fn make_rx(addr: usize) {
 //    log!("make_rx: {:#x}", addr);
     let page = addr & !0xfff;
     let page = page as *mut c_void;

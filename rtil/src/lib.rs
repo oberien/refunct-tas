@@ -29,7 +29,6 @@ mod statics;
 mod loops;
 mod native;
 
-pub use native::tick_intercept;
 #[cfg(unix)]
 pub use native::INITIALIZE_CTOR;
 #[cfg(windows)]

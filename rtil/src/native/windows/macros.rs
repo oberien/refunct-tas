@@ -68,7 +68,7 @@ macro_rules! hook {
             static ref ORIGINAL: Static<[u8; 7]> = Static::new();
         }
 
-        pub fn $hook_name() {
+        pub(in native) fn $hook_name() {
             if $log { log!("Hooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
@@ -88,7 +88,7 @@ macro_rules! hook {
             if $log { log!("{} hooked successfully", $orig_name); }
         }
 
-        pub fn $unhook_name() {
+        pub(in native) fn $unhook_name() {
             if $log { log!("Unhooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
