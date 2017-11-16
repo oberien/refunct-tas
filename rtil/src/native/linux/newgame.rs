@@ -1,17 +1,19 @@
 use super::AMYCHARACTER_EXECFORCEDUNCROUCH;
 
-hook_beginning! {
-    hook_newgame,
-    restore_newgame,
-    new_game,
+hook! {
     "AMyCharacter::execForcedUnCrouch",
     AMYCHARACTER_EXECFORCEDUNCROUCH,
+    hook_newgame,
+    unhook_newgame,
+    new_game,
+    true,
 }
 
 hook_fn_always! {
     new_game,
     ::native::new_game,
     hook_newgame,
-    restore_newgame,
+    unhook_newgame,
     AMYCHARACTER_EXECFORCEDUNCROUCH,
+    intercept before original,
 }

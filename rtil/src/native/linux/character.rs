@@ -59,18 +59,19 @@ struct UCharacterMovementComponent {
     acceleration: FVector,
 }
 
-hook_beginning! {
-    hook_character,
-    restore_character,
-    get_character,
+hook! {
     "AMyCharacter::Tick",
     AMYCHARACTER_TICK,
+    hook_character,
+    unhook_character,
+    get_character,
+    true,
 }
 
 hook_fn_once! {
     get_character,
     save_character,
-    restore_character,
+    unhook_character,
     AMYCHARACTER_TICK,
 }
 

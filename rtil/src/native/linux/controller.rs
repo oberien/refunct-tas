@@ -30,18 +30,19 @@ impl AController {
     }
 }
 
-hook_beginning! {
-    hook_controller,
-    restore_controller,
-    get_controller,
+hook! {
     "AController::GetControlRotation",
     ACONTROLLER_GETCONTROLROTATION,
+    hook_controller,
+    unhook_controller,
+    get_controller,
+    true,
 }
 
 hook_fn_once! {
     get_controller,
     save_controller,
-    restore_controller,
+    unhook_controller,
     ACONTROLLER_GETCONTROLROTATION,
 }
 

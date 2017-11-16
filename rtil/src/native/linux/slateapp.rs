@@ -31,18 +31,19 @@ impl FSlateApplication {
 }
 
 
-hook_beginning! {
-    hook_slateapp,
-    restore_slateapp,
-    get_slateapp,
+hook! {
     "FSlateApplication::Tick",
     FSLATEAPPLICATION_TICK,
+    hook_slateapp,
+    unhook_slateapp,
+    get_slateapp,
+    true,
 }
 
 hook_fn_once! {
     get_slateapp,
     save_slateapp,
-    restore_slateapp,
+    unhook_slateapp,
     FSLATEAPPLICATION_TICK,
 }
 
