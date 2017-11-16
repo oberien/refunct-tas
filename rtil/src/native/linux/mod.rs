@@ -16,7 +16,7 @@ use cpp_demangle::{Symbol, DemangleOptions};
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.
 #[link_section=".init_array"]
-pub static INITIALIZE_CTOR: extern fn() = ::initialize;
+pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 
 pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;

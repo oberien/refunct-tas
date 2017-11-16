@@ -112,7 +112,7 @@ macro_rules! hook {
 macro_rules! hook_fn_once {
     ($hook_fn:ident, $interceptor:path, $unhook_name:path, $orig_addr:expr,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "thiscall" fn $hook_fn() -> ! {
             // save registers
             pushall!();
             // call interceptor
@@ -142,7 +142,7 @@ macro_rules! hook_fn_once {
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "thiscall" fn $hook_fn() -> ! {
             pushall!();
             // call interceptor
             asm!("call $0" :: "i"($interceptor as usize) :: "intel","volatile");
@@ -169,7 +169,7 @@ macro_rules! hook_fn_always {
     };
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept after original,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "thiscall" fn $hook_fn() -> ! {
             // restore original function
             pushall!();
             asm!("call $0" :: "i"($unhook_name as usize) :: "intel","volatile");

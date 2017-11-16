@@ -13,7 +13,7 @@ impl AController {
 }
 
 #[inline(never)]
-pub(in native) extern fn save(this: usize) {
+pub(in native) extern "C" fn save(this: usize) {
     CONTROLLER.set(this);
     log!("Got AController: {:#x}", this);
 }

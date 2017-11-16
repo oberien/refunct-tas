@@ -131,7 +131,7 @@ macro_rules! hook {
 macro_rules! hook_fn_once {
     ($hook_fn:ident, $interceptor:path, $unhook_name:path, $orig_addr:expr,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "C" fn $hook_fn() -> ! {
             // push arguments
             pushall!();
             alignstack_pre!();
@@ -163,7 +163,7 @@ macro_rules! hook_fn_once {
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "C" fn $hook_fn() -> ! {
             pushall!();
             alignstack_pre!();
             // call interceptor
@@ -196,7 +196,7 @@ macro_rules! hook_fn_always {
     };
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept after original,) => {
         #[naked]
-        unsafe extern fn $hook_fn() -> ! {
+        unsafe extern "C" fn $hook_fn() -> ! {
             // restore original function
             pushall!();
             alignstack_pre!();

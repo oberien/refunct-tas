@@ -10,25 +10,25 @@ use super::{
 
 impl FSlateApplication {
     pub unsafe fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
-        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+        let fun: unsafe extern "C" fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
             ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN);
         fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
     }
     pub unsafe fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
-        let fun: unsafe extern fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
+        let fun: unsafe extern "C" fn(this: uintptr_t, key_code: int32_t, character_code: uint32_t, is_repeat: uint32_t) =
             ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP);
         fun(*SLATEAPP.get() as uintptr_t, key_code, character_code, is_repeat as u32)
     }
 
     pub unsafe fn on_raw_mouse_move(x: i32, y: i32) {
-        let fun: unsafe extern fn(this: uintptr_t, x: int32_t, y: int32_t) =
+        let fun: unsafe extern "C" fn(this: uintptr_t, x: int32_t, y: int32_t) =
             ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE);
         fun(*SLATEAPP.get() as uintptr_t, x, y)
     }
 }
 
 #[inline(never)]
-pub(in native) extern fn save(this: usize) {
+pub(in native) extern "C" fn save(this: usize) {
     SLATEAPP.set(this);
     log!("Got FSlateApplication: {:#x}", this);
 }

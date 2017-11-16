@@ -37,7 +37,7 @@ pub use native::DllMain;
 
 static INIT: Once = ONCE_INIT;
 
-pub extern fn initialize() {
+pub extern "C" fn initialize() {
     INIT.call_once(|| {
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();

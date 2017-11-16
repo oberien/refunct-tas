@@ -25,7 +25,7 @@ pub(in native) struct UCharacterMovementComponent {
 }
 
 #[inline(never)]
-pub(in native) extern fn save(this: usize) {
+pub(in native) extern "C" fn save(this: usize) {
     CHARACTER.set(this);
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", AMyCharacter::root_component() as usize);
