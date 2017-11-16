@@ -5,6 +5,7 @@ use std::sync::mpsc::TryRecvError;
 mod ue;
 mod character;
 mod controller;
+mod newgame;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -37,7 +38,7 @@ pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
     hook_slateapp();
-    hook_newgame();
+    newgame::hook();
     hook_tick();
     controller::hook();
     character::hook();

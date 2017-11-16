@@ -1,6 +1,5 @@
 #[macro_use] mod macros;
 pub(in native) mod slateapp;
-pub(in native) mod newgame;
 pub(in native) mod tick;
 pub(in native) mod controller;
 pub(in native) mod character;
@@ -15,7 +14,6 @@ use object::{ElfFile, Object};
 use cpp_demangle::{Symbol, DemangleOptions};
 
 pub use self::slateapp::{hook_slateapp, FSlateApplication};
-pub use self::newgame::hook_newgame;
 pub use self::tick::hook_tick;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
@@ -24,7 +22,7 @@ pub use self::tick::hook_tick;
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern fn() = ::initialize;
 
-pub static mut AMYCHARACTER_EXECFORCEDUNCROUCH: usize = 0;
+pub static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
 pub static mut FSLATEAPPLICATION_TICK: usize = 0;
 pub static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
 pub static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
@@ -35,7 +33,7 @@ pub static mut AMYCHARACTER_TICK: usize = 0;
 pub static mut FAPP_DELTATIME: usize = 0;
 
 const NAMES: [&str; 9] = [
-    "AMyCharacter::execForcedUnCrouch",
+    "AMyCharacter::ForcedUnCrouch",
     "FSlateApplication::Tick",
     "FSlateApplication::OnKeyDown",
     "FSlateApplication::OnKeyUp",
@@ -60,8 +58,8 @@ pub fn init() {
         .filter(|&(ref name, _)| NAMES.contains(&name.as_str()))
         .collect();
     unsafe {
-        AMYCHARACTER_EXECFORCEDUNCROUCH = *addrs.get(NAMES[0]).unwrap();
-        log!("found AMyCharacter::execForcedUnCrouch: {:#x}", AMYCHARACTER_EXECFORCEDUNCROUCH);
+        AMYCHARACTER_FORCEDUNCROUCH = *addrs.get(NAMES[0]).unwrap();
+        log!("found AMyCharacter::execForcedUnCrouch: {:#x}", AMYCHARACTER_FORCEDUNCROUCH);
         FSLATEAPPLICATION_TICK = *addrs.get(NAMES[1]).unwrap();
         log!("found FSlateApplication::Tick: {:#x}", FSLATEAPPLICATION_TICK);
         FSLATEAPPLICATION_ONKEYDOWN = *addrs.get(NAMES[2]).unwrap();
