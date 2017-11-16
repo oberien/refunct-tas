@@ -1,12 +1,8 @@
 #[macro_use] mod macros;
 pub(in native) mod slateapp;
-pub(in native) mod tick;
 pub(in native) mod controller;
 pub(in native) mod character;
 pub(in native) mod consts;
-
-pub use self::slateapp::{hook_slateapp, FSlateApplication};
-pub use self::tick::hook_tick;
 
 use std::ptr::null;
 

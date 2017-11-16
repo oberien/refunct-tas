@@ -3,8 +3,8 @@ use super::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
 hook! {
     "UEngine::UpdateTimeAndHandleMaxTickRate",
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE,
-    hook_tick,
-    unhook_tick,
+    hook,
+    unhook,
     tick,
     false,
 }
@@ -12,8 +12,8 @@ hook! {
 hook_fn_always! {
     tick,
     ::native::tick_intercept,
-    hook_tick,
-    unhook_tick,
+    hook,
+    unhook,
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE,
     intercept after original,
 }

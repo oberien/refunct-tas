@@ -7,6 +7,7 @@ mod character;
 mod controller;
 mod newgame;
 mod slateapp;
+mod tick;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -40,7 +41,7 @@ pub fn init() {
     #[cfg(unix)] linux::init();
     slateapp::hook();
     newgame::hook();
-    hook_tick();
+    tick::hook();
     controller::hook();
     character::hook();
 }

@@ -1,6 +1,5 @@
 #[macro_use] mod macros;
 pub(in native) mod slateapp;
-pub(in native) mod tick;
 pub(in native) mod controller;
 pub(in native) mod character;
 
@@ -12,8 +11,6 @@ use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
 use memmap::Mmap;
 use object::{ElfFile, Object};
 use cpp_demangle::{Symbol, DemangleOptions};
-
-pub use self::tick::hook_tick;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
