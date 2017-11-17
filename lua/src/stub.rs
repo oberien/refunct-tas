@@ -21,10 +21,6 @@ impl Stub {
 }
 
 impl LuaInterface for Stub {
-    fn stop(&mut self) {
-        println!("Stopped");
-    }
-
     fn step(&mut self) -> Response {
         println!("Step");
         Response::Stopped

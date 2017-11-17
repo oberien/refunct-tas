@@ -8,10 +8,11 @@
 #[macro_use] extern crate lazy_static;
 extern crate byteorder;
 extern crate memmap;
-#[cfg(unix)] extern crate object;
-#[cfg(unix)] extern crate cpp_demangle;
+extern crate lua;
 
 #[cfg(unix)] extern crate libc;
+#[cfg(unix)] extern crate object;
+#[cfg(unix)] extern crate cpp_demangle;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 
@@ -22,6 +23,7 @@ mod error;
 #[macro_use] mod statics;
 mod loops;
 mod native;
+mod threads;
 
 #[cfg(unix)] pub use native::INITIALIZE_CTOR;
 #[cfg(windows)] pub use native::DllMain;
@@ -42,7 +44,8 @@ pub extern "C" fn initialize() {
                 }
                 // start main loop, which internally spawns a new thread
                 if let Err(err) = loops::main_loop() {
-                    panic!("Got error trying to start the main_loop: {:?}", err);
+                    log!("Got error trying to start the main_loop: {:?}", err);
+                    panic!();
                 }
                 // hook stuff
                 native::init();

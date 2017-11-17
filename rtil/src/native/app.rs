@@ -1,7 +1,7 @@
 pub struct FApp;
 
 impl FApp {
-    pub fn get_delta(d: f64) {
+    pub fn get_delta(d: f64) -> f64 {
         unsafe { *FApp::delta_ptr() }
     }
 

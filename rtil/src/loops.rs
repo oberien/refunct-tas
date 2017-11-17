@@ -40,9 +40,9 @@ pub fn main_loop() -> Result<()> {
     log!("TCPListener is listening");
     thread::spawn(move || {
         log!("Setting up channels");
-        // channel to send Events to the main thread
+        // channel to send Events to the game's main thread
         let (mainsender_tx, mainsender_rx) = mpsc::channel();
-        // channel to receive Responses from the main thread
+        // channel to receive Responses from the game's main thread
         let (mainreceiver_tx, mut mainreceiver_rx) = mpsc::channel();
 
         RECEIVER.set(mainsender_rx);

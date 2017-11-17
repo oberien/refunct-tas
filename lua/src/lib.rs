@@ -17,7 +17,6 @@ pub enum Response {
 }
 
 pub trait LuaInterface {
-    fn stop(&mut self);
     fn step(&mut self) -> Response;
     fn press_key(&mut self, key: String);
     fn release_key(&mut self, key: String);
@@ -41,11 +40,6 @@ impl<'lua> Lua<'lua> {
     pub fn new<T: 'lua + LuaInterface>(outer: Rc<RefCell<T>>) -> Lua<'lua> {
         let mut lua = HLua::new();
         lua.openlibs();
-
-        let tas = outer.clone();
-        lua.set("__stop", hlua::function0(move || {
-            tas.borrow_mut().stop()
-        }));
 
         let tas = outer.clone();
         lua.set("__step", hlua::function0(move || {
@@ -135,17 +129,3 @@ impl<'lua> Lua<'lua> {
         function.call::<()>().unwrap();
     }
 }
-
-//fn to_key(key: &str, cfg: &Config) -> i32 {
-//    match key {
-//        "forward" => cfg.forward.into(),
-//        "backward" => cfg.backward.into(),
-//        "left" => cfg.left.into(),
-//        "right" => cfg.right.into(),
-//        "jump" => cfg.jump.into(),
-//        "crouch" => cfg.crouch.into(),
-//        "menu" => cfg.menu.into(),
-//        s => panic!("Unknown key {}", s)
-//    }
-//}
-
