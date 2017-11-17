@@ -8,8 +8,8 @@
 #[macro_use] extern crate lazy_static;
 extern crate byteorder;
 extern crate memmap;
-extern crate object;
-extern crate cpp_demangle;
+#[cfg(unix)] extern crate object;
+#[cfg(unix)] extern crate cpp_demangle;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate winapi;
