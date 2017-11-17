@@ -70,8 +70,6 @@ fn main() {
     let tas = Rc::new(RefCell::new(tas));
 
     println!("Setting up lua environment...");
-    let mut lua = Lua::new();
-    lua.openlibs();
     lua::init_tas(&mut lua, tas.clone(), config);
     println!("Lua environment set up successfully");
 
