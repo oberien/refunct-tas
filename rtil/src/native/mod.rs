@@ -8,6 +8,7 @@ mod controller;
 mod newgame;
 mod slateapp;
 mod tick;
+mod app;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -20,6 +21,7 @@ use self::slateapp::FSlateApplication;
 #[cfg(windows)] pub use self::windows::DllMain;
 pub use self::character::AMyCharacter;
 pub use self::controller::AController;
+pub use self::slateapp::FSlateApplication;
 
 struct State {
     typ: StateType,
@@ -44,14 +46,6 @@ pub fn init() {
     tick::hook();
     controller::hook();
     character::hook();
-}
-
-unsafe fn set_delta(d: f64) {
-    #[cfg(unix)] 
-    let delta = linux::FAPP_DELTATIME as *mut f64;
-    #[cfg(windows)]
-    let delta = windows::FAPP_DELTATIME as *mut f64;
-    *delta = d;
 }
 
 fn new_game() {
