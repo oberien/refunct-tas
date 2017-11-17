@@ -1,5 +1,7 @@
 extern crate hlua;
 
+pub mod stub;
+
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -14,7 +16,7 @@ pub enum Response {
     NewGame,
 }
 
-pub trait Tas {
+pub trait LuaInterface {
     fn stop(&mut self);
     fn step(&mut self) -> Response;
     fn press_key(&mut self, key: String);
@@ -31,10 +33,12 @@ pub trait Tas {
     fn get_acceleration(&mut self) -> (f32, f32, f32);
     fn set_acceleration(&mut self, x: f32, y: f32, z: f32);
     fn wait_for_new_game(&mut self);
+
+    fn print(&mut self, s: String);
 }
 
 impl<'lua> Lua<'lua> {
-    pub fn new<T: Tas>(outer: Rc<RefCell<Tas>>) -> Lua<'lua> {
+    pub fn new<T: 'lua + LuaInterface>(outer: Rc<RefCell<T>>) -> Lua<'lua> {
         let mut lua = HLua::new();
         lua.openlibs();
 
@@ -114,6 +118,11 @@ impl<'lua> Lua<'lua> {
         let tas = outer.clone();
         lua.set("__wait_for_new_game", hlua::function0(move || {
             tas.borrow_mut().wait_for_new_game()
+        }));
+
+        let tas = outer.clone();
+        lua.set("__print", hlua::function1(move |s: String| {
+            tas.borrow_mut().print(s)
         }));
 
         Lua {
