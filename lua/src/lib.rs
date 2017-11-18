@@ -4,36 +4,58 @@ pub mod stub;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
-use hlua::{Lua as HLua, LuaFunction};
+use hlua::{Lua as HLua, LuaFunction, AnyLuaValue, Void, AsMutLua, PushGuard, Push, PushOne, LuaTable};
 
 pub struct Lua<'lua> {
     lua: HLua<'lua>,
 }
 
-pub enum Response {
+pub enum Event {
     Stopped,
     NewGame,
 }
 
-pub trait LuaInterface {
-    fn step(&mut self) -> Response;
-    fn press_key(&mut self, key: String);
-    fn release_key(&mut self, key: String);
-    fn move_mouse(&mut self, x: i32, y: i32);
-    fn get_delta(&mut self) -> f64;
-    fn set_delta(&mut self, delta: f64);
-    fn get_location(&mut self) -> (f32, f32, f32);
-    fn set_location(&mut self, x: f32, y: f32, z: f32);
-    fn get_rotation(&mut self) -> (f32, f32, f32);
-    fn set_rotation(&mut self, x: f32, y: f32, z: f32);
-    fn get_velocity(&mut self) -> (f32, f32, f32);
-    fn set_velocity(&mut self, x: f32, y: f32, z: f32);
-    fn get_acceleration(&mut self) -> (f32, f32, f32);
-    fn set_acceleration(&mut self, x: f32, y: f32, z: f32);
-    fn wait_for_new_game(&mut self);
+pub enum Response<T> {
+    ExitPlease,
+    Result(T),
+}
 
-    fn print(&mut self, s: String);
+impl<'lua, T, L> Push<L> for Response<T> where L: AsMutLua<'lua>, T: Push<L> {
+    type Err = ();
+
+    fn push_to_lua(self, lua: L) -> Result<PushGuard<L>, (Self::Err, L)> {
+        let mut map = HashMap::new();
+        match self {
+            Response::ExitPlease => map.insert("variant", "exit".to_string()),
+            Response::Result(res) => {
+                map.insert("variant", "result".to_string());
+                map.insert("data", res)
+            },
+        }
+
+    }
+}
+
+pub trait LuaInterface {
+    fn step(&mut self) -> Response<Event>;
+    fn press_key(&mut self, key: String) -> Response<()>;
+    fn release_key(&mut self, key: String) -> Response<()>;
+    fn move_mouse(&mut self, x: i32, y: i32) -> Response<()>;
+    fn get_delta(&mut self) -> Response<f64>;
+    fn set_delta(&mut self, delta: f64) -> Response<()>;
+    fn get_location(&mut self) -> Response<(f32, f32, f32)>;
+    fn set_location(&mut self, x: f32, y: f32, z: f32) -> Response<()>;
+    fn get_rotation(&mut self) -> Response<(f32, f32, f32)>;
+    fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) -> Response<()>;
+    fn get_velocity(&mut self) -> Response<(f32, f32, f32)>;
+    fn set_velocity(&mut self, x: f32, y: f32, z: f32) -> Response<()>;
+    fn get_acceleration(&mut self) -> Response<(f32, f32, f32)>;
+    fn set_acceleration(&mut self, x: f32, y: f32, z: f32) -> Response<()>;
+    fn wait_for_new_game(&mut self) -> Response<()>;
+
+    fn print(&mut self, s: String) -> Response<()>;
 }
 
 impl<'lua> Lua<'lua> {
@@ -43,10 +65,7 @@ impl<'lua> Lua<'lua> {
 
         let tas = outer.clone();
         lua.set("__step", hlua::function0(move || {
-            match tas.borrow_mut().step() {
-                Response::Stopped => "stopped",
-                Response::NewGame => "newgame",
-            }
+            tas.borrow_mut().step()
         }));
 
         let tas = outer.clone();
