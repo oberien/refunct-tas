@@ -47,7 +47,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Eq)]
 pub enum LuaToStream {
     Print(String),
-    ImDone,
+    MiDone,
 }
 
 #[derive(Debug, PartialEq, Eq)]

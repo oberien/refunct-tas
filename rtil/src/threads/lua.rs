@@ -48,7 +48,7 @@ impl<'lua> Tas<'lua> {
                 self.iface.borrow().lua_ue_tx.send(LuaToUe::Stop).unwrap();
                 self.lua.execute(&s);
                 self.iface.borrow().lua_ue_tx.send(LuaToUe::Resume).unwrap();
-                self.iface.borrow().lua_stream_tx.send(LuaToStream::ImDone).unwrap();
+                self.iface.borrow().lua_stream_tx.send(LuaToStream::MiDone).unwrap();
                 self.iface.borrow_mut().reset();
             }
         }
