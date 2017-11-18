@@ -33,8 +33,17 @@ static INIT: Once = ONCE_INIT;
 
 pub extern "C" fn initialize() {
     INIT.call_once(|| {
-        panic::set_hook(Box::new(|_| {
-            log!("{:?}", backtrace::Backtrace::new());
+        panic::set_hook(Box::new(|info| {
+            let msg = match info.payload().downcast_ref::<&'static str>() {
+                Some(s) => *s,
+                None => match info.payload().downcast_ref::<String>() {
+                    Some(s) => &s[..],
+                    None => "Box<Any>",
+                }
+            };
+            let thread = thread::current();
+            let name = thread.name().unwrap_or("<unnamed>");
+            log!("thread '{}' panicked at '{}'\nBacktrace: {:?}", name, msg, backtrace::Backtrace::new());
         }));
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();

@@ -57,7 +57,7 @@ impl<'lua> Tas<'lua> {
                 self.lua = Lua::new(self.iface.clone());
                 if let Some(dir) = self.working_dir.as_ref() {
                     log!("Add {} to package.path.", dir);
-                    let dir = format!(r#"package.path = package.path .. ";{}/?.lua""#, dir);
+                    let dir = format!(r#"package.path = package.path .. ";{}/?.lua""#, dir.replace('\\', "\\\\"));
                     self.lua.execute(&dir).unwrap();
                     log!("Added");
                 }

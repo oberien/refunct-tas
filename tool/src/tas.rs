@@ -39,15 +39,20 @@ impl Tas {
         println!("Setting Environment");
         let current_dir = env::current_dir().unwrap();
         let current_dir = current_dir.canonicalize().unwrap();
-        let current_dir = current_dir.to_str().unwrap();
+        let mut current_dir = current_dir.to_str().unwrap();
+        if current_dir.starts_with("\\\\?\\") {
+            current_dir = &current_dir[4..];
+        }
+        println!("Current dir: {}", current_dir);
         self.con.write_u8(3).unwrap();
-        self.con.write_u32::<LittleEndian>(current_dir.len() as u32);
+        self.con.write_u32::<LittleEndian>(current_dir.len() as u32).unwrap();
         self.con.write_all(&current_dir.as_bytes()).unwrap();
 
         println!("Sending code");
         self.con.write_u8(0).unwrap();
         self.con.write_u32::<LittleEndian>(s.len() as u32).unwrap();
         self.con.write_all(s.as_bytes()).unwrap();
+        println!("Tas Execution started");
 
         loop {
             match self.con.read_u8().unwrap() {
