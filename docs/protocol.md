@@ -15,28 +15,32 @@ Any unexpected behaviour results in a disconnect.
 
 Endianess of multibyte primitive types is little endian.
 
-Requests:
-* `0`: Stop execution before the next frame.
-* `1`: Continue execution until the next frame.
-        This request will get response `0`.
-* `2`: Continue execution without stopping.
-* `3`: Press the key in the following int32.
-* `4`: Release the key in the following int32.
-* `5`: Move the mouse by the following int32 `x` and int32 `y`.
-* `6`: Set all following time deltas between frames to the following float64.
-        If the given delta is 0, no custom delta will be used.
-* `7`: Set the rotation of the player to the following 3 float32: Pitch, Yaw and Roll.
-* `8`: Set the location of the character to the following 3 float32: x, y, z.
-* `9`: Set the velocity of the character to the following 3 float32: x, y, z.
+Strings are u32-length-prefixed and UTF-8 encoded.
 
-Responses:
-* `0`: Response to `1`, followed by the player's status:
-    + Location: 3 float32: x, y, z.
-    + Rotation: 3 float32: Pitch, Yaw and Roll.
-    + Velocity: 3 float32: x, y, z.
-    + Acceleration: 2 float32: x, y.
-* `1`: New Game detected
-* `255`: Error occured. The error code can be found in the next byte.
+Tool to Rtil:
+
+* `0`: Lua Code as String
+* `1`: Stop execution of Lua and reset game values
+* `2`: Set configured keys in this order as i32. Needs to be called before executing a Tas.
+    + `forward`
+    + `backward`
+    + `left`
+    + `right`
+    + `jump`
+    + `crouch`
+    + `menu`
+* `3`: Current absolute working directory path of the tool as String.
+       This is used to set the `package.path` variable in lua.
+* `255`: Error occured. Error code following.
+
+Rtil to Tool:
+
+* `0`: Print following String to stdout
+* `1`: Lua Execution finished
+* `255`: Error occured. Error code following.
 
 Error Codes:
+
 * `0`: Unknown command.
+* `1`: There is already an open connection.
+* `2`: Invalid data.

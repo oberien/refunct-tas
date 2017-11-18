@@ -1,8 +1,6 @@
 use std::sync::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 use std::fs::{File, OpenOptions};
-use std::sync::mpsc::{Sender, Receiver};
-use loops::{Event, Response};
 
 macro_rules! log {
     () => {{
@@ -33,8 +31,6 @@ lazy_static! {
         .create(true).write(true).truncate(true)
         .open(path).unwrap())
     };
-    pub static ref RECEIVER: Static<Receiver<Event>> = Static::new();
-    pub static ref SENDER: Static<Sender<Response>> = Static::new();
 }
 
 pub struct Static<T> {
@@ -48,18 +44,20 @@ impl<T> Static<T> {
         }
     }
 
-    pub fn from(val: T) -> Static<T> {
-        Static {
-            val: Mutex::new(Some(val)),
-        }
-    }
-    
     pub fn set(&self, val: T) {
         *self.val.lock().unwrap() = Some(val);
     }
     
     pub fn get(&self) -> MutexGuardWrapper<T> {
         MutexGuardWrapper::new(self.val.lock().unwrap())
+    }
+
+    pub fn is_some(&self) -> bool {
+        self.val.lock().unwrap().is_some()
+    }
+
+    pub fn is_none(&self) -> bool {
+        !self.is_some()
     }
 }
 

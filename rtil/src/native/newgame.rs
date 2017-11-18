@@ -11,7 +11,7 @@ hook! {
 
 hook_fn_always! {
     new_game,
-    ::native::new_game,
+    ::threads::ue::new_game,
     hook,
     unhook,
     AMYCHARACTER_FORCEDUNCROUCH,

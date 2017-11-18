@@ -8,20 +8,23 @@
 #[macro_use] extern crate lazy_static;
 extern crate byteorder;
 extern crate memmap;
-extern crate object;
-extern crate cpp_demangle;
+extern crate lua;
+extern crate backtrace;
 
 #[cfg(unix)] extern crate libc;
+#[cfg(unix)] extern crate object;
+#[cfg(unix)] extern crate cpp_demangle;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;
+use std::panic;
 
 mod error;
 #[macro_use] mod statics;
-mod loops;
 mod native;
+mod threads;
 
 #[cfg(unix)] pub use native::INITIALIZE_CTOR;
 #[cfg(windows)] pub use native::DllMain;
@@ -30,6 +33,18 @@ static INIT: Once = ONCE_INIT;
 
 pub extern "C" fn initialize() {
     INIT.call_once(|| {
+        panic::set_hook(Box::new(|info| {
+            let msg = match info.payload().downcast_ref::<&'static str>() {
+                Some(s) => *s,
+                None => match info.payload().downcast_ref::<String>() {
+                    Some(s) => &s[..],
+                    None => "Box<Any>",
+                }
+            };
+            let thread = thread::current();
+            let name = thread.name().unwrap_or("<unnamed>");
+            log!("thread '{}' panicked at '{}'\nBacktrace: {:?}", name, msg, backtrace::Backtrace::new());
+        }));
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();
         let file = exe.file_name().unwrap();
@@ -40,10 +55,8 @@ pub extern "C" fn initialize() {
                 if cfg!(unix) {
                     ::std::thread::sleep(::std::time::Duration::from_secs(5));
                 }
-                // start main loop, which internally spawns a new thread
-                if let Err(err) = loops::main_loop() {
-                    panic!("Got error trying to start the main_loop: {:?}", err);
-                }
+                // start threads
+                threads::start();
                 // hook stuff
                 native::init();
             });
