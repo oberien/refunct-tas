@@ -1,37 +1,52 @@
 use std::sync::mpsc::{self, Sender, Receiver, TryRecvError};
 use std::net::TcpListener;
 use std::io::Write;
-use std::thread;
+use std::thread::{self, JoinHandle};
 
-use threads::{StreamToListener, StreamToLua, LuaToStream};
+use threads::{stream_read, stream_write, StreamToListener, StreamToLua, LuaToStream, ListenerToStream};
 use error::*;
 
-pub fn run(stream_listener_rx: Receiver<StreamToListener>, stream_lua_tx: Sender<StreamToLua>,
-           lua_stream_rx: Receiver<LuaToStream>) -> Result<()> {
+pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStream>) -> Result<()> {
     let listener = TcpListener::bind("localhost:21337")?;
+    let mut stream_lua_tx = Some(stream_lua_tx);
+    let mut lua_stream_rx = Some(lua_stream_rx);
+    let (mut listener_stream_tx, listener_stream_rx) = mpsc::channel();
+    let mut listener_stream_rx = Some(listener_stream_rx);
+    let (stream_listener_tx, mut stream_listener_rx) = mpsc::channel();
+    let mut stream_listener_tx = Some(stream_listener_tx);
 
     thread::spawn(move || {
-        let mut stream_handle = None;
-        while let Ok((mut stream, _)) = listener.accept() {
+        let mut stream_read_thread: Option<JoinHandle<Sender<StreamToLua>>> = None;
+        let mut stream_write_thread: Option<JoinHandle<Receiver<LuaToStream>>> = None;
+        while let Ok((mut con, _)) = listener.accept() {
             match stream_listener_rx.try_recv() {
-                Ok(StreamToListener::ImDead) => {
-                    let _ = stream.write_all(&[255, 1]);
+                Ok(StreamToListener::ImDead) => {}
+                Err(TryRecvError::Empty) => {
+                    let _ = con.write_all(&[255, 1]);
                     continue;
-                }
-                Err(TryRecvError::Empty) => {},
+                },
                 Err(e) => {
                     log!("Error receiving stream_listener: {:?}", e);
                     panic!();
                 }
             }
 
-            let (stream_lua_tx, stream_lua_rx) = mpsc::channel();
-            let (lua_stream_tx, lua_stream_rx) = mpsc::channel();
+            // recover channels from threads and create new ones
+            if stream_lua_tx.is_none() {
+                stream_lua_tx = Some(stream_read_thread.unwrap().join().unwrap());
+                // Stream_write could have tried to write to TcpStream and failed, thus already died.
+                let _ = listener_stream_tx.send(ListenerToStream::KillYourself);
+                lua_stream_rx = Some(stream_write_thread.unwrap().join().unwrap());
+                let (tx, rx) = mpsc::channel();
+                listener_stream_tx = tx;
+                listener_stream_rx = Some(rx);
+                let (tx, rx) = mpsc::channel();
+                stream_listener_tx = Some(tx);
+                stream_listener_rx = rx;
+            }
 
-            let (stream_lua_tx, lua_stream_rx) = stream_handle.map(|handle| handle.join())
-                .unwrap_or((stream_lua_tx, lua_stream_rx));
-
-
+            stream_read_thread = Some(stream_read::run(con.try_clone().unwrap(), stream_listener_tx.take().unwrap(), stream_lua_tx.take().unwrap()));
+            stream_write_thread = Some(stream_write::run(con, listener_stream_rx.take().unwrap(), lua_stream_rx.take().unwrap()));
         }
     });
     Ok(())

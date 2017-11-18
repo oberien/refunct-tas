@@ -18,17 +18,6 @@ pub use self::controller::AController;
 pub use self::slateapp::FSlateApplication;
 pub use self::app::FApp;
 
-struct State {
-    typ: StateType,
-    delta: Option<f64>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum StateType {
-    Running,
-    Stopping,
-}
-
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
@@ -37,12 +26,4 @@ pub fn init() {
     tick::hook();
     controller::hook();
     character::hook();
-}
-
-fn new_game() {
-    // TODO
-}
-
-unsafe fn tick_intercept() {
-    // TODO
 }

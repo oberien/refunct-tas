@@ -11,7 +11,7 @@ hook! {
 
 hook_fn_always! {
     tick,
-    ::native::tick_intercept,
+    ::threads::ue::tick,
     hook,
     unhook,
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE,

@@ -21,7 +21,6 @@ use std::thread;
 
 mod error;
 #[macro_use] mod statics;
-mod loops;
 mod native;
 mod threads;
 
@@ -42,11 +41,8 @@ pub extern "C" fn initialize() {
                 if cfg!(unix) {
                     ::std::thread::sleep(::std::time::Duration::from_secs(5));
                 }
-                // start main loop, which internally spawns a new thread
-                if let Err(err) = loops::main_loop() {
-                    log!("Got error trying to start the main_loop: {:?}", err);
-                    panic!();
-                }
+                // start threads
+                threads::start();
                 // hook stuff
                 native::init();
             });

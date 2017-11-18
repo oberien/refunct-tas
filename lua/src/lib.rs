@@ -4,12 +4,15 @@ pub mod stub;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
-use hlua::{Lua as HLua, LuaFunction, AnyLuaValue, Void, AsMutLua, PushGuard, Push, PushOne, LuaTable};
+use hlua::{Lua as HLua, LuaFunction, AnyLuaValue, Void, AsMutLua, PushGuard, Push};
 
 pub struct Lua<'lua> {
     lua: HLua<'lua>,
+}
+
+trait IntoAnyLuaValue {
+    fn into_any_lua_value(self) -> AnyLuaValue;
 }
 
 pub enum Event {
@@ -17,24 +20,76 @@ pub enum Event {
     NewGame,
 }
 
+impl IntoAnyLuaValue for Event {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        match self {
+            Event::Stopped => AnyLuaValue::LuaString("stopped".to_string()),
+            Event::NewGame => AnyLuaValue::LuaString("newgame".to_string()),
+        }
+    }
+}
+
 pub enum Response<T> {
     ExitPlease,
     Result(T),
 }
 
-impl<'lua, T, L> Push<L> for Response<T> where L: AsMutLua<'lua>, T: Push<L> {
-    type Err = ();
+impl<T: IntoAnyLuaValue> IntoAnyLuaValue for Response<T> {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        let variant = AnyLuaValue::LuaString("variant".to_string());
+        let data = AnyLuaValue::LuaString("data".to_string());
+        match self {
+            Response::ExitPlease => {
+                AnyLuaValue::LuaArray(vec![
+                    (variant, AnyLuaValue::LuaString("exit".to_string())),
+                    (data, AnyLuaValue::LuaNil),
+                ])
+            }
+            Response::Result(res) => {
+                AnyLuaValue::LuaArray(vec![
+                    (variant, AnyLuaValue::LuaString("result".to_string())),
+                    (data, res.into_any_lua_value()),
+                ])
+            }
+        }
+    }
+}
+
+impl IntoAnyLuaValue for () {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        AnyLuaValue::LuaNil
+    }
+}
+
+impl IntoAnyLuaValue for f32 {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        AnyLuaValue::LuaNumber(self as f64)
+    }
+}
+
+impl IntoAnyLuaValue for f64 {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        AnyLuaValue::LuaNumber(self)
+    }
+}
+
+impl<A, B, C> IntoAnyLuaValue for (A, B, C)
+        where A: IntoAnyLuaValue, B: IntoAnyLuaValue, C: IntoAnyLuaValue {
+    fn into_any_lua_value(self) -> AnyLuaValue {
+        let (a, b, c) = self;
+        AnyLuaValue::LuaArray(vec![
+            (AnyLuaValue::LuaNumber(1.0), a.into_any_lua_value()),
+            (AnyLuaValue::LuaNumber(2.0), b.into_any_lua_value()),
+            (AnyLuaValue::LuaNumber(3.0), c.into_any_lua_value()),
+        ])
+    }
+}
+
+impl<'lua, T, L> Push<L> for Response<T> where L: AsMutLua<'lua>, T: IntoAnyLuaValue {
+    type Err = Void;
 
     fn push_to_lua(self, lua: L) -> Result<PushGuard<L>, (Self::Err, L)> {
-        let mut map = HashMap::new();
-        match self {
-            Response::ExitPlease => map.insert("variant", "exit".to_string()),
-            Response::Result(res) => {
-                map.insert("variant", "result".to_string());
-                map.insert("data", res)
-            },
-        }
-
+        self.into_any_lua_value().push_to_lua(lua)
     }
 }
 

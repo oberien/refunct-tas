@@ -10,18 +10,18 @@ use native::{
 };
 
 impl FSlateApplication {
-    pub fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
+    pub(in native) fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool) {
         let fun: extern "thiscall" fn(this: UINT_PTR, key_code: INT32, character_code: UINT32, is_repeat: BOOL) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN) };
         fun(*SLATEAPP.get() as UINT_PTR, key_code, character_code, is_repeat as BOOL)
     }
-    pub fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
+    pub(in native) fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool) {
         let fun: extern "thiscall" fn(this: UINT_PTR, key_code: INT32, character_code: UINT32, is_repeat: BOOL) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP) };
         fun(*SLATEAPP.get() as UINT_PTR, key_code, character_code, is_repeat as BOOL)
     }
 
-    pub fn on_raw_mouse_move(x: i32, y: i32) {
+    pub(in native) fn on_raw_mouse_move(x: i32, y: i32) {
         let fun: extern "thiscall" fn(this: UINT_PTR, x: INT32, y: INT32) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE) };
         fun(*SLATEAPP.get() as UINT_PTR, x, y)

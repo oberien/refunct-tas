@@ -35,11 +35,17 @@ impl AMyCharacter {
             (*movement).velocity = FVector { x, y, z };
         }
     }
-    pub fn acceleration() -> (f32, f32) {
+    pub fn acceleration() -> (f32, f32, f32) {
         let movement = AMyCharacter::movement();
         unsafe {
-            let FVector { x, y, z: _ } = (*movement).acceleration;
-            (x, y)
+            let FVector { x, y, z } = (*movement).acceleration;
+            (x, y, z)
+        }
+    }
+    pub fn set_acceleration(x: f32, y: f32, z: f32) {
+        let movement = AMyCharacter::movement();
+        unsafe {
+            (*movement).acceleration = FVector { x, y, z };
         }
     }
 }

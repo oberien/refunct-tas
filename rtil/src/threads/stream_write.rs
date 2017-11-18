@@ -36,8 +36,8 @@ pub fn run(con: TcpStream, listener_stream_rx: Receiver<ListenerToStream>,
 
 impl StreamWrite {
     fn recv_and_write(&mut self) -> Result<()> {
-        let lua_stream_rx = self.lua_stream_rx;
-        let listener_stream_rx = self.listener_stream_rx;
+        let lua_stream_rx = &self.lua_stream_rx;
+        let listener_stream_rx = &self.listener_stream_rx;
         select! {
             res = lua_stream_rx.recv() => match res.unwrap() {
                 LuaToStream::Print(s) => {

@@ -5,7 +5,7 @@ use std::thread::{self, JoinHandle};
 
 use byteorder::{ReadBytesExt, LittleEndian};
 
-use threads::{StreamToListener, StreamToLua};
+use threads::{StreamToListener, StreamToLua, Config};
 use error::*;
 
 struct StreamRead {
@@ -44,7 +44,7 @@ impl StreamRead {
                 let code = match String::from_utf8(buf) {
                     Ok(code) => code,
                     Err(e) => {
-                        self.con.write_all(&[255, 2]);
+                        let _ = self.con.write_all(&[255, 2]);
                         return Err(e.into());
                     }
                 };
@@ -52,10 +52,15 @@ impl StreamRead {
             }
             1 => self.stream_lua_tx.send(StreamToLua::Stop).unwrap(),
             2 => {
-                let mut config = [0i32; 7];
-                for val in &mut config {
-                    *val = self.con.read_i32::<LittleEndian>()?;
-                }
+                let mut config = Config {
+                    forward: self.con.read_i32::<LittleEndian>()?,
+                    backward: self.con.read_i32::<LittleEndian>()?,
+                    left: self.con.read_i32::<LittleEndian>()?,
+                    right: self.con.read_i32::<LittleEndian>()?,
+                    jump: self.con.read_i32::<LittleEndian>()?,
+                    crouch: self.con.read_i32::<LittleEndian>()?,
+                    menu: self.con.read_i32::<LittleEndian>()?,
+                };
                 self.stream_lua_tx.send(StreamToLua::Config(config)).unwrap();
             }
             255 => log!("Got Error code from client: {}", self.con.read_u8()?),
