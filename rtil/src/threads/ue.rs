@@ -2,6 +2,7 @@ use std::sync::mpsc::{Sender, Receiver, TryRecvError};
 
 use statics::Static;
 use threads::{UeToLua, LuaToUe};
+use native::FSlateApplication;
 
 lazy_static! {
     static ref STATE: Static<State> = Static::new();
@@ -28,11 +29,12 @@ pub fn run(lua_ue_rx: Receiver<LuaToUe>, ue_lua_tx: Sender<UeToLua>) {
 }
 
 pub fn new_game() {
+    log!("New Game");
     handle(UeToLua::NewGame)
 }
 
 pub fn tick() {
-    handle(UeToLua::Tick)
+    handle(UeToLua::Tick);
 }
 
 fn handle(event: UeToLua) {
@@ -52,15 +54,34 @@ fn handle(event: UeToLua) {
                 panic!();
             }
         }
+    } else {
+        state.ue_lua_tx.send(event).unwrap();
     }
 
-    state.ue_lua_tx.send(event).unwrap();
-    match state.lua_ue_rx.recv().unwrap() {
-        LuaToUe::Stop => {
-            log!("Got LuaToUe::Stop, but state is Stopping");
-            panic!()
+    loop {
+        match state.lua_ue_rx.recv().unwrap() {
+            LuaToUe::Stop => {
+                log!("Got LuaToUe::Stop, but state is Stopping");
+                panic!()
+            }
+            evt @ LuaToUe::PressKey(_) | evt @ LuaToUe::ReleaseKey(_) | evt @ LuaToUe::MoveMouse(..) => {
+                // Release STATE lock, as this can trigger a new game,
+                // which needs to acquire the lock.
+                drop(state);
+                match evt {
+                    LuaToUe::PressKey(key) => FSlateApplication::press_key(key),
+                    LuaToUe::ReleaseKey(key) => FSlateApplication::release_key(key),
+                    LuaToUe::MoveMouse(x, y) => FSlateApplication::move_mouse(x, y),
+                    _ => unreachable!()
+                }
+                state = STATE.get();
+            },
+            LuaToUe::Resume => {
+                log!("Resuming");
+                state.typ = StateType::Running;
+                break;
+            },
+            LuaToUe::AdvanceFrame => break,
         }
-        LuaToUe::Resume => state.typ = StateType::Running,
-        LuaToUe::AdvanceFrame => {},
     }
 }

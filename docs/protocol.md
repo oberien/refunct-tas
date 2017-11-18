@@ -29,6 +29,8 @@ Tool to Rtil:
     + `jump`
     + `crouch`
     + `menu`
+* `3`: Current absolute working directory path of the tool as String.
+       This is used to set the `package.path` variable in lua.
 * `255`: Error occured. Error code following.
 
 Rtil to Tool:

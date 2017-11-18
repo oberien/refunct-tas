@@ -17,7 +17,7 @@ setdelta(1/60)
 --  keys forward, right and jump will be pressed for the next 10 frames, while
 --  the character turns right by 69 degrees and down by 21 degrees over the span
 --  of the next 10 frames.
-frame({}, 90, -40, 214)
+frame({}, 90, -40, 215)
 frame({jump, forward}, 0, 90, 40)
 frame({}, -40, 0, 7)
 frame({}, 0, 0, 7)

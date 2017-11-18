@@ -8,6 +8,7 @@ lazy_static = "0.2.10"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
 memmap = "0.6.0"
+backtrace = "0.3"
 lua = { path = "../lua" }
 
 [target.'cfg(unix)'.dependencies]

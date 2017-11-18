@@ -31,6 +31,7 @@ pub enum StreamToLua {
     Start(String),
     Stop,
     Config(Config),
+    WorkingDir(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -54,6 +55,11 @@ pub enum LuaToStream {
 pub enum LuaToUe {
     Stop,
     AdvanceFrame,
+    // we need to execute events on the main loop, because possible played audio
+    // needs to access thread-local storage
+    PressKey(i32),
+    ReleaseKey(i32),
+    MoveMouse(i32, i32),
     Resume,
 }
 

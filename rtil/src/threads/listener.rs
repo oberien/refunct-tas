@@ -18,10 +18,16 @@ pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStre
     thread::spawn(move || {
         let mut stream_read_thread: Option<JoinHandle<Sender<StreamToLua>>> = None;
         let mut stream_write_thread: Option<JoinHandle<Receiver<LuaToStream>>> = None;
+
+        // make first iteration work
+        stream_listener_tx.as_ref().unwrap().send(StreamToListener::ImDead).unwrap();
+
         while let Ok((mut con, _)) = listener.accept() {
+            log!("Got new connection from {:?}", con.peer_addr());
             match stream_listener_rx.try_recv() {
                 Ok(StreamToListener::ImDead) => {}
                 Err(TryRecvError::Empty) => {
+                    log!("There is already an open connection.");
                     let _ = con.write_all(&[255, 1]);
                     continue;
                 },
@@ -45,6 +51,10 @@ pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStre
                 stream_listener_rx = rx;
             }
 
+            // clear old data from streams
+            while let Ok(_) = lua_stream_rx.as_ref().unwrap().try_recv() {}
+
+            log!("Starting stream threads.");
             stream_read_thread = Some(stream_read::run(con.try_clone().unwrap(), stream_listener_tx.take().unwrap(), stream_lua_tx.take().unwrap()));
             stream_write_thread = Some(stream_write::run(con, listener_stream_rx.take().unwrap(), lua_stream_rx.take().unwrap()));
         }

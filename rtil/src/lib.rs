@@ -9,6 +9,7 @@
 extern crate byteorder;
 extern crate memmap;
 extern crate lua;
+extern crate backtrace;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate object;
@@ -18,6 +19,7 @@ extern crate lua;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;
+use std::panic;
 
 mod error;
 #[macro_use] mod statics;
@@ -31,6 +33,9 @@ static INIT: Once = ONCE_INIT;
 
 pub extern "C" fn initialize() {
     INIT.call_once(|| {
+        panic::set_hook(Box::new(|_| {
+            log!("{:?}", backtrace::Backtrace::new());
+        }));
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();
         let file = exe.file_name().unwrap();

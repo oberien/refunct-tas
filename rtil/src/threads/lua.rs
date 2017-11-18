@@ -7,11 +7,12 @@ use std::collections::HashSet;
 use lua::{Lua, LuaInterface, Response, Event};
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
-use native::{AMyCharacter, AController, FSlateApplication, FApp};
+use native::{AMyCharacter, AController, FApp};
 
 struct Tas<'lua> {
     iface: Rc<RefCell<GameInterface>>,
     lua: Lua<'lua>,
+    working_dir: Option<String>,
 }
 
 pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStream>,
@@ -29,6 +30,7 @@ pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStre
         let mut tas = Tas {
             iface: iface.clone(),
             lua: Lua::new(iface),
+            working_dir: None,
         };
 
         loop {
@@ -42,14 +44,34 @@ impl<'lua> Tas<'lua> {
         let res = self.iface.borrow().stream_lua_rx.recv().unwrap();
         match res {
             StreamToLua::Stop => {},
-            StreamToLua::Config(config) => self.iface.borrow_mut().config = config,
+            StreamToLua::Config(config) => {
+                log!("Set config before running");
+                self.iface.borrow_mut().config = config;
+            },
+            StreamToLua::WorkingDir(dir) => {
+                log!("Set working dir");
+                self.working_dir = Some(dir);
+            }
             StreamToLua::Start(s) => {
+                log!("Starting lua...");
                 self.lua = Lua::new(self.iface.clone());
+                if let Some(dir) = self.working_dir.as_ref() {
+                    log!("Add {} to package.path.", dir);
+                    let dir = format!(r#"package.path = package.path .. ";{}/?.lua""#, dir);
+                    self.lua.execute(&dir).unwrap();
+                    log!("Added");
+                }
                 self.iface.borrow().lua_ue_tx.send(LuaToUe::Stop).unwrap();
-                self.lua.execute(&s);
+                log!("Executing Lua code.");
+                if let Err(e) = self.lua.execute(&s) {
+                    log!("Lua error'd: {}", e);
+                    self.iface.borrow().lua_stream_tx.send(LuaToStream::Print(format!("{}", e))).unwrap();
+                }
+                log!("Lua execution done. Starting cleanup...");
+                self.iface.borrow_mut().reset();
                 self.iface.borrow().lua_ue_tx.send(LuaToUe::Resume).unwrap();
                 self.iface.borrow().lua_stream_tx.send(LuaToStream::MiDone).unwrap();
-                self.iface.borrow_mut().reset();
+                log!("Cleanup finished.");
             }
         }
     }
@@ -74,12 +96,20 @@ impl GameInterface {
         }
         match self.stream_lua_rx.try_recv() {
             Ok(res) => match res {
-                StreamToLua::Config(cfg) => self.config = cfg,
+                StreamToLua::Config(cfg) => {
+                    log!("Set Config while running");
+                    self.config = cfg;
+                }
+                StreamToLua::WorkingDir(_) => {
+                    log!("Got WorkingDir, but can't set it during execution");
+                    panic!()
+                }
                 StreamToLua::Start(_) => {
                     log!("Got StreamToLua::Start but lua is already running");
                     panic!()
                 }
                 StreamToLua::Stop => {
+                    log!("Should Exit");
                     self.should_exit = true;
                     return true;
                 }
@@ -95,7 +125,7 @@ impl GameInterface {
 
     fn reset(&mut self) {
         for key in self.pressed_keys.drain() {
-            FSlateApplication::release_key(key);
+            self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
         }
         self.should_exit = false;
     }
@@ -131,7 +161,7 @@ impl LuaInterface for GameInterface {
         if self.syscall() { return Response::ExitPlease }
         let key = self.to_key(&key);
         self.pressed_keys.insert(key);
-        FSlateApplication::press_key(key);
+        self.lua_ue_tx.send(LuaToUe::PressKey(key)).unwrap();
         Response::Result(())
     }
 
@@ -139,13 +169,13 @@ impl LuaInterface for GameInterface {
         if self.syscall() { return Response::ExitPlease }
         let key = self.to_key(&key);
         self.pressed_keys.remove(&key);
-        FSlateApplication::release_key(key);
+        self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
         Response::Result(())
     }
 
     fn move_mouse(&mut self, x: i32, y: i32) -> Response<()> {
         if self.syscall() { return Response::ExitPlease }
-        FSlateApplication::move_mouse(x, y);
+        self.lua_ue_tx.send(LuaToUe::MoveMouse(x, y)).unwrap();
         Response::Result(())
     }
 

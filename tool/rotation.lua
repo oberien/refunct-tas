@@ -3,17 +3,21 @@ require "prelude"
 waitfornewgame()
 setdelta(1/60)
 
-local stats = getplayerstats()
-print(stats.pitch, stats.yaw, stats.roll)
+function printstuff()
+  local pitch, yaw, roll = getrotation()
+  print(pitch, yaw, roll)
+end
 
 function rotate(degx, degy, frames)
   for i=1,frames do
-    local stats = getplayerstats();
-    setrotation(stats.pitch + degy / frames, stats.yaw + degx / frames)
+    local pitch, yaw, roll = getrotation();
+    setrotation(pitch + degy / frames, yaw + degx / frames)
     frame({}, 0, 0, 1)
   end
+  printstuff()
 end
 
+printstuff()
 rotate(720, 0, 120)
 rotate(-720, 0, 120)
 rotate(-90, 0, 30)
@@ -29,6 +33,5 @@ rotate(0, -20, 20)
 rotate(0, 90, 20)
 rotate(0, -180, 20)
 
-local stats = getplayerstats()
-print(stats.pitch, stats.yaw, stats.roll)
+printstuff()
 

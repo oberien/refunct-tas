@@ -5,7 +5,7 @@ pub mod stub;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use hlua::{Lua as HLua, LuaFunction, AnyLuaValue, Void, AsMutLua, PushGuard, Push};
+use hlua::{Lua as HLua, LuaFunction, AnyLuaValue, Void, AsMutLua, PushGuard, Push, LuaError};
 
 pub struct Lua<'lua> {
     lua: HLua<'lua>,
@@ -198,8 +198,9 @@ impl<'lua> Lua<'lua> {
         }
     }
 
-    pub fn execute(&mut self, code: &str) {
-        let mut function = LuaFunction::load(&mut self.lua, code).unwrap();
-        function.call::<()>().unwrap();
+    pub fn execute(&mut self, code: &str) -> Result<(), LuaError> {
+        let mut function = LuaFunction::load(&mut self.lua, code)?;
+        function.call::<()>()?;
+        Ok(())
     }
 }
