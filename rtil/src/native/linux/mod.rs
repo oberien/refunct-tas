@@ -4,14 +4,11 @@ pub(in native) mod controller;
 pub(in native) mod character;
 pub(in native) mod app;
 
-use std::fs::File;
 use std::env;
 use std::collections::HashMap;
 
 use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
-use memmap::Mmap;
-use object::{ElfFile, Object};
-use cpp_demangle::{Symbol, DemangleOptions};
+use dynsym;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
@@ -42,18 +39,12 @@ const NAMES: [&str; 9] = [
 ];
 
 pub(in native) fn init() {
-    let file = File::open(env::current_exe().unwrap()).unwrap();
-    let file = unsafe { Mmap::map(&file) }.unwrap();
-    let file = ElfFile::parse(&*file).unwrap();
-    let options = DemangleOptions { no_params: true };
-    let addrs: HashMap<_, _> = file.dynamic_symbols().into_iter()
-        .flat_map(|sym| sym.name()
-            .and_then(|name| Symbol::new(name).ok())
-            .and_then(|symbol| symbol.demangle(&options).ok())
-            .map(|name| name.split(' ').next().unwrap().to_string())
-            .map(|name| (name, sym.address() as usize)))
-        .filter(|&(ref name, _)| NAMES.contains(&name.as_str()))
+    let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
+        .filter_map(|(name, addr)| NAMES.iter()
+            .find(|&&n| name.contains(n))
+            .map(|&name| (name, addr)))
         .collect();
+    log!("{:?}", addrs);
     unsafe {
         AMYCHARACTER_FORCEDUNCROUCH = *addrs.get(NAMES[0]).unwrap();
         log!("found AMyCharacter::execForcedUnCrouch: {:#x}", AMYCHARACTER_FORCEDUNCROUCH);

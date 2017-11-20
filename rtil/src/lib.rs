@@ -7,13 +7,11 @@
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;
 extern crate byteorder;
-extern crate memmap;
 extern crate lua;
 extern crate backtrace;
 
 #[cfg(unix)] extern crate libc;
-#[cfg(unix)] extern crate object;
-#[cfg(unix)] extern crate cpp_demangle;
+#[cfg(unix)] extern crate dynsym;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 

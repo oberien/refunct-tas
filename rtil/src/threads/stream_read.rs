@@ -49,7 +49,7 @@ impl StreamRead {
             }
             2 => {
                 log!("Reading Config...");
-                let mut config = Config {
+                let config = Config {
                     forward: self.con.read_i32::<LittleEndian>()?,
                     backward: self.con.read_i32::<LittleEndian>()?,
                     left: self.con.read_i32::<LittleEndian>()?,

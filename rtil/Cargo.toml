@@ -7,14 +7,12 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 lazy_static = "0.2.10"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
-memmap = "0.6.0"
 backtrace = "0.3"
 lua = { path = "../lua" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"
-object = { git = "https://github.com/oberien/object", rev = "3ae266f861129df4a610bbc067956314783b2f3e" }
-cpp_demangle = "0.2.5"
+dynsym = { path = "../dynsym" }
 
 [target.'cfg(windows)'.dependencies]
 winapi = "0.2.8"
