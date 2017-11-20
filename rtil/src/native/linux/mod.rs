@@ -27,21 +27,27 @@ pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
 pub(in native) static mut FAPP_DELTATIME: usize = 0;
 
 const NAMES: [&str; 9] = [
-    "AMyCharacter::ForcedUnCrouch",
-    "FSlateApplication::Tick",
-    "FSlateApplication::OnKeyDown",
-    "FSlateApplication::OnKeyUp",
-    "FSlateApplication::OnRawMouseMove",
-    "AController::GetControlRotation",
-    "UEngine::UpdateTimeAndHandleMaxTickRate",
-    "AMyCharacter::Tick",
-    "FApp::DeltaTime",
+    "^AMyCharacter::ForcedUnCrouch()",
+    "^FSlateApplication::Tick()",
+    "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
+    "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
+    "^FSlateApplication::OnRawMouseMove(int, int)",
+    "^AController::GetControlRotation()",
+    "^UEngine::UpdateTimeAndHandleMaxTickRate()",
+    "^AMyCharacter::Tick(float)",
+    "^FApp::DeltaTime",
 ];
 
 pub(in native) fn init() {
     let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
         .filter_map(|(name, addr)| NAMES.iter()
-            .find(|&&n| name.contains(n))
+            .find(|&&pattern| {
+                if pattern.starts_with('^') {
+                    name.starts_with(&pattern[1..])
+                } else {
+                    name.contains(pattern)
+                }
+            })
             .map(|&name| (name, addr)))
         .collect();
     log!("{:?}", addrs);
