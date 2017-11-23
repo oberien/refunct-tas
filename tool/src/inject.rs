@@ -36,12 +36,12 @@ pub fn inject() {
             panic!("Cannot find LoadLibraryA in kernel32.dll");
         }
         println!("Found LoadLibraryA at {:?}", addr);
-        let arg = VirtualAllocEx(handle, null_mut(), lib.to_bytes().len() as u32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        let arg = VirtualAllocEx(handle, null_mut(), lib.to_bytes_with_nul().len() as u32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if arg.is_null() {
             panic!("Cannot allocate memory in Refunct");
         }
         println!("Alloc'ed at {:?}", arg);
-        let n = WriteProcessMemory(handle, arg, lib.as_ptr() as *const _, lib.to_bytes().len() as u32, null_mut());
+        let n = WriteProcessMemory(handle, arg, lib.as_ptr() as *const _, lib.to_bytes_with_nul().len() as u32, null_mut());
         if n == 0 {
             panic!("Cannot write to Refunct");
         }
