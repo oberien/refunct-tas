@@ -23,40 +23,34 @@ pub extern "stdcall" fn DllMain(module: u32, reason: u32, reserved: *mut c_void)
     }
 }
 
-lazy_static! {
-    static ref BASE: usize = unsafe { GetModuleHandleA(null()) as usize };
+macro_rules! find {
+    ($($name:ident,)*) => {
+        $(
+            pub(in native) static mut $name: usize = 0;
+        )*
+        pub(in native) fn init() {
+            let base = unsafe { GetModuleHandleA(null()) as usize };
+            log!("Got Base address: {:#x}", base);
+            $(
+                $name = base + consts::$name;
+            )*
+        }
+    }
 }
 
-pub(in native) static mut FSLATEAPPLICATION_TICK: usize = 0;
-pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
-pub(in native) static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
-pub(in native) static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
-pub(in native) static mut FAPP_DELTATIME: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
-pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
-pub(in native) static mut FMEMORY_MALLOC: usize = 0;
-pub(in native) static mut FMEMORY_FREE: usize = 0;
-pub(in native) static mut FNAME_FNAME: usize = 0;
-
-pub(in native) fn init() {
-    let base = &*BASE;
-    log!("Got Base address: {:#x}", base);
-    unsafe {
-        FSLATEAPPLICATION_TICK = base + consts::FSLATEAPPLICATION_TICK;
-        AMYCHARACTER_TICK = base + consts::AMYCHARACTER_TICK;
-        AMYCHARACTER_FORCEDUNCROUCH = base + consts::AMYCHARACTER_FORCEDUNCROUCH;
-        UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE = base + consts::UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE;
-        FAPP_DELTATIME = base + consts::FAPP_DELTATIME;
-        FSLATEAPPLICATION_ONKEYDOWN = base + consts::FSLATEAPPLICATION_ONKEYDOWN;
-        FSLATEAPPLICATION_ONKEYUP = base + consts::FSLATEAPPLICATION_ONKEYUP;
-        FSLATEAPPLICATION_ONRAWMOUSEMOVE = base + consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE;
-        ACONTROLLER_GETCONTROLROTATION = base + consts::ACONTROLLER_GETCONTROLROTATION;
-        FMEMORY_MALLOC = base + consts::FMEMORY_MALLOC;
-        FMEMORY_FREE = base + consts::FMEMORY_FREE;
-        FNAME_FNAME = base + consts::FNAME_FNAME;
-    }
+find! {
+    FSLATEAPPLICATION_TICK,
+    AMYCHARACTER_TICK,
+    AMYCHARACTER_FORCEDUNCROUCH,
+    UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE,
+    FAPP_DELTATIME,
+    FSLATEAPPLICATION_ONKEYDOWN,
+    FSLATEAPPLICATION_ONKEYUP,
+    FSLATEAPPLICATION_ONRAWMOUSEMOVE,
+    ACONTROLLER_GETCONTROLROTATION,
+    FMEMORY_MALLOC,
+    FMEMORY_FREE,
+    FNAME_FNAME,
 }
 
 pub(in native) fn make_rw(addr: usize) {
