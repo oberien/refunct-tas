@@ -9,16 +9,19 @@ use goblin::Object;
 use pdb::{PDB, SymbolData};
 use pdb::FallibleIterator;
 
-const NAMES: [(&str, &str); 9] = [
+const NAMES: [(&str, &str); 12] = [
     ("?UpdateTimeAndHandleMaxTickRate@UEngine", "UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE"),
     ("?Tick@FSlateApplication", "FSLATEAPPLICATION_TICK"),
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
     ("?GetControlRotation@AController", "ACONTROLLER_GETCONTROLROTATION"),
-    ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_EXECFORCEDUNCROUCH"),
+    ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
     ("FApp::DeltaTime", "FAPP_DELTATIME"),
+    ("?Malloc@FMemory@@SAPAXKI@Z", "FMEMORY_MALLOC"),
+    ("?Free@FMemory@@SAXPAX@Z", "FMEMORY_FREE"),
+    ("??0FName@@QAE@PB_WW4EFindName@@@Z", "FNAME_FNAME"),
 ];
 
 fn main() {

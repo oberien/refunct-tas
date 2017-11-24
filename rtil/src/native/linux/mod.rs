@@ -25,8 +25,11 @@ pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
 pub(in native) static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
 pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
 pub(in native) static mut FAPP_DELTATIME: usize = 0;
+pub(in native) static mut FMEMORY_MALLOC: usize = 0;
+pub(in native) static mut FMEMORY_FREE: usize = 0;
+pub(in native) static mut FNAME_FNAME: usize = 0;
 
-const NAMES: [&str; 9] = [
+const NAMES: [&str; 12] = [
     "^AMyCharacter::ForcedUnCrouch()",
     "^FSlateApplication::Tick()",
     "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
@@ -36,6 +39,9 @@ const NAMES: [&str; 9] = [
     "^UEngine::UpdateTimeAndHandleMaxTickRate()",
     "^AMyCharacter::Tick(float)",
     "^FApp::DeltaTime",
+    "^FMemory::Malloc(unsigned long, unsigned int)",
+    "^FMemory::Free(void*)",
+    "^FName::complete object constructor(wchar_t const*, EFindName)",
 ];
 
 pub(in native) fn init() {
@@ -70,6 +76,12 @@ pub(in native) fn init() {
         log!("found AMyCharacter::Tick: {:#x}", AMYCHARACTER_TICK);
         FAPP_DELTATIME = *addrs.get(NAMES[8]).unwrap();
         log!("found FApp::DeltaTime: {:#x}", FAPP_DELTATIME);
+        FMEMORY_MALLOC = *addrs.get(NAMES[9]).unwrap();
+        log!("found {}: {:#x}", NAMES[9], FMEMORY_MALLOC);
+        FMEMORY_FREE = *addrs.get(NAMES[10]).unwrap();
+        log!("found {}: {:#x}", NAMES[10], FMEMORY_FREE);
+        FNAME_FNAME = *addrs.get(NAMES[11]).unwrap();
+        log!("found {}: {:#x}", NAMES[11], FNAME_FNAME);
     }
 }
 
