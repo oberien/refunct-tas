@@ -16,73 +16,53 @@ use dynsym;
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 
-pub(in native) static mut AMYCHARACTER_FORCEDUNCROUCH: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_TICK: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
-pub(in native) static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
-pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
-pub(in native) static mut UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0;
-pub(in native) static mut AMYCHARACTER_TICK: usize = 0;
-pub(in native) static mut FAPP_DELTATIME: usize = 0;
-pub(in native) static mut FMEMORY_MALLOC: usize = 0;
-pub(in native) static mut FMEMORY_FREE: usize = 0;
-pub(in native) static mut FNAME_FNAME: usize = 0;
+macro_rules! find {
+    ($($idx:expr, $name:ident, $symbol:expr,)*) => {
+        $(
+            pub(in native) static mut $name:usize = 0;
+        )*
+        const NAMES: &[&str] = &[
+            $(
+                $symbol,
+            )*
+        ];
 
-const NAMES: [&str; 12] = [
-    "^AMyCharacter::ForcedUnCrouch()",
-    "^FSlateApplication::Tick()",
-    "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
-    "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
-    "^FSlateApplication::OnRawMouseMove(int, int)",
-    "^AController::GetControlRotation()",
-    "^UEngine::UpdateTimeAndHandleMaxTickRate()",
-    "^AMyCharacter::Tick(float)",
-    "^FApp::DeltaTime",
-    "^FMemory::Malloc(unsigned long, unsigned int)",
-    "^FMemory::Free(void*)",
-    "^FName::complete object constructor(wchar_t const*, EFindName)",
-];
-
-pub(in native) fn init() {
-    let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
-        .filter_map(|(name, addr)| NAMES.iter()
-            .find(|&&pattern| {
-                if pattern.starts_with('^') {
-                    name.starts_with(&pattern[1..])
-                } else {
-                    name.contains(pattern)
-                }
-            })
-            .map(|&name| (name, addr)))
-        .collect();
-    log!("{:?}", addrs);
-    unsafe {
-        AMYCHARACTER_FORCEDUNCROUCH = *addrs.get(NAMES[0]).unwrap();
-        log!("found AMyCharacter::execForcedUnCrouch: {:#x}", AMYCHARACTER_FORCEDUNCROUCH);
-        FSLATEAPPLICATION_TICK = *addrs.get(NAMES[1]).unwrap();
-        log!("found FSlateApplication::Tick: {:#x}", FSLATEAPPLICATION_TICK);
-        FSLATEAPPLICATION_ONKEYDOWN = *addrs.get(NAMES[2]).unwrap();
-        log!("found FSlateApplication::OnKeyDown: {:#x}", FSLATEAPPLICATION_ONKEYDOWN);
-        FSLATEAPPLICATION_ONKEYUP = *addrs.get(NAMES[3]).unwrap();
-        log!("found FSlateApplication::OnKeyUp: {:#x}", FSLATEAPPLICATION_ONKEYUP);
-        FSLATEAPPLICATION_ONRAWMOUSEMOVE = *addrs.get(NAMES[4]).unwrap();
-        log!("found FSlateApplication::OnRawMouseMove: {:#x}", FSLATEAPPLICATION_ONRAWMOUSEMOVE);
-        ACONTROLLER_GETCONTROLROTATION = *addrs.get(NAMES[5]).unwrap();
-        log!("found AController::GetControlRotation: {:#x}", ACONTROLLER_GETCONTROLROTATION);
-        UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE = *addrs.get(NAMES[6]).unwrap();
-        log!("found UEngine::UpdateTimeAndHandleMaxTickRate: {:#x}", UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE);
-        AMYCHARACTER_TICK = *addrs.get(NAMES[7]).unwrap();
-        log!("found AMyCharacter::Tick: {:#x}", AMYCHARACTER_TICK);
-        FAPP_DELTATIME = *addrs.get(NAMES[8]).unwrap();
-        log!("found FApp::DeltaTime: {:#x}", FAPP_DELTATIME);
-        FMEMORY_MALLOC = *addrs.get(NAMES[9]).unwrap();
-        log!("found {}: {:#x}", NAMES[9], FMEMORY_MALLOC);
-        FMEMORY_FREE = *addrs.get(NAMES[10]).unwrap();
-        log!("found {}: {:#x}", NAMES[10], FMEMORY_FREE);
-        FNAME_FNAME = *addrs.get(NAMES[11]).unwrap();
-        log!("found {}: {:#x}", NAMES[11], FNAME_FNAME);
+        pub(in native) fn init() {
+            let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
+                .filter_map(|(name, addr)| NAMES.iter()
+                    .find(|&&pattern| {
+                        if pattern.starts_with('^') {
+                            name.starts_with(&pattern[1..])
+                        } else {
+                            name.contains(pattern)
+                        }
+                    })
+                    .map(|&name| (name, addr)))
+                .collect();
+            log!("{:?}", addrs);
+            unsafe {
+                $(
+                    $name = *addrs.get(NAMES[$idx]).unwrap();
+                    log!("found {}: {:#x}", NAMES[$idx], $name);
+                )*
+            }
+        }
     }
+}
+
+find! {
+    0, AMYCHARACTER_FORCEDUNCROUCH, "^AMyCharacter::ForcedUnCrouch()",
+    1, FSLATEAPPLICATION_TICK, "^FSlateApplication::Tick()",
+    2, FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
+    3, FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
+    4, FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
+    5, ACONTROLLER_GETCONTROLROTATION, "^AController::GetControlRotation()",
+    6, UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
+    7, AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
+    8, FAPP_DELTATIME, "^FApp::DeltaTime",
+    9, FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
+    10, FMEMORY_FREE, "^FMemory::Free(void*)",
+    11, FNAME_FNAME, "^FName::complete object constructor(wchar_t const*, EFindName)",
 }
 
 pub(in native) fn make_rw(addr: usize) {
