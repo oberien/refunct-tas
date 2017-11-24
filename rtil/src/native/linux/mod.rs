@@ -17,7 +17,7 @@ use dynsym;
 pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 
 macro_rules! find {
-    ($($idx:expr, $name:ident, $symbol:expr,)*) => {
+    ($($name:ident, $symbol:expr,)*) => {
         $(
             pub(in native) static mut $name:usize = 0;
         )*
@@ -40,10 +40,12 @@ macro_rules! find {
                     .map(|&name| (name, addr)))
                 .collect();
             log!("{:?}", addrs);
+            let mut i = 0;
             unsafe {
                 $(
-                    $name = *addrs.get(NAMES[$idx]).unwrap();
-                    log!("found {}: {:#x}", NAMES[$idx], $name);
+                    $name = *addrs.get(NAMES[i]).unwrap();
+                    log!("found {}: {:#x}", NAMES[i], $name);
+                    i += 1;
                 )*
             }
         }
@@ -51,18 +53,18 @@ macro_rules! find {
 }
 
 find! {
-    0, AMYCHARACTER_FORCEDUNCROUCH, "^AMyCharacter::ForcedUnCrouch()",
-    1, FSLATEAPPLICATION_TICK, "^FSlateApplication::Tick()",
-    2, FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
-    3, FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
-    4, FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
-    5, ACONTROLLER_GETCONTROLROTATION, "^AController::GetControlRotation()",
-    6, UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
-    7, AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
-    8, FAPP_DELTATIME, "^FApp::DeltaTime",
-    9, FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
-    10, FMEMORY_FREE, "^FMemory::Free(void*)",
-    11, FNAME_FNAME, "^FName::complete object constructor(wchar_t const*, EFindName)",
+    AMYCHARACTER_FORCEDUNCROUCH, "^AMyCharacter::ForcedUnCrouch()",
+    FSLATEAPPLICATION_TICK, "^FSlateApplication::Tick()",
+    FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
+    FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
+    FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
+    ACONTROLLER_GETCONTROLROTATION, "^AController::GetControlRotation()",
+    UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
+    AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
+    FAPP_DELTATIME, "^FApp::DeltaTime",
+    FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
+    FMEMORY_FREE, "^FMemory::Free(void*)",
+    FNAME_FNAME, "^FName::complete object constructor(wchar_t const*, EFindName)",
 }
 
 pub(in native) fn make_rw(addr: usize) {
