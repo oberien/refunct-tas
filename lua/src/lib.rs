@@ -11,7 +11,7 @@ pub struct Lua<'lua> {
     lua: HLua<'lua>,
 }
 
-trait IntoAnyLuaValue {
+pub trait IntoAnyLuaValue {
     fn into_any_lua_value(self) -> AnyLuaValue;
 }
 

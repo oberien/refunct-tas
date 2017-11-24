@@ -65,7 +65,7 @@ fn handle(event: UeToLua) {
                 panic!()
             }
             evt @ LuaToUe::PressKey(_) | evt @ LuaToUe::ReleaseKey(_) | evt @ LuaToUe::MoveMouse(..) => {
-                // Release STATE lock, as this can trigger a new game,
+                // Release STATE lock, as events can trigger a new game,
                 // which needs to acquire the lock.
                 drop(state);
                 match evt {

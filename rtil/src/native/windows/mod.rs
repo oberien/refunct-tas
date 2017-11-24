@@ -36,6 +36,9 @@ pub(in native) static mut FSLATEAPPLICATION_ONKEYDOWN: usize = 0;
 pub(in native) static mut FSLATEAPPLICATION_ONKEYUP: usize = 0;
 pub(in native) static mut FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0;
 pub(in native) static mut ACONTROLLER_GETCONTROLROTATION: usize = 0;
+pub(in native) static mut FMEMORY_MALLOC: usize = 0;
+pub(in native) static mut FMEMORY_FREE: usize = 0;
+pub(in native) static mut FNAME_FNAME: usize = 0;
 
 pub(in native) fn init() {
     let base = &*BASE;
@@ -50,6 +53,9 @@ pub(in native) fn init() {
         FSLATEAPPLICATION_ONKEYUP = base + consts::FSLATEAPPLICATION_ONKEYUP;
         FSLATEAPPLICATION_ONRAWMOUSEMOVE = base + consts::FSLATEAPPLICATION_ONRAWMOUSEMOVE;
         ACONTROLLER_GETCONTROLROTATION = base + consts::ACONTROLLER_GETCONTROLROTATION;
+        FMEMORY_MALLOC = base + consts::FMEMORY_MALLOC;
+        FMEMORY_FREE = base + consts::FMEMORY_FREE;
+        FNAME_FNAME = base + consts::FNAME_FNAME;
     }
 }
 
