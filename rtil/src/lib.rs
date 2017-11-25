@@ -3,6 +3,7 @@
 #![feature(naked_functions)]
 #![feature(mpsc_select)]
 #![feature(abi_thiscall)]
+#![feature(stmt_expr_attributes)]
 
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;

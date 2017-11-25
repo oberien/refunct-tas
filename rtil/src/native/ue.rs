@@ -2,6 +2,7 @@ use std::ptr;
 use std::mem;
 
 use native::FMemory;
+use native::FNAME_FNAME;
 
 #[repr(C, packed)]
 pub struct FVector {
@@ -92,7 +93,7 @@ impl<T: Into<FString>> From<T> for FName {
         };
         unsafe {
             let fun: extern "C" fn(*mut FName, *const char, u64) -> u64
-                = unsafe { ::std::mem::transmute(::native::linux::FNAME_FNAME) };
+                = unsafe { mem::transmute(FNAME_FNAME) };
             fun(&mut name as *mut FName, s.as_ptr(), 1);
         }
         name
