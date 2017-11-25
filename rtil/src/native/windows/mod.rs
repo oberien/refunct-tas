@@ -31,9 +31,11 @@ macro_rules! find {
         pub(in native) fn init() {
             let base = unsafe { GetModuleHandleA(null()) as usize };
             log!("Got Base address: {:#x}", base);
-            $(
-                $name = base + consts::$name;
-            )*
+            unsafe {
+                $(
+                    $name = base + consts::$name;
+                )*
+            }
         }
     }
 }
