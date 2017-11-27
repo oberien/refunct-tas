@@ -311,3 +311,12 @@ macro_rules! hook_fn_always {
         }
     }
 }
+
+macro_rules! extern_fn {
+    (fn $name:ident ($($argname:ident : $argtype:ty),*) $code:block) => {
+        extern "thiscall" fn $name($($argname: $argtype),*) $code
+    };
+    (fn ($($argtype:ty),*)) => {
+        extern "thiscall" fn($($argtype),*)
+    }
+}

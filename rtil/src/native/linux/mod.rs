@@ -66,6 +66,9 @@ find! {
     FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
     FMEMORY_FREE, "^FMemory::Free(void*)",
     FNAME_FNAME, "^FName::complete object constructor(wchar_t const*, EFindName)",
+    AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
+    AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
+    AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
 }
 
 pub(in native) fn make_rw(addr: usize) {
