@@ -20,6 +20,7 @@ pub fn iter<P: AsRef<Path>>(path: P) -> Vec<(String, usize)> {
                 let options = DemangleOptions { no_params: false };
                 symbol.demangle(&options).ok()
             })
+            .or_else(|| sym.name().map(|s| s.to_string()))
             .map(|name| (name, sym.address() as usize)))
         .collect()
 }
