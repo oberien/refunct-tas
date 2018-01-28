@@ -5,13 +5,16 @@ extern crate serde;
 extern crate byteorder;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
+extern crate nfd;
 
 #[macro_use] mod error;
 mod tas;
 mod config;
 #[cfg(windows)] mod inject;
 
+use nfd::Response;
 use std::env;
+use std::path::Path;
 
 use tas::Tas;
 use config::Config;
@@ -54,8 +57,19 @@ fn main() {
         tas = Tas::new().unwrap();
         println!("TAS created successfully.");
     }
-
-    let script_file = env::args().skip(1).next().unwrap_or("tas.lua".to_string());
+    let mut script_file = String::new();
+    if env::args().collect::<Vec<String>>().len() == 1 {
+        let cur_dir = std::env::current_dir().unwrap();
+        let cur_dir = cur_dir.to_str().unwrap();
+        let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap_or_else(|e| { panic!(e) });
+        match result {
+            Response::Okay(file_path) => script_file = Path::new(&file_path).file_name().unwrap().to_str().unwrap().to_string(),
+            Response::OkayMultiple(_) => panic!("Multiple files selected."),
+            Response::Cancel => println!("Cancelled file selection.")
+        };
+    } else {
+        script_file = env::args().skip(1).next().unwrap();
+    }
     println!("Executing Script {} ...", script_file);
     tas.execute(script_file, &config);
     println!("Script Executed.");
@@ -63,3 +77,19 @@ fn main() {
     println!("Finished");
 }
 
+/*fn get_script_file() -> &str {
+    if env::args().collect::<Vec<String>>().len() == 1 {
+        let cur_dir = std::env::current_dir().unwrap();
+        let cur_dir = cur_dir.to_str().unwrap();
+        let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap_or_else(|e| { panic!(e) });
+        let mut ret = "";
+        match result {
+            Response::Okay(file_path) => ret = file_path.as_str(),
+            Response::OkayMultiple(_) => panic!("Multiple files selected."),
+            Response::Cancel => println!("Cancelled file selection.")
+        };
+        return ret;
+    } else {
+        return env::args().skip(1).next().unwrap();
+    }
+}*/
