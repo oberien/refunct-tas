@@ -13,7 +13,7 @@ mod config;
 #[cfg(windows)] mod inject;
 
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use nfd::Response;
 
@@ -59,23 +59,23 @@ fn main() {
         println!("TAS created successfully.");
     }
     let script_file = if env::args().len() == 1 {
-        if !std::env::current_dir().unwrap().join("tas.lua").is_file() {
+        if !Path::new("tas.lua").is_file() {
             let cur_dir = std::env::current_dir().unwrap();
             let cur_dir = cur_dir.to_str().unwrap();
             let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap();
             match result {
-                Response::Okay(file_path) => Path::new(&file_path).to_path_buf(),
+                Response::Okay(file_path) => PathBuf::from(file_path),
                 Response::OkayMultiple(_) => unreachable!("Multiple files selected."),
                 Response::Cancel => panic!("Cancelled file selection.")
             }
         } else {
-            Path::new("tas.lua").to_path_buf()
+            PathBuf::from("tas.lua")
         }
     } else {
-        Path::new(&env::args().nth(1).unwrap()).to_path_buf()
+        PathBuf::from(env::args().nth(1).unwrap())
     };
-    println!("Executing Script {} ...", script_file.to_str().unwrap());
-    tas.execute(script_file.as_path(), &config);
+    println!("Executing Script {} ...", script_file.display());
+    tas.execute(script_file, &config);
     println!("Script Executed.");
     println!("Finished");
 
