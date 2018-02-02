@@ -4,6 +4,8 @@ rust:
   - beta
   - nightly
 dist: trusty
+before_install:
+  - sudo apt-get install libgtk-3-dev
 install:
   - rustup install nightly
   - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cargo install clippy; fi
