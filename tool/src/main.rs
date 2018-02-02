@@ -59,23 +59,24 @@ fn main() {
         println!("TAS created successfully.");
     }
     let script_file = if env::args().len() == 1 {
-        if std::env::current_dir().unwrap().join("tas.lua").metadata().is_err() {
+        if !std::env::current_dir().unwrap().join("tas.lua").is_file() {
             let cur_dir = std::env::current_dir().unwrap();
             let cur_dir = cur_dir.to_str().unwrap();
-            let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap_or_else(|e| { panic!(e) });
+            let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap();
             match result {
-                Response::Okay(file_path) => Path::new(&file_path).to_str().unwrap().to_string(),
+                Response::Okay(file_path) => Path::new(&file_path).to_path_buf(),
                 Response::OkayMultiple(_) => unreachable!("Multiple files selected."),
                 Response::Cancel => panic!("Cancelled file selection.")
             }
         } else {
-            std::env::current_dir().unwrap().join("tas.lua").to_str().unwrap().to_string()
+            Path::new("tas.lua").to_path_buf()
         }
     } else {
-        env::args().nth(1).unwrap().to_string()
+        Path::new(&env::args().nth(1).unwrap()).to_path_buf()
     };
-    println!("Executing Script {} ...", script_file);
-    tas.execute(script_file, &config);
+    println!("Executing Script {} ...", script_file.to_str().unwrap());
+    tas.execute(script_file.as_path(), &config);
     println!("Script Executed.");
     println!("Finished");
+
 }
