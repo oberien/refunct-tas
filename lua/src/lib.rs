@@ -191,8 +191,8 @@ impl<'lua> Lua<'lua> {
         }));
 
         let tas = outer.clone();
-        lua.set("__pause_for_duration", hlua::function1(move |time: u32| {
-            tas.borrow_mut().pause_for_duration(time as u64)
+        lua.set("__sleep", hlua::function1(move |time: u32| {
+            tas.borrow_mut().sleep(time as u64)
         }));
 
         let tas = outer.clone();
