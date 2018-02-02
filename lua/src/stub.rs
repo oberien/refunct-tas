@@ -91,6 +91,11 @@ impl LuaInterface for Stub {
         Response::Result(())
     }
 
+    fn sleep(&mut self, time: u64) -> Response<()> {
+        println!("Pausing for {}s", time);
+        Response::Result(())
+    }
+
     fn print(&mut self, s: String) -> Response<()> {
         println!("print: {:?}", s);
         Response::Result(())

@@ -87,6 +87,10 @@ function getacceleration()
   return acc[1], acc[2], acc[3]
 end
 
+function sleep(time)
+  __sleep(time)
+end
+
 Frame = {
   forward = false,
   backward = false,

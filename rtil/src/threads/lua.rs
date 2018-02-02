@@ -1,5 +1,6 @@
 use std::sync::mpsc::{Sender, Receiver, TryRecvError};
 use std::thread;
+use std::time::Duration;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashSet;
@@ -247,6 +248,12 @@ impl LuaInterface for GameInterface {
     fn print(&mut self, s: String) -> Response<()> {
         if self.syscall() { return Response::ExitPlease }
         self.lua_stream_tx.send(LuaToStream::Print(s)).unwrap();
+        Response::Result(())
+    }
+
+    fn sleep(&mut self, time: u64) -> Response<()> {
+        if self.syscall() { return Response::ExitPlease }
+        thread::sleep(Duration::new(time, 0));
         Response::Result(())
     }
 }

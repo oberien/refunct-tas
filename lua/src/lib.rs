@@ -110,6 +110,8 @@ pub trait LuaInterface {
     fn set_acceleration(&mut self, x: f32, y: f32, z: f32) -> Response<()>;
     fn wait_for_new_game(&mut self) -> Response<()>;
 
+    fn sleep(&mut self, time: u64) -> Response<()>;
+
     fn print(&mut self, s: String) -> Response<()>;
 }
 
@@ -186,6 +188,11 @@ impl<'lua> Lua<'lua> {
         let tas = outer.clone();
         lua.set("__wait_for_new_game", hlua::function0(move || {
             tas.borrow_mut().wait_for_new_game()
+        }));
+
+        let tas = outer.clone();
+        lua.set("__pause_for_duration", hlua::function1(move |time: u32| {
+            tas.borrow_mut().pause_for_duration(time as u64)
         }));
 
         let tas = outer.clone();

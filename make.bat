@@ -20,6 +20,7 @@ copy tool\printstats.lua build\windows
 copy tool\teleportbutton-prelude.lua build\windows
 copy tool\teleportbuttons.lua build\windows
 copy tool\spiral.lua build\windows
+copy tool\spiral-with-sleep build\windows
 copy tool\setvelocity.lua build\windows
 copy tool\setposition.lua build\windows
 echo Converting lf to crlf
