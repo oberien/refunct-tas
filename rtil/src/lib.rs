@@ -4,12 +4,14 @@
 #![feature(mpsc_select)]
 #![feature(abi_thiscall)]
 #![feature(stmt_expr_attributes)]
+#![feature(repr_transparent)]
 
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;
 extern crate byteorder;
 extern crate lua;
 extern crate backtrace;
+extern crate failure;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate dynsym;

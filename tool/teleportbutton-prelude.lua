@@ -3,7 +3,7 @@ require "prelude"
 local direction = 1
 local wait = function(num)
   num = num or 1
-  __move_mouse(direction, direction)
+  tas:move_mouse(direction, direction)
   direction = direction * -1
   frame({},0,0,num)
 end

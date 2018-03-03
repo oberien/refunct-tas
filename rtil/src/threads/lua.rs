@@ -4,29 +4,30 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashSet;
 
-use lua::{Lua, LuaInterface, Response, Event};
+use lua::{Lua, LuaInterface, Event, IfaceResult, IfaceError};
+use failure::Fail;
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
 use native::{AMyCharacter, AController, FApp};
 
-struct Tas<'lua> {
-    iface: Rc<RefCell<GameInterface>>,
-    lua: Lua<'lua>,
+struct Tas {
+    iface: Rc<GameInterface>,
+    lua: Lua<GameInterface>,
     working_dir: Option<String>,
 }
 
 pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStream>,
            lua_ue_tx: Sender<LuaToUe>, ue_lua_rx: Receiver<UeToLua>) {
     thread::spawn(move|| {
-        let iface = Rc::new(RefCell::new(GameInterface {
-            pressed_keys: HashSet::new(),
+        let iface = Rc::new(GameInterface {
+            pressed_keys: RefCell::new(HashSet::new()),
             stream_lua_rx,
             lua_stream_tx,
             lua_ue_tx,
             ue_lua_rx,
-            config: Config::default(),
-            should_exit: false,
-        }));
+            config: RefCell::new(Config::default()),
+            should_exit: RefCell::new(false),
+        });
         let mut tas = Tas {
             iface: iface.clone(),
             lua: Lua::new(iface),
@@ -39,14 +40,14 @@ pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStre
     });
 }
 
-impl<'lua> Tas<'lua> {
+impl Tas {
     fn handle_rx(&mut self) {
-        let res = self.iface.borrow().stream_lua_rx.recv().unwrap();
+        let res = self.iface.stream_lua_rx.recv().unwrap();
         match res {
             StreamToLua::Stop => {},
             StreamToLua::Config(config) => {
                 log!("Set config before running");
-                self.iface.borrow_mut().config = config;
+                *self.iface.config.borrow_mut() = config;
             },
             StreamToLua::WorkingDir(dir) => {
                 log!("Set working dir");
@@ -61,16 +62,21 @@ impl<'lua> Tas<'lua> {
                     self.lua.execute(&dir).unwrap();
                     log!("Added");
                 }
-                self.iface.borrow().lua_ue_tx.send(LuaToUe::Stop).unwrap();
+                self.iface.lua_ue_tx.send(LuaToUe::Stop).unwrap();
                 log!("Executing Lua code.");
                 if let Err(e) = self.lua.execute(&s) {
                     log!("Lua error'd: {}", e);
-                    self.iface.borrow().lua_stream_tx.send(LuaToStream::Print(format!("{}", e))).unwrap();
+                    let mut e: &Fail = &e;
+                    while let Some(cause) = e.cause() {
+                        log!("caused by: {}", cause);
+                        e = cause;
+                    }
+                    self.iface.lua_stream_tx.send(LuaToStream::Print(format!("{}", e))).unwrap();
                 }
                 log!("Lua execution done. Starting cleanup...");
-                self.iface.borrow_mut().reset();
-                self.iface.borrow().lua_ue_tx.send(LuaToUe::Resume).unwrap();
-                self.iface.borrow().lua_stream_tx.send(LuaToStream::MiDone).unwrap();
+                self.iface.reset();
+                self.iface.lua_ue_tx.send(LuaToUe::Resume).unwrap();
+                self.iface.lua_stream_tx.send(LuaToStream::MiDone).unwrap();
                 log!("Cleanup finished.");
             }
         }
@@ -78,27 +84,27 @@ impl<'lua> Tas<'lua> {
 }
 
 pub struct GameInterface {
-    pressed_keys: HashSet<i32>,
+    pressed_keys: RefCell<HashSet<i32>>,
     stream_lua_rx: Receiver<StreamToLua>,
     lua_stream_tx: Sender<LuaToStream>,
     lua_ue_tx: Sender<LuaToUe>,
     ue_lua_rx: Receiver<UeToLua>,
-    config: Config,
-    should_exit: bool,
+    config: RefCell<Config>,
+    should_exit: RefCell<bool>,
 }
 
 impl GameInterface {
     /// Check internal state and channel to see if we should stop.
-    /// Returns true if lua should exit itself.
-    fn syscall(&mut self) -> bool {
-        if self.should_exit {
-            return true;
+    /// Returns an Error if Lua should exit.
+    fn syscall(&self) -> IfaceResult<()> {
+        if *self.should_exit.borrow() {
+            return Err(IfaceError::ExitPlease);
         }
         match self.stream_lua_rx.try_recv() {
             Ok(res) => match res {
                 StreamToLua::Config(cfg) => {
                     log!("Set Config while running");
-                    self.config = cfg;
+                    *self.config.borrow_mut() = cfg;
                 }
                 StreamToLua::WorkingDir(_) => {
                     log!("Got WorkingDir, but can't set it during execution");
@@ -110,8 +116,8 @@ impl GameInterface {
                 }
                 StreamToLua::Stop => {
                     log!("Should Exit");
-                    self.should_exit = true;
-                    return true;
+                    *self.should_exit.borrow_mut() = true;
+                    return Err(IfaceError::ExitPlease);
                 }
             }
             Err(TryRecvError::Empty) => {},
@@ -120,25 +126,26 @@ impl GameInterface {
                 panic!();
             }
         }
-        false
+        Ok(())
     }
 
-    fn reset(&mut self) {
-        for key in self.pressed_keys.drain() {
+    fn reset(&self) {
+        let mut pressed_keys = self.pressed_keys.borrow_mut();
+        for key in pressed_keys.drain() {
             self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
         }
-        self.should_exit = false;
+        *self.should_exit.borrow_mut() = false;
     }
 
     fn to_key(&self, key: &str) -> i32 {
         match key {
-            "forward" => self.config.forward,
-            "backward" => self.config.backward,
-            "left" => self.config.left,
-            "right" => self.config.right,
-            "jump" => self.config.jump,
-            "crouch" => self.config.crouch,
-            "menu" => self.config.menu,
+            "forward" => self.config.borrow().forward,
+            "backward" => self.config.borrow().backward,
+            "left" => self.config.borrow().left,
+            "right" => self.config.borrow().right,
+            "jump" => self.config.borrow().jump,
+            "crouch" => self.config.borrow().crouch,
+            "menu" => self.config.borrow().menu,
             _ => {
                 log!("Invalid Key: {}", key);
                 panic!()
@@ -148,105 +155,104 @@ impl GameInterface {
 }
 
 impl LuaInterface for GameInterface {
-    fn step(&mut self) -> Response<Event> {
+    fn step(&self) -> IfaceResult<Event> {
         self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
-        if self.syscall() { return Response::ExitPlease }
+        self.syscall()?;
         match self.ue_lua_rx.recv().unwrap() {
-            UeToLua::Tick => Response::Result(Event::Stopped),
-            UeToLua::NewGame => Response::Result(Event::NewGame),
+            UeToLua::Tick => Ok(Event::Stopped),
+            UeToLua::NewGame => Ok(Event::NewGame),
         }
     }
 
-    fn press_key(&mut self, key: String) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn press_key(&self, key: String) -> IfaceResult<()> {
+        self.syscall()?;
         let key = self.to_key(&key);
-        self.pressed_keys.insert(key);
+        self.pressed_keys.borrow_mut().insert(key);
         self.lua_ue_tx.send(LuaToUe::PressKey(key)).unwrap();
-        Response::Result(())
+        Ok(())
     }
 
-    fn release_key(&mut self, key: String) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn release_key(&self, key: String) -> IfaceResult<()> {
+        self.syscall()?;
         let key = self.to_key(&key);
-        self.pressed_keys.remove(&key);
+        self.pressed_keys.borrow_mut().remove(&key);
         self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
-        Response::Result(())
+        Ok(())
     }
 
-    fn move_mouse(&mut self, x: i32, y: i32) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn move_mouse(&self, x: i32, y: i32) -> IfaceResult<()> {
+        self.syscall()?;
         self.lua_ue_tx.send(LuaToUe::MoveMouse(x, y)).unwrap();
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_delta(&mut self) -> Response<f64> {
-        if self.syscall() { return Response::ExitPlease }
-        Response::Result(FApp::delta())
+    fn get_delta(&self) -> IfaceResult<f64> {
+        self.syscall()?;
+        Ok(FApp::delta())
     }
 
-    fn set_delta(&mut self, delta: f64) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn set_delta(&self, delta: f64) -> IfaceResult<()> {
+        self.syscall()?;
         FApp::set_delta(delta);
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_location(&mut self) -> Response<(f32, f32, f32)> {
-        if self.syscall() { return Response::ExitPlease }
-        Response::Result(AMyCharacter::location())
+    fn get_location(&self) -> IfaceResult<(f32, f32, f32)> {
+        self.syscall()?;
+        Ok(AMyCharacter::location())
     }
 
-    fn set_location(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn set_location(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        self.syscall()?;
         AMyCharacter::set_location(x, y, z);
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_rotation(&mut self) -> Response<(f32, f32, f32)> {
-        if self.syscall() { return Response::ExitPlease }
-        Response::Result(AController::rotation())
+    fn get_rotation(&self) -> IfaceResult<(f32, f32, f32)> {
+        self.syscall()?;
+        Ok(AController::rotation())
     }
 
-    fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn set_rotation(&self, pitch: f32, yaw: f32, roll: f32) -> IfaceResult<()> {
+        self.syscall()?;
         AController::set_rotation(pitch, yaw, roll);
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_velocity(&mut self) -> Response<(f32, f32, f32)> {
-        if self.syscall() { return Response::ExitPlease }
-        Response::Result(AMyCharacter::velocity())
+    fn get_velocity(&self) -> IfaceResult<(f32, f32, f32)> {
+        self.syscall()?;
+        Ok(AMyCharacter::velocity())
     }
 
-    fn set_velocity(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn set_velocity(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        self.syscall()?;
         AMyCharacter::set_velocity(x, y, z);
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_acceleration(&mut self) -> Response<(f32, f32, f32)> {
-        if self.syscall() { return Response::ExitPlease }
-        Response::Result(AMyCharacter::acceleration())
+    fn get_acceleration(&self) -> IfaceResult<(f32, f32, f32)> {
+        self.syscall()?;
+        Ok(AMyCharacter::acceleration())
     }
 
-    fn set_acceleration(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        self.syscall()?;
         AMyCharacter::set_acceleration(x, y, z);
-        Response::Result(())
+        Ok(())
     }
 
-    fn wait_for_new_game(&mut self) -> Response<()> {
+    fn wait_for_new_game(&self) -> IfaceResult<()> {
         loop {
-            match self.step() {
-                Response::ExitPlease => return Response::ExitPlease,
-                Response::Result(Event::Stopped) => continue,
-                Response::Result(Event::NewGame) => return Response::Result(()),
+            match self.step()? {
+                Event::Stopped => continue,
+                Event::NewGame => return Ok(()),
             }
         }
     }
 
-    fn print(&mut self, s: String) -> Response<()> {
-        if self.syscall() { return Response::ExitPlease }
+    fn print(&self, s: String) -> IfaceResult<()> {
+        self.syscall()?;
         self.lua_stream_tx.send(LuaToStream::Print(s)).unwrap();
-        Response::Result(())
+        Ok(())
     }
 }

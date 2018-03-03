@@ -19,14 +19,6 @@ function math.round(num, numDecimalPlaces)
   return math.floor(num * mult + 0.5) / mult
 end
 
-function parse(res)
-  if res.variant == "exit" then
-    error("We must exit")
-  else
-    return res.data
-  end
-end
-
 function print(...)
   local res = "";
   for k,v in pairs({...}) do
@@ -35,56 +27,52 @@ function print(...)
     end
     res = res .. tostring(v)
   end
-  __print(res)
+  tas:print(res)
 end
 
 function step()
-  return parse(__step())
+  return tas:step()
 end
 
 function waitfornewgame()
-  __wait_for_new_game()
+  tas:wait_for_new_game()
 end
 
 function getdelta()
-  return parse(__get_delta())
+  return tas:get_delta()
 end
 
 function setdelta(delta)
-    deltatime = delta
+  deltatime = delta
 end
 
 function getlocation()
-  local loc = parse(__get_location())
-  return loc[1], loc[2], loc[3]
+  return tas:get_location()
 end
 
 function setlocation(x, y, z)
-  __set_location(x, y, z)
+  tas:set_location(x, y, z)
 end
 
 function getrotation()
-  local rot = parse(__get_rotation())
-  return rot[1], rot[2], rot[3]
+  return tas:get_rotation()
 end
 
 function setrotation(pitch, yaw)
   local _, _, roll = getrotation()
-  __set_rotation(pitch, yaw, roll)
+  tas:set_rotation(pitch, yaw, roll)
 end
 
 function getvelocity()
-  local vel = parse(__get_velocity())
-  return vel[1], vel[2], vel[3]
+  return tas:get_velocity()
 end
 
 function setvelocity(x, y, z)
-  __set_velocity(x, y, z)
+  tas:set_velocity(x, y, z)
 end
 
 function getacceleration()
-  local acc = parse(__get_acceleration())
-  return acc[1], acc[2], acc[3]
+  return tas:get_acceleration()
 end
 
 Frame = {
@@ -111,48 +99,48 @@ local lastframe = Frame:new()
 function execframe(frame)
   -- new input
   if frame.forward and not lastframe.forward then
-    __press_key(forward)
+    tas:press_key(forward)
   end
   if frame.backward and not lastframe.backward then
-    __press_key(backward)
+    tas:press_key(backward)
   end
   if frame.left and not lastframe.left then
-    __press_key(left)
+    tas:press_key(left)
   end
   if frame.right and not lastframe.right then
-    __press_key(right)
+    tas:press_key(right)
   end
   if frame.jump and not lastframe.jump then
-    __press_key(jump)
+    tas:press_key(jump)
   end
   if frame.crouch and not lastframe.crouch then
-    __press_key(crouch)
+    tas:press_key(crouch)
   end
   if frame.menu and not lastframe.menu then
-    __press_key(menu)
+    tas:press_key(menu)
   end
 
   -- old inputs
   if lastframe.forward and not frame.forward then
-    __release_key(forward)
+    tas:release_key(forward)
   end
   if lastframe.backward and not frame.backward then
-    __release_key(backward)
+    tas:release_key(backward)
   end
   if lastframe.left and not frame.left then
-    __release_key(left)
+    tas:release_key(left)
   end
   if lastframe.right and not frame.right then
-    __release_key(right)
+    tas:release_key(right)
   end
   if lastframe.jump and not frame.jump then
-    __release_key(jump)
+    tas:release_key(jump)
   end
   if lastframe.crouch and not frame.crouch then
-    __release_key(crouch)
+    tas:release_key(crouch)
   end
   if lastframe.menu and not frame.menu then
-    __release_key(menu)
+    tas:release_key(menu)
   end
 
   -- rotation
@@ -164,7 +152,7 @@ function execframe(frame)
   lastframe = frame
 
   if deltatime ~= 0 then
-    __set_delta(deltatime)
+    tas:set_delta(deltatime)
   end
 
   step()
