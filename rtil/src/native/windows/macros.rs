@@ -59,7 +59,7 @@ macro_rules! popall {
 ///      Can be generated with `hook_fn_once!` or `hook_fn_always!`.
 /// * `log`: Indicates whether to log messages or not
 macro_rules! hook {
-    ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {
+    ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {{
         use std::slice;
         use byteorder::{WriteBytesExt, LittleEndian};
         use statics::Static;
@@ -68,7 +68,7 @@ macro_rules! hook {
             static ref ORIGINAL: Static<[u8; 7]> = Static::new();
         }
 
-        pub(in native) fn $hook_name() {
+        pub fn $hook_name() {
             if $log { log!("Hooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
@@ -88,7 +88,7 @@ macro_rules! hook {
             if $log { log!("{} hooked successfully", $orig_name); }
         }
 
-        pub(in native) fn $unhook_name() {
+        pub fn $unhook_name() {
             if $log { log!("Unhooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
@@ -97,7 +97,7 @@ macro_rules! hook {
             ::native::make_rx(addr);
             if $log { log!("{} unhooked successfully", $orig_name) }
         }
-    };
+    }}
 }
 
 /// Generates a hook-function which calls the interceptor on first execution of the hook and

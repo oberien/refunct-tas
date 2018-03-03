@@ -107,7 +107,7 @@ macro_rules! hook {
             if $ log { log!("{} successfully hooked", $orig_name); }
         }
 
-        fn $unhook_name() {
+        pub fn $unhook_name() {
             if $log { log!("Restoring {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);

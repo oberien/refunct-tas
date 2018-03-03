@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use ::{LuaInterface, Event, IfaceResult};
+use ::{LuaInterface, Event, IfaceResult, RLua, LuaResult};
 
 pub struct Stub {
     delta: RefCell<f64>,
@@ -23,7 +23,7 @@ impl Stub {
 }
 
 impl LuaInterface for Stub {
-    fn step(&self) -> IfaceResult<Event> {
+    fn step(&self, _lua: &RLua) -> LuaResult<Event> {
         println!("Step");
         Ok(Event::Stopped)
     }
@@ -88,7 +88,7 @@ impl LuaInterface for Stub {
         Ok(())
     }
 
-    fn wait_for_new_game(&self) -> IfaceResult<()> {
+    fn wait_for_new_game(&self, _lua: &RLua) -> LuaResult<()> {
         println!("Wait for new game (triggered)");
         Ok(())
     }
