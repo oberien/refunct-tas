@@ -80,7 +80,7 @@ impl<T> Drop for TArray<T> {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(transparent)]
 pub struct FName {
     number: u64,
 }
@@ -93,7 +93,7 @@ impl<T: Into<FString>> From<T> for FName {
         };
         unsafe {
             let fun: extern "C" fn(*mut FName, *const char, u64) -> u64
-                = unsafe { mem::transmute(FNAME_FNAME) };
+                = mem::transmute(FNAME_FNAME);
             fun(&mut name as *mut FName, s.as_ptr(), 1);
         }
         name

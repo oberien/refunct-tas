@@ -1,98 +1,100 @@
-use ::{LuaInterface, Event, Response};
+use std::cell::RefCell;
+
+use ::{LuaInterface, Event, IfaceResult};
 
 pub struct Stub {
-    delta: f64,
-    location: (f32, f32, f32),
-    rotation: (f32, f32, f32),
-    velocity: (f32, f32, f32),
-    acceleration: (f32, f32, f32),
+    delta: RefCell<f64>,
+    location: RefCell<(f32, f32, f32)>,
+    rotation: RefCell<(f32, f32, f32)>,
+    velocity: RefCell<(f32, f32, f32)>,
+    acceleration: RefCell<(f32, f32, f32)>,
 }
 
 impl Stub {
     pub fn new() -> Stub {
         Stub {
-            delta: 1.0/60.0,
-            location: (0.0, 0.0, 0.0),
-            rotation: (0.0, 0.0, 0.0),
-            velocity: (0.0, 0.0, 0.0),
-            acceleration: (0.0, 0.0, 0.0),
+            delta: RefCell::new(1.0/60.0),
+            location: RefCell::new((0.0, 0.0, 0.0)),
+            rotation: RefCell::new((0.0, 0.0, 0.0)),
+            velocity: RefCell::new((0.0, 0.0, 0.0)),
+            acceleration: RefCell::new((0.0, 0.0, 0.0)),
         }
     }
 }
 
 impl LuaInterface for Stub {
-    fn step(&mut self) -> Response<Event> {
+    fn step(&self) -> IfaceResult<Event> {
         println!("Step");
-        Response::Result(Event::Stopped)
+        Ok(Event::Stopped)
     }
 
-    fn press_key(&mut self, key: String) -> Response<()> {
+    fn press_key(&self, key: String) -> IfaceResult<()> {
         println!("Press Key: {:?}", key);
-        Response::Result(())
+        Ok(())
     }
 
-    fn release_key(&mut self, key: String) -> Response<()> {
+    fn release_key(&self, key: String) -> IfaceResult<()> {
         println!("Release Key: {:?}", key);
-        Response::Result(())
+        Ok(())
     }
 
-    fn move_mouse(&mut self, x: i32, y: i32) -> Response<()> {
+    fn move_mouse(&self, x: i32, y: i32) -> IfaceResult<()> {
         println!("Move Mouse: {}:{}", x, y);
-        Response::Result(())
+        Ok(())
     }
 
-    fn get_delta(&mut self) -> Response<f64> {
-        Response::Result(self.delta)
+    fn get_delta(&self) -> IfaceResult<f64> {
+        Ok(*self.delta.borrow())
     }
 
-    fn set_delta(&mut self, delta: f64) -> Response<()> {
-        self.delta = delta;
-        Response::Result(())
+    fn set_delta(&self, delta: f64) -> IfaceResult<()> {
+        *self.delta.borrow_mut() = delta;
+        Ok(())
     }
 
-    fn get_location(&mut self) -> Response<(f32, f32, f32)> {
-        Response::Result(self.location)
+    fn get_location(&self) -> IfaceResult<(f32, f32, f32)> {
+        Ok(*self.location.borrow())
     }
 
-    fn set_location(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        self.location = (x, y, z);
-        Response::Result(())
+    fn set_location(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        *self.location.borrow_mut() = (x, y, z);
+        Ok(())
     }
 
-    fn get_rotation(&mut self) -> Response<(f32, f32, f32)> {
-        Response::Result(self.rotation)
+    fn get_rotation(&self) -> IfaceResult<(f32, f32, f32)> {
+        Ok(*self.rotation.borrow())
     }
 
-    fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) -> Response<()> {
-        self.rotation = (pitch, yaw, roll);
-        Response::Result(())
+    fn set_rotation(&self, pitch: f32, yaw: f32, roll: f32) -> IfaceResult<()> {
+        *self.rotation.borrow_mut() = (pitch, yaw, roll);
+        Ok(())
     }
 
-    fn get_velocity(&mut self) -> Response<(f32, f32, f32)> {
-        Response::Result(self.velocity)
+    fn get_velocity(&self) -> IfaceResult<(f32, f32, f32)> {
+        Ok(*self.velocity.borrow())
     }
 
-    fn set_velocity(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        self.velocity = (x, y, z);
-        Response::Result(())
+    fn set_velocity(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        *self.velocity.borrow_mut() = (x, y, z);
+        Ok(())
     }
 
-    fn get_acceleration(&mut self) -> Response<(f32, f32, f32)> {
-        Response::Result(self.acceleration)
+    fn get_acceleration(&self) -> IfaceResult<(f32, f32, f32)> {
+        Ok(*self.acceleration.borrow())
     }
 
-    fn set_acceleration(&mut self, x: f32, y: f32, z: f32) -> Response<()> {
-        self.acceleration = (x, y, z);
-        Response::Result(())
+    fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        *self.acceleration.borrow_mut() = (x, y, z);
+        Ok(())
     }
 
-    fn wait_for_new_game(&mut self) -> Response<()> {
+    fn wait_for_new_game(&self) -> IfaceResult<()> {
         println!("Wait for new game (triggered)");
-        Response::Result(())
+        Ok(())
     }
 
-    fn print(&mut self, s: String) -> Response<()> {
+    fn print(&self, s: String) -> IfaceResult<()> {
         println!("print: {:?}", s);
-        Response::Result(())
+        Ok(())
     }
 }
