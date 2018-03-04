@@ -109,6 +109,8 @@ macro_rules! hook {
 /// * `interceptor`: Interceptor function to be called whenever the hook is triggered
 /// * `unhook_name`: Name of the unhooking function to restore the original function
 /// * `orig_addr`: Address of the original function
+///
+/// This allows only the this* to be inspected (first argument).
 macro_rules! hook_fn_once {
     ($hook_fn:ident, $interceptor:path, $unhook_name:path, $orig_addr:expr,) => {
         #[naked]
@@ -144,9 +146,22 @@ macro_rules! hook_fn_once {
 /// `intercept after original` allows only the this* to be inspected (first argument).
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
+
+        extern "thiscall" fn print_stack(esp: usize) {
+            let stack = ::std::slice::from_raw_parts(esp as *u8, 0x100);
+            println!("{:?}", stack);
+        }
+
         #[naked]
         unsafe extern "thiscall" fn $hook_fn() -> ! {
             pushall!();
+            asm!(r"
+                mov ecx, esp
+                call $0
+            " :: "0"(print_stack as usize) :: "intel","volatile");
+            popall!();
+            pushall!();
+
             // We need to duplicate the arguments and delete the return address for ours to
             // be located correctly when using `call`.
             // We assume that there aren't more than 0x100-0x9c = 0x64 bytes of arguments.
@@ -158,6 +173,10 @@ macro_rules! hook_fn_always {
                 mov edi, esp
                 rep movsb
             " :::: "intel","volatile");
+            asm!(r"
+                mov ecx, esp
+                call $0
+            " :: "0"(print_stack as usize) :: "intel","volatile");
             // restore copied registers
             popall!();
             // remove old return address, which will be replaced by our `call`
@@ -178,6 +197,9 @@ macro_rules! hook_fn_always {
                 add esp, 0x64
                 add esp, ebx
             " :::: "intel","volatile");
+            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
+            popall!();
+            pushall!();
 
             // copy stack again and do the same with the original function
             asm!(r"
@@ -187,6 +209,9 @@ macro_rules! hook_fn_always {
                 mov edi, esp
                 rep movsb
             " :::: "intel","volatile");
+            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
+            popall!();
+            pushall!();
             popall!();
             // pop return address
             asm!("pop eax" :::: "intel","volatile");
@@ -214,6 +239,9 @@ macro_rules! hook_fn_always {
                 add esp, 0x98
                 sub esp, ebx
             " :::: "intel","volatile");
+            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
+            popall!();
+            pushall!();
 
             // hook method again
             asm!("call $0" :: "i"($hook_name as usize) :: "intel","volatile");

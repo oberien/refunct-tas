@@ -34,11 +34,13 @@ pub(in native) extern "C" fn save(this: usize) {
 }
 
 pub(in native) extern "C" fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
+    log!("key_down: {:#x} {} {} {}", _this, key_code, character_code, is_repeat);
     // on Linux UE applies a (1<<30) mask to mod keys
     ::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
 }
 
 pub(in native) extern "C" fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
+    log!("key_up: {:#x} {} {} {}", _this, key_code, character_code, is_repeat);
     // on Linux UE applies a (1<<30) mask to mod keys
     ::threads::ue::key_up(key_code & !(1<<30), character_code, is_repeat);
 }
