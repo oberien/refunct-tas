@@ -59,7 +59,7 @@ macro_rules! popall {
 ///      Can be generated with `hook_fn_once!` or `hook_fn_always!`.
 /// * `log`: Indicates whether to log messages or not
 macro_rules! hook {
-    ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {{
+    ($orig_name:expr, $orig_addr:expr, $hook_name:ident, $unhook_name:ident, $hook_fn:path, $log:expr,) => {
         use std::slice;
         use byteorder::{WriteBytesExt, LittleEndian};
         use statics::Static;
@@ -68,7 +68,7 @@ macro_rules! hook {
             static ref ORIGINAL: Static<[u8; 7]> = Static::new();
         }
 
-        pub fn $hook_name() {
+        pub extern "thiscall" fn $hook_name() {
             if $log { log!("Hooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
@@ -88,7 +88,7 @@ macro_rules! hook {
             if $log { log!("{} hooked successfully", $orig_name); }
         }
 
-        pub fn $unhook_name() {
+        pub extern "thiscall" fn $unhook_name() {
             if $log { log!("Unhooking {}", $orig_name); }
             let addr = unsafe { $orig_addr };
             ::native::make_rw(addr);
@@ -97,7 +97,7 @@ macro_rules! hook {
             ::native::make_rx(addr);
             if $log { log!("{} unhooked successfully", $orig_name) }
         }
-    }}
+    }
 }
 
 /// Generates a hook-function which calls the interceptor on first execution of the hook and
@@ -139,28 +139,89 @@ macro_rules! hook_fn_once {
 /// * `unhook_name`: Name of the unhooking function to restore the original function
 /// * `orig_addr`: Address of the original function
 /// * `order`: `intercept before original` or `intercept after original`
+///
+/// `intercept before original` allows any number of arguments in the interceptor.
+/// `intercept after original` allows only the this* to be inspected (first argument).
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
         #[naked]
         unsafe extern "thiscall" fn $hook_fn() -> ! {
             pushall!();
+            // We need to duplicate the arguments and delete the return address for ours to
+            // be located correctly when using `call`.
+            // We assume that there aren't more than 0x100-0x9c = 0x64 bytes of arguments.
+            // We reserve some stack which we copy everything into.
+            asm!(r"
+                sub esp, 0x100
+                mov ecx, 0x100
+                lea esi, [esp + 0x100]
+                mov edi, esp
+                rep movsb
+            " :::: "intel","volatile");
+            // restore copied registers
+            popall!();
+            // remove old return address, which will be replaced by our `call`
+            asm!("pop eax" :::: "intel","volatile");
+            // save current stack pointer in non-volatile register to find out
+            // how many arguments are cleared, which we use to adjust the stack back
+            asm!("mov ebx, esp" :::: "intel","volatile");
+
             // call interceptor
             asm!("call $0" :: "i"($interceptor as usize) :: "intel","volatile");
+            // get consumed stack (negative value)
+            asm!("sub ebx, esp" :::: "intel","volatile");
+
             // restore original function
             asm!("call $0" :: "i"($unhook_name as usize) :: "intel","volatile");
-            popall!();
+            // restore stack
+            asm!(r"
+                add esp, 0x64
+                add esp, ebx
+            " :::: "intel","volatile");
 
+            // copy stack again and do the same with the original function
+            asm!(r"
+                sub esp, 0x100
+                mov ecx, 0x100
+                lea esi, [esp + 0x100]
+                mov edi, esp
+                rep movsb
+            " :::: "intel","volatile");
+            popall!();
+            // pop return address
+            asm!("pop eax" :::: "intel","volatile");
+            // save stack pointer
+            asm!("mov ebx, esp" :::: "intel","volatile");
             // call original function
             asm!("call eax" :: "{eax}"($orig_addr) :: "intel","volatile");
 
-            // save eax (return value of original function)
-            asm!("push eax" :::: "intel","volatile");
+            // get consumed stack (negative value)
+            asm!("sub ebx, esp" :::: "intel","volatile");
+            // restore stack
+            asm!(r"
+                add esp, 0x64
+                add esp, ebx
+            " :::: "intel","volatile");
+
+            // save eax (return value of original function) to pushed registers
+            asm!("mov [esp + 0x94], eax" :::: "intel","volatile");
+            // save consumed stack to ecx in the pushed registers, so we can consume as much
+            // after popping the registers before returning
+            asm!("mov [esp + 0x8c], ebx" :::: "intel","volatile");
+            // move original return address to correct position after arg-consumption
+            asm!(r"
+                mov eax, [esp + 0x98]
+                add esp, 0x98
+                sub esp, ebx
+            " :::: "intel","volatile");
 
             // hook method again
             asm!("call $0" :: "i"($hook_name as usize) :: "intel","volatile");
 
-            // restore eax
-            asm!("pop eax" :::: "intel","volatile");
+            // restore all registers
+            popall!();
+            // consume arguments
+            asm!("sub esp, ecx" :::: "intel","volatile");
 
             // return to original caller
             asm!("ret" :::: "intel","volatile");
