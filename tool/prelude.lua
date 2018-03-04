@@ -75,6 +75,14 @@ function getacceleration()
   return tas:get_acceleration()
 end
 
+function drawline(startx, starty, endx, endy, red, green, blue, alpha, thickness)
+  tas:draw_line(startx, starty, endx, endy, red, green, blue, alpha, thickness)
+end
+
+function drawtext(text, red, green, blue, alpha, x, y, scale, scaleposition)
+  tas:draw_text(text, red, green, blue, alpha, x, y, scale, scaleposition)
+end
+
 Frame = {
   forward = false,
   backward = false,

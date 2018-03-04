@@ -9,7 +9,7 @@ use goblin::Object;
 use pdb::{PDB, SymbolData};
 use pdb::FallibleIterator;
 
-const NAMES: [(&str, &str); 12] = [
+const NAMES: &[(&str, &str)] = &[
     ("?UpdateTimeAndHandleMaxTickRate@UEngine", "UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE"),
     ("?Tick@FSlateApplication", "FSLATEAPPLICATION_TICK"),
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
@@ -22,6 +22,9 @@ const NAMES: [(&str, &str); 12] = [
     ("?Malloc@FMemory@@SAPAXKI@Z", "FMEMORY_MALLOC"),
     ("?Free@FMemory@@SAXPAX@Z", "FMEMORY_FREE"),
     ("??0FName@@QAE@PB_WW4EFindName@@@Z", "FNAME_FNAME"),
+    ("?DrawHUD@AMyHUD@@UAEXXZ", "AMYHUD_DRAWHUD"),
+    ("?DrawLine@AHUD@@QAEXMMMMUFLinearColor@@M@Z", "AHUD_DRAWLINE"),
+    ("?DrawText@AHUD@@QAEXABVFString@@UFLinearColor@@MMPAVUFont@@M_N@Z", "AHUD_DRAWTEXT"),
 ];
 
 fn main() {
@@ -56,7 +59,7 @@ fn main() {
             Ok(name) => name.to_string(),
             Err(e) => { eprintln!("Error getting symbol name: {}", e); continue }
         };
-        for &(start, _) in &NAMES {
+        for &(start, _) in NAMES {
             if name.starts_with(start) {
                 match pe.sections.get((segment as usize).wrapping_sub(1)) {
                     Some(section) => consts.push((name.clone(), section.virtual_address + offset)),

@@ -2,7 +2,7 @@ use std::sync::mpsc::{Sender, Receiver, TryRecvError};
 
 use statics::Static;
 use threads::{UeToLua, LuaToUe};
-use native::{FSlateApplication, hook_keydown, unhook_keydown, hook_keyup, unhook_keyup};
+use native::{FSlateApplication, hook_keydown, unhook_keydown, hook_keyup, unhook_keyup, AMyHud};
 
 lazy_static! {
     static ref STATE: Static<State> = Static::new();
@@ -45,6 +45,10 @@ pub fn key_up(key_code: i32, character_code: u32, is_repeat: bool) {
     handle(UeToLua::KeyUp(key_code, character_code, is_repeat));
 }
 
+pub fn draw_hud() {
+    handle(UeToLua::DrawHud);
+}
+
 fn handle(event: UeToLua) {
     // not yet initialized
     if STATE.is_none() {
@@ -72,7 +76,8 @@ fn handle(event: UeToLua) {
                 log!("Got LuaToUe::Stop, but state is Stopping");
                 panic!()
             }
-            evt @ LuaToUe::PressKey(_) | evt @ LuaToUe::ReleaseKey(_) | evt @ LuaToUe::MoveMouse(..) => {
+            evt @ LuaToUe::PressKey(_) | evt @ LuaToUe::ReleaseKey(_) | evt @ LuaToUe::MoveMouse(..)
+                    | evt @ LuaToUe::DrawLine(..) | evt @ LuaToUe::DrawText(..) => {
                 // Release STATE lock, as events can trigger a new game,
                 // which needs to acquire the lock.
                 drop(state);
@@ -90,6 +95,10 @@ fn handle(event: UeToLua) {
                         hook_keyup();
                     },
                     LuaToUe::MoveMouse(x, y) => FSlateApplication::move_mouse(x, y),
+                    LuaToUe::DrawLine(startx, starty, endx, endy, color, thickness) =>
+                        AMyHud::draw_line(startx, starty, endx, endy, color, thickness),
+                    LuaToUe::DrawText(text, color, x, y, scale, scale_position) =>
+                        AMyHud::draw_text(text, color, x, y, scale, scale_position),
                     _ => unreachable!()
                 }
                 state = STATE.get();

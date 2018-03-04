@@ -71,6 +71,9 @@ pub trait LuaInterface {
     fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
     fn wait_for_new_game(&self, lua: &RLua) -> LuaResult<()>;
 
+    fn draw_line(&self, startx: f32, starty: f32, endx: f32, endy: f32, color: (f32, f32, f32, f32), thickness: f32) -> IfaceResult<()>;
+    fn draw_text(&self, text: String, color: (f32, f32, f32, f32), x: f32, y: f32, scale: f32, scale_position: bool) -> IfaceResult<()>;
+
     fn print(&self, s: String) -> IfaceResult<()>;
 }
 
@@ -137,6 +140,13 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
             this.wait_for_new_game(lua)
         });
 
+        methods.add_method("draw_line", |_, this, (startx, starty, endx, endy, red, green, blue, alpha, thickness): (f32, f32, f32, f32, f32, f32, f32, f32, f32)| {
+            Ok(this.draw_line(startx, starty, endx, endy, (red, green, blue, alpha), thickness)?)
+        });
+        methods.add_method("draw_text", |_, this, (text, red, green, blue, alpha, x, y, scale, scale_position): (String, f32, f32, f32, f32, f32, f32, f32, bool)| {
+            Ok(this.draw_text(text, (red, green, blue, alpha), x, y, scale, scale_position)?)
+        });
+
         methods.add_method("print", |_, this, s: String| {
             Ok(this.print(s)?)
         })
@@ -146,6 +156,7 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
 pub trait LuaEvents {
     fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
     fn on_key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
+    fn draw_hud(&self) -> LuaResult<()>;
 }
 
 impl<T: LuaInterface + 'static> Lua<T> {
@@ -180,6 +191,14 @@ impl LuaEvents for RLua {
         let fun: LuaResult<Function> = self.globals().get("onkeyup");
         if let Ok(fun) = fun {
             let _: () = fun.call((key_code, character_code, is_repeat))?;
+        }
+        Ok(())
+    }
+
+    fn draw_hud(&self) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("drawhud");
+        if let Ok(fun) = fun {
+            let _: () = fun.call(())?;
         }
         Ok(())
     }

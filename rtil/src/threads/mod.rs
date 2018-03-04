@@ -51,7 +51,7 @@ pub enum LuaToStream {
     MiDone,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum LuaToUe {
     Stop,
     AdvanceFrame,
@@ -60,6 +60,8 @@ pub enum LuaToUe {
     PressKey(i32),
     ReleaseKey(i32),
     MoveMouse(i32, i32),
+    DrawLine(f32, f32, f32, f32, (f32, f32, f32, f32), f32),
+    DrawText(String, (f32, f32, f32, f32), f32, f32, f32, bool),
     Resume,
 }
 
@@ -69,4 +71,5 @@ pub enum UeToLua {
     NewGame,
     KeyDown(i32, u32, bool),
     KeyUp(i32, u32, bool),
+    DrawHud,
 }
