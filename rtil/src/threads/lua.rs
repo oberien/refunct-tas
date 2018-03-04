@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashSet;
 
-use lua::{Lua, LuaInterface, Event, IfaceResult, IfaceError};
+use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, RLua, LuaResult};
 use failure::Fail;
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
@@ -155,12 +155,19 @@ impl GameInterface {
 }
 
 impl LuaInterface for GameInterface {
-    fn step(&self) -> IfaceResult<Event> {
+    fn step(&self, lua: &RLua) -> LuaResult<Event> {
         self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
-        self.syscall()?;
-        match self.ue_lua_rx.recv().unwrap() {
-            UeToLua::Tick => Ok(Event::Stopped),
-            UeToLua::NewGame => Ok(Event::NewGame),
+        loop {
+            self.syscall()?;
+            match self.ue_lua_rx.recv().unwrap() {
+                UeToLua::Tick => return Ok(Event::Stopped),
+                UeToLua::NewGame => return Ok(Event::NewGame),
+                UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat).unwrap(),
+                UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat).unwrap(),
+            }
+            // We aren't actually advancing a frame, but just returning from the
+            // key event interceptor.
+            self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
         }
     }
 
@@ -241,9 +248,9 @@ impl LuaInterface for GameInterface {
         Ok(())
     }
 
-    fn wait_for_new_game(&self) -> IfaceResult<()> {
+    fn wait_for_new_game(&self, lua: &RLua) -> LuaResult<()> {
         loop {
-            match self.step()? {
+            match self.step(lua)? {
                 Event::Stopped => continue,
                 Event::NewGame => return Ok(()),
             }

@@ -67,4 +67,6 @@ pub enum LuaToUe {
 pub enum UeToLua {
     Tick,
     NewGame,
+    KeyDown(i32, u32, bool),
+    KeyUp(i32, u32, bool),
 }

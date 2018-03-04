@@ -1,5 +1,4 @@
 use native::FSLATEAPPLICATION_TICK;
-
 #[cfg(unix)] use native::linux::slateapp::save;
 #[cfg(windows)] use native::windows::slateapp::save;
 
@@ -39,3 +38,50 @@ hook_fn_once! {
     FSLATEAPPLICATION_TICK,
 }
 
+mod fixme {
+    use native::FSLATEAPPLICATION_ONKEYDOWN;
+    #[cfg(unix)] use native::linux::slateapp::key_down;
+    #[cfg(windows)] use native::windows::slateapp::key_down;
+    hook! {
+        "FSlateApplication::OnKeyDown",
+        FSLATEAPPLICATION_ONKEYDOWN,
+        hook_keydown,
+        unhook_keydown,
+        keydown,
+        false,
+    }
+
+    hook_fn_always! {
+        keydown,
+        key_down,
+        hook_keydown,
+        unhook_keydown,
+        FSLATEAPPLICATION_ONKEYDOWN,
+        intercept before original,
+    }
+}
+pub use self::fixme::{hook_keydown, unhook_keydown};
+
+mod fixme2 {
+    use native::FSLATEAPPLICATION_ONKEYUP;
+    #[cfg(unix)] use native::linux::slateapp::key_up;
+    #[cfg(windows)] use native::windows::slateapp::key_up;
+    hook! {
+        "FSlateApplication::OnKeyUp",
+        FSLATEAPPLICATION_ONKEYUP,
+        hook_keyup,
+        unhook_keyup,
+        keyup,
+        false,
+    }
+
+    hook_fn_always! {
+        keyup,
+        key_up,
+        hook_keyup,
+        unhook_keyup,
+        FSLATEAPPLICATION_ONKEYUP,
+        intercept before original,
+    }
+}
+pub use self::fixme2::{hook_keyup, unhook_keyup};

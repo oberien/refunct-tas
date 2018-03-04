@@ -4,8 +4,8 @@ pub mod stub;
 
 use std::rc::Rc;
 
-use rlua::{Lua as RLua, Value, ToLua, UserData, UserDataMethods, Error as LuaError};
-pub use rlua::{Result as LuaResult};
+use rlua::{Value, ToLua, UserData, UserDataMethods, Error as LuaError, Function};
+pub use rlua::{Result as LuaResult, Lua as RLua};
 
 #[derive(Debug)]
 pub enum IfaceError {
@@ -55,7 +55,7 @@ impl<'lua> ToLua<'lua> for Event {
 }
 
 pub trait LuaInterface {
-    fn step(&self) -> IfaceResult<Event>;
+    fn step(&self, lua: &RLua) -> LuaResult<Event>;
     fn press_key(&self, key: String) -> IfaceResult<()>;
     fn release_key(&self, key: String) -> IfaceResult<()>;
     fn move_mouse(&self, x: i32, y: i32) -> IfaceResult<()>;
@@ -69,7 +69,7 @@ pub trait LuaInterface {
     fn set_velocity(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
     fn get_acceleration(&self) -> IfaceResult<(f32, f32, f32)>;
     fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
-    fn wait_for_new_game(&self) -> IfaceResult<()>;
+    fn wait_for_new_game(&self, lua: &RLua) -> LuaResult<()>;
 
     fn print(&self, s: String) -> IfaceResult<()>;
 }
@@ -91,8 +91,8 @@ impl<T> std::ops::DerefMut for Wrapper<T> {
 
 impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
     fn add_methods(methods: &mut UserDataMethods<Self>) {
-        methods.add_method("step", |_, this, _: ()| {
-            Ok(this.step()?)
+        methods.add_method("step", |lua, this, _: ()| {
+            this.step(lua)
         });
         methods.add_method("press_key", |_, this, key: String| {
             Ok(this.press_key(key)?)
@@ -133,14 +133,19 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("set_acceleration", |_, this, (x, y, z): (f32, f32, f32)| {
             Ok(this.set_acceleration(x, y, z)?)
         });
-        methods.add_method("wait_for_new_game", |_, this, _: ()| {
-            Ok(this.wait_for_new_game()?)
+        methods.add_method("wait_for_new_game", |lua, this, _: ()| {
+            this.wait_for_new_game(lua)
         });
 
         methods.add_method("print", |_, this, s: String| {
             Ok(this.print(s)?)
         })
     }
+}
+
+pub trait LuaEvents {
+    fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
+    fn on_key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
 }
 
 impl<T: LuaInterface + 'static> Lua<T> {
@@ -159,5 +164,23 @@ impl<T: LuaInterface + 'static> Lua<T> {
             let function = self.lua.load(code, None)?;
             function.call::<_, ()>(())
         })
+    }
+}
+
+impl LuaEvents for RLua {
+    fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("onkeydown");
+        if let Ok(fun) = fun {
+            let _: () = fun.call((key_code, character_code, is_repeat))?;
+        }
+        Ok(())
+    }
+
+    fn on_key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("onkeyup");
+        if let Ok(fun) = fun {
+            let _: () = fun.call((key_code, character_code, is_repeat))?;
+        }
+        Ok(())
     }
 }
