@@ -78,13 +78,13 @@ fn handle(event: UeToLua) {
                 drop(state);
                 match evt {
                     LuaToUe::PressKey(key) => {
-                        // we don't want to trigger a keyevent for emulated presses
+                        // we don't want to trigger our keyevent handler for emulated presses
                         unhook_keydown();
                         FSlateApplication::press_key(key);
                         hook_keydown();
                     },
                     LuaToUe::ReleaseKey(key) => {
-                        // we don't want to trigger a keyevent for emulated releases
+                        // we don't want to trigger our keyevent handler for emulated presses
                         unhook_keyup();
                         FSlateApplication::release_key(key);
                         hook_keyup();

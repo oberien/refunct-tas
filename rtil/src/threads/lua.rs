@@ -162,12 +162,8 @@ impl LuaInterface for GameInterface {
             match self.ue_lua_rx.recv().unwrap() {
                 UeToLua::Tick => return Ok(Event::Stopped),
                 UeToLua::NewGame => return Ok(Event::NewGame),
-                UeToLua::KeyDown(key, char, repeat) => {
-                    lua.on_key_down(key, char, repeat).unwrap();
-                },
-                UeToLua::KeyUp(key, char, repeat) => {
-                    lua.on_key_up(key, char, repeat).unwrap();
-                },
+                UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat).unwrap(),
+                UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat).unwrap(),
             }
             // We aren't actually advancing a frame, but just returning from the
             // key event interceptor.

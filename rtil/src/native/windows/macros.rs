@@ -146,26 +146,61 @@ macro_rules! hook_fn_once {
 /// `intercept after original` allows only the this* to be inspected (first argument).
 macro_rules! hook_fn_always {
     ($hook_fn:ident, $interceptor:path, $hook_name:path, $unhook_name:path, $orig_addr:expr, intercept before original,) => {
-
-        extern "thiscall" fn print_stack(esp: usize) {
-            let stack = ::std::slice::from_raw_parts(esp as *u8, 0x100);
-            println!("{:?}", stack);
+        #[allow(unused)]
+        unsafe extern "thiscall" fn print_stack(esp: usize) {
+            let stack = ::std::slice::from_raw_parts(esp as *const u8, 0x100);
+            log!("{:#x}:", esp);
+            log!("    xmm7: {:?}", &stack[0..0x10]);
+            log!("    xmm6: {:?}", &stack[0x10..0x20]);
+            log!("    xmm5: {:?}", &stack[0x20..0x30]);
+            log!("    xmm4: {:?}", &stack[0x30..0x40]);
+            log!("    xmm3: {:?}", &stack[0x40..0x50]);
+            log!("    xmm2: {:?}", &stack[0x50..0x60]);
+            log!("    xmm1: {:?}", &stack[0x60..0x70]);
+            log!("    xmm0: {:?}", &stack[0x70..0x80]);
+            log!("    ebp : {:?}", &stack[0x80..0x84]);
+            log!("    edi : {:?}", &stack[0x84..0x88]);
+            log!("    esi : {:?}", &stack[0x88..0x8c]);
+            log!("    edx : {:?}", &stack[0x8c..0x90]);
+            log!("    ecx : {:?}", &stack[0x90..0x94]);
+            log!("    ebx : {:?}", &stack[0x94..0x98]);
+            log!("    eax : {:?}", &stack[0x98..0x9c]);
+            log!("    ret : {:?}", &stack[0x9c..0xa0]);
+            log!("    arg1: {:?}", &stack[0xa0..0xa4]);
+            log!("    arg2: {:?}", &stack[0xa4..0xa8]);
+            log!("    arg3: {:?}", &stack[0xa8..0xac]);
+            log!("    arg4: {:?}", &stack[0xac..0xb0]);
+            log!("    rest: {:?}", &stack[0xb0..]);
         }
 
         #[naked]
         unsafe extern "thiscall" fn $hook_fn() -> ! {
-            pushall!();
-            asm!(r"
-                mov ecx, esp
-                call $0
-            " :: "0"(print_stack as usize) :: "intel","volatile");
-            popall!();
-            pushall!();
-
             // We need to duplicate the arguments and delete the return address for ours to
             // be located correctly when using `call`.
-            // We assume that there aren't more than 0x100-0x9c = 0x64 bytes of arguments.
-            // We reserve some stack which we copy everything into.
+            // Stack Layout:
+            // esp    xmm7    10         \
+            // +10    xmm6    10          |
+            // +20    xmm5    10          |
+            // +30    xmm4    10          |
+            // +40    xmm3    10          |
+            // +50    xmm2    10          |
+            // +60    xmm1    10          |
+            // +70    xmm0    10           > 0xa0
+            // +80    ebp      4          |
+            // +84    edi      4          |
+            // +88    esi      4          |
+            // +8c    edx      4          |
+            // +90    ecx      4          |
+            // +94    ebx      4          |
+            // +98    eax      4          |
+            // +9c    ret      4         /
+            // +a0    args
+            //        caller stack frame
+            // We assume that there aren't more than 0x100-0xa0 = 0x60 bytes of arguments.
+
+            // save all registers
+            pushall!();
+            // Reserve some stack which we copy everything into.
             asm!(r"
                 sub esp, 0x100
                 mov ecx, 0x100
@@ -173,10 +208,6 @@ macro_rules! hook_fn_always {
                 mov edi, esp
                 rep movsb
             " :::: "intel","volatile");
-            asm!(r"
-                mov ecx, esp
-                call $0
-            " :: "0"(print_stack as usize) :: "intel","volatile");
             // restore copied registers
             popall!();
             // remove old return address, which will be replaced by our `call`
@@ -184,6 +215,7 @@ macro_rules! hook_fn_always {
             // save current stack pointer in non-volatile register to find out
             // how many arguments are cleared, which we use to adjust the stack back
             asm!("mov ebx, esp" :::: "intel","volatile");
+
 
             // call interceptor
             asm!("call $0" :: "i"($interceptor as usize) :: "intel","volatile");
@@ -194,12 +226,10 @@ macro_rules! hook_fn_always {
             asm!("call $0" :: "i"($unhook_name as usize) :: "intel","volatile");
             // restore stack
             asm!(r"
-                add esp, 0x64
+                add esp, 0x60
                 add esp, ebx
             " :::: "intel","volatile");
-            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
-            popall!();
-            pushall!();
+
 
             // copy stack again and do the same with the original function
             asm!(r"
@@ -209,9 +239,7 @@ macro_rules! hook_fn_always {
                 mov edi, esp
                 rep movsb
             " :::: "intel","volatile");
-            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
-            popall!();
-            pushall!();
+            // restore registers
             popall!();
             // pop return address
             asm!("pop eax" :::: "intel","volatile");
@@ -224,30 +252,29 @@ macro_rules! hook_fn_always {
             asm!("sub ebx, esp" :::: "intel","volatile");
             // restore stack
             asm!(r"
-                add esp, 0x64
+                add esp, 0x60
                 add esp, ebx
             " :::: "intel","volatile");
 
             // save eax (return value of original function) to pushed registers
-            asm!("mov [esp + 0x94], eax" :::: "intel","volatile");
+            asm!("mov [esp + 0x98], eax" :::: "intel","volatile");
             // save consumed stack to ecx in the pushed registers, so we can consume as much
             // after popping the registers before returning
-            asm!("mov [esp + 0x8c], ebx" :::: "intel","volatile");
+            asm!("mov [esp + 0x90], ebx" :::: "intel","volatile");
             // move original return address to correct position after arg-consumption
             asm!(r"
-                mov eax, [esp + 0x98]
-                add esp, 0x98
-                sub esp, ebx
+                mov eax, [esp + 0x9c]
+                lea edx, [esp + 0x9c]
+                sub edx, ebx
+                mov [edx], eax
             " :::: "intel","volatile");
-            asm!("call $0" :: "0"(print_stack as usize) :: "intel","volatile");
-            popall!();
-            pushall!();
 
             // hook method again
             asm!("call $0" :: "i"($hook_name as usize) :: "intel","volatile");
 
             // restore all registers
             popall!();
+            // do not pop old return address, because we wrote the return address to the last argument
             // consume arguments
             asm!("sub esp, ecx" :::: "intel","volatile");
 
