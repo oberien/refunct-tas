@@ -71,13 +71,14 @@ impl Tas {
                 self.iface.lua_ue_tx.send(LuaToUe::Stop).unwrap();
                 log!("Executing Lua code.");
                 if let Err(e) = self.lua.execute(&s) {
-                    log!("Lua error'd: {}", e);
+                    let mut err = format!("Lua error'd: {}\n", e);
                     let mut e: &Fail = &e;
                     while let Some(cause) = e.cause() {
-                        log!("caused by: {}", cause);
+                        err += &format!("caused by: {}\n", cause);
                         e = cause;
                     }
-                    self.iface.lua_stream_tx.send(LuaToStream::Print(format!("{}", e))).unwrap();
+                    log!("{}", err);
+                    self.iface.lua_stream_tx.send(LuaToStream::Print(err)).unwrap();
                 }
                 log!("Lua execution done. Starting cleanup...");
                 self.iface.reset();
@@ -168,9 +169,9 @@ impl LuaInterface for GameInterface {
             match self.ue_lua_rx.recv().unwrap() {
                 UeToLua::Tick => return Ok(Event::Stopped),
                 UeToLua::NewGame => return Ok(Event::NewGame),
-                UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat).unwrap(),
-                UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat).unwrap(),
-                UeToLua::DrawHud => lua.draw_hud().unwrap(),
+                UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
+                UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat)?,
+                UeToLua::DrawHud => lua.draw_hud()?,
             }
             // We aren't actually advancing a frame, but just returning from the
             // key event interceptor.
