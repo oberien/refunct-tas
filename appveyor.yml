@@ -20,14 +20,14 @@ test_script:
 after_test:
   - cd build\windows
   - 7z a refunct-tas-windows.zip *
-  - move menu.lua tas.lua && 7z a spiral-windows.zip refunct-tas.exe rtil.dll prelude.lua teleportbutton-prelude.lua tas.lua Config.toml
+  - move menu.lua tas.lua && 7z a practice-windows.zip refunct-tas.exe rtil.dll prelude.lua teleportbutton-prelude.lua tas.lua Config.toml
 matrix:
   allow_failures:
     - channel: beta
     - channel: nightly
 artifacts:
   - path: build\windows\refunct-tas-windows.zip
-  - path: build\windows\spiral-windows.zip
+  - path: build\windows\practice-windows.zip
 deploy:
   provider: GitHub
   artifact: /.*\.zip/
