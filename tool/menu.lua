@@ -43,10 +43,10 @@ menu.onkeydown = function(key, char, rep)
     end
   elseif key == 81 or key == 40 then
     -- down
-    menu.selection = math.min(sel + 1, 3)
+    menu.selection = (sel % 3) + 1
   elseif key == 82 or key == 38 then
     -- up
-    menu.selection = math.max(sel - 1, 1)
+    menu.selection = ((sel + 3-2) % 3) + 1
   end
 end
 menu.onkeyup = function(key, char, rep)
@@ -81,10 +81,10 @@ practice.onkeydown = function(key, char, rep)
     end
   elseif key == 81 or key == 40 then
     -- down
-    practice.selection = math.min(sel + 1, 5)
+    practice.selection = (sel % 5) + 1
   elseif key == 82 or key == 38 then
     -- up
-    practice.selection = math.max(sel - 1, 1)
+    practice.selection = ((sel + 5-2) % 5) + 1
   end
 end
 practice.onkeyup = function(key, char, rep)
@@ -119,10 +119,10 @@ settings.onkeydown = function(key, char, rep)
     end
   elseif key == 81 or key == 40 then
     -- down
-    settings.selection = math.min(sel + 1, 3)
+    settings.selection = (sel % 3) + 1
   elseif key == 82 or key == 38 then
     -- up
-    settings.selection = math.max(sel - 1, 1)
+    settings.selection = ((sel + 3-2) % 3) + 1
   end
 end
 settings.onkeyup = function(key, char, rep)
