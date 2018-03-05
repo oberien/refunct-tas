@@ -19,13 +19,23 @@ function math.round(num, numDecimalPlaces)
   return math.floor(num * mult + 0.5) / mult
 end
 
+function contains(list, element)
+  for k,v in pairs(list) do
+    if v == element then
+      return true
+    end
+  end
+  return false
+end
+
 function print(...)
   local res = "";
-  for k,v in pairs({...}) do
-    if k > 1 then
+  local args = table.pack(...)
+  for i=1,args.n do
+    if i > 1 then
       res = res .. " "
     end
-    res = res .. tostring(v)
+    res = res .. tostring(args[i])
   end
   tas:print(res)
 end
