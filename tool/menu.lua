@@ -41,10 +41,10 @@ menu.onkeydown = function(key, char, rep)
     if sel == 1 then drawpractice = true
     elseif sel == 2 then drawsettings = true 
     end
-  elseif key == 81 then
+  elseif key == 81 or key == 40 then
     -- down
     menu.selection = math.min(sel + 1, 3)
-  elseif key == 82 then
+  elseif key == 82 or key == 38 then
     -- up
     menu.selection = math.max(sel - 1, 1)
   end
@@ -60,7 +60,9 @@ practice.draw = function()
   end
   opts = {
     "None" .. selected(nil) ,
+	"Dive Skip" .. selected(dive),
     "LoF & Spiral Skip" .. selected(spiral),
+	"Final Climb / 31" .. selected(finalclimb),
     "Back"
   }
   drawoptions(opts, practice.selection)
@@ -72,13 +74,15 @@ practice.onkeydown = function(key, char, rep)
     drawpractice = false
     practice.selection = 1
     if sel == 1 then practicefunction = nil
-    elseif sel == 2 then practicefunction = spiral 
-    elseif sel == 3 then drawmenu = true 
+    elseif sel == 2 then practicefunction = dive
+	elseif sel == 3 then practicefunction = spiral
+	elseif sel == 4 then practicefunction = finalclimb
+    elseif sel == 5 then drawmenu = true 
     end
-  elseif key == 81 then
+  elseif key == 81 or key == 40 then
     -- down
-    practice.selection = math.min(sel + 1, 3)
-  elseif key == 82 then
+    practice.selection = math.min(sel + 1, 5)
+  elseif key == 82 or key == 38 then
     -- up
     practice.selection = math.max(sel - 1, 1)
   end
@@ -103,20 +107,20 @@ settings.onkeydown = function(key, char, rep)
     if sel == 2 then drawstats = not drawstats
     elseif sel == 3 then drawsettings = false; settings.selection = 1; drawmenu = true
     end
-  elseif key == 79 then
+  elseif key == 79 or key == 39 then
     -- right
     if sel == 1 then scale = scale + 1
     elseif sel == 2 then drawstats = not drawstats
     end
-  elseif key == 80 then
+  elseif key == 80 or key == 37 then
     -- left
     if sel == 1 then scale = math.max(1, scale - 1)
     elseif sel == 2 then drawstats = not drawstats
     end
-  elseif key == 81 then
+  elseif key == 81 or key == 40 then
     -- down
     settings.selection = math.min(sel + 1, 3)
-  elseif key == 82 then
+  elseif key == 82 or key == 38 then
     -- up
     settings.selection = math.max(sel - 1, 1)
   end
@@ -139,7 +143,7 @@ end
 
 function tochar(char)
   if char >= 0x20 and char <= 0x7e then
-    return string.char(char)
+    return string.lower(string.char(char))
   else
     return nil
   end
@@ -204,6 +208,23 @@ function spiral()
   teleportbutton(19)
   setrotation(0, 0, 0)
   setlocation(-1065, -3842, 464)
+  setdelta(0)
+end
+function dive()
+  setdelta(1/60)
+  teleportbutton(8)
+  setdelta(1/2)
+  wait(5)
+  setrotation(0, 0, 0)
+  setlocation(-1065, -3842, 464)
+  wait(5)
+  setdelta(0)
+end
+function finalclimb()
+  setdelta(1/60)
+  teleportbutton(31)
+  setrotation(0, 240, 0)
+  setlocation(3535, -1000, 89)
   setdelta(0)
 end
 

@@ -1,7 +1,7 @@
 require "prelude"
 
 local direction = 1
-local wait = function(num)
+function wait(num)
   num = num or 1
   tas:move_mouse(direction, direction)
   direction = direction * -1
