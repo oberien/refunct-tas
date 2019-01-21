@@ -98,7 +98,7 @@ You can find code examples in the [tool directory](tool/).
         You can find your BuildID in Steam: Library → Right Click on Refunct →
         Properties → Local Files → bottom left
 * **Refunct / the TAS tool crashes and the file `refunct-tas.exe` disappears:**
-  Refunct uses library injection, which some antivirus programs see as malicious
+  Refunct-tas uses library injection, which some antivirus programs see as malicious
   action.
   Therefore your antivirus might have stopped execution and moves the executable
   into quarantine.
