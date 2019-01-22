@@ -80,6 +80,7 @@ To use the prelude in your own scripts, insert `require "prelude"` as first line
     + `crouch`
     + `menu`
   This function will update the stats returned by `getplayerstats`.
+* `print(...)`: Prints the arguments to the tool's console window.
 
 ## Teleportbutton Prelude
 
@@ -99,12 +100,12 @@ You can use it by adding `require "teleportbutton-prelude"`.
 These functions are exposed from Rust and should only be used if you know
 exactly what you're doing:
 
-* `__stop()`: Stops execution of Refunct before the next frame will be calculated
+* `tas:stop()`: Stops execution of Refunct before the next frame will be calculated
   and rendered.
   Returns the player stats object as returned by `getplayerstats()`
-* `__step()`: Continues execution until before the next frame.
-  As `__stop`, this function returns the player stats object.
-* `__press_key(key)`: Presses the passed key as configured in `Config.toml`.
+* `tas:step()`: Continues execution until before the next frame.
+  As `tas:stop`, this function returns the player stats object.
+* `tas:press_key(key)`: Presses the passed key as configured in `Config.toml`.
   Allowed values are:
     + `"forward"`
     + `"backward"`
@@ -113,16 +114,17 @@ exactly what you're doing:
     + `"jump"`
     + `"crouch"`
     + `"menu"`
-* `__release_key(key)`: Releases the passed key.
-  Allowed values match the ones of `__press_key`.
-* `__move_mouse(x, y)`: Moves the mouse by the specified integer values.
+* `tas:release_key(key)`: Releases the passed key.
+  Allowed values match the ones of `tas:press_key`.
+* `tas:move_mouse(x, y)`: Moves the mouse by the specified integer values.
   The distance moved is influenced by the game's sensitivity settings.
   Also, for some reason this function does not move the mouse by the same amount
   on equal executions, so it should be avoided for now.
-* `__set_delta(delta)`: Sets the delta time between two frames in seconds used
+* `tas:set_delta(delta)`: Sets the delta time between two frames in seconds used
   by UE for physics calculations / in its `Tick` functions.
-* `__set_rotation(pitch, yaw, roll)`: Sets the rotation of the character to
+* `tas:set_rotation(pitch, yaw, roll)`: Sets the rotation of the character to
   the passed float values in degrees.
-* `__set_location(x, y, z)`: Sets the location of the character.
-* `__set_velocity(velx, vely, velz)`: Sets the velocity of the character.
-* `__wait_for_new_game()`: Waits until the "New Game" button is pressed ingame.
+* `tas:set_location(x, y, z)`: Sets the location of the character.
+* `tas:set_velocity(velx, vely, velz)`: Sets the velocity of the character.
+* `tas:wait_for_new_game()`: Waits until the "New Game" button is pressed ingame.
+* `tas:print(...)`: Prints arguments to the tool's console output window.
