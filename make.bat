@@ -23,6 +23,7 @@ copy tool\spiral.lua build\windows
 copy tool\setvelocity.lua build\windows
 copy tool\setposition.lua build\windows
 copy tool\menu.lua build\windows
+copy tool\record.lua build\windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert prelude.lua
@@ -36,6 +37,7 @@ call :convert spiral.lua
 call :convert setvelocity.lua
 call :convert setposition.lua
 call :convert menu.lua
+call :convert record.lua
 
 powershell -Command "(gc build\windows\Config.toml) -replace \"forward = 'v'\", \"forward = 'W'\" -replace \"backward = 'i'\", \"backward = 'S'\" -replace \"left = 'u'\", \"left = 'A'\" -replace \"right = 'a'\", \"right = 'D'\" -replace \"crouch = 1073742049\", \"crouch = 160\" | sc build\windows\Config.toml"
 
