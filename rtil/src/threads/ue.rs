@@ -76,22 +76,22 @@ fn handle(event: UeToLua) {
                 log!("Got LuaToUe::Stop, but state is Stopping");
                 panic!()
             }
-            evt @ LuaToUe::PressKey(_) | evt @ LuaToUe::ReleaseKey(_) | evt @ LuaToUe::MoveMouse(..)
+            evt @ LuaToUe::PressKey(..) | evt @ LuaToUe::ReleaseKey(..) | evt @ LuaToUe::MoveMouse(..)
                     | evt @ LuaToUe::DrawLine(..) | evt @ LuaToUe::DrawText(..) => {
                 // Release STATE lock, as events can trigger a new game,
                 // which needs to acquire the lock.
                 drop(state);
                 match evt {
-                    LuaToUe::PressKey(key) => {
+                    LuaToUe::PressKey(key, code, repeat) => {
                         // we don't want to trigger our keyevent handler for emulated presses
                         unhook_keydown();
-                        FSlateApplication::press_key(key);
+                        FSlateApplication::press_key(key, code, repeat);
                         hook_keydown();
                     },
-                    LuaToUe::ReleaseKey(key) => {
+                    LuaToUe::ReleaseKey(key, code, repeat) => {
                         // we don't want to trigger our keyevent handler for emulated presses
                         unhook_keyup();
-                        FSlateApplication::release_key(key);
+                        FSlateApplication::release_key(key, code, repeat);
                         hook_keyup();
                     },
                     LuaToUe::MoveMouse(x, y) => FSlateApplication::move_mouse(x, y),

@@ -9,12 +9,12 @@ lazy_static! {
 pub struct FSlateApplication;
 
 impl FSlateApplication {
-    pub fn press_key(key: i32) {
-        FSlateApplication::on_key_down(key, key as u32, false);
+    pub fn press_key(key: i32, code: u32, repeat: bool) {
+        FSlateApplication::on_key_down(key, code, repeat);
     }
 
-    pub fn release_key(key: i32) {
-        FSlateApplication::on_key_up(key, key as u32, false);
+    pub fn release_key(key: i32, code: u32, repeat: bool) {
+        FSlateApplication::on_key_up(key, code, repeat);
     }
 
     pub fn move_mouse(x: i32, y: i32) {

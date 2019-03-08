@@ -58,6 +58,8 @@ pub trait LuaInterface {
     fn step(&self, lua: &RLua) -> LuaResult<Event>;
     fn press_key(&self, key: String) -> IfaceResult<()>;
     fn release_key(&self, key: String) -> IfaceResult<()>;
+    fn key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> IfaceResult<()>;
+    fn key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> IfaceResult<()>;
     fn move_mouse(&self, x: i32, y: i32) -> IfaceResult<()>;
     fn get_delta(&self) -> IfaceResult<f64>;
     fn set_delta(&self, delta: f64) -> IfaceResult<()>;
@@ -102,6 +104,12 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         });
         methods.add_method("release_key", |_, this, key: String| {
             Ok(this.release_key(key)?)
+        });
+        methods.add_method("key_down", |_, this, (key, chr, rep): (i32, u32, bool)| {
+            Ok(this.key_down(key, chr, rep)?)
+        });
+        methods.add_method("key_up", |_, this, (key, chr, rep): (i32, u32, bool)| {
+            Ok(this.key_up(key, chr, rep)?)
         });
         methods.add_method("move_mouse", |_, this, (x, y): (i32, i32)| {
             Ok(this.move_mouse(x, y)?)

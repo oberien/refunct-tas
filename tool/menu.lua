@@ -1,5 +1,6 @@
 require "prelude"
 require "teleportbutton-prelude"
+require "record"
 
 local scale = 2
 local lines = {}
@@ -168,8 +169,21 @@ drawhud = function()
     y = y + 10
   end
 end
+
+local replay = {}
 onkeydown = function(key, char, rep)
   char = tochar(char)
+  if char == "r" then
+    print("start recording")
+    replay = record_replay("r")
+    print("stopped recording")
+  end
+  if char == "t" then
+    print("start playing")
+    play_replay(replay)
+    print("stopped playing")
+  end
+
   if char == "m" then
     if drawmenu or drawpractice or drawsettings then
       drawmenu = false

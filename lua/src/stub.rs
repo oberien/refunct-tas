@@ -38,6 +38,16 @@ impl LuaInterface for Stub {
         Ok(())
     }
 
+    fn key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> IfaceResult<()> {
+        println!("Key Down: {}, {}, {}", key_code, character_code, is_repeat);
+        Ok(())
+    }
+
+    fn key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> IfaceResult<()> {
+        println!("Key Up: {}, {}, {}", key_code, character_code, is_repeat);
+        Ok(())
+    }
+
     fn move_mouse(&self, x: i32, y: i32) -> IfaceResult<()> {
         println!("Move Mouse: {}:{}", x, y);
         Ok(())
