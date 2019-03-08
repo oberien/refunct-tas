@@ -20,6 +20,10 @@ use nfd::Response;
 use tas::Tas;
 use config::Config;
 
+// link against shell32.dll
+#[link = "shell32.dll"]
+extern "C" {}
+
 fn main() {
     println!("Read config...");
     let config = Config::load("Config.toml");
