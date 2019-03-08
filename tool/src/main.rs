@@ -5,7 +5,6 @@ extern crate serde;
 extern crate byteorder;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
-extern crate nfd;
 
 #[macro_use] mod error;
 mod tas;
@@ -14,8 +13,6 @@ mod config;
 
 use std::env;
 use std::path::{Path, PathBuf};
-
-use nfd::Response;
 
 use tas::Tas;
 use config::Config;
@@ -60,14 +57,7 @@ fn main() {
     }
     let script_file = if env::args().len() == 1 {
         if !Path::new("tas.lua").is_file() {
-            let cur_dir = std::env::current_dir().unwrap();
-            let cur_dir = cur_dir.to_str().unwrap();
-            let result = nfd::open_file_dialog(Some("lua"), Some(cur_dir)).unwrap();
-            match result {
-                Response::Okay(file_path) => PathBuf::from(file_path),
-                Response::OkayMultiple(_) => unreachable!("Multiple files selected."),
-                Response::Cancel => panic!("Cancelled file selection.")
-            }
+            panic!("No tas file specified. Usage: refunct-tas <file.lua>");
         } else {
             PathBuf::from("tas.lua")
         }
