@@ -11,7 +11,7 @@ fn main() {
     let stdin = io::stdin();
     let mut stdin = stdin.lock();
     let mut buf = Vec::new();
-    let mut lua = Lua::new(Rc::new(RefCell::new(Stub::new())));
+    let mut lua = Lua::new(Rc::new(Stub::new()));
     while let Ok(_) = stdin.read_to_end(&mut buf) {
         {
             let input = String::from_utf8_lossy(&buf);

@@ -57,8 +57,8 @@ pub enum LuaToUe {
     AdvanceFrame,
     // we need to execute events on the main loop, because possible played audio
     // needs to access thread-local storage
-    PressKey(i32),
-    ReleaseKey(i32),
+    PressKey(i32, u32, bool),
+    ReleaseKey(i32, u32, bool),
     MoveMouse(i32, i32),
     DrawLine(f32, f32, f32, f32, (f32, f32, f32, f32), f32),
     DrawText(String, (f32, f32, f32, f32), f32, f32, f32, bool),

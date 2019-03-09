@@ -139,7 +139,7 @@ impl GameInterface {
     fn reset(&self) {
         let mut pressed_keys = self.pressed_keys.borrow_mut();
         for key in pressed_keys.drain() {
-            self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
+            self.lua_ue_tx.send(LuaToUe::ReleaseKey(key, key as u32, false)).unwrap();
         }
         *self.should_exit.borrow_mut() = false;
     }
@@ -183,7 +183,7 @@ impl LuaInterface for GameInterface {
         self.syscall()?;
         let key = self.to_key(&key);
         self.pressed_keys.borrow_mut().insert(key);
-        self.lua_ue_tx.send(LuaToUe::PressKey(key)).unwrap();
+        self.lua_ue_tx.send(LuaToUe::PressKey(key, key as u32, false)).unwrap();
         Ok(())
     }
 
@@ -191,7 +191,19 @@ impl LuaInterface for GameInterface {
         self.syscall()?;
         let key = self.to_key(&key);
         self.pressed_keys.borrow_mut().remove(&key);
-        self.lua_ue_tx.send(LuaToUe::ReleaseKey(key)).unwrap();
+        self.lua_ue_tx.send(LuaToUe::ReleaseKey(key, key as u32, false)).unwrap();
+        Ok(())
+    }
+
+    fn key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> Result<(), IfaceError> {
+        self.pressed_keys.borrow_mut().insert(key_code);
+        self.lua_ue_tx.send(LuaToUe::PressKey(key_code, character_code, is_repeat)).unwrap();
+        Ok(())
+    }
+
+    fn key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> Result<(), IfaceError> {
+        self.pressed_keys.borrow_mut().remove(&key_code);
+        self.lua_ue_tx.send(LuaToUe::ReleaseKey(key_code, character_code, is_repeat)).unwrap();
         Ok(())
     }
 
