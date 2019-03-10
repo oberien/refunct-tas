@@ -32,7 +32,7 @@ deploy:
   provider: GitHub
   artifact: /.*\.zip/
   auth_token:
-    secure: 0VDU7wyyTjt7PotLoL6zwNjlWXiYekw4p/FI5C9/YY54mxiSnGwE9rPh6nIr8vA4
+    secure: nLeG+wF9/z56dzElK7NsPMgIetsDaYMP6B3kmRuUpL2iMy1OMNNmkxoBFnj6u2GJ
   draft: true
   on:
     channel: stable
