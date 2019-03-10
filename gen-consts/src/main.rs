@@ -4,6 +4,7 @@ extern crate pdb;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::process;
 
 use goblin::Object;
 use pdb::{PDB, SymbolData};
@@ -31,6 +32,7 @@ fn main() {
     let args: Vec<_> = env::args().collect();
     if args.len() != 3 {
         println!("Usage: {} <exe> <pdb>", args[0]);
+        process::exit(1);
     }
     let exe = &args[1];
     let pdb = &args[2];
