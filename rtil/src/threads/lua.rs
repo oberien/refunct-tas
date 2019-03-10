@@ -13,7 +13,6 @@ use native::{AMyCharacter, AController, FApp};
 struct Tas {
     iface: Rc<GameInterface>,
     lua: Lua<GameInterface>,
-    working_dir: Option<String>,
 }
 
 pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStream>,
@@ -27,11 +26,11 @@ pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStre
             ue_lua_rx,
             config: RefCell::new(Config::default()),
             should_exit: RefCell::new(false),
+            working_dir: RefCell::new(None),
         });
         let mut tas = Tas {
             iface: iface.clone(),
             lua: Lua::new(iface),
-            working_dir: None,
         };
 
         loop {
@@ -51,7 +50,7 @@ impl Tas {
             },
             StreamToLua::WorkingDir(dir) => {
                 log!("Set working dir");
-                self.working_dir = Some(dir);
+                *self.iface.working_dir.borrow_mut() = Some(dir);
             }
             StreamToLua::Start(s) => {
                 log!("Starting lua...");
@@ -62,7 +61,7 @@ impl Tas {
                 }
                 log!("Removed {} messages", count);
                 self.lua = Lua::new(self.iface.clone());
-                if let Some(dir) = self.working_dir.as_ref() {
+                if let Some(dir) = self.iface.working_dir.borrow().as_ref() {
                     log!("Add {} to package.path.", dir);
                     let dir = format!(r#"package.path = package.path .. ";{}/?.lua""#, dir.replace('\\', "\\\\"));
                     self.lua.execute(&dir).unwrap();
@@ -98,6 +97,7 @@ pub struct GameInterface {
     ue_lua_rx: Receiver<UeToLua>,
     config: RefCell<Config>,
     should_exit: RefCell<bool>,
+    working_dir: RefCell<Option<String>>,
 }
 
 impl GameInterface {
@@ -293,5 +293,9 @@ impl LuaInterface for GameInterface {
         self.syscall()?;
         self.lua_stream_tx.send(LuaToStream::Print(s)).unwrap();
         Ok(())
+    }
+
+    fn working_dir(&self) -> IfaceResult<String> {
+        Ok(self.working_dir.borrow().clone().unwrap())
     }
 }

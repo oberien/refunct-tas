@@ -1,219 +1,164 @@
 require "prelude"
 require "teleportbutton-prelude"
-require "record"
+local record = require "record"
+local ui = require "ui"
+local KEYS = require "keys"
 
-local scale = 2
-local lines = {}
+local STATES = {
+  FIRSTSTART = {},
+  NONE = {},
+  MENU = {},
+  PRACTICE = {},
+  SETTINGS = {},
+  LOAD_REPLAY = {},
+}
+
+local state = STATES.FIRSTSTART
 local drawstats = false
-local drawmenu = false
-local drawpractice = false
-local drawsettings = false
 local practicefunction = nil
-function drawline(s, r, g, b)
-  table.insert(lines, {s or "", r or 0, g or 0, b or 0})
+local replay = {}
+
+local function firststart()
+  ui.drawlines({"Press 'm' for menu, 'r' to record, 't' to replay the record"})
 end
 
-function drawoptions(opts, selection)
-  for i, opt in pairs(opts) do
-    if i == selection then
-      drawline(opt, 1, 0, 0)
-    else
-      drawline(opt, 0, 0, 0)
-    end
+local function menu()
+  local selected = ui.select({"Practice", "Load Replay", "Settings", "Back"});
+  if selected == 1 then
+    state = STATES.PRACTICE
+  elseif selected == 2 then
+    state = STATES.LOAD_REPLAY
+  elseif selected == 3 then
+    state = STATES.SETTINGS
+  elseif selected == 4 or selected == nil then
+    state = STATES.NONE
+  else
+    error("invalid selection (internal error)")
   end
 end
 
-local menu = {}
-menu.selection = 1
-menu.draw = function()
-  opts = {
-    "Practice",
-    "Settings",
-    "Back",
-  }
-  drawoptions(opts, menu.selection)
-end
-menu.onkeydown = function(key, char, rep)
-  sel = menu.selection
-  if key == 13 then
-    -- enter
-    drawmenu = false;
-    menu.selection = 1;
-    if sel == 1 then drawpractice = true
-    elseif sel == 2 then drawsettings = true 
-    end
-  elseif key == 81 or key == 40 then
-    -- down
-    menu.selection = (sel % 3) + 1
-  elseif key == 82 or key == 38 then
-    -- up
-    menu.selection = ((sel + 3-2) % 3) + 1
-  end
-end
-menu.onkeyup = function(key, char, rep)
-end
-
-local practice = {}
-practice.selection = 1
-practice.draw = function()
-  function selected(val)
+local function practice()
+  local function sel(val)
     return practicefunction == val and " (Selected)" or ""
   end
-  opts = {
-    "None" .. selected(nil) ,
-	"Dive Skip" .. selected(dive),
-    "LoF & Spiral Skip" .. selected(spiral),
-	"Final Climb / 31" .. selected(finalclimb),
+  local selected = ui.select({
+    "None" .. sel(nil) ,
+    "Dive Skip" .. sel(dive),
+    "LoF & Spiral Skip" .. sel(spiral),
+    "Final Climb / 31" .. sel(finalclimb),
     "Back"
-  }
-  drawoptions(opts, practice.selection)
-end
-practice.onkeydown = function(key, char, rep)
-  sel = practice.selection
-  if key == 13 then
-    -- enter
-    drawpractice = false
-    practice.selection = 1
-    if sel == 1 then practicefunction = nil
-    elseif sel == 2 then practicefunction = dive
-	elseif sel == 3 then practicefunction = spiral
-	elseif sel == 4 then practicefunction = finalclimb
-    elseif sel == 5 then drawmenu = true 
-    end
-  elseif key == 81 or key == 40 then
-    -- down
-    practice.selection = (sel % 5) + 1
-  elseif key == 82 or key == 38 then
-    -- up
-    practice.selection = ((sel + 5-2) % 5) + 1
+  })
+  if selected == 1 then practicefunction = nil
+  elseif selected == 2 then practicefunction = dive
+  elseif selected == 3 then practicefunction = spiral
+  elseif selected == 4 then practicefunction = finalclimb
+  elseif selected == 5 or selected == nil then
+    state = STATES.MENU
+  else
+    error("invalid selection (internal error)")
   end
 end
-practice.onkeyup = function(key, char, rep)
+
+local function load_replay()
+  local replays = record.listall()
+  local query = {}
+  for _,rep in ipairs(replays) do
+    if replay.saved_as == rep then
+      table.insert(query, rep .. " (loaded)")
+    else
+      table.insert(query, rep)
+    end
+  end
+  table.insert(query, "Back")
+  local selected = ui.select(query)
+  if selected == #query then
+    state = STATES.MENU
+  else
+    replay = record.load(replays[selected])
+  end
 end
 
-local settings = {}
-settings.selection = 1
-settings.draw = function()
-  opts = {
-    "Font Scale < " .. scale .. " >",
-    "Show Stats   " .. (drawstats and "On" or "Off"),
+local function settings()
+  local selected = ui.select({
+    "Font Scale (" .. ui.scale .. ")",
+    "Show Stats    " .. (drawstats and "On" or "Off"),
     "Back",
-  }
-  drawoptions(opts, settings.selection)
-end
-settings.onkeydown = function(key, char, rep)
-  sel = settings.selection
-  if key == 13 then
-    -- enter
-    if sel == 2 then drawstats = not drawstats
-    elseif sel == 3 then drawsettings = false; settings.selection = 1; drawmenu = true
+  })
+  if selected == 1 then
+    local scale = nil
+    local error = ""
+    while type(scale) ~= "number" do
+      local input = ui.input(error .. "Input Font Scale")
+      scale = tonumber(input)
+      error = "Invalid Number. "
     end
-  elseif key == 79 or key == 39 then
-    -- right
-    if sel == 1 then scale = scale + 1
-    elseif sel == 2 then drawstats = not drawstats
-    end
-  elseif key == 80 or key == 37 then
-    -- left
-    if sel == 1 then scale = math.max(1, scale - 1)
-    elseif sel == 2 then drawstats = not drawstats
-    end
-  elseif key == 81 or key == 40 then
-    -- down
-    settings.selection = (sel % 3) + 1
-  elseif key == 82 or key == 38 then
-    -- up
-    settings.selection = ((sel + 3-2) % 3) + 1
+    ui.scale = scale
+  elseif selected == 2 then
+    drawstats = true
+  elseif selected == 3 or selected == nil then
+    state = STATES.MENU
+  else
+    error("invalid selection (internal error)")
   end
 end
-settings.onkeyup = function(key, char, rep)
-end
 
-local stats = {}
-stats.draw = function()
+local function stats()
   local x,y,z = getlocation()
   local velx, vely, velz = getvelocity()
   local pitch, yaw, roll = getrotation()
   local accx, accy, accz = getacceleration()
-  drawline(string.format("x: %6.2f    y: %6.2f    z: %6.2f", x, y, z))
-  drawline(string.format("velx: %6.2f    vely: %6.2f    velz: %6.2f", velx, vely, velz))
-  drawline(string.format("velxy: %6.2f", math.sqrt(velx*velx + vely*vely)))
-  drawline(string.format("velxyz: %6.2f", math.sqrt(velx*velx + vely*vely + velz*velz)))
-  drawline(string.format("pitch: %6.2f    yaw: %6.2f    roll: %6.2f", pitch, yaw, roll))
+  ui.drawlines({
+    string.format("x: %6.2f    y: %6.2f    z: %6.2f", x, y, z),
+    string.format("velx: %6.2f    vely: %6.2f    velz: %6.2f", velx, vely, velz),
+    string.format("velxy: %6.2f", math.sqrt(velx*velx + vely*vely)),
+    string.format("velxyz: %6.2f", math.sqrt(velx*velx + vely*vely + velz*velz)),
+    string.format("pitch: %6.2f    yaw: %6.2f    roll: %6.2f", pitch, yaw, roll),
+  })
 end
 
-function tochar(char)
-  if char >= 0x20 and char <= 0x7e then
-    return string.lower(string.char(char))
-  else
-    return nil
-  end
-end
 drawhud = function()
-  lines = {}
-  
-  if drawmenu then
-    menu.draw()
-  elseif drawpractice then
-    practice.draw()
-  elseif drawsettings then
-    settings.draw()
-  elseif drawstats then
-    stats.draw()
-  end
-
-  local y = 0
-  for k, v in pairs(lines) do
-    s, r, g, b = v[1], v[2], v[3], v[4]
-    tas:draw_text(s, r, g, b, 1, 0, y, scale, true)
-    y = y + 10
+  if state == STATES.NONE then
+    if drawstats then
+      stats()
+    end
+  elseif state == STATES.FIRSTSTART then
+    firststart()
+  elseif state == STATES.MENU then
+    menu()
+  elseif state == STATES.PRACTICE then
+    practice()
+  elseif state == STATES.LOAD_REPLAY then
+    load_replay()
+  elseif state == STATES.SETTINGS then
+    settings()
+  else
+    error("invalid state (internal error)")
   end
 end
 
-local replay = {}
 onkeydown = function(key, char, rep)
-  char = tochar(char)
-  if char == "r" then
+  if key == KEYS.KEY_R then
     print("start recording")
-    replay = record_replay("r")
+    replay = record.record(KEYS.KEY_R)
     print("stopped recording")
+    local filename = ui.input("Save Replay as")
+    if filename ~= nil and filename ~= "" then
+      record.save(replay, filename)
+      print("replay saved as replays/" .. filename)
+    end
   end
-  if char == "t" then
+  if key == KEYS.KEY_T then
     print("start playing")
-    play_replay(replay)
+    record.play(replay, KEYS.KEY_T)
     print("stopped playing")
   end
 
-  if char == "m" then
-    if drawmenu or drawpractice or drawsettings then
-      drawmenu = false
-      menu.selection = 1
-      drawpractice = false
-      menu.selection = 1
-      drawsettings = false
-      settings.selection = 1
+  if key == KEYS.KEY_M then
+    if state == STATES.NONE or state == STATES.FIRSTSTART then
+      state = STATES.MENU
     else
-      drawmenu = true
+      state = STATES.NONE
     end
-    return
-  end
-
-  if drawmenu then
-    menu.onkeydown(key, char, rep)
-  elseif drawpractice then
-    practice.onkeydown(key, char, rep)
-  elseif drawsettings then
-    settings.onkeydown(key, char, rep)
-  end
-end
-onkeyup = function(key, char, rep)
-  char = tochar(char)
-  if drawmenu then
-    menu.onkeyup(key, char, rep)
-  elseif drawpractice then
-    practice.onkeyup(key, char, rep)
-  elseif drawsettings then
-    settings.onkeyup(key, char, rep)
   end
 end
 
