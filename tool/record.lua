@@ -5,6 +5,11 @@ local win = tas:is_windows()
 
 local record = {}
 
+local function concat_dir(prefix, dir)
+  local sep = win and "\\" or "/"
+  return prefix .. sep .. dir .. sep
+end
+
 function record.record(until_key)
   local old_onkeydown = _G.onkeydown
   local old_onkeyup = _G.onkeyup
@@ -105,7 +110,7 @@ function record.play(replay, abort_key)
 end
 
 function record.save(replay, filename)
-  local folder = tas:working_dir() .. "/replays/"
+  local folder = concat_dir(tas:working_dir(), "replays")
   local exists = os.rename(folder, folder)
   if not exists then
     os.execute("mkdir " .. folder)
@@ -148,7 +153,7 @@ function record.save(replay, filename)
 end
 
 function record.load(filename)
-  local folder = tas:working_dir() .. "/replays/"
+  local folder = concat_dir(tas:working_dir(), "replays")
   local name = string.sub(filename, 0, -5)
   local replay = dofile(folder .. filename)
   replay.saved_as = filename
@@ -156,7 +161,7 @@ function record.load(filename)
 end
 
 function record.listall()
-  local folder = tas:working_dir() .. "/replays/"
+  local folder = concat_dir(tas:working_dir(), "replays")
   local dirs = {}
   local pfile = nil
   if win then
