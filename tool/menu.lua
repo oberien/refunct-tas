@@ -59,7 +59,7 @@ local function practice()
   end
 end
 
-local function load_replay()
+local function loadreplay()
   local replays = record.listall()
   local query = {}
   for _,rep in ipairs(replays) do
@@ -71,7 +71,7 @@ local function load_replay()
   end
   table.insert(query, "Back")
   local selected = ui.select(query)
-  if selected == #query then
+  if selected == #query or selected == nil then
     state = STATES.MENU
   else
     replay = record.load(replays[selected])
@@ -128,7 +128,7 @@ drawhud = function()
   elseif state == STATES.PRACTICE then
     practice()
   elseif state == STATES.LOAD_REPLAY then
-    load_replay()
+    loadreplay()
   elseif state == STATES.SETTINGS then
     settings()
   else
