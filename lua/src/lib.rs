@@ -77,6 +77,16 @@ pub trait LuaInterface {
     fn draw_text(&self, text: String, color: (f32, f32, f32, f32), x: f32, y: f32, scale: f32, scale_position: bool) -> IfaceResult<()>;
 
     fn print(&self, s: String) -> IfaceResult<()>;
+
+    fn working_dir(&self) -> IfaceResult<String>;
+
+    // only Windows and Linux are supported
+    fn is_windows(&self) -> IfaceResult<bool> {
+        Ok(cfg!(windows))
+    }
+    fn is_linux(&self) -> IfaceResult<bool> {
+        Ok(!self.is_windows()?)
+    }
 }
 
 struct Wrapper<T>(T);
@@ -157,7 +167,18 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
 
         methods.add_method("print", |_, this, s: String| {
             Ok(this.print(s)?)
-        })
+        });
+
+        methods.add_method("working_dir", |_, this, _: ()| {
+            Ok(this.working_dir()?)
+        });
+
+        methods.add_method("is_windows", |_, this, _: ()| {
+            Ok(this.is_windows()?)
+        });
+        methods.add_method("is_linux", |_, this, _: ()| {
+            Ok(this.is_linux()?)
+        });
     }
 }
 

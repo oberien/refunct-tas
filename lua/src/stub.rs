@@ -119,4 +119,8 @@ impl LuaInterface for Stub {
         println!("print: {:?}", s);
         Ok(())
     }
+
+    fn working_dir(&self) -> IfaceResult<String> {
+        Ok(".".to_string())
+    }
 }
