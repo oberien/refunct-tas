@@ -193,13 +193,13 @@ function tp_to(button, rotation, location, waittime)
 end
 
 function spiral()
-  tp_to(19, {0,0,0}, {-1065, -3842, 464})
+  tp_to(18, {0,0,0}, {-1065, -3842, 464})
 end
 function dive()
   tp_to(8, {0,0,0}, {-1065, -3842, 464}, 5)
 end
 function finalclimb()
-  tp_to(30, {0, 247, 0}, {4741, 2294, 588})
+  tp_to(29, {0, 247, 0}, {4741, 2294, 588}, 5)
 end
 function lsjump()
   tp_to(6, {0, 180, 0}, {-4265, -2989, 90})
@@ -208,16 +208,16 @@ function pit()
   tp_to(10, {0, 90, 0}, {1859, -869, 89})
 end
 function pillars()
-  tp_to(27, {0, 256, 0}, {-847, 5589, 231})
+  tp_to(26, {0, 256, 0}, {-847, 5589, 231})
 end
 function firstele()
   tp_to(4, {0, 180, 0}, {-4284, -806, 840}, 10)
 end
 function sixteen()
-  tp_to(16, {0, 200, 0}, {-752, 1513, 839})
+  tp_to(15, {0, 200, 0}, {-752, 1513, 839})
 end
 function spiralslide()
-  tp_to(20, {0, 35, 0}, {4015, -2743, 589})
+  tp_to(19, {0, 35, 0}, {4015, -2743, 589})
 end
 
 while true do

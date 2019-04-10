@@ -64,77 +64,74 @@ function teleportbutton(num)
   button(2000, -2375, 232)
   if num == 10 then return end
   -- button 11
-  button(2000, -2375, 232)
+  button(1875, 975, 232)
   if num == 11 then return end
   -- button 12
-  button(1875, 975, 232)
+  button(2375, -500, 107)
   if num == 12 then return end
   -- button 13
-  button(2375, -500, 107)
+  button(600, 2625, 232)
   if num == 13 then return end
   -- button 14
-  button(600, 2625, 232)
+  button(-875, 2500, 232)
   if num == 14 then return end
   -- button 15
-  button(-875, 2500, 232)
+  button(-375, 1625, 732)
   if num == 15 then return end
   -- button 16
-  button(-375, 1625, 732)
+  button(-2750, 1500, 857)
   if num == 16 then return end
   -- button 17
-  button(-2750, 1500, 857)
-  if num == 17 then return end
-  -- button 18
   button(-1875, 1125, 1107, 7)
-  if num == 18 then return end
-  -- button 19/19.5
+  if num == 17 then return end
+  -- button 18/18.5
   setlocation(-5125, -1750, 107)
   wait()
   button(-4250, -4000, 1607, 5)
-  if num == 19 then return end
-  -- button 20
+  if num == 18 then return end
+  -- button 19
   button(2000, -3875, 1232)
-  if num == 20 then return end
-  -- button 21 - Spiral
+  if num == 19 then return end
+  -- button 20 - Spiral
   button(4250, -2125, 1107)
+  if num == 20 then return end
+  -- button 21
+  button(2750, -4100, 68)
   if num == 21 then return end
   -- button 22
-  button(2750, -4100, 68)
+  button(3000, -1000, 232)
   if num == 22 then return end
   -- button 23
-  button(3000, -1000, 232)
-  if num == 23 then return end
-  --  button 24
   button(2500, 2250, 607, 5)
+  if num == 23 then return end
+  -- button 24
+  button(375, 4750, 1357)
   if num == 24 then return end
   -- button 25
-  button(375, 4750, 1357)
-  if num == 25 then return end
-  -- button 26
   button(4500, 4625, 232)
-  if num == 26 then return end
-  -- button 27/27.3/27.6
+  if num == 25 then return end
+  -- button 26/26.3/26.6
   setlocation(3125, 6120, 232)
   wait()
   setlocation(1375, 6500, 232)
   wait()
   button(-875, 5625, 232)
-  if num == 27 then return end
-  -- button 28
+  if num == 26 then return end
+  -- button 27
   button(-1375, 3000, 982, 6)
-  if num == 28 then return end
-  -- button 29/29.5
+  if num == 27 then return end
+  -- button 28/28.5
   setlocation(-4875, 1750, 1357)
   wait()
   button(-5250, -250, 1357)
+  if num == 28 then return end
+  -- button 29
+  button(4888, 2500, 607)
   if num == 29 then return end
   -- button 30
-  button(4888, 2500, 607)
+  button(3750, -500, 318, 7)
   if num == 30 then return end
   -- button 31
-  button(3750, -500, 318, 7)
-  if num == 31 then return end
-  -- button 32
   setlocation(2625, -2250, 1357)
   wait()
 end
