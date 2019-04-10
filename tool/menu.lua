@@ -45,14 +45,26 @@ local function practice()
     "None" .. sel(nil) ,
     "Dive Skip" .. sel(dive),
     "LoF & Spiral Skip" .. sel(spiral),
-    "Final Climb / 31" .. sel(finalclimb),
+    "Final Climb / Hdnoftr" .. sel(finalclimb),
+    "Ls Jump" .. sel(lsjump),
+    "Pit" .. sel(pit),
+    "Pillars" .. sel(pillars),
+    "5 Turn & 6 Elevator" .. sel(firstele),
+    "16" .. sel(sixteen),
+    "21" .. sel(spiralslide),
     "Back"
   })
   if selected == 1 then practicefunction = nil
   elseif selected == 2 then practicefunction = dive
   elseif selected == 3 then practicefunction = spiral
   elseif selected == 4 then practicefunction = finalclimb
-  elseif selected == 5 or selected == nil then
+  elseif selected == 5 then practicefunction = lsjump
+  elseif selected == 6 then practicefunction = pit
+  elseif selected == 7 then practicefunction = pillars
+  elseif selected == 8 then practicefunction = firstele
+  elseif selected == 9 then practicefunction = sixteen
+  elseif selected == 10 then practicefunction = spiralslide
+  elseif selected == 11 or selected == nil then
     state = STATES.MENU
   else
     error("invalid selection (internal error)")
@@ -162,29 +174,50 @@ onkeydown = function(key, char, rep)
   end
 end
 
-function spiral()
+function tp_to(button, rotation, location, waittime)
+  waittime = waittime or 0
   setdelta(1/60)
-  teleportbutton(19)
-  setrotation(0, 0, 0)
-  setlocation(-1065, -3842, 464)
+  teleportbutton(button)
+  setdelta(1/2)
+  if waittime ~= 0 then
+    wait(waittime)
+  end
+  setrotation(rotation[1], rotation[2], rotation[3])
+  setlocation(location[1], location[2], location[3])
+  setvelocity(0,0,0)
+  setacceleration(0,0,0)
+  if waittime ~= 0 then
+    wait(waittime)
+  end
   setdelta(0)
+end
+
+function spiral()
+  tp_to(19, {0,0,0}, {-1065, -3842, 464})
 end
 function dive()
-  setdelta(1/60)
-  teleportbutton(8)
-  setdelta(1/2)
-  wait(5)
-  setrotation(0, 0, 0)
-  setlocation(-1065, -3842, 464)
-  wait(5)
-  setdelta(0)
+  tp_to(8, {0,0,0}, {-1065, -3842, 464}, 5)
 end
 function finalclimb()
-  setdelta(1/60)
-  teleportbutton(31)
-  setrotation(0, 240, 0)
-  setlocation(3535, -1000, 89)
-  setdelta(0)
+  tp_to(30, {0, 247, 0}, {4741, 2294, 588})
+end
+function lsjump()
+  tp_to(6, {0, 180, 0}, {-4265, -2989, 90})
+end
+function pit()
+  tp_to(10, {0, 90, 0}, {1859, -869, 89})
+end
+function pillars()
+  tp_to(27, {0, 256, 0}, {-847, 5589, 231})
+end
+function firstele()
+  tp_to(4, {0, 180, 0}, {-4284, -806, 840}, 10)
+end
+function sixteen()
+  tp_to(16, {0, 200, 0}, {-752, 1513, 839})
+end
+function spiralslide()
+  tp_to(20, {0, 35, 0}, {4015, -2743, 589})
 end
 
 while true do

@@ -3,9 +3,12 @@ require "prelude"
 local direction = 1
 function wait(num)
   num = num or 1
+  -- mouse movement needed to update rendering viewport
   tas:move_mouse(direction, direction)
   direction = direction * -1
-  frame({},0,0,num)
+  -- all keys pressed to disable user input
+  frame({forward, backward, left, right},0,0,num-1)
+  frame({},0,0,1)
 end
 
 local button = function(x, y, z, waittime)
