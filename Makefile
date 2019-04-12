@@ -23,7 +23,7 @@ $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
 lua: $(BUILDDIR)
-	bash -c 'cp tool/{crouch,ngg,prelude,printstats,rotation,setposition,setvelocity,teleportbuttons,turn,menu,record,keys,ui}.lua $(BUILDDIR)'
+	bash -c 'cp tool/*.lua $(BUILDDIR)'
 
 clean:
 	$(RM) -r build/
