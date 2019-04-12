@@ -10,6 +10,7 @@ error-chain = "0.8.1"
 backtrace = "0.3"
 lua = { path = "../lua" }
 failure = "0.1"
+rtil_derive = { path = "../rtil_derive" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"

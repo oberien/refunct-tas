@@ -28,7 +28,7 @@ pub fn init() {
     slateapp::hook();
     slateapp::hook_keydown();
     slateapp::hook_keyup();
-    newgame::hook();
+    newgame::hook_amycharacter_forceduncrouch();
     tick::hook();
     hud::hook();
     controller::hook();

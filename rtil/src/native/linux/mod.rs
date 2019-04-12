@@ -19,7 +19,7 @@ pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 macro_rules! find {
     ($($name:ident, $symbol:expr,)*) => {
         $(
-            pub(in native) static mut $name:usize = 0;
+            pub(in native) static mut $name: usize = 0;
         )*
         const NAMES: &[&str] = &[
             $(
