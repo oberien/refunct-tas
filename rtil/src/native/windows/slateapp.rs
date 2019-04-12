@@ -27,17 +27,3 @@ impl FSlateApplication {
         fun(*SLATEAPP.get() as UINT_PTR, x, y)
     }
 }
-
-#[inline(never)]
-pub(in native) extern "thiscall" fn save(this: usize) {
-    SLATEAPP.set(this + 0x3c);
-    log!("Got FSlateApplication: {:#x}", this);
-}
-
-pub(in native) extern "thiscall" fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
-    ::threads::ue::key_down(key_code, character_code, is_repeat);
-}
-
-pub(in native) extern "thiscall" fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
-    ::threads::ue::key_up(key_code, character_code, is_repeat);
-}

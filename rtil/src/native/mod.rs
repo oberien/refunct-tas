@@ -32,5 +32,5 @@ pub fn init() {
     tick::hook();
     hud::hook();
     controller::hook();
-    character::hook();
+    character::hook_amycharacter_tick();
 }

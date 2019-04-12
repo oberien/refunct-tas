@@ -50,7 +50,7 @@ pub type TCHAR = u32;
 #[cfg(windows)]
 pub type TCHAR = u16;
 
-/// Null-terminated utf-32 array
+/// Null-terminated utf-32 (linux) / utf-16 (windows) array
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct FString(TArray<TCHAR>);

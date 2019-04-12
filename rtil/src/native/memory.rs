@@ -1,7 +1,6 @@
 use std::mem;
 
-use native::FMEMORY_MALLOC;
-use native::FMEMORY_FREE;
+use native::{FMEMORY_FREE, FMEMORY_MALLOC};
 
 pub struct FMemory;
 

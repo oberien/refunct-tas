@@ -22,66 +22,31 @@ impl FSlateApplication {
     }
 }
 
-hook! {
-    "FSlateApplication::Tick",
-    FSLATEAPPLICATION_TICK,
-    hook,
-    unhook,
-    get,
-    true,
+#[rtil_derive::hook_once(FSlateApplication::Tick)]
+fn save(this: usize) {
+    #[cfg(unix)] { SLATEAPP.set(this); }
+    #[cfg(winodws)] { SLATEAPP.set(this + 0x3c); }
+    log!("Got FSlateApplication: {:#x}", this);
 }
 
-hook_fn_once! {
-    get,
-    save,
-    unhook,
-    FSLATEAPPLICATION_TICK,
-}
-
-mod fixme {
-    use native::FSLATEAPPLICATION_ONKEYDOWN;
-    #[cfg(unix)] use native::linux::slateapp::key_down;
-    #[cfg(windows)] use native::windows::slateapp::key_down;
-    hook! {
-        "FSlateApplication::OnKeyDown",
-        FSLATEAPPLICATION_ONKEYDOWN,
-        hook_keydown,
-        unhook_keydown,
-        keydown,
-        false,
+#[rtil_derive::hook_before(FSlateApplication::OnKeyDown)]
+fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
+    #[cfg(unix)] {
+        // on Linux UE applies a (1<<30) mask to mod keys
+        ::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
     }
-
-    hook_fn_always! {
-        keydown,
-        key_down,
-        hook_keydown,
-        unhook_keydown,
-        FSLATEAPPLICATION_ONKEYDOWN,
-        intercept before original,
+    #[cfg(windows)] {
+        ::threads::ue::key_down(key_code, character_code, is_repeat);
     }
 }
-pub use self::fixme::{hook_keydown, unhook_keydown};
 
-mod fixme2 {
-    use native::FSLATEAPPLICATION_ONKEYUP;
-    #[cfg(unix)] use native::linux::slateapp::key_up;
-    #[cfg(windows)] use native::windows::slateapp::key_up;
-    hook! {
-        "FSlateApplication::OnKeyUp",
-        FSLATEAPPLICATION_ONKEYUP,
-        hook_keyup,
-        unhook_keyup,
-        keyup,
-        false,
+#[rtil_derive::hook_before(FSlateApplication::OnKeyUp)]
+fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
+    #[cfg(unix)] {
+        // on Linux UE applies a (1<<30) mask to mod keys
+        ::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
     }
-
-    hook_fn_always! {
-        keyup,
-        key_up,
-        hook_keyup,
-        unhook_keyup,
-        FSLATEAPPLICATION_ONKEYUP,
-        intercept before original,
+    #[cfg(windows)] {
+        ::threads::ue::key_up(key_code, character_code, is_repeat);
     }
 }
-pub use self::fixme2::{hook_keyup, unhook_keyup};

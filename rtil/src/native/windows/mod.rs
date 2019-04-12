@@ -1,9 +1,7 @@
 #[macro_use] mod macros;
 pub(in native) mod slateapp;
 pub(in native) mod controller;
-pub(in native) mod character;
 pub(in native) mod consts;
-pub(in native) mod app;
 
 use std::ptr::null;
 
