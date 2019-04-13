@@ -1,6 +1,7 @@
 use std::ptr;
 
-use libc::{c_void, c_int};
+#[cfg(unix)] use libc::{c_void, c_int};
+#[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use native::ue::{FName, FVector, FRotator};
 use native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};

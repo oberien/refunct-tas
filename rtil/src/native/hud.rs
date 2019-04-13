@@ -1,7 +1,8 @@
 use std::mem;
 use std::ptr;
 
-use libc::c_void;
+#[cfg(unix)] use libc::c_void;
+#[cfg(windows)] use winapi::ctypes::c_void;
 
 use native::ue::{FLinearColor, FString};
 use native::{AHUD_DRAWLINE, AHUD_DRAWTEXT};

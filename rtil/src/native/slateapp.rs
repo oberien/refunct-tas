@@ -40,7 +40,7 @@ impl FSlateApplication {
 #[rtil_derive::hook_once(FSlateApplication::Tick)]
 fn save(this: usize) {
     #[cfg(unix)] { SLATEAPP.set(this); }
-    #[cfg(winodws)] { SLATEAPP.set(this + 0x3c); }
+    #[cfg(windows)] { SLATEAPP.set(this + 0x3c); }
     log!("Got FSlateApplication: {:#x}", this);
 }
 

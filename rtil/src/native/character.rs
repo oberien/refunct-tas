@@ -77,10 +77,10 @@ struct AMyCharacterUE {
     #[cfg(windows)] _pad: [u8; 0x11c],
     root_component: *mut USceneComponent,
     #[cfg(unix)] _pad2: [u8; 0x250],
-    #[cfg(windows)] _pad: [u8; 0x1c4],
+    #[cfg(windows)] _pad2: [u8; 0x1b4],
     controller: *mut APlayerController,
     #[cfg(unix)] _pad3: [u8; 0x28],
-    #[cfg(windows)] _pad3: [u8; 0x14],
+    #[cfg(windows)] _pad3: [u8; 0x24],
     movement: *mut UCharacterMovementComponent,
 }
 
@@ -114,5 +114,6 @@ fn save(this: usize) {
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
+	log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
 }

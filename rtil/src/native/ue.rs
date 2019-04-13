@@ -1,7 +1,8 @@
 use std::ptr;
 use std::mem;
 
-use libc::c_void;
+#[cfg(unix)] use libc::c_void;
+#[cfg(windows)] use winapi::ctypes::c_void;
 
 use native::{FMemory, FNAME_FNAME};
 

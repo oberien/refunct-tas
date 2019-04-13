@@ -27,7 +27,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?DrawText@AHUD@@QAEXABVFString@@UFLinearColor@@MMPAVUFont@@M_N@Z", "AHUD_DRAWTEXT"),
     ("GWorld", "GWORLD"),
     ("?SpawnActor@UWorld@@QAEPAVAActor@@PAVUClass@@PBUFVector@@PBUFRotator@@ABUFActorSpawnParameters@@@Z", "UWORLD_SPAWNACTOR"),
-    ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "URWOLD_DESTROYACTOR"),
+    ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "UWORLD_DESTROYACTOR"),
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
 ];

@@ -1,12 +1,9 @@
-#[macro_use] mod macros;
-pub(in native) mod slateapp;
-pub(in native) mod controller;
-pub(in native) mod consts;
+mod consts;
 
-use std::ptr::null;
+use std::ptr;
 
-use winapi::c_void;
-use winapi::winnt::{PAGE_READWRITE, PAGE_EXECUTE_READ};
+use winapi::ctypes::c_void;
+use winapi::um::winnt::{PAGE_READWRITE, PAGE_EXECUTE_READ};
 use kernel32::{VirtualProtect, GetModuleHandleA};
 
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/123333-demo-pure-rust-internal-coding.html
@@ -27,11 +24,11 @@ macro_rules! find {
             pub(in native) static mut $name: usize = 0;
         )*
         pub(in native) fn init() {
-            let base = unsafe { GetModuleHandleA(null()) as usize };
+            let base = unsafe { GetModuleHandleA(ptr::null()) as usize };
             log!("Got Base address: {:#x}", base);
             unsafe {
                 $(
-                    $name = base + consts::$name;
+                    $name = base + self::consts::$name;
                 )*
             }
         }
@@ -47,25 +44,29 @@ find! {
     FSLATEAPPLICATION_ONKEYDOWN,
     FSLATEAPPLICATION_ONKEYUP,
     FSLATEAPPLICATION_ONRAWMOUSEMOVE,
-    ACONTROLLER_GETCONTROLROTATION,
     FMEMORY_MALLOC,
     FMEMORY_FREE,
     FNAME_FNAME,
     AMYHUD_DRAWHUD,
     AHUD_DRAWLINE,
     AHUD_DRAWTEXT,
+	GWORLD,
+    UWORLD_SPAWNACTOR,
+    UWORLD_DESTROYACTOR,
+    AMYCHARACTER_STATICCLASS,
+    APAWN_SPAWNDEFAULTCONTROLLER,
 }
 
 pub(in native) fn make_rw(addr: usize) {
     let page = addr & !0xfff;
-    let page = page as *mut c_void;
+    let page = page as *mut std::ffi::c_void;
     let mut out = 0;
     unsafe { VirtualProtect(page, 0x1000, PAGE_READWRITE, &mut out); }
 }
 
 pub(in native) fn make_rx(addr: usize) {
     let page = addr & !0xfff;
-    let page = page as *mut c_void;
+    let page = page as *mut std::ffi::c_void;
     let mut out = 0;
     unsafe { VirtualProtect(page, 0x1000, PAGE_EXECUTE_READ, &mut out); }
 }
