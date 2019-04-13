@@ -63,7 +63,7 @@ pub enum LuaToUe {
     DrawLine(f32, f32, f32, f32, (f32, f32, f32, f32), f32),
     DrawText(String, (f32, f32, f32, f32), f32, f32, f32, bool),
     Resume,
-    SpawnActor,
+    SpawnAMyCharacter,
 }
 
 #[derive(Debug, PartialEq, Eq)]

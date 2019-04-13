@@ -1,60 +1,87 @@
-use native::ue::FVector;
+use native::ue::{FVector, FRotator};
+use native::uworld::UClass;
+use native::AMYCHARACTER_STATICCLASS;
 use statics::Static;
 
 lazy_static! {
     static ref CHARACTER: Static<usize> = Static::new();
 }
 
-pub struct AMyCharacter;
+pub struct AMyCharacter(usize);
 
 impl AMyCharacter {
-    fn root_component() -> *mut USceneComponent {
-        #[cfg(unix)] unsafe { *((&*CHARACTER.get() + 0x168) as *const *mut USceneComponent) }
-        #[cfg(windows)] unsafe { *((&*CHARACTER.get() + 0x11c) as *const *mut USceneComponent) }
+    pub(in native) fn static_class() -> *const UClass {
+        let fun: extern_fn!(fn() -> *const UClass)
+            = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS) };
+        fun()
     }
-    fn movement() -> *mut UCharacterMovementComponent {
-        #[cfg(unix)] unsafe { *((&*CHARACTER.get() + 0x3f0) as *const *mut UCharacterMovementComponent) }
-        #[cfg(windows)] unsafe { *((&*CHARACTER.get() + 0x2fc) as *const *mut UCharacterMovementComponent) }
+    fn as_ue(&self) -> *mut AMyCharacterUE {
+        self.0 as *mut AMyCharacterUE
+    }
+    fn root_component(&self) -> &USceneComponent {
+        unsafe { &*(*self.as_ue()).root_component }
+    }
+    fn root_component_mut(&mut self) -> &mut USceneComponent {
+        unsafe { &mut *(*self.as_ue()).root_component }
+    }
+    fn controller(&self) -> &APlayerController {
+        unsafe { &*(*self.as_ue()).controller }
+    }
+    fn controller_mut(&mut self) -> &mut APlayerController {
+        unsafe { &mut *(*self.as_ue()).controller }
+    }
+    fn movement(&self) -> &UCharacterMovementComponent {
+        unsafe { &*(*self.as_ue()).movement }
+    }
+    fn movement_mut(&mut self) -> &mut UCharacterMovementComponent {
+        unsafe { &mut *(*self.as_ue()).movement }
     }
 
-    pub fn location() -> (f32, f32, f32) {
-        let root = AMyCharacter::root_component();
-        unsafe {
-            ((*root).location.x, (*root).location.y, (*root).location.z)
-        }
+    pub fn get_player() -> AMyCharacter {
+        AMyCharacter(*CHARACTER.get())
     }
-    pub fn set_location(x: f32, y: f32, z: f32) {
-        let root = AMyCharacter::root_component();
-        unsafe {
-            (*root).location = FVector { x, y, z };
-        }
+
+    pub fn location(&self) -> (f32, f32, f32) {
+        let FVector { x, y, z } = self.root_component().location;
+        (x, y, z)
     }
-    pub fn velocity() -> (f32, f32, f32) {
-        let movement = AMyCharacter::movement();
-        unsafe {
-            let FVector { x, y, z } = (*movement).velocity;
-            (x, y, z)
-        }
+    pub fn set_location(&mut self, x: f32, y: f32, z: f32) {
+        self.root_component_mut().location = FVector { x, y, z };
     }
-    pub fn set_velocity(x: f32, y: f32, z: f32) {
-        let movement = AMyCharacter::movement();
-        unsafe {
-            (*movement).velocity = FVector { x, y, z };
-        }
+    pub fn velocity(&self) -> (f32, f32, f32) {
+        let FVector { x, y, z } = self.movement().velocity;
+        (x, y, z)
     }
-    pub fn acceleration() -> (f32, f32, f32) {
-        let movement = AMyCharacter::movement();
-        unsafe {
-            let FVector { x, y, z } = (*movement).acceleration;
-            (x, y, z)
-        }
+    pub fn set_velocity(&mut self, x: f32, y: f32, z: f32) {
+        self.movement_mut().velocity = FVector { x, y, z };
     }
-    pub fn set_acceleration(x: f32, y: f32, z: f32) {
-        let movement = AMyCharacter::movement();
-        unsafe {
-            (*movement).acceleration = FVector { x, y, z };
-        }
+    pub fn acceleration(&self) -> (f32, f32, f32) {
+        let FVector { x, y, z } = self.movement().acceleration;
+        (x, y, z)
     }
+    pub fn set_acceleration(&mut self, x: f32, y: f32, z: f32) {
+        self.movement_mut().acceleration = FVector { x, y, z };
+    }
+    pub fn rotation(&self) -> (f32, f32, f32) {
+        let FRotator { pitch, yaw, roll } = self.controller().rotation;
+        (pitch, yaw, roll)
+    }
+    pub fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) {
+        self.controller_mut().rotation = FRotator { pitch, yaw, roll };
+    }
+}
+
+#[repr(C, packed)]
+struct AMyCharacterUE {
+    #[cfg(unix)] _pad: [u8; 0x168],
+    #[cfg(windows)] _pad: [u8; 0x11c],
+    root_component: *mut USceneComponent,
+    #[cfg(unix)] _pad2: [u8; 0x250],
+    #[cfg(windows)] _pad: [u8; 0x1c4],
+    controller: *mut APlayerController,
+    #[cfg(unix)] _pad3: [u8; 0x28],
+    #[cfg(windows)] _pad3: [u8; 0x14],
+    movement: *mut UCharacterMovementComponent,
 }
 
 #[repr(C, packed)]
@@ -74,10 +101,18 @@ struct UCharacterMovementComponent {
     acceleration: FVector,
 }
 
+#[repr(C, packed)]
+struct APlayerController {
+    #[cfg(unix)] _pad: [u8; 0x3b8],
+    #[cfg(windows)] _pad: [u8; 0x2d0],
+    rotation: FRotator,
+}
+
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
 fn save(this: usize) {
     CHARACTER.set(this);
+    let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
-    log!("Got AMyCharacter::RootComponent: {:#x}", AMyCharacter::root_component() as usize);
-    log!("Got AMyCharacter::Movement: {:#x}", AMyCharacter::movement() as usize);
+    log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
+    log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
 }

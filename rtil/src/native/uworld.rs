@@ -3,7 +3,7 @@ use std::ptr;
 use libc::{c_void, c_int};
 
 use native::ue::{FName, FVector, FRotator};
-use native::{APAWN_STATICCLASS, APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR};
+use native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
 
 pub(in native) type AActor = c_void;
 pub enum APawn {}
@@ -12,7 +12,7 @@ pub(in native) type UClass = c_void;
 
 #[derive(Debug)]
 #[repr(u8)]
-pub(in native) enum ESpawnActorCollisionHandlingMethod {
+enum ESpawnActorCollisionHandlingMethod {
 	Undefined,
 	AlwaysSpawn,
 	AdjustIfPossibleButAlwaysSpawn,
@@ -22,7 +22,7 @@ pub(in native) enum ESpawnActorCollisionHandlingMethod {
 
 #[derive(Debug)]
 #[repr(C, packed)]
-pub(in native) struct FActorSpawnParameters {
+struct FActorSpawnParameters {
     name: FName,
     template: *const AActor,
     owner: *const AActor,
@@ -50,11 +50,6 @@ impl Default for FActorSpawnParameters {
 }
 
 impl APawn {
-    fn static_class() -> *const UClass {
-        let fun: extern_fn!(fn() -> *const UClass)
-            = unsafe { ::std::mem::transmute(APAWN_STATICCLASS) };
-        fun()
-    }
     fn spawn_default_controller(this: *const APawn) {
         let fun: extern_fn!(fn(this: *const APawn))
             = unsafe { ::std::mem::transmute(APAWN_SPAWNDEFAULTCONTROLLER) };
@@ -85,16 +80,16 @@ impl UWorld {
         res != 0
     }
 
-    pub fn spawn_pawn() -> *const APawn {
-        let pawn = Self::spawn_actor(
-            APawn::static_class(), &FVector { x: -1000.0, y: -1000.0, z: 732.0 },
+    pub fn spawn_amycharacter() -> *const AMyCharacter {
+        let my_character = Self::spawn_actor(
+            AMyCharacter::static_class(), &FVector { x: 0.0, y: 0.0, z: 0.0 },
             &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0}, &FActorSpawnParameters::default(),
-        ) as *const APawn;
-        APawn::spawn_default_controller(pawn);
-        pawn
+        ) as *const AMyCharacter;
+        APawn::spawn_default_controller(my_character as *const APawn);
+        my_character
     }
-    pub fn destroy_pawn(pawn: *const APawn) {
-        let destroyed = Self::destroy_actor(pawn as *const AActor, false, true);
-        assert!(destroyed, "pawn not destroyed");
+    pub fn destroy_amycharaccter(my_character: *const AMyCharacter) {
+        let destroyed = Self::destroy_actor(my_character as *const AActor, false, true);
+        assert!(destroyed, "amycharacter not destroyed");
     }
 }

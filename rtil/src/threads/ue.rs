@@ -117,12 +117,10 @@ fn handle(event: UeToLua) {
                 break;
             },
             LuaToUe::AdvanceFrame => break,
-            LuaToUe::SpawnActor => {
-                let ptr = UWorld::spawn_pawn();
+            LuaToUe::SpawnAMyCharacter => {
+                let ptr = UWorld::spawn_amycharacter();
                 log!("{:p}", ptr);
-                UWorld::destroy_pawn(ptr);
-//                let root = unsafe { *((ptr as usize + 0x168) as *const *mut crate::native::linux::character::USceneComponent) };
-//                unsafe { (*root).location = crate::native::ue::FVector { x: -1000.0, y: -1000.0, z: 732.0 } };
+                UWorld::destroy_amycharaccter(ptr);
             }
         }
     }

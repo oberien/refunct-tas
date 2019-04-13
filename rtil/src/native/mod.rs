@@ -21,7 +21,6 @@ macro_rules! extern_fn {
 #[cfg(windows)] mod windows;
 mod ue;
 mod character;
-mod controller;
 mod newgame;
 mod slateapp;
 mod tick;
@@ -36,7 +35,6 @@ mod uworld;
 #[cfg(unix)] pub use self::linux::INITIALIZE_CTOR;
 #[cfg(windows)] pub use self::windows::DllMain;
 pub use self::character::AMyCharacter;
-pub use self::controller::AController;
 pub use self::slateapp::{
     FSlateApplication,
     unhook_fslateapplication_onkeydown,
@@ -58,6 +56,5 @@ pub fn init() {
     newgame::hook_amycharacter_forceduncrouch();
     tick::hook_uengine_updatetimeandhandlemaxtickrate();
     hud::hook_amyhud_drawhud();
-    controller::hook_acontroller_getcontrolrotation();
     character::hook_amycharacter_tick();
 }

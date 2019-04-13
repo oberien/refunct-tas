@@ -8,7 +8,7 @@ use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, RLua, Lu
 use failure::Fail;
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
-use native::{AMyCharacter, AController, FApp};
+use native::{AMyCharacter, FApp};
 
 struct Tas {
     iface: Rc<GameInterface>,
@@ -226,45 +226,45 @@ impl LuaInterface for GameInterface {
 
     fn get_location(&self) -> IfaceResult<(f32, f32, f32)> {
         self.syscall()?;
-        Ok(AMyCharacter::location())
+        Ok(AMyCharacter::get_player().location())
     }
 
     fn set_location(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
         self.syscall()?;
-        AMyCharacter::set_location(x, y, z);
+        AMyCharacter::get_player().set_location(x, y, z);
         Ok(())
     }
 
     fn get_rotation(&self) -> IfaceResult<(f32, f32, f32)> {
         self.syscall()?;
-        Ok(AController::rotation())
+        Ok(AMyCharacter::get_player().rotation())
     }
 
     fn set_rotation(&self, pitch: f32, yaw: f32, roll: f32) -> IfaceResult<()> {
         self.syscall()?;
-        AController::set_rotation(pitch, yaw, roll);
+        AMyCharacter::get_player().set_rotation(pitch, yaw, roll);
         Ok(())
     }
 
     fn get_velocity(&self) -> IfaceResult<(f32, f32, f32)> {
         self.syscall()?;
-        Ok(AMyCharacter::velocity())
+        Ok(AMyCharacter::get_player().velocity())
     }
 
     fn set_velocity(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
         self.syscall()?;
-        AMyCharacter::set_velocity(x, y, z);
+        AMyCharacter::get_player().set_velocity(x, y, z);
         Ok(())
     }
 
     fn get_acceleration(&self) -> IfaceResult<(f32, f32, f32)> {
         self.syscall()?;
-        Ok(AMyCharacter::acceleration())
+        Ok(AMyCharacter::get_player().acceleration())
     }
 
     fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
         self.syscall()?;
-        AMyCharacter::set_acceleration(x, y, z);
+        AMyCharacter::get_player().set_acceleration(x, y, z);
         Ok(())
     }
 
@@ -301,7 +301,7 @@ impl LuaInterface for GameInterface {
 
     fn spawn_pawn(&self) -> IfaceResult<()> {
         self.syscall()?;
-        self.lua_ue_tx.send(LuaToUe::SpawnActor).unwrap();
+        self.lua_ue_tx.send(LuaToUe::SpawnAMyCharacter).unwrap();
         Ok(())
     }
 }

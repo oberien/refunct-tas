@@ -53,7 +53,6 @@ find! {
     FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
-    ACONTROLLER_GETCONTROLROTATION, "^AController::GetControlRotation()",
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
     AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
     FAPP_DELTATIME, "^FApp::DeltaTime",
@@ -66,8 +65,8 @@ find! {
     GWORLD, "^GWorld",
     UWORLD_SPAWNACTOR, "^UWorld::SpawnActor(UClass*, FVector const*, FRotator const*, FActorSpawnParameters const&)",
     UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
-    APAWN_STATICCLASS, "^AMyCharacter::StaticClass",
-    APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController",
+    AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",
+    APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
 }
 
 pub(in native) fn make_rw(addr: usize) {

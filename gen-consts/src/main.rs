@@ -16,7 +16,6 @@ const NAMES: &[(&str, &str)] = &[
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
-    ("?GetControlRotation@AController", "ACONTROLLER_GETCONTROLROTATION"),
     ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
     ("FApp::DeltaTime", "FAPP_DELTATIME"),
@@ -26,6 +25,11 @@ const NAMES: &[(&str, &str)] = &[
     ("?DrawHUD@AMyHUD@@UAEXXZ", "AMYHUD_DRAWHUD"),
     ("?DrawLine@AHUD@@QAEXMMMMUFLinearColor@@M@Z", "AHUD_DRAWLINE"),
     ("?DrawText@AHUD@@QAEXABVFString@@UFLinearColor@@MMPAVUFont@@M_N@Z", "AHUD_DRAWTEXT"),
+    ("GWorld", "GWORLD"),
+    ("?SpawnActor@UWorld@@QAEPAVAActor@@PAVUClass@@PBUFVector@@PBUFRotator@@ABUFActorSpawnParameters@@@Z", "UWORLD_SPAWNACTOR"),
+    ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "URWOLD_DESTROYACTOR"),
+    ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
+    ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
 ];
 
 fn main() {
