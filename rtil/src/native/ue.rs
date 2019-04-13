@@ -1,8 +1,9 @@
 use std::ptr;
 use std::mem;
 
-use native::FMemory;
-use native::FNAME_FNAME;
+use libc::c_void;
+
+use native::{FMemory, FNAME_FNAME};
 
 #[derive(Debug)]
 #[repr(C, packed)]
@@ -10,6 +11,14 @@ pub struct FVector {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct FRotator {
+    pub pitch: f32,
+    pub yaw: f32,
+    pub roll: f32,
 }
 
 #[derive(Debug)]
@@ -82,7 +91,7 @@ impl<S: AsRef<str>> From<S> for FString {
 impl<T> Drop for TArray<T> {
     fn drop(&mut self) {
         unsafe {
-            FMemory::free(self.ptr as *mut ())
+            FMemory::free(self.ptr as *mut c_void)
         }
     }
 }
@@ -93,6 +102,11 @@ pub struct FName {
     number: u64,
 }
 
+impl FName {
+    #[allow(non_upper_case_globals)]
+    pub const NAME_None: FName = FName { number: 0 };
+}
+
 impl<T: Into<FString>> From<T> for FName {
     fn from(s: T) -> FName {
         let s = s.into();
@@ -100,7 +114,7 @@ impl<T: Into<FString>> From<T> for FName {
             number: 0,
         };
         unsafe {
-            let fun: extern "C" fn(*mut FName, *const TCHAR, u64) -> u64
+            let fun: extern_fn!(fn(this: *mut FName, name: *const TCHAR, find_type: u64) -> u64)
                 = mem::transmute(FNAME_FNAME);
             fun(&mut name as *mut FName, s.as_ptr(), 1);
         }

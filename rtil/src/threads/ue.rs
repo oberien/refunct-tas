@@ -2,7 +2,15 @@ use std::sync::mpsc::{Sender, Receiver, TryRecvError};
 
 use statics::Static;
 use threads::{UeToLua, LuaToUe};
-use native::{FSlateApplication, hook_keydown, unhook_keydown, hook_keyup, unhook_keyup, AMyHud};
+use native::{
+    FSlateApplication,
+    unhook_fslateapplication_onkeydown,
+    hook_fslateapplication_onkeydown,
+    unhook_fslateapplication_onkeyup,
+    hook_fslateapplication_onkeyup,
+    AMyHud,
+};
+use native::UWorld;
 
 lazy_static! {
     static ref STATE: Static<State> = Static::new();
@@ -84,15 +92,15 @@ fn handle(event: UeToLua) {
                 match evt {
                     LuaToUe::PressKey(key, code, repeat) => {
                         // we don't want to trigger our keyevent handler for emulated presses
-                        unhook_keydown();
+                        unhook_fslateapplication_onkeydown();
                         FSlateApplication::press_key(key, code, repeat);
-                        hook_keydown();
+                        hook_fslateapplication_onkeydown();
                     },
                     LuaToUe::ReleaseKey(key, code, repeat) => {
                         // we don't want to trigger our keyevent handler for emulated presses
-                        unhook_keyup();
+                        unhook_fslateapplication_onkeyup();
                         FSlateApplication::release_key(key, code, repeat);
-                        hook_keyup();
+                        hook_fslateapplication_onkeyup();
                     },
                     LuaToUe::MoveMouse(x, y) => FSlateApplication::move_mouse(x, y),
                     LuaToUe::DrawLine(startx, starty, endx, endy, color, thickness) =>
@@ -109,6 +117,13 @@ fn handle(event: UeToLua) {
                 break;
             },
             LuaToUe::AdvanceFrame => break,
+            LuaToUe::SpawnActor => {
+                let ptr = UWorld::spawn_pawn();
+                log!("{:p}", ptr);
+                UWorld::destroy_pawn(ptr);
+//                let root = unsafe { *((ptr as usize + 0x168) as *const *mut crate::native::linux::character::USceneComponent) };
+//                unsafe { (*root).location = crate::native::ue::FVector { x: -1000.0, y: -1000.0, z: 732.0 } };
+            }
         }
     }
 }

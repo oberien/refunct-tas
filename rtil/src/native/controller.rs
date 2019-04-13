@@ -1,6 +1,4 @@
-use native::ACONTROLLER_GETCONTROLROTATION;
-#[cfg(unix)] use native::linux::controller::save;
-#[cfg(windows)] use native::windows::controller::save;
+use crate::statics::Static;
 
 lazy_static! {
     static ref CONTROLLER: Static<usize> = Static::new();

@@ -1,18 +1,20 @@
 use std::mem;
 
+use libc::c_void;
+
 use native::{FMEMORY_FREE, FMEMORY_MALLOC};
 
 pub struct FMemory;
 
 impl FMemory {
-    pub unsafe fn malloc(size: usize) -> *mut () {
-        let fun: extern "C" fn(usize, u32) -> *mut ()
+    pub unsafe fn malloc(size: usize) -> *mut c_void {
+        let fun: extern_fn!(fn(count: usize, alignment: u32) -> *mut c_void)
             = mem::transmute(FMEMORY_MALLOC);
         fun(size, 0)
     }
 
-    pub unsafe fn free(ptr: *mut ()) {
-        let fun: extern "C" fn(*mut ())
+    pub unsafe fn free(ptr: *mut c_void) {
+        let fun: extern_fn!(fn(original: *mut c_void))
             = mem::transmute(FMEMORY_FREE);
         fun(ptr)
     }

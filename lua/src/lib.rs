@@ -80,6 +80,8 @@ pub trait LuaInterface {
 
     fn working_dir(&self) -> IfaceResult<String>;
 
+    fn spawn_pawn(&self) -> IfaceResult<()>;
+
     // only Windows and Linux are supported
     fn is_windows(&self) -> IfaceResult<bool> {
         Ok(cfg!(windows))
@@ -171,6 +173,10 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
 
         methods.add_method("working_dir", |_, this, _: ()| {
             Ok(this.working_dir()?)
+        });
+
+        methods.add_method("spawn_pawn", |_, this, _: ()| {
+            Ok(this.spawn_pawn()?)
         });
 
         methods.add_method("is_windows", |_, this, _: ()| {

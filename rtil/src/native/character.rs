@@ -1,5 +1,5 @@
-use native::AMYCHARACTER_TICK;
 use native::ue::FVector;
+use statics::Static;
 
 lazy_static! {
     static ref CHARACTER: Static<usize> = Static::new();
@@ -15,7 +15,7 @@ impl AMyCharacter {
     fn movement() -> *mut UCharacterMovementComponent {
         #[cfg(unix)] unsafe { *((&*CHARACTER.get() + 0x3f0) as *const *mut UCharacterMovementComponent) }
         #[cfg(windows)] unsafe { *((&*CHARACTER.get() + 0x2fc) as *const *mut UCharacterMovementComponent) }
-    }#[rtil_derive::hook_once(AMyCharacter::Tick)]
+    }
 
     pub fn location() -> (f32, f32, f32) {
         let root = AMyCharacter::root_component();
@@ -59,17 +59,17 @@ impl AMyCharacter {
 
 #[repr(C, packed)]
 struct USceneComponent {
-    #[cfg(linux)] _pad: [u8; 0x1a0],
+    #[cfg(unix)] _pad: [u8; 0x1a0],
     #[cfg(windows)] _pad: [u8; 0x140],
     location: FVector,
 }
 
 #[repr(C, packed)]
 struct UCharacterMovementComponent {
-    #[cfg(linux)] _pad: [u8; 0x104],
+    #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
     velocity: FVector,
-    #[cfg(linux)] _pad2: [u8; 0x178],
+    #[cfg(unix)] _pad2: [u8; 0x178],
     #[cfg(windows)] _pad2: [u8; 0x14c],
     acceleration: FVector,
 }

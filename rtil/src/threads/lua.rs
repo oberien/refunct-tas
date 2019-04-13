@@ -298,4 +298,10 @@ impl LuaInterface for GameInterface {
     fn working_dir(&self) -> IfaceResult<String> {
         Ok(self.working_dir.borrow().clone().unwrap())
     }
+
+    fn spawn_pawn(&self) -> IfaceResult<()> {
+        self.syscall()?;
+        self.lua_ue_tx.send(LuaToUe::SpawnActor).unwrap();
+        Ok(())
+    }
 }

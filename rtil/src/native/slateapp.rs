@@ -1,20 +1,35 @@
-use native::FSLATEAPPLICATION_TICK;
-#[cfg(unix)] use native::linux::slateapp::save;
-#[cfg(windows)] use native::windows::slateapp::save;
+use native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
+use crate::statics::Static;
 
 lazy_static! {
-    pub(in native) static ref SLATEAPP: Static<usize> = Static::new();
+    static ref SLATEAPP: Static<usize> = Static::new();
 }
 
 pub struct FSlateApplication;
 
 impl FSlateApplication {
+    fn on_key_down(key_code: i32, character_code: u32, is_repeat: u32) {
+        let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN) };
+        fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
+    }
+    fn on_key_up(key_code: i32, character_code: u32, is_repeat: u32) {
+        let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP) };
+        fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
+    }
+    fn on_raw_mouse_move(x: i32, y: i32) {
+        let fun: extern_fn!(fn(this: usize, x: i32, y: i32)) =
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE) };
+        fun(*SLATEAPP.get(), x, y)
+    }
+
     pub fn press_key(key: i32, code: u32, repeat: bool) {
-        FSlateApplication::on_key_down(key, code, repeat);
+        FSlateApplication::on_key_down(key, code, repeat as u32);
     }
 
     pub fn release_key(key: i32, code: u32, repeat: bool) {
-        FSlateApplication::on_key_up(key, code, repeat);
+        FSlateApplication::on_key_up(key, code, repeat as u32);
     }
 
     pub fn move_mouse(x: i32, y: i32) {

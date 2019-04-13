@@ -1,9 +1,3 @@
-#[macro_use] mod macros;
-pub(in native) mod slateapp;
-pub(in native) mod controller;
-pub(in native) mod character;
-pub(in native) mod app;
-
 use std::env;
 use std::collections::HashMap;
 
@@ -69,6 +63,11 @@ find! {
     AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
     AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
+    GWORLD, "^GWorld",
+    UWORLD_SPAWNACTOR, "^UWorld::SpawnActor(UClass*, FVector const*, FRotator const*, FActorSpawnParameters const&)",
+    UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
+    APAWN_STATICCLASS, "^AMyCharacter::StaticClass",
+    APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController",
 }
 
 pub(in native) fn make_rw(addr: usize) {

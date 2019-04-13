@@ -1,5 +1,24 @@
-#[cfg(unix)] #[macro_use] mod linux;
-#[cfg(windows)] #[macro_use] mod windows;
+#[cfg(unix)]
+macro_rules! extern_fn {
+    (fn ($($argname:ident : $argtype:ty),*)) => {
+        extern "C" fn($($argname : $argtype),*)
+    };
+    (fn ($($argname:ident : $argtype:ty),*) -> $rettype:ty) => {
+        extern "C" fn($($argtype),*) -> $rettype
+    };
+}
+#[cfg(windows)]
+macro_rules! extern_fn {
+    (fn ($($argname:ident : $argtype:ty),*)) => {
+        extern "thiscall" fn($($argname : $argtype),*)
+    };
+    (fn ($($argname:ident : $argtype:ty),*) -> $rettype:ty) => {
+        extern "thiscall" fn($($argtype),*) -> $rettype
+    };
+}
+
+#[cfg(unix)] mod linux;
+#[cfg(windows)] mod windows;
 mod ue;
 mod character;
 mod controller;
@@ -9,6 +28,7 @@ mod tick;
 mod app;
 mod memory;
 mod hud;
+mod uworld;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -17,20 +37,27 @@ mod hud;
 #[cfg(windows)] pub use self::windows::DllMain;
 pub use self::character::AMyCharacter;
 pub use self::controller::AController;
-pub use self::slateapp::{FSlateApplication, unhook_keydown, hook_keydown, unhook_keyup, hook_keyup};
+pub use self::slateapp::{
+    FSlateApplication,
+    unhook_fslateapplication_onkeydown,
+    hook_fslateapplication_onkeydown,
+    unhook_fslateapplication_onkeyup,
+    hook_fslateapplication_onkeyup,
+};
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::AMyHud;
+pub use self::uworld::{APawn, UWorld};
 
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
-    slateapp::hook();
-    slateapp::hook_keydown();
-    slateapp::hook_keyup();
+    slateapp::hook_fslateapplication_tick();
+    slateapp::hook_fslateapplication_onkeydown();
+    slateapp::hook_fslateapplication_onkeyup();
     newgame::hook_amycharacter_forceduncrouch();
-    tick::hook();
-    hud::hook();
-    controller::hook();
+    tick::hook_uengine_updatetimeandhandlemaxtickrate();
+    hud::hook_amyhud_drawhud();
+    controller::hook_acontroller_getcontrolrotation();
     character::hook_amycharacter_tick();
 }

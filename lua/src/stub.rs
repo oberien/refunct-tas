@@ -123,4 +123,9 @@ impl LuaInterface for Stub {
     fn working_dir(&self) -> IfaceResult<String> {
         Ok(".".to_string())
     }
+
+    fn spawn_pawn(&self) -> IfaceResult<()> {
+        println!("Spawn Pawn");
+        Ok(())
+    }
 }

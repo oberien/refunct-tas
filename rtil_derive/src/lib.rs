@@ -423,27 +423,23 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
     let interceptor_name = &attrs.interceptor_name;
 
     quote! {
-        use std::slice;
-        use byteorder::{WriteBytesExt, LittleEndian};
-        use crate::statics::Static;
-        use lazy_static::lazy_static;
-
         #[cfg(unix)]
-        lazy_static! {
-            static ref #original_bytes_backup_name: Static<[u8; 12]> = Static::new();
+        lazy_static::lazy_static! {
+            static ref #original_bytes_backup_name: crate::statics::Static<[u8; 12]> = crate::statics::Static::new();
         }
         #[cfg(windows)]
-        lazy_static! {
-            static ref #original_bytes_backup_name: Static<[u8; 7]> = Static::new();
+        lazy_static::lazy_static! {
+            static ref #original_bytes_backup_name: crate::statics::Static<[u8; 7]> = crate::statics::Static::new();
         }
 
         #[cfg(unix)]
         pub extern "C" fn #hook_function_name() {
+            use byteorder::{WriteBytesExt, LittleEndian};
             if #log { log!("Hooking {}", #original_function_name); }
             let addr = unsafe { crate::native::#original_function_address };
             crate::native::make_rw(addr);
             let interceptor_address = #interceptor_name as *const () as usize;
-            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
+            let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 12) };
             let mut saved = [0u8; 12];
             saved[..].copy_from_slice(slice);
             #original_bytes_backup_name.set(saved);
@@ -460,11 +456,12 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
 
         #[cfg(windows)]
         pub extern "thiscall" fn #hook_function_name() {
+            use byteorder::{WriteBytesExt, LittleEndian};
             if #log { log!("Hooking {}", #original_function_name); }
             let addr = unsafe { crate::native::#original_function_address };
             crate::native::make_rw(addr);
             let interceptor_address = #interceptor_name as *const () as usize;
-            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) };
+            let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 7) };
             let mut saved = [0u8; 7];
             saved[..].copy_from_slice(slice);
             #original_bytes_backup_name.set(saved);
@@ -484,7 +481,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
             if #log { log!("Restoring {}", #original_function_name); }
             let addr = unsafe { crate::native::#original_function_address };
             crate::native::make_rw(addr);
-            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 12) };
+            let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 12) };
             slice[..].copy_from_slice(&*#original_bytes_backup_name.get());
             crate::native::make_rx(addr);
             if #log { log!("{} successfully restored", #original_function_name); }
@@ -495,7 +492,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
             if #log { log!("Unhooking {}", #original_function_name); }
             let addr = unsafe { crate::native::#original_function_address };
             crate::native::make_rw(addr);
-            let slice = unsafe { slice::from_raw_parts_mut(addr as *mut u8, 7) };
+            let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 7) };
             slice[..].copy_from_slice(&*#original_bytes_backup_name.get());
             crate::native::make_rx(addr);
             if #log { log!("{} unhooked successfully", #original_function_name) }

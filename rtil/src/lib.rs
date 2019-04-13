@@ -4,7 +4,6 @@
 #![feature(mpsc_select)]
 #![feature(abi_thiscall)]
 #![feature(stmt_expr_attributes)]
-#![feature(repr_transparent)]
 
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;
