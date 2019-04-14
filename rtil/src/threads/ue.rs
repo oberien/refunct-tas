@@ -84,8 +84,12 @@ fn handle(event: UeToLua) {
                 log!("Got LuaToUe::Stop, but state is Stopping");
                 panic!()
             }
-            evt @ LuaToUe::PressKey(..) | evt @ LuaToUe::ReleaseKey(..) | evt @ LuaToUe::MoveMouse(..)
-                    | evt @ LuaToUe::DrawLine(..) | evt @ LuaToUe::DrawText(..) => {
+            evt @ LuaToUe::PressKey(..)
+            | evt @ LuaToUe::ReleaseKey(..)
+            | evt @ LuaToUe::MoveMouse(..)
+            | evt @ LuaToUe::DrawLine(..)
+            | evt @ LuaToUe::DrawText(..)
+            | evt @ LuaToUe::SpawnAMyCharacter => {
                 // Release STATE lock, as events can trigger a new game,
                 // which needs to acquire the lock.
                 drop(state);
@@ -107,6 +111,12 @@ fn handle(event: UeToLua) {
                         AMyHud::draw_line(startx, starty, endx, endy, color, thickness),
                     LuaToUe::DrawText(text, color, x, y, scale, scale_position) =>
                         AMyHud::draw_text(text, color, x, y, scale, scale_position),
+                    LuaToUe::SpawnAMyCharacter => {
+                        let my_character = UWorld::spawn_amycharacter();
+                        state = STATE.get();
+                        state.ue_lua_tx.send(UeToLua::AMyCharacterSpawned(my_character)).unwrap();
+                        drop(state);
+                    },
                     _ => unreachable!()
                 }
                 state = STATE.get();
@@ -117,11 +127,6 @@ fn handle(event: UeToLua) {
                 break;
             },
             LuaToUe::AdvanceFrame => break,
-            LuaToUe::SpawnAMyCharacter => {
-                let ptr = UWorld::spawn_amycharacter();
-                log!("{:p}", ptr);
-                UWorld::destroy_amycharaccter(ptr);
-            }
         }
     }
 }

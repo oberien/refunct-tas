@@ -67,6 +67,7 @@ find! {
     UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
     AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",
     APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
+    AHUD_PROJECT, "^AHUD::Project(FVector)",
 }
 
 pub(in native) fn make_rw(addr: usize) {

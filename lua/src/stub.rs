@@ -8,6 +8,7 @@ pub struct Stub {
     rotation: RefCell<(f32, f32, f32)>,
     velocity: RefCell<(f32, f32, f32)>,
     acceleration: RefCell<(f32, f32, f32)>,
+    pawn_id: RefCell<u32>,
 }
 
 impl Stub {
@@ -18,6 +19,7 @@ impl Stub {
             rotation: RefCell::new((0.0, 0.0, 0.0)),
             velocity: RefCell::new((0.0, 0.0, 0.0)),
             acceleration: RefCell::new((0.0, 0.0, 0.0)),
+            pawn_id: RefCell::new(0),
         }
     }
 }
@@ -115,6 +117,11 @@ impl LuaInterface for Stub {
         Ok(())
     }
 
+    fn project(&self, x: f32, y: f32, z: f32) -> IfaceResult<(f32, f32, f32)> {
+        println!("Project {} {} {}", x, y, z);
+        Ok((0.0, 0.0, 1.0))
+    }
+
     fn print(&self, s: String) -> IfaceResult<()> {
         println!("print: {:?}", s);
         Ok(())
@@ -124,8 +131,39 @@ impl LuaInterface for Stub {
         Ok(".".to_string())
     }
 
-    fn spawn_pawn(&self) -> IfaceResult<()> {
+    fn spawn_pawn(&self) -> IfaceResult<u32> {
         println!("Spawn Pawn");
+        let pawn_id = *self.pawn_id.borrow();
+        *self.pawn_id.borrow_mut() += 1;
+        Ok(pawn_id)
+    }
+
+    fn move_pawn(&self, pawn_id: u32, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        println!("Move Pawn {} to {}, {}, {}", pawn_id, x, y, z);
+        Ok(())
+    }
+
+    fn destroy_pawn(&self, pawn_id: u32) -> IfaceResult<()> {
+        println!("Destroy Pawn {}", pawn_id);
+        Ok(())
+    }
+
+    fn tcp_connect(&self, server_port: String) -> IfaceResult<()> {
+        println!("Tcp Connect: {}", server_port);
+        Ok(())
+    }
+
+    fn tcp_disconnect(&self) -> IfaceResult<()> {
+        println!("Tcp Disconnect");
+        Ok(())
+    }
+
+    fn tcp_join_room(&self, room: String, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        println!("Tcp Join Room {:?} at {}, {}, {}", room, x, y, z);
+        Ok(())
+    }
+    fn tcp_move(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        println!("Tcp move: {}, {}, {}", x, y, z);
         Ok(())
     }
 }

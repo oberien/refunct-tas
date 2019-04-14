@@ -154,3 +154,38 @@ impl From<(f32, f32, f32, f32)> for FLinearColor {
         FLinearColor::new(t.0, t.1, t.2, t.3)
     }
 }
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct FColor {
+    pub alpha: u8,
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+impl From<(u8, u8, u8)> for FColor {
+    fn from((red, green, blue): (u8, u8, u8)) -> Self {
+        FColor {
+            alpha: 255,
+            red,
+            green,
+            blue
+        }
+    }
+}
+
+impl From<(u8, u8, u8, u8)> for FColor {
+    fn from((alpha, red, green, blue): (u8, u8, u8, u8)) -> Self {
+        FColor { alpha, red, green, blue }
+    }
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+pub struct FQuat {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
+}

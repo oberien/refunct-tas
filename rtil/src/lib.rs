@@ -11,6 +11,7 @@ extern crate byteorder;
 extern crate lua;
 extern crate backtrace;
 extern crate failure;
+extern crate protocol;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate dynsym;

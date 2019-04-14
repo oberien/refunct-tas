@@ -5,6 +5,7 @@ mod lua;
 pub mod ue;
 
 use std::sync::mpsc;
+use native::AMyCharacter;
 
 pub fn start() {
     let (stream_lua_tx, stream_lua_rx) = mpsc::channel();
@@ -73,4 +74,5 @@ pub enum UeToLua {
     KeyDown(i32, u32, bool),
     KeyUp(i32, u32, bool),
     DrawHud,
+    AMyCharacterSpawned(AMyCharacter),
 }

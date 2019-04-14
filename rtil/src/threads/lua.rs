@@ -1,14 +1,18 @@
-use std::sync::mpsc::{Sender, Receiver, TryRecvError};
+use std::sync::mpsc::{self, Sender, Receiver, TryRecvError};
 use std::thread;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+use std::net::TcpStream;
+use std::io::{Write, Read};
 
 use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, RLua, LuaResult};
 use failure::Fail;
+use protocol::Message;
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
-use native::{AMyCharacter, FApp};
+use native::{AMyCharacter, FApp, UWorld, AMyHud};
+use std::hint::unreachable_unchecked;
 
 struct Tas {
     iface: Rc<GameInterface>,
@@ -27,6 +31,9 @@ pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStre
             config: RefCell::new(Config::default()),
             should_exit: RefCell::new(false),
             working_dir: RefCell::new(None),
+            tcp_stream: RefCell::new(None),
+            pawns: RefCell::new(HashMap::new()),
+            pawn_id: RefCell::new(0),
         });
         let mut tas = Tas {
             iface: iface.clone(),
@@ -98,6 +105,9 @@ pub struct GameInterface {
     config: RefCell<Config>,
     should_exit: RefCell<bool>,
     working_dir: RefCell<Option<String>>,
+    tcp_stream: RefCell<Option<(TcpStream, Receiver<Message>)>>,
+    pawns: RefCell<HashMap<u32, AMyCharacter>>,
+    pawn_id: RefCell<u32>,
 }
 
 impl GameInterface {
@@ -124,6 +134,7 @@ impl GameInterface {
                 StreamToLua::Stop => {
                     log!("Should Exit");
                     *self.should_exit.borrow_mut() = true;
+                    self.tcp_stream.borrow_mut().take();
                     return Err(IfaceError::ExitPlease);
                 }
             }
@@ -172,6 +183,23 @@ impl LuaInterface for GameInterface {
                 UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
                 UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat)?,
                 UeToLua::DrawHud => lua.draw_hud()?,
+                UeToLua::AMyCharacterSpawned(_) => unreachable!(),
+            }
+            loop {
+                if self.tcp_stream.borrow().is_none() {
+                    break;
+                }
+                match self.tcp_stream.borrow().as_ref().unwrap().1.try_recv() {
+                    Ok(Message::PlayerJoinedRoom(id, x, y, z)) => lua.tcp_joined(id, x, y, z)?,
+                    Ok(Message::PlayerLeftRoom(id)) => lua.tcp_left(id)?,
+                    Ok(Message::MoveOther(id, x, y, z)) => lua.tcp_moved(id, x, y, z)?,
+                    Ok(msg @ Message::JoinRoom(..))
+                    | Ok(msg @ Message::MoveSelf(..)) => {
+                        log!("got unexpected message from server, ignoring: {:?}", msg);
+                    }
+                    Err(TryRecvError::Disconnected) => drop(self.tcp_stream.borrow_mut().take()),
+                    Err(TryRecvError::Empty) => break,
+                }
             }
             // We aren't actually advancing a frame, but just returning from the
             // key event interceptor.
@@ -289,6 +317,11 @@ impl LuaInterface for GameInterface {
         Ok(())
     }
 
+    fn project(&self, x: f32, y: f32, z: f32) -> IfaceResult<(f32, f32, f32)> {
+        self.syscall()?;
+        Ok(AMyHud::project(x, y, z))
+    }
+
     fn print(&self, s: String) -> IfaceResult<()> {
         self.syscall()?;
         self.lua_stream_tx.send(LuaToStream::Print(s)).unwrap();
@@ -299,9 +332,81 @@ impl LuaInterface for GameInterface {
         Ok(self.working_dir.borrow().clone().unwrap())
     }
 
-    fn spawn_pawn(&self) -> IfaceResult<()> {
+    fn spawn_pawn(&self) -> IfaceResult<u32> {
         self.syscall()?;
         self.lua_ue_tx.send(LuaToUe::SpawnAMyCharacter).unwrap();
+        let my_character = match self.ue_lua_rx.recv().unwrap() {
+            UeToLua::AMyCharacterSpawned(c) => c,
+            _ => unreachable!(),
+        };
+        let id = *self.pawn_id.borrow();
+        *self.pawn_id.borrow_mut() += 1;
+        self.pawns.borrow_mut().insert(id, my_character);
+        Ok(id)
+    }
+
+    fn destroy_pawn(&self, pawn_id: u32) -> IfaceResult<()> {
+        let my_character = self.pawns.borrow_mut().remove(&pawn_id).expect("pawn_id not valid anymore");
+        UWorld::destroy_amycharaccter(my_character);
+        Ok(())
+    }
+
+    fn move_pawn(&self, pawn_id: u32, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        let mut borrow = self.pawns.borrow_mut();
+        let my_character = borrow.get_mut(&pawn_id).expect("pawn_id not valid");
+        my_character.set_location(x, y, z);
+        Ok(())
+    }
+
+    fn tcp_connect(&self, server_port: String) -> IfaceResult<()> {
+        self.syscall()?;
+        let stream = TcpStream::connect(server_port)
+            .expect("Could not connect to server");
+        let mut read = stream.try_clone().unwrap();
+        let (msg_tx, msg_rx) = mpsc::channel();
+        thread::spawn(move || {
+            loop {
+                let msg = Message::deserialize(&mut read).unwrap();
+                msg_tx.send(msg).unwrap();
+            }
+        });
+        *self.tcp_stream.borrow_mut() = Some((stream, msg_rx));
+        Ok(())
+    }
+
+    fn tcp_disconnect(&self) -> IfaceResult<()> {
+        self.syscall()?;
+        self.tcp_stream.borrow_mut().take();
+        Ok(())
+    }
+
+    fn tcp_join_room(&self, room: String, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        self.syscall()?;
+        if self.tcp_stream.borrow().is_none() {
+            log!("called join room without active tcp session");
+            // TODO: error propagation?
+            return Ok(());
+        }
+        let msg = Message::JoinRoom(room, x, y, z);
+        if let Err(e) = msg.serialize(&mut self.tcp_stream.borrow_mut().as_mut().unwrap().0) {
+            log!("error sending join room request: {:?}", e);
+            self.tcp_stream.borrow_mut().take();
+        }
+        Ok(())
+    }
+
+    fn tcp_move(&self, x: f32, y: f32, z: f32) -> IfaceResult<()> {
+        self.syscall()?;
+        if self.tcp_stream.borrow().is_none() {
+            log!("called move without active tcp session");
+            // TODO: error propagation?
+            return Ok(());
+        }
+        let msg = Message::MoveSelf(x, y, z);
+        if let Err(e) = msg.serialize(&mut self.tcp_stream.borrow_mut().as_mut().unwrap().0) {
+            log!("error sending join room request: {:?}", e);
+            self.tcp_stream.borrow_mut().take();
+        }
         Ok(())
     }
 }

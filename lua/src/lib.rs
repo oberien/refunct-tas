@@ -75,12 +75,15 @@ pub trait LuaInterface {
 
     fn draw_line(&self, startx: f32, starty: f32, endx: f32, endy: f32, color: (f32, f32, f32, f32), thickness: f32) -> IfaceResult<()>;
     fn draw_text(&self, text: String, color: (f32, f32, f32, f32), x: f32, y: f32, scale: f32, scale_position: bool) -> IfaceResult<()>;
+    fn project(&self, x: f32, y: f32, z: f32) -> IfaceResult<(f32, f32, f32)>;
 
     fn print(&self, s: String) -> IfaceResult<()>;
 
     fn working_dir(&self) -> IfaceResult<String>;
 
-    fn spawn_pawn(&self) -> IfaceResult<()>;
+    fn spawn_pawn(&self) -> IfaceResult<u32>;
+    fn destroy_pawn(&self, pawn_id: u32) -> IfaceResult<()>;
+    fn move_pawn(&self, pawn_id: u32, x: f32, y: f32, z: f32) -> IfaceResult<()>;
 
     // only Windows and Linux are supported
     fn is_windows(&self) -> IfaceResult<bool> {
@@ -89,6 +92,12 @@ pub trait LuaInterface {
     fn is_linux(&self) -> IfaceResult<bool> {
         Ok(!self.is_windows()?)
     }
+
+    fn tcp_connect(&self, server_port: String) -> IfaceResult<()>;
+    fn tcp_disconnect(&self) -> IfaceResult<()>;
+    /// joins or creates room
+    fn tcp_join_room(&self, room: String, x: f32, y: f32, z: f32) -> IfaceResult<()>;
+    fn tcp_move(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
 }
 
 struct Wrapper<T>(T);
@@ -108,7 +117,7 @@ impl<T> std::ops::DerefMut for Wrapper<T> {
 
 impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
     fn add_methods(methods: &mut UserDataMethods<Self>) {
-        methods.add_method("step", |lua, this, _: ()| {
+        methods.add_method("step", |lua, this, ()| {
             this.step(lua)
         });
         methods.add_method("press_key", |_, this, key: String| {
@@ -126,37 +135,37 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("move_mouse", |_, this, (x, y): (i32, i32)| {
             Ok(this.move_mouse(x, y)?)
         });
-        methods.add_method("get_delta", |_, this, _: ()| {
+        methods.add_method("get_delta", |_, this, ()| {
             Ok(this.get_delta()?)
         });
         methods.add_method("set_delta", |_, this, delta: f64| {
             Ok(this.set_delta(delta)?)
         });
-        methods.add_method("get_location", |_, this, _: ()| {
+        methods.add_method("get_location", |_, this, ()| {
             Ok(this.get_location()?)
         });
         methods.add_method("set_location", |_, this, (x, y, z): (f32, f32, f32)| {
             Ok(this.set_location(x, y, z)?)
         });
-        methods.add_method("get_rotation", |_, this, _: ()| {
+        methods.add_method("get_rotation", |_, this, ()| {
             Ok(this.get_rotation()?)
         });
         methods.add_method("set_rotation", |_, this, (pitch, yaw, roll): (f32, f32, f32)| {
             Ok(this.set_rotation(pitch, yaw, roll)?)
         });
-        methods.add_method("get_velocity", |_, this, _: ()| {
+        methods.add_method("get_velocity", |_, this, ()| {
             Ok(this.get_velocity()?)
         });
         methods.add_method("set_velocity", |_, this, (x, y, z): (f32, f32, f32)| {
             Ok(this.set_velocity(x, y, z)?)
         });
-        methods.add_method("get_acceleration", |_, this, _: ()| {
+        methods.add_method("get_acceleration", |_, this, ()| {
             Ok(this.get_acceleration()?)
         });
         methods.add_method("set_acceleration", |_, this, (x, y, z): (f32, f32, f32)| {
             Ok(this.set_acceleration(x, y, z)?)
         });
-        methods.add_method("wait_for_new_game", |lua, this, _: ()| {
+        methods.add_method("wait_for_new_game", |lua, this, ()| {
             this.wait_for_new_game(lua)
         });
 
@@ -166,24 +175,46 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("draw_text", |_, this, (text, red, green, blue, alpha, x, y, scale, scale_position): (String, f32, f32, f32, f32, f32, f32, f32, bool)| {
             Ok(this.draw_text(text, (red, green, blue, alpha), x, y, scale, scale_position)?)
         });
+        methods.add_method("project", |_, this, (x, y, z): (f32, f32, f32)| {
+            Ok(this.project(x, y, z)?)
+        });
 
         methods.add_method("print", |_, this, s: String| {
             Ok(this.print(s)?)
         });
 
-        methods.add_method("working_dir", |_, this, _: ()| {
+        methods.add_method("working_dir", |_, this, ()| {
             Ok(this.working_dir()?)
         });
 
-        methods.add_method("spawn_pawn", |_, this, _: ()| {
+        methods.add_method("spawn_pawn", |_, this, ()| {
             Ok(this.spawn_pawn()?)
         });
+        methods.add_method("spawn_pawn", |_, this, (pawn_id, x, y, z): (u32, f32, f32, f32)| {
+            Ok(this.move_pawn(pawn_id, x, y, z)?)
+        });
+        methods.add_method("destroy_pawn", |_, this, pawn_id: u32| {
+            Ok(this.destroy_pawn(pawn_id)?)
+        });
 
-        methods.add_method("is_windows", |_, this, _: ()| {
+        methods.add_method("is_windows", |_, this, ()| {
             Ok(this.is_windows()?)
         });
-        methods.add_method("is_linux", |_, this, _: ()| {
+        methods.add_method("is_linux", |_, this, ()| {
             Ok(this.is_linux()?)
+        });
+
+        methods.add_method("tcp_connect", |_, this, server_port: String| {
+            Ok(this.tcp_connect(server_port)?)
+        });
+        methods.add_method("tcp_disconnect", |_, this, ()| {
+            Ok(this.tcp_disconnect()?)
+        });
+        methods.add_method("tcp_join_room", |_, this, (room, x, y, z): (String, f32, f32, f32)| {
+            Ok(this.tcp_join_room(room, x, y, z)?)
+        });
+        methods.add_method("tcp_move", |_, this, (x, y, z): (f32, f32, f32)| {
+            Ok(this.tcp_move(x, y, z)?)
         });
     }
 }
@@ -192,6 +223,9 @@ pub trait LuaEvents {
     fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
     fn on_key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()>;
     fn draw_hud(&self) -> LuaResult<()>;
+    fn tcp_joined(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()>;
+    fn tcp_left(&self, id: u32) -> LuaResult<()>;
+    fn tcp_moved(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()>;
 }
 
 impl<T: LuaInterface + 'static> Lua<T> {
@@ -217,7 +251,7 @@ impl LuaEvents for RLua {
     fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()> {
         let fun: LuaResult<Function> = self.globals().get("onkeydown");
         if let Ok(fun) = fun {
-            let _: () = fun.call((key_code, character_code, is_repeat))?;
+            let () = fun.call((key_code, character_code, is_repeat))?;
         }
         Ok(())
     }
@@ -225,7 +259,7 @@ impl LuaEvents for RLua {
     fn on_key_up(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()> {
         let fun: LuaResult<Function> = self.globals().get("onkeyup");
         if let Ok(fun) = fun {
-            let _: () = fun.call((key_code, character_code, is_repeat))?;
+            let () = fun.call((key_code, character_code, is_repeat))?;
         }
         Ok(())
     }
@@ -233,7 +267,31 @@ impl LuaEvents for RLua {
     fn draw_hud(&self) -> LuaResult<()> {
         let fun: LuaResult<Function> = self.globals().get("drawhud");
         if let Ok(fun) = fun {
-            let _: () = fun.call(())?;
+            let () = fun.call(())?;
+        }
+        Ok(())
+    }
+
+    fn tcp_joined(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("tcpjoined");
+        if let Ok(fun) = fun {
+            let () = fun.call((id, x, y, z))?;
+        }
+        Ok(())
+    }
+
+    fn tcp_left(&self, id: u32) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("tcpleft");
+        if let Ok(fun) = fun {
+            let () = fun.call(id)?;
+        }
+        Ok(())
+    }
+
+    fn tcp_moved(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("tcpmoved");
+        if let Ok(fun) = fun {
+            let () = fun.call((id, x, y, z))?;
         }
         Ok(())
     }

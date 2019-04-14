@@ -1,0 +1,5 @@
+__press_key("jump")
+__release_key("jump")
+__step()
+--__press_key("menu")
+__step()

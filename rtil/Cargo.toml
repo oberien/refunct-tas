@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["oberien <jaro.fietz@gmx.de>"]
 
 [dependencies]
+protocol = { path = "../protocol" }
 lazy_static = "0.2.10"
 byteorder = "1.0.0"
 error-chain = "0.8.1"

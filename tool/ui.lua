@@ -122,4 +122,32 @@ function ui.drawlines(lines)
   end
 end
 
+function ui.draw3dcapsule(x, y, z)
+  local ax,ay,az = tas:project(x-50, y, z)
+  local bx,by,bz = tas:project(x+50, y, z)
+  local cx,cy,cz = tas:project(x-50, y, z+200)
+  local dx,dy,dz = tas:project(x+50, y, z+200)
+
+  local ex,ey,ez = tas:project(x, y-50, z)
+  local fx,fy,fz = tas:project(x, y+50, z)
+  local gx,gy,gz = tas:project(x, y-50, z+200)
+  local hx,hy,hz = tas:project(x, y+50, z+200 )
+
+  local function drawline(x1, y1, z1, x2, y2, z2)
+    if z1 > 0 and z2 > 0 then
+      tas:draw_line(x1, y1, x2, y2, 0, 0, 0, 1, 3)
+    end
+  end
+
+  drawline(ax, ay, az, bx, by, bz)
+  drawline(bx, by, bz, cx, cy, cz)
+  drawline(cx, cy, cz, dx, dy, dz)
+  drawline(dx, dy, dz, ax, ay, az)
+
+  drawline(ex, ey, ez, fx, fy, fz)
+  drawline(fx, fy, fz, gx, gy, gz)
+  drawline(gx, gy, gz, hx, hy, hz)
+  drawline(hx, hy, hz, ex, ey, ez)
+end
+
 return ui

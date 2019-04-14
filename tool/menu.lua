@@ -1,5 +1,6 @@
 require "prelude"
 require "teleportbutton-prelude"
+local mp = require "multiplayer"
 local record = require "record"
 local ui = require "ui"
 local KEYS = require "keys"
@@ -9,8 +10,9 @@ local STATES = {
   NONE = {},
   MENU = {},
   PRACTICE = {},
-  SETTINGS = {},
   LOAD_REPLAY = {},
+  MULTIPLAYER = {},
+  SETTINGS = {},
 }
 
 local state = STATES.FIRSTSTART
@@ -23,14 +25,16 @@ local function firststart()
 end
 
 local function menu()
-  local selected = ui.select({"Practice", "Load Replay", "Settings", "Back"});
+  local selected = ui.select({"Practice", "Load Replay", "Multiplayer", "Settings", "Back"});
   if selected == 1 then
     state = STATES.PRACTICE
   elseif selected == 2 then
     state = STATES.LOAD_REPLAY
   elseif selected == 3 then
+    state = STATES.MULTIPLAYER
+  elseif selected == 4 then
     state = STATES.SETTINGS
-  elseif selected == 4 or selected == nil then
+  elseif selected == 5 or selected == nil then
     state = STATES.NONE
   else
     error("invalid selection (internal error)")
@@ -90,6 +94,29 @@ local function loadreplay()
   end
 end
 
+local function multiplayer()
+  local selected = ui.select({"Join/Create Room", "Disconnect", "Back"})
+  if selected == 1 then
+    -- continue
+  elseif selected == 2 then
+    mp.disconnect()
+    state = STATES.MENU
+    return
+  else
+    state = STATES.MENU
+    return
+  end
+
+  local room = ui.input("Room name to join/create")
+  if room == "" or room == nil then
+    state = STATES.MENU
+    return
+  end
+  mp.connect()
+  mp.join(room)
+  state = STATES.MENU
+end
+
 local function settings()
   local selected = ui.select({
     "Font Scale (" .. ui.scale .. ")",
@@ -129,6 +156,9 @@ local function stats()
 end
 
 drawhud = function()
+  mp.draw()
+  ui.draw3dcapsule(0, 0, 0)
+
   if state == STATES.NONE then
     if drawstats then
       stats()
@@ -141,6 +171,8 @@ drawhud = function()
     practice()
   elseif state == STATES.LOAD_REPLAY then
     loadreplay()
+  elseif state == STATES.MULTIPLAYER then
+    multiplayer()
   elseif state == STATES.SETTINGS then
     settings()
   else

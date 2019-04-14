@@ -30,6 +30,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "UWORLD_DESTROYACTOR"),
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
+    ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
 ];
 
 fn main() {

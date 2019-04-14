@@ -69,28 +69,33 @@ impl UWorld {
             this: *const UWorld, class: *const UClass, location: *const FVector,
             rotation: *const FRotator, spawn_parameters: *const FActorSpawnParameters
         ) -> *mut AActor) = unsafe { ::std::mem::transmute(UWORLD_SPAWNACTOR) };
-        let this = unsafe { *(GWORLD as *const _)};
+        let this = Self::get_global();
         fun(this, class, location, rotation, spawn_parameters)
     }
     fn destroy_actor( actor: *const AActor, net_force: bool, should_modify_level: bool ) -> bool {
         let fun: extern_fn!(fn(
             this: *const UWorld, actor: *const AActor, net_force: bool, should_modify_level: bool
         ) -> c_int) = unsafe { ::std::mem::transmute(UWORLD_DESTROYACTOR) };
-        let this = unsafe { *(GWORLD as *const _)};
+        let this = Self::get_global();
         let res = fun(this, actor, net_force, should_modify_level);
         res != 0
     }
 
-    pub fn spawn_amycharacter() -> *const AMyCharacter {
-        let my_character = Self::spawn_actor(
+    pub(in native) fn get_global() -> *const UWorld {
+        unsafe { *(GWORLD as *const _)}
+    }
+
+    pub fn spawn_amycharacter() -> AMyCharacter {
+        let ptr = Self::spawn_actor(
             AMyCharacter::static_class(), &FVector { x: 0.0, y: 0.0, z: 0.0 },
             &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0}, &FActorSpawnParameters::default(),
-        ) as *const AMyCharacter;
-        APawn::spawn_default_controller(my_character as *const APawn);
+        ) as *mut AMyCharacter;
+        let my_character = unsafe { AMyCharacter::new(ptr) };
+        APawn::spawn_default_controller(my_character.as_raw() as *const APawn);
         my_character
     }
-    pub fn destroy_amycharaccter(my_character: *const AMyCharacter) {
-        let destroyed = Self::destroy_actor(my_character as *const AActor, false, true);
+    pub fn destroy_amycharaccter(my_character: AMyCharacter) {
+        let destroyed = Self::destroy_actor(my_character.as_raw() as *const AActor, false, true);
         assert!(destroyed, "amycharacter not destroyed");
     }
 }

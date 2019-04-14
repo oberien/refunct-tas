@@ -7,6 +7,7 @@ lazy_static! {
     static ref CHARACTER: Static<usize> = Static::new();
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct AMyCharacter(usize);
 
 impl AMyCharacter {
@@ -35,6 +36,14 @@ impl AMyCharacter {
     }
     fn movement_mut(&mut self) -> &mut UCharacterMovementComponent {
         unsafe { &mut *(*self.as_ue()).movement }
+    }
+
+    pub unsafe fn new(ptr: *mut AMyCharacter) -> AMyCharacter {
+        AMyCharacter(ptr as usize)
+    }
+
+    pub fn as_raw(&self) -> *mut AMyCharacter {
+        self.0 as *mut AMyCharacter
     }
 
     pub fn get_player() -> AMyCharacter {
