@@ -12,7 +12,7 @@ pub struct AMyCharacter(usize);
 
 impl AMyCharacter {
     pub(in native) fn static_class() -> *const UClass {
-        let fun: extern_fn!(fn() -> *const UClass)
+        let fun: extern "C" fn() -> *const UClass
             = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS) };
         fun()
     }
