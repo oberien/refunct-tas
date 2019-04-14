@@ -14,11 +14,11 @@ pub(in native) type UClass = c_void;
 #[derive(Debug)]
 #[repr(u8)]
 enum ESpawnActorCollisionHandlingMethod {
-	Undefined,
-	AlwaysSpawn,
-	AdjustIfPossibleButAlwaysSpawn,
-	AdjustIfPossibleButDontSpawnIfColliding,
-	DontSpawnIfColliding,
+    Undefined,
+    AlwaysSpawn,
+    AdjustIfPossibleButAlwaysSpawn,
+    AdjustIfPossibleButDontSpawnIfColliding,
+    DontSpawnIfColliding,
 }
 
 #[derive(Debug)]

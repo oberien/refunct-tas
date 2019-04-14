@@ -12,7 +12,6 @@ use protocol::Message;
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
 use native::{AMyCharacter, FApp, UWorld, AMyHud};
-use std::hint::unreachable_unchecked;
 
 struct Tas {
     iface: Rc<GameInterface>,

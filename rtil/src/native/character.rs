@@ -123,6 +123,6 @@ fn save(this: usize) {
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
-	log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
+    log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
 }

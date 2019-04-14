@@ -112,6 +112,7 @@ fn main() {
                     id
                 },
             };
+            eprintln!("connection from {:?} as {}", sock.peer_addr(), current_player_id);
             let current_player_room = Rc::new(RefCell::new(None));
 
             let (reader, writer) = sock.split();
@@ -133,7 +134,7 @@ fn main() {
                     free_ids.borrow_mut().push_back(current_player_id);
                     match res {
                         Ok(_) => eprintln!("No idea how I got here (client stopped with Ok)"),
-                        Err((e, _)) => eprintln!("Client ceased existence: {:?}", e),
+                        Err((e, _)) => eprintln!("Client {} ceased existence: {:?}", current_player_id, e),
                     }
                     Ok(())
                 });
@@ -178,6 +179,7 @@ fn receive(
                 };
                 match msg {
                     Message::JoinRoom(room, x, y, z) => {
+                        eprintln!("{} joined {:?}", current_player_id, room);
                         let mut rooms = rooms.borrow_mut();
 
                         let old = mem::replace(&mut *current_player_room.borrow_mut(), Some(room.clone()));

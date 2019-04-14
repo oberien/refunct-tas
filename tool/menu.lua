@@ -157,7 +157,6 @@ end
 
 drawhud = function()
   mp.draw()
-  ui.draw3dcapsule(0, 0, 0)
 
   if state == STATES.NONE then
     if drawstats then

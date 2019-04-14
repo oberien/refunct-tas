@@ -25,7 +25,7 @@ function multiplayer.join(room)
     return
   end
   local x,y,z = getlocation()
-  tas:tcp_join(room, x,y,z)
+  tas:tcp_join_room(room, x,y,z)
   _G.tcpjoined = function(id, x, y, z)
     local pawn_id = tas:spawn_pawn()
     tas:move_pawn(pawn_id, x, y, z);
