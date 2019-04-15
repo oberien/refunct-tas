@@ -9,7 +9,7 @@ use tokio::prelude::{Future, Stream, Sink};
 use tokio::runtime::current_thread;
 use tokio::net::TcpListener;
 use tokio::codec::{Encoder, Decoder};
-use bytes::{BytesMut, BufMut};
+use bytes::BytesMut;
 use protocol::{Message, PlayerId};
 
 struct Room {
@@ -93,7 +93,13 @@ impl Rooms {
     }
 }
 
-struct Codec;
+struct Codec(Vec<u8>);
+
+impl Codec {
+    pub fn new() -> Codec {
+        Codec(Vec::with_capacity(100))
+    }
+}
 
 impl Decoder for Codec {
     type Item = Message;
@@ -118,7 +124,9 @@ impl Encoder for Codec {
     type Error = Error;
 
     fn encode(&mut self, item: Self::Item, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        item.serialize(dst.writer()).unwrap();
+        self.0.clear();
+        item.serialize(&mut self.0).unwrap();
+        dst.extend_from_slice(&self.0);
         Ok(())
     }
 }
@@ -146,7 +154,7 @@ fn main() {
             eprintln!("connection from {:?} as {}", sock.peer_addr(), current_player_id);
             let current_player_room = Rc::new(RefCell::new(None));
 
-            let framed = Codec.framed(sock);
+            let framed = Codec::new().framed(sock);
             let (writer, reader) = framed.split();
             let (tx, rx) = mpsc::unbounded();
 
