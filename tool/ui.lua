@@ -123,6 +123,7 @@ function ui.drawlines(lines)
 end
 
 function ui.draw3dcapsule(x, y, z)
+  z = z - 100;
   local ax,ay,az = tas:project(x-50, y, z)
   local bx,by,bz = tas:project(x+50, y, z)
   local cx,cy,cz = tas:project(x-50, y, z+200)
