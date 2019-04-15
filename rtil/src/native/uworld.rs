@@ -87,15 +87,15 @@ impl UWorld {
 
     pub fn spawn_amycharacter() -> AMyCharacter {
         let ptr = Self::spawn_actor(
-            AMyCharacter::static_class(), &FVector { x: 0.0, y: 0.0, z: 0.0 },
+            AMyCharacter::static_class(), &FVector { x: -500.0, y: -1125.0, z: 90.0 },
             &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0}, &FActorSpawnParameters::default(),
         ) as *mut AMyCharacter;
         let my_character = unsafe { AMyCharacter::new(ptr) };
-        APawn::spawn_default_controller(my_character.as_raw() as *const APawn);
+        APawn::spawn_default_controller(my_character.as_ptr() as *const APawn);
         my_character
     }
     pub fn destroy_amycharaccter(my_character: AMyCharacter) {
-        let destroyed = Self::destroy_actor(my_character.as_raw() as *const AActor, false, true);
+        let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, false, true);
         assert!(destroyed, "amycharacter not destroyed");
     }
 }

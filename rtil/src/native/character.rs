@@ -14,7 +14,8 @@ impl AMyCharacter {
     pub(in native) fn static_class() -> *const UClass {
         let fun: extern "C" fn() -> *const UClass
             = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS) };
-        fun()
+        let res = fun();
+        res
     }
     fn as_ue(&self) -> *mut AMyCharacterUE {
         self.0 as *mut AMyCharacterUE
@@ -42,7 +43,7 @@ impl AMyCharacter {
         AMyCharacter(ptr as usize)
     }
 
-    pub fn as_raw(&self) -> *mut AMyCharacter {
+    pub fn as_ptr(&self) -> *mut AMyCharacter {
         self.0 as *mut AMyCharacter
     }
 

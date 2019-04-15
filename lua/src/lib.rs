@@ -190,7 +190,7 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("spawn_pawn", |_, this, ()| {
             Ok(this.spawn_pawn()?)
         });
-        methods.add_method("spawn_pawn", |_, this, (pawn_id, x, y, z): (u32, f32, f32, f32)| {
+        methods.add_method("move_pawn", |_, this, (pawn_id, x, y, z): (u32, f32, f32, f32)| {
             Ok(this.move_pawn(pawn_id, x, y, z)?)
         });
         methods.add_method("destroy_pawn", |_, this, pawn_id: u32| {

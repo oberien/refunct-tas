@@ -27,11 +27,13 @@ function multiplayer.join(room)
   local x,y,z = getlocation()
   tas:tcp_join_room(room, x,y,z)
   _G.tcpjoined = function(id, x, y, z)
+    print("tcpjoined", id, x, y, z)
     local pawn_id = tas:spawn_pawn()
-    tas:move_pawn(pawn_id, x, y, z);
+    tas:move_pawn(pawn_id, x, y, z)
     players[id] = {pawn_id, x, y, z}
   end
   _G.tcpleft = function(id)
+    print("tcpleft", id)
     tas:destroy_pawn(players[id][1])
     players[id] = nil
   end
@@ -47,8 +49,8 @@ function multiplayer.draw()
   if not connected then
     return
   end
-  local x,y,z = getlocation();
-  tas:tcp_move(x, y, z);
+  local x,y,z = getlocation()
+  tas:tcp_move(x, y, z)
   for _,v in pairs(players) do
     local x,y,z = v[2], v[3], v[4]
     ui.draw3dcapsule(x, y, z)

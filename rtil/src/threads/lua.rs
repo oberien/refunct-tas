@@ -334,7 +334,8 @@ impl LuaInterface for GameInterface {
     fn spawn_pawn(&self) -> IfaceResult<u32> {
         self.syscall()?;
         self.lua_ue_tx.send(LuaToUe::SpawnAMyCharacter).unwrap();
-        let my_character = match self.ue_lua_rx.recv().unwrap() {
+        let spawned = self.ue_lua_rx.recv().unwrap();
+        let my_character = match spawned {
             UeToLua::AMyCharacterSpawned(c) => c,
             _ => unreachable!(),
         };
