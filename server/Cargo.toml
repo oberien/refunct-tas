@@ -8,3 +8,4 @@ edition = "2018"
 protocol = { path = "../protocol" }
 tokio = "0.1.18"
 futures = "0.1.26"
+bytes = "0.4.12"

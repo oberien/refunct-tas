@@ -5,10 +5,11 @@ use std::io::{Cursor, Error, ErrorKind};
 use std::mem;
 
 use futures::unsync::{mpsc, mpsc::UnboundedSender, mpsc::UnboundedReceiver};
-use tokio::prelude::{Future, Stream, future, future::Loop, AsyncWrite};
+use tokio::prelude::{Future, Stream, Sink};
 use tokio::runtime::current_thread;
 use tokio::net::TcpListener;
-use tokio::io::{self, AsyncRead};
+use tokio::codec::{Encoder, Decoder};
+use bytes::{BytesMut, BufMut};
 use protocol::{Message, PlayerId};
 
 struct Room {
@@ -92,6 +93,36 @@ impl Rooms {
     }
 }
 
+struct Codec;
+
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = Error;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        let mut cursor = Cursor::new(src.as_ref());
+        match Message::deserialize(&mut cursor) {
+            Ok(msg) => {
+                let consumed = cursor.position();
+                src.split_to(consumed as usize);
+                Ok(Some(msg))
+            },
+            Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => Ok(None),
+            Err(_) => unreachable!(),
+        }
+    }
+}
+
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = Error;
+
+    fn encode(&mut self, item: Self::Item, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        item.serialize(dst.writer()).unwrap();
+        Ok(())
+    }
+}
+
 fn main() {
     let rooms = Rc::new(RefCell::new(Rooms::new()));
     let free_ids = Rc::new(RefCell::new(VecDeque::new()));
@@ -115,7 +146,8 @@ fn main() {
             eprintln!("connection from {:?} as {}", sock.peer_addr(), current_player_id);
             let current_player_room = Rc::new(RefCell::new(None));
 
-            let (reader, writer) = sock.split();
+            let framed = Codec.framed(sock);
+            let (writer, reader) = framed.split();
             let (tx, rx) = mpsc::unbounded();
 
             let receive = receive(
@@ -145,67 +177,48 @@ fn main() {
 }
 
 fn send(
-    writer: impl AsyncWrite, rx: UnboundedReceiver<Message>
+    writer: impl Sink<SinkItem = Message, SinkError = Error>, rx: UnboundedReceiver<Message>
 ) -> impl Future<Item = (), Error = Error> {
-    rx.map_err(|()| Error::new(ErrorKind::BrokenPipe, "rx broke"))
-    .fold((writer, Vec::with_capacity(100)), |(writer, mut vec), msg| {
-        vec.clear();
-        msg.serialize(&mut vec).unwrap();
-        io::write_all(writer, vec)
-    }).map(|_| eprintln!("ended send without error???"))
+    // gif never_type already!!!
+    rx.map_err(|()| unreachable!())
+        .forward(writer)
+        .map(|_| eprintln!("ended send without error???"))
 }
 
 fn receive(
-    reader: impl AsyncRead, current_player_id: PlayerId, tx: UnboundedSender<Message>,
-    rooms: Rc<RefCell<Rooms>>, current_player_room: Rc<RefCell<Option<String>>>,
+    reader: impl Stream<Item = Message, Error = Error>, current_player_id: PlayerId,
+    tx: UnboundedSender<Message>, rooms: Rc<RefCell<Rooms>>,
+    current_player_room: Rc<RefCell<Option<String>>>,
 ) -> impl Future<Item = (), Error = Error> {
-    future::loop_fn((reader, Vec::with_capacity(100)), move |(reader, vec)| {
-        let rooms = Rc::clone(&rooms);
-        let current_player_room = Rc::clone(&current_player_room);
-        let tx = tx.clone();
-        io::read(reader, vec).and_then(move |(reader, vec, _len)| {
-            let mut cursor = Cursor::new(vec);
-            loop {
-                let msg = match Message::deserialize(&mut cursor) {
-                    Ok(msg) => msg,
-                    // we need to read more
-                    Err(ref e) if e.kind() == ErrorKind::UnexpectedEof => {
-                        let consumed = cursor.position() as usize;
-                        let mut vec = cursor.into_inner();
-                        vec.drain(..consumed);
-                        return Ok(Loop::Continue((reader, vec)));
-                    },
-                    Err(e) => Err(e)?,
-                };
-                match msg {
-                    Message::JoinRoom(room, x, y, z) => {
-                        eprintln!("{} joined {:?}", current_player_id, room);
-                        let mut rooms = rooms.borrow_mut();
+    reader.for_each(move |msg| {
+        match msg {
+            Message::JoinRoom(room, x, y, z) => {
+                eprintln!("{} joined {:?}", current_player_id, room);
+                let mut rooms = rooms.borrow_mut();
 
-                        let old = mem::replace(&mut *current_player_room.borrow_mut(), Some(room.clone()));
-                        if let Some(old) = old {
-                            rooms.leave(&old, current_player_id);
-                        }
-
-                        rooms.join(room, x, y, z, current_player_id, tx.clone());
-                    },
-                    Message::MoveSelf(x, y, z) => {
-                        let current_player_room = current_player_room.borrow();
-                        let room = match &*current_player_room {
-                            Some(room) => room,
-                            None => return Err(Error::new(ErrorKind::InvalidInput, "client moved before being in room")),
-                        };
-                        rooms.borrow_mut().update_position(room, current_player_id, x, y, z);
-                        let msg = Message::MoveOther(current_player_id, x, y, z);
-                        rooms.borrow().send_others(room, current_player_id, msg);
-                    },
-                    Message::PlayerJoinedRoom(..)
-                    | Message::PlayerLeftRoom(_)
-                    | Message::MoveOther(..) => {
-                        return Err(Error::new(ErrorKind::InvalidInput, format!("client sent invalid message: {:?}", msg)));
-                    },
+                let old = mem::replace(&mut *current_player_room.borrow_mut(), Some(room.clone()));
+                if let Some(old) = old {
+                    rooms.leave(&old, current_player_id);
                 }
-            }
-        })
+
+                rooms.join(room, x, y, z, current_player_id, tx.clone());
+            },
+            Message::MoveSelf(x, y, z) => {
+                let current_player_room = current_player_room.borrow();
+                let room = match &*current_player_room {
+                    Some(room) => room,
+                    None => return Err(Error::new(ErrorKind::InvalidInput, "client moved before being in room")),
+                };
+                rooms.borrow_mut().update_position(room, current_player_id, x, y, z);
+                let msg = Message::MoveOther(current_player_id, x, y, z);
+                rooms.borrow().send_others(room, current_player_id, msg);
+            },
+            Message::PlayerJoinedRoom(..)
+            | Message::PlayerLeftRoom(_)
+            | Message::MoveOther(..) => {
+                return Err(Error::new(ErrorKind::InvalidInput, format!("client sent invalid message: {:?}", msg)));
+            },
+        }
+        Ok(())
     })
 }

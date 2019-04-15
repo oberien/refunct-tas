@@ -400,6 +400,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "protocol 0.1.0",
  "tokio 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
