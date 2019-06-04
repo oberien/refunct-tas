@@ -1,7 +1,8 @@
-use std::sync::mpsc::{self, Sender, Receiver, TryRecvError};
 use std::net::TcpListener;
 use std::io::Write;
 use std::thread::{self, JoinHandle};
+
+use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
 use threads::{stream_read, stream_write, StreamToListener, StreamToLua, LuaToStream, ListenerToStream};
 use error::*;
@@ -10,9 +11,9 @@ pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStre
     let listener = TcpListener::bind("localhost:21337")?;
     let mut stream_lua_tx = Some(stream_lua_tx);
     let mut lua_stream_rx = Some(lua_stream_rx);
-    let (mut listener_stream_tx, listener_stream_rx) = mpsc::channel();
+    let (mut listener_stream_tx, listener_stream_rx) = crossbeam_channel::unbounded();
     let mut listener_stream_rx = Some(listener_stream_rx);
-    let (stream_listener_tx, mut stream_listener_rx) = mpsc::channel();
+    let (stream_listener_tx, mut stream_listener_rx) = crossbeam_channel::unbounded();
     let mut stream_listener_tx = Some(stream_listener_tx);
 
     thread::spawn(move || {
@@ -43,10 +44,10 @@ pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStre
                 // Stream_write could have tried to write to TcpStream and failed, thus already died.
                 let _ = listener_stream_tx.send(ListenerToStream::KillYourself);
                 lua_stream_rx = Some(stream_write_thread.unwrap().join().unwrap());
-                let (tx, rx) = mpsc::channel();
+                let (tx, rx) = crossbeam_channel::unbounded();
                 listener_stream_tx = tx;
                 listener_stream_rx = Some(rx);
-                let (tx, rx) = mpsc::channel();
+                let (tx, rx) = crossbeam_channel::unbounded();
                 stream_listener_tx = Some(tx);
                 stream_listener_rx = rx;
             }

@@ -1,7 +1,6 @@
 #![feature(asm)]
 #![feature(core_intrinsics)]
 #![feature(naked_functions)]
-#![feature(mpsc_select)]
 #![feature(abi_thiscall)]
 #![feature(stmt_expr_attributes)]
 
@@ -12,6 +11,7 @@ extern crate lua;
 extern crate backtrace;
 extern crate failure;
 extern crate protocol;
+extern crate crossbeam_channel;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate dynsym;

@@ -4,14 +4,13 @@ mod stream_write;
 mod lua;
 pub mod ue;
 
-use std::sync::mpsc;
 use native::AMyCharacter;
 
 pub fn start() {
-    let (stream_lua_tx, stream_lua_rx) = mpsc::channel();
-    let (lua_stream_tx, lua_stream_rx) = mpsc::channel();
-    let (lua_ue_tx, lua_ue_rx) = mpsc::channel();
-    let (ue_lua_tx, ue_lua_rx) = mpsc::channel();
+    let (stream_lua_tx, stream_lua_rx) = crossbeam_channel::unbounded();
+    let (lua_stream_tx, lua_stream_rx) = crossbeam_channel::unbounded();
+    let (lua_ue_tx, lua_ue_rx) = crossbeam_channel::unbounded();
+    let (ue_lua_tx, ue_lua_rx) = crossbeam_channel::unbounded();
     listener::run(stream_lua_tx, lua_stream_rx).unwrap();
     lua::run(stream_lua_rx, lua_stream_tx, lua_ue_tx, ue_lua_rx);
     ue::run(lua_ue_rx, ue_lua_tx);

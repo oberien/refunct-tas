@@ -1,4 +1,3 @@
-use std::sync::mpsc::{self, Sender, Receiver, TryRecvError};
 use std::thread;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -9,6 +8,7 @@ use std::io::{Write, Read};
 use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, RLua, LuaResult};
 use failure::Fail;
 use protocol::Message;
+use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
 use native::{AMyCharacter, FApp, UWorld, AMyHud};
@@ -363,7 +363,7 @@ impl LuaInterface for GameInterface {
         let stream = TcpStream::connect(server_port)
             .expect("Could not connect to server");
         let mut read = stream.try_clone().unwrap();
-        let (msg_tx, msg_rx) = mpsc::channel();
+        let (msg_tx, msg_rx) = crossbeam_channel::unbounded();
         thread::spawn(move || {
             loop {
                 let msg = Message::deserialize(&mut read).unwrap();

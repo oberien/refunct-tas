@@ -1,9 +1,9 @@
-use std::sync::mpsc::Sender;
 use std::net::TcpStream;
 use std::io::{Read, Write};
 use std::thread::{self, JoinHandle};
 
 use byteorder::{ReadBytesExt, LittleEndian};
+use crossbeam_channel::Sender;
 
 use threads::{StreamToListener, StreamToLua, Config};
 use error::*;

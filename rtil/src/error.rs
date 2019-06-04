@@ -1,7 +1,7 @@
 error_chain! {
     foreign_links {
         Io(::std::io::Error);
-        Recv(::std::sync::mpsc::RecvError);
+        Recv(::crossbeam_channel::RecvError);
         FromUtf8(::std::string::FromUtf8Error);
     }
 }

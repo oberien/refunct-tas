@@ -1,9 +1,9 @@
-use std::sync::mpsc::Receiver;
 use std::net::TcpStream;
 use std::io::Write;
 use std::thread::{self, JoinHandle};
 
 use byteorder::{WriteBytesExt, LittleEndian};
+use crossbeam_channel::{select, Receiver};
 
 use threads::{ListenerToStream, LuaToStream};
 use error::*;
@@ -39,7 +39,7 @@ impl StreamWrite {
         let lua_stream_rx = &self.lua_stream_rx;
         let listener_stream_rx = &self.listener_stream_rx;
         select! {
-            res = lua_stream_rx.recv() => match res.unwrap() {
+            recv(lua_stream_rx) -> res => match res.unwrap() {
                 LuaToStream::Print(s) => {
                     self.con.write_u8(0)?;
                     self.con.write_u32::<LittleEndian>(s.len() as u32)?;
@@ -50,7 +50,7 @@ impl StreamWrite {
                     self.con.write_u8(1)?;
                 }
             },
-            res = listener_stream_rx.recv() => match res.unwrap() {
+            recv(listener_stream_rx) -> res => match res.unwrap() {
                 ListenerToStream::KillYourself => return Err("We should kill ourselves".into())
             }
         }

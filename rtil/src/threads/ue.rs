@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Sender, Receiver, TryRecvError};
+use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
 use statics::Static;
 use threads::{UeToLua, LuaToUe};

@@ -12,6 +12,7 @@ backtrace = "0.3"
 lua = { path = "../lua" }
 failure = "0.1"
 rtil_derive = { path = "../rtil_derive" }
+crossbeam-channel = "0.3.8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"
