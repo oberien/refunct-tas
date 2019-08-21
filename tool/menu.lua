@@ -133,7 +133,7 @@ local function settings()
     end
     ui.scale = scale
   elseif selected == 2 then
-    drawstats = true
+    drawstats = not drawstats
   elseif selected == 3 or selected == nil then
     state = STATES.MENU
   else
