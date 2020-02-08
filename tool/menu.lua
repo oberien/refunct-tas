@@ -47,6 +47,37 @@ local function practice()
   end
   local selected = ui.select({
     "None" .. sel(nil) ,
+    "Button 2" .. sel(button2),
+    "Button 3" .. sel(button3),
+    "Button 4" .. sel(button4),
+    "Button 5" .. sel(button5),
+    "Button 6" .. sel(button6),
+    "Button 7" .. sel(button7),
+    "Button 8" .. sel(button8),
+    "Button 9" .. sel(button9),
+    "Button 10" .. sel(button10),
+    "Button 11" .. sel(button11),
+    "Button 12" .. sel(button12),
+    "Button 13" .. sel(button13),
+    "Button 14" .. sel(button14),
+    "Button 15" .. sel(button15),
+    "Button 16" .. sel(button16),
+    "Button 17" .. sel(button17),
+    "Button 18" .. sel(button18),
+    "Button 19" .. sel(button19),
+    "Button 20" .. sel(button20),
+    "Button 21" .. sel(button21),
+    "Button 22" .. sel(button22),
+    "Button 23" .. sel(button23),
+    "Button 24" .. sel(button24),
+    "Button 25" .. sel(button25),
+    "Button 26" .. sel(button26),
+    "Button 27" .. sel(button27),
+    "Button 28" .. sel(button28),
+    "Button 29" .. sel(button29),
+    "Button 30" .. sel(button30),
+    "Button 31" .. sel(button31),
+    "Button 32" .. sel(button32),
     "Dive Skip" .. sel(dive),
     "LoF & Spiral Skip" .. sel(spiral),
     "Final Climb / Hdnoftr" .. sel(finalclimb),
@@ -59,16 +90,47 @@ local function practice()
     "Back"
   })
   if selected == 1 then practicefunction = nil
-  elseif selected == 2 then practicefunction = dive
-  elseif selected == 3 then practicefunction = spiral
-  elseif selected == 4 then practicefunction = finalclimb
-  elseif selected == 5 then practicefunction = lsjump
-  elseif selected == 6 then practicefunction = pit
-  elseif selected == 7 then practicefunction = pillars
-  elseif selected == 8 then practicefunction = firstele
-  elseif selected == 9 then practicefunction = sixteen
-  elseif selected == 10 then practicefunction = spiralslide
-  elseif selected == 11 or selected == nil then
+  elseif selected == 2 then practicefunction = button2
+  elseif selected == 3 then practicefunction = button3
+  elseif selected == 4 then practicefunction = button4
+  elseif selected == 5 then practicefunction = button5
+  elseif selected == 6 then practicefunction = button6
+  elseif selected == 7 then practicefunction = button7
+  elseif selected == 8 then practicefunction = button8
+  elseif selected == 9 then practicefunction = button9
+  elseif selected == 10 then practicefunction = button10
+  elseif selected == 11 then practicefunction = button11
+  elseif selected == 12 then practicefunction = button12
+  elseif selected == 13 then practicefunction = button13
+  elseif selected == 14 then practicefunction = button14
+  elseif selected == 15 then practicefunction = button15
+  elseif selected == 16 then practicefunction = button16
+  elseif selected == 17 then practicefunction = button17
+  elseif selected == 18 then practicefunction = button18
+  elseif selected == 19 then practicefunction = button19
+  elseif selected == 20 then practicefunction = button20
+  elseif selected == 21 then practicefunction = button21
+  elseif selected == 22 then practicefunction = button22
+  elseif selected == 23 then practicefunction = button23
+  elseif selected == 24 then practicefunction = button24
+  elseif selected == 25 then practicefunction = button25
+  elseif selected == 26 then practicefunction = button26
+  elseif selected == 27 then practicefunction = button27
+  elseif selected == 28 then practicefunction = button28
+  elseif selected == 29 then practicefunction = button29
+  elseif selected == 30 then practicefunction = button30
+  elseif selected == 31 then practicefunction = button31
+  elseif selected == 32 then practicefunction = button32
+  elseif selected == 33 then practicefunction = dive
+  elseif selected == 34 then practicefunction = spiral
+  elseif selected == 35 then practicefunction = finalclimb
+  elseif selected == 36 then practicefunction = lsjump
+  elseif selected == 37 then practicefunction = pit
+  elseif selected == 38 then practicefunction = pillars
+  elseif selected == 39 then practicefunction = firstele
+  elseif selected == 40 then practicefunction = sixteen
+  elseif selected == 41 then practicefunction = spiralslide
+  elseif selected == 42 or selected == nil then
     state = STATES.MENU
   else
     error("invalid selection (internal error)")
@@ -133,7 +195,7 @@ local function settings()
     end
     ui.scale = scale
   elseif selected == 2 then
-    drawstats = not drawstats
+    drawstats = true
   elseif selected == 3 or selected == nil then
     state = STATES.MENU
   else
@@ -224,7 +286,100 @@ function tp_to(button, rotation, location, waittime)
 end
 
 function spiral()
-  tp_to(18, {0,0,0}, {-1065, -3842, 464})
+  tp_to(18, {45.00,45.00,45.00}, {-1065, -3842, 464})
+end
+function button2()
+  tp_to(1, {327.65,135.33,0}, {-1037.57, -955.68, 732.16})
+end
+function button3()
+  tp_to(2, {344.88,359.73,0}, {-1904.85, -8.17, 857.28})
+end
+function button4()
+  tp_to(3, {338.98,187.46,0}, {2074.04, -260.32, 1107.16})
+end
+function button5()
+  tp_to(4, {340.15,179.73,0}, {-2728.39, -837.92, 193.16})
+end
+function button6()
+  tp_to(5, {337.15,333.42,0}, {-4891.93, -892.98, 857.16})
+end
+function button7()
+  tp_to(6, {305.20,204.11,0}, {-3241.14, -2295.33, 1607.15})
+end
+function button8()
+  tp_to(7, {340.17,357.06,0}, {-4663.23, -3636.14, 107.16})
+end
+function button9()
+  tp_to(8, {339.01,0.22,0}, {-2827.18, -3767.32, 1607.25})
+end
+function button10()
+  tp_to(9, {320.00,89.51,0}, {-648.95, -3328.46, 1607.16})
+end
+function button11()
+  tp_to(10, {343.86,92,0}, {1950, -2312.88, 232.16})
+end
+function button12()
+  tp_to(11, {355.37,90.26,0}, {1910.94, 859.68, 239.98})
+end
+function button13()
+  tp_to(12, {344.65,90.26,0}, {2382.06, -431.27, 107.16})
+end
+function button14()
+  tp_to(13, {346.40,169.93,0}, {607.75, 2504.56, 228.53})
+end
+function button15()
+  tp_to(14, {0.90,298.41,0}, {-865.92, 2487.93, 232.35})
+end
+function button16()
+  tp_to(15, {339.76,301.56,0}, {-465.44, 1604.85, 732.16})
+end
+function button17()
+  tp_to(16, {328.47,339.28,0}, {-2652.97, 1453.47, 857.21})
+end
+function button18()
+  tp_to(17, {325.51,231.20,0}, {-1895.30, 1134.02, 1107.64})
+end
+function button19()
+  tp_to(18, {340.55,357.75,0}, {-4147.88, -4007.69, 1607.26})
+end
+function button20()
+  tp_to(19, {334.01,30.91,0}, {2026.23, -3783.01, 1232.17})
+end
+function button21()
+  tp_to(20, {332.07,232.09,0}, {4226, -2202.19, 1107.16})
+end
+function button22()
+  tp_to(21, {355.22,70.25,0}, {2737, -4020.95, 68.16})
+end
+function button23()
+  tp_to(22, {352.48,99.27,0}, {3034.37, -985.16, 232.30})
+end
+function button24()
+  tp_to(23, {341.05,140.52,0}, {2412.56, 2271.34, 607.15})
+end
+function button25()
+  tp_to(24, {318.08,358.64,0}, {492.67, 4725.55, 1355.44})
+end
+function button26()
+  tp_to(25, {338.07,135.37,0}, {4477.55, 4711.60, 232.16})
+end
+function button27()
+  tp_to(26, {331.94,257.52,0}, {-883.96, 5552.63, 232.16})
+end
+function button28()
+  tp_to(27, {344.67,228.22,0}, {-1411.66, 2970.87, 982.16})
+end
+function button29()
+  tp_to(28, {342.90,13.59,0}, {-5176.97, -222.32, 1357.16})
+end
+function button30()
+  tp_to(29, {345.10,247.02,0}, {4846.33, 2449.16, 607.32})
+end
+function button31()
+  tp_to(30, {350.36,243.57,0}, {3740.51, -534.68, 318.16})
+end
+function button32()
+  tp_to(31, {300.36,107.72,0}, {2617.49, -2265.24, 1357.16})
 end
 function dive()
   tp_to(8, {0,0,0}, {-1065, -3842, 464}, 5)
