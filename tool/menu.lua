@@ -47,6 +47,15 @@ local function practice()
   end
   local selected = ui.select({
     "None" .. sel(nil) ,
+    "Dive Skip" .. sel(dive),
+    "LoF & Spiral Skip" .. sel(spiral),
+    "Final Climb / Hdnoftr" .. sel(finalclimb),
+    "Ls Jump" .. sel(lsjump),
+    "Pit" .. sel(pit),
+    "Pillars" .. sel(pillars),
+    "5 Turn & 6 Elevator" .. sel(firstele),
+    "16" .. sel(sixteen),
+    "21" .. sel(spiralslide),
     "Button 2" .. sel(button2),
     "Button 3" .. sel(button3),
     "Button 4" .. sel(button4),
@@ -78,60 +87,51 @@ local function practice()
     "Button 30" .. sel(button30),
     "Button 31" .. sel(button31),
     "Button 32" .. sel(button32),
-    "Dive Skip" .. sel(dive),
-    "LoF & Spiral Skip" .. sel(spiral),
-    "Final Climb / Hdnoftr" .. sel(finalclimb),
-    "Ls Jump" .. sel(lsjump),
-    "Pit" .. sel(pit),
-    "Pillars" .. sel(pillars),
-    "5 Turn & 6 Elevator" .. sel(firstele),
-    "16" .. sel(sixteen),
-    "21" .. sel(spiralslide),
     "Back"
   })
   if selected == 1 then practicefunction = nil
-  elseif selected == 2 then practicefunction = button2
-  elseif selected == 3 then practicefunction = button3
-  elseif selected == 4 then practicefunction = button4
-  elseif selected == 5 then practicefunction = button5
-  elseif selected == 6 then practicefunction = button6
-  elseif selected == 7 then practicefunction = button7
-  elseif selected == 8 then practicefunction = button8
-  elseif selected == 9 then practicefunction = button9
-  elseif selected == 10 then practicefunction = button10
-  elseif selected == 11 then practicefunction = button11
-  elseif selected == 12 then practicefunction = button12
-  elseif selected == 13 then practicefunction = button13
-  elseif selected == 14 then practicefunction = button14
-  elseif selected == 15 then practicefunction = button15
-  elseif selected == 16 then practicefunction = button16
-  elseif selected == 17 then practicefunction = button17
-  elseif selected == 18 then practicefunction = button18
-  elseif selected == 19 then practicefunction = button19
-  elseif selected == 20 then practicefunction = button20
-  elseif selected == 21 then practicefunction = button21
-  elseif selected == 22 then practicefunction = button22
-  elseif selected == 23 then practicefunction = button23
-  elseif selected == 24 then practicefunction = button24
-  elseif selected == 25 then practicefunction = button25
-  elseif selected == 26 then practicefunction = button26
-  elseif selected == 27 then practicefunction = button27
-  elseif selected == 28 then practicefunction = button28
-  elseif selected == 29 then practicefunction = button29
-  elseif selected == 30 then practicefunction = button30
-  elseif selected == 31 then practicefunction = button31
-  elseif selected == 32 then practicefunction = button32
-  elseif selected == 33 then practicefunction = dive
-  elseif selected == 34 then practicefunction = spiral
-  elseif selected == 35 then practicefunction = finalclimb
-  elseif selected == 36 then practicefunction = lsjump
-  elseif selected == 37 then practicefunction = pit
-  elseif selected == 38 then practicefunction = pillars
-  elseif selected == 39 then practicefunction = firstele
-  elseif selected == 40 then practicefunction = sixteen
-  elseif selected == 41 then practicefunction = spiralslide
+  elseif selected == 2 then practicefunction = dive
+  elseif selected == 3 then practicefunction = spiral
+  elseif selected == 4 then practicefunction = finalclimb
+  elseif selected == 5 then practicefunction = lsjump
+  elseif selected == 6 then practicefunction = pit
+  elseif selected == 7 then practicefunction = pillars
+  elseif selected == 8 then practicefunction = firstele
+  elseif selected == 9 then practicefunction = sixteen
+  elseif selected == 10 then practicefunction = spiralslide
+  elseif selected == 11 then practicefunction = button2
+  elseif selected == 12 then practicefunction = button3
+  elseif selected == 13 then practicefunction = button4
+  elseif selected == 14 then practicefunction = button5
+  elseif selected == 15 then practicefunction = button6
+  elseif selected == 16 then practicefunction = button7
+  elseif selected == 17 then practicefunction = button8
+  elseif selected == 18 then practicefunction = button9
+  elseif selected == 19 then practicefunction = button10
+  elseif selected == 20 then practicefunction = button11
+  elseif selected == 21 then practicefunction = button12
+  elseif selected == 22 then practicefunction = button13
+  elseif selected == 23 then practicefunction = button14
+  elseif selected == 24 then practicefunction = button15
+  elseif selected == 25 then practicefunction = button16
+  elseif selected == 26 then practicefunction = button17
+  elseif selected == 27 then practicefunction = button18
+  elseif selected == 28 then practicefunction = button19
+  elseif selected == 29 then practicefunction = button20
+  elseif selected == 30 then practicefunction = button21
+  elseif selected == 31 then practicefunction = button22
+  elseif selected == 32 then practicefunction = button23
+  elseif selected == 33 then practicefunction = button24
+  elseif selected == 34 then practicefunction = button25
+  elseif selected == 35 then practicefunction = button26
+  elseif selected == 36 then practicefunction = button27
+  elseif selected == 37 then practicefunction = button28
+  elseif selected == 38 then practicefunction = button29
+  elseif selected == 39 then practicefunction = button30
+  elseif selected == 40 then practicefunction = button31
+  elseif selected == 41 then practicefunction = button32
   elseif selected == 42 or selected == nil then
-    state = STATES.MENU
+   state = STATES.MENU
   else
     error("invalid selection (internal error)")
   end
@@ -286,7 +286,7 @@ function tp_to(button, rotation, location, waittime)
 end
 
 function spiral()
-  tp_to(18, {45.00,45.00,45.00}, {-1065, -3842, 464})
+  tp_to(18, {0,0,0}, {-1065, -3842, 464})
 end
 function button2()
   tp_to(1, {327.65,135.33,0}, {-1037.57, -955.68, 732.16})
