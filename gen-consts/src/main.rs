@@ -33,6 +33,28 @@ const NAMES: &[(&str, &str)] = &[
     ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
 ];
 
+fn get_linux_level_pointer_path() -> String {
+    "pub const LEVEL_POINTER_PATH: &[usize] = &[0x4c68838, 0x138, 0x140];".to_string()
+}
+
+fn get_windows_level_pointer_path() -> String {
+    let res = ureq::get("https://raw.githubusercontent.com/BatedUrGonnaDie/Autosplitters/master/Refunct/Refunct.asl")
+        .call()
+        .into_string()
+        .unwrap();
+    for line in res.lines() {
+        let line = line.trim();
+        if !(line.starts_with("int") && line.contains("level")) {
+            continue;
+        }
+        let addr_path = line.split(':').nth(1).unwrap();
+        let addr_path = addr_path.split(';').nth(0).unwrap().trim();
+        return format!("pub const LEVEL_POINTER_PATH: &[usize] = &[{}];", addr_path);
+
+    }
+    panic!("Windows level-pointer-path not found.");
+}
+
 fn main() {
     let args: Vec<_> = env::args().collect();
     if args.len() != 3 {
@@ -91,4 +113,9 @@ fn main() {
     println!("{}", s);
     let mut file = File::create("../rtil/src/native/windows/consts.rs").unwrap();
     file.write_all(s.as_bytes()).unwrap();
+    writeln!(file, "{}", get_windows_level_pointer_path()).unwrap();
+
+    // Linux level pointer path
+    let mut file = File::create("../rtil/src/native/linux/consts.rs").unwrap();
+    writeln!(file, "{}", get_linux_level_pointer_path()).unwrap();
 }

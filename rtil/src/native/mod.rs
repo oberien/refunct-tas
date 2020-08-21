@@ -28,6 +28,7 @@ mod app;
 mod memory;
 mod hud;
 mod uworld;
+mod level_state;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;

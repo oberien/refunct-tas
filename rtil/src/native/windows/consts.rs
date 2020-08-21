@@ -18,3 +18,4 @@ pub const AMYCHARACTER_STATICCLASS: usize = 0xee430;
 pub const AMYCHARACTER_TICK: usize = 0xf0e40;
 pub const AMYCHARACTER_FORCEDUNCROUCH: usize = 0xef860;
 pub const AMYHUD_DRAWHUD: usize = 0xf6dc0;
+pub const LEVEL_POINTER_PATH: &[usize] = &[0x1FBF9FC, 0xC0, 0xA8];

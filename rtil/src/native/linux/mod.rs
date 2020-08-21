@@ -1,14 +1,36 @@
 use std::env;
+use std::ptr;
 use std::collections::HashMap;
 
-use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
+use libc::{self, c_void, c_char, PROT_READ, PROT_WRITE, PROT_EXEC};
 use dynsym;
+
+pub mod consts;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
+
+pub fn base_address() -> usize {
+    #[repr(C)]
+    struct LinkMap {
+        addr: isize,
+        name: *mut c_char,
+        l_ld: usize,
+        l_next: *mut LinkMap,
+        l_prev: *mut LinkMap,
+    }
+    let baseptr = unsafe {
+        let handle = libc::dlopen(ptr::null(), libc::RTLD_LAZY);
+        let mut ptr: *mut LinkMap = ptr::null_mut();
+        let ret = dlinfo(handle, RTLD_DI_LINKMAP, (&mut ptr) as *mut _ as *mut c_void);
+        assert_eq!(ret, 0);
+        (*ptr).addr
+    };
+    baseptr as usize
+}
 
 macro_rules! find {
     ($($name:ident, $symbol:expr,)*) => {
