@@ -233,6 +233,7 @@ pub trait LuaEvents {
     fn tcp_left(&self, id: u32) -> LuaResult<()>;
     fn tcp_moved(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()>;
     fn on_level_change(&self, level: i32) -> LuaResult<()>;
+    fn on_reset(&self, reset: i32) -> LuaResult<()>;
 }
 
 impl<T: LuaInterface + 'static> Lua<T> {
@@ -309,6 +310,13 @@ impl LuaEvents for Context<'_> {
         let fun: LuaResult<Function> = self.globals().get("onlevelchange");
         if let Ok(fun) = fun {
             let () = fun.call((level))?;
+        }
+        Ok(())
+    }
+    fn on_reset(&self, reset: i32) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("onreset");
+        if let Ok(fun) = fun {
+            let () = fun.call((reset))?;
         }
         Ok(())
     }

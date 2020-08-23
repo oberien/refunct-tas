@@ -173,25 +173,27 @@ impl GameInterface {
 
 impl LuaInterface for GameInterface {
     fn step(&self, lua: Context<'_>) -> LuaResult<Event> {
-        let level_state = LevelState::get();
-        // don't trigger when we set the level ourselves
-        let mut level_changed = false;
+        let mut level_state = LevelState::get();
 
         self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
         loop {
             self.syscall()?;
-            let res = self.ue_lua_rx.recv().unwrap();
-
-            let new_level_state = LevelState::get();
-            log!("old {:?}", level_state);
-            log!("new {:?}", new_level_state);
-            if !level_changed && (level_state.level != new_level_state.level || level_state.resets != new_level_state.resets) {
-                lua.on_level_change(new_level_state.level)?;
-                level_changed = true;
-            }
-
-            match res {
-                UeToLua::Tick => return Ok(Event::Stopped),
+            match self.ue_lua_rx.recv().unwrap() {
+                UeToLua::Tick => {
+                    // call level-state event functions
+                    let new_level_state = LevelState::get();
+                    log!("old {:?}", level_state);
+                    log!("new {:?}", new_level_state);
+                    if level_state.level != new_level_state.level {
+                        log!("level changed");
+                        lua.on_level_change(new_level_state.level)?;
+                    }
+                    if level_state.resets != new_level_state.resets {
+                        log!("reset");
+                        lua.on_reset(new_level_state.resets)?;
+                    }
+                    return Ok(Event::Stopped);
+                },
                 UeToLua::NewGame => return Ok(Event::NewGame),
                 UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
                 UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat)?,
@@ -215,7 +217,7 @@ impl LuaInterface for GameInterface {
                 }
             }
             // We aren't actually advancing a frame, but just returning from the
-            // key event interceptor.
+            // key event or drawhud interceptor.
             self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
         }
     }
