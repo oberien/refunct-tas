@@ -5,7 +5,7 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 
 [dependencies]
 protocol = { path = "../protocol" }
-lazy_static = "0.2.10"
+lazy_static = "1.4.0"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
 backtrace = "0.3"
@@ -13,6 +13,8 @@ lua = { path = "../lua" }
 failure = "0.1"
 rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.3.8"
+memoffset = "0.5.5"
+object = { version = "0.21.1", default-features = false, features = ["read"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"

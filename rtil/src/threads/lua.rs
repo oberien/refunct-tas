@@ -5,13 +5,13 @@ use std::collections::{HashSet, HashMap};
 use std::net::TcpStream;
 use std::io::{Write, Read};
 
-use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, RLua, LuaResult};
+use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, Context, LuaResult};
 use failure::Fail;
 use protocol::Message;
 use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
-use native::{AMyCharacter, FApp, UWorld, AMyHud};
+use native::{AMyCharacter, FApp, UWorld, AMyHud, LevelState};
 
 struct Tas {
     iface: Rc<GameInterface>,
@@ -172,11 +172,25 @@ impl GameInterface {
 }
 
 impl LuaInterface for GameInterface {
-    fn step(&self, lua: &RLua) -> LuaResult<Event> {
+    fn step(&self, lua: Context<'_>) -> LuaResult<Event> {
+        let level_state = LevelState::get();
+        // don't trigger when we set the level ourselves
+        let mut level_changed = false;
+
         self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
         loop {
             self.syscall()?;
-            match self.ue_lua_rx.recv().unwrap() {
+            let res = self.ue_lua_rx.recv().unwrap();
+
+            let new_level_state = LevelState::get();
+            log!("old {:?}", level_state);
+            log!("new {:?}", new_level_state);
+            if !level_changed && (level_state.level != new_level_state.level || level_state.resets != new_level_state.resets) {
+                lua.on_level_change(new_level_state.level)?;
+                level_changed = true;
+            }
+
+            match res {
                 UeToLua::Tick => return Ok(Event::Stopped),
                 UeToLua::NewGame => return Ok(Event::NewGame),
                 UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
@@ -295,7 +309,7 @@ impl LuaInterface for GameInterface {
         Ok(())
     }
 
-    fn wait_for_new_game(&self, lua: &RLua) -> LuaResult<()> {
+    fn wait_for_new_game(&self, lua: Context<'_>) -> LuaResult<()> {
         loop {
             match self.step(lua)? {
                 Event::Stopped => continue,
@@ -407,6 +421,11 @@ impl LuaInterface for GameInterface {
             log!("error sending join room request: {:?}", e);
             self.tcp_stream.borrow_mut().take();
         }
+        Ok(())
+    }
+
+    fn set_level(&self, level: i32) -> IfaceResult<()> {
+        LevelState::set_level(level);
         Ok(())
     }
 }

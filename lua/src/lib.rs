@@ -5,7 +5,7 @@ pub mod stub;
 use std::rc::Rc;
 
 use rlua::{Value, ToLua, UserData, UserDataMethods, Error as LuaError, Function};
-pub use rlua::{Result as LuaResult, Lua as RLua};
+pub use rlua::{Result as LuaResult, Lua as RLua, Context};
 
 #[derive(Debug)]
 pub enum IfaceError {
@@ -46,16 +46,16 @@ pub enum Event {
 }
 
 impl<'lua> ToLua<'lua> for Event {
-    fn to_lua(self, lua: &'lua RLua) -> LuaResult<Value<'lua>> {
+    fn to_lua(self, ctx: Context<'lua>) -> LuaResult<Value<'lua>> {
         match self {
-            Event::Stopped => "stopped".to_lua(lua),
-            Event::NewGame => "newgame".to_lua(lua),
+            Event::Stopped => "stopped".to_lua(ctx),
+            Event::NewGame => "newgame".to_lua(ctx),
         }
     }
 }
 
 pub trait LuaInterface {
-    fn step(&self, lua: &RLua) -> LuaResult<Event>;
+    fn step(&self, lua: Context<'_>) -> LuaResult<Event>;
     fn press_key(&self, key: String) -> IfaceResult<()>;
     fn release_key(&self, key: String) -> IfaceResult<()>;
     fn key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> IfaceResult<()>;
@@ -71,7 +71,7 @@ pub trait LuaInterface {
     fn set_velocity(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
     fn get_acceleration(&self) -> IfaceResult<(f32, f32, f32)>;
     fn set_acceleration(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
-    fn wait_for_new_game(&self, lua: &RLua) -> LuaResult<()>;
+    fn wait_for_new_game(&self, lua: Context<'_>) -> LuaResult<()>;
 
     fn draw_line(&self, startx: f32, starty: f32, endx: f32, endy: f32, color: (f32, f32, f32, f32), thickness: f32) -> IfaceResult<()>;
     fn draw_text(&self, text: String, color: (f32, f32, f32, f32), x: f32, y: f32, scale: f32, scale_position: bool) -> IfaceResult<()>;
@@ -98,6 +98,8 @@ pub trait LuaInterface {
     /// joins or creates room
     fn tcp_join_room(&self, room: String, x: f32, y: f32, z: f32) -> IfaceResult<()>;
     fn tcp_move(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
+
+    fn set_level(&self, level: i32) -> IfaceResult<()>;
 }
 
 struct Wrapper<T>(T);
@@ -116,7 +118,7 @@ impl<T> std::ops::DerefMut for Wrapper<T> {
 }
 
 impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
-    fn add_methods(methods: &mut UserDataMethods<Self>) {
+    fn add_methods<'lua, U: UserDataMethods<'lua, Self>>(methods: &mut U) {
         methods.add_method("step", |lua, this, ()| {
             this.step(lua)
         });
@@ -216,6 +218,10 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("tcp_move", |_, this, (x, y, z): (f32, f32, f32)| {
             Ok(this.tcp_move(x, y, z)?)
         });
+
+        methods.add_method("set_level", |_, this, (level): (i32)| {
+            Ok(this.set_level(level)?)
+        });
     }
 }
 
@@ -226,6 +232,7 @@ pub trait LuaEvents {
     fn tcp_joined(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()>;
     fn tcp_left(&self, id: u32) -> LuaResult<()>;
     fn tcp_moved(&self, id: u32, x: f32, y: f32, z: f32) -> LuaResult<()>;
+    fn on_level_change(&self, level: i32) -> LuaResult<()>;
 }
 
 impl<T: LuaInterface + 'static> Lua<T> {
@@ -238,16 +245,18 @@ impl<T: LuaInterface + 'static> Lua<T> {
     }
 
     pub fn execute(&mut self, code: &str) -> LuaResult<()> {
-        self.lua.scope(|scope| {
-            let iface = scope.create_userdata(Wrapper(self.iface.clone()))?;
-            self.lua.globals().set("tas", iface)?;
-            let function = self.lua.load(code, None)?;
-            function.call::<_, ()>(())
+        self.lua.context(|ctx| {
+            ctx.scope(|scope| {
+                let iface = scope.create_static_userdata(Wrapper(self.iface.clone()))?;
+                ctx.globals().set("tas", iface)?;
+                let chunk = ctx.load(code);
+                chunk.exec()
+            })
         })
     }
 }
 
-impl LuaEvents for RLua {
+impl LuaEvents for Context<'_> {
     fn on_key_down(&self, key_code: i32, character_code: u32, is_repeat: bool) -> LuaResult<()> {
         let fun: LuaResult<Function> = self.globals().get("onkeydown");
         if let Ok(fun) = fun {
@@ -292,6 +301,14 @@ impl LuaEvents for RLua {
         let fun: LuaResult<Function> = self.globals().get("tcpmoved");
         if let Ok(fun) = fun {
             let () = fun.call((id, x, y, z))?;
+        }
+        Ok(())
+    }
+
+    fn on_level_change(&self, level: i32) -> LuaResult<()> {
+        let fun: LuaResult<Function> = self.globals().get("onlevelchange");
+        if let Ok(fun) = fun {
+            let () = fun.call((level))?;
         }
         Ok(())
     }

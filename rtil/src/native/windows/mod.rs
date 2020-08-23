@@ -1,4 +1,4 @@
-mod consts;
+pub mod consts;
 
 use std::ptr;
 
@@ -18,13 +18,17 @@ pub extern "stdcall" fn DllMain(module: u32, reason: u32, reserved: *mut c_void)
     }
 }
 
+pub fn base_address() -> usize {
+    unsafe { GetModuleHandleA(ptr::null()) as usize }
+}
+
 macro_rules! find {
     ($($name:ident,)*) => {
         $(
             pub(in native) static mut $name: usize = 0;
         )*
         pub(in native) fn init() {
-            let base = unsafe { GetModuleHandleA(ptr::null()) as usize };
+            let base = base_address();
             log!("Got Base address: {:#x}", base);
             unsafe {
                 $(

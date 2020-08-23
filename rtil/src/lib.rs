@@ -1,4 +1,4 @@
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(core_intrinsics)]
 #![feature(naked_functions)]
 #![feature(abi_thiscall)]
@@ -17,6 +17,7 @@ extern crate crossbeam_channel;
 #[cfg(unix)] extern crate dynsym;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
+extern crate object;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;
