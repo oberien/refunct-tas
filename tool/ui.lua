@@ -27,10 +27,10 @@ end
 
 --- Asks the user for textual input, returning the input after the user presses Return.
 --- If the user presses Escape, input is aborted and `nil` is returned.
-function ui.input(text)
+function ui.input(text, prefill)
   local old = saveglobals()
 
-  local input = ""
+  local input = prefill or ""
   local stop_input = false
   local lshift_pressed = false
   local rshift_pressed = false
@@ -123,7 +123,7 @@ function ui.drawlines(lines)
 end
 
 function ui.draw3dcapsule(x, y, z)
-  z = z - 100;
+  z = z - 100
   local ax,ay,az = tas:project(x-50, y, z)
   local bx,by,bz = tas:project(x+50, y, z)
   local cx,cy,cz = tas:project(x-50, y, z+200)

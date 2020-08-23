@@ -4,12 +4,17 @@ local mp = require "multiplayer"
 local record = require "record"
 local ui = require "ui"
 local KEYS = require "keys"
+local randomizer = require "randomizer"
+local allbuttons = require "allbuttons"
 
 local STATES = {
   FIRSTSTART = {},
   NONE = {},
   MENU = {},
   PRACTICE = {},
+  RANDOMIZERMENU = {},
+  RANDOMIZER = {},
+  ALLBUTTONS = {},
   LOAD_REPLAY = {},
   MULTIPLAYER = {},
   SETTINGS = {},
@@ -25,16 +30,20 @@ local function firststart()
 end
 
 local function menu()
-  local selected = ui.select({"Practice", "Load Replay", "Multiplayer", "Settings", "Back"});
+  local selected = ui.select({"Practice", "Randomizer", "All Buttons", "Load Replay", "Multiplayer", "Settings", "Back"})
   if selected == 1 then
     state = STATES.PRACTICE
   elseif selected == 2 then
-    state = STATES.LOAD_REPLAY
+    state = STATES.RANDOMIZERMENU
   elseif selected == 3 then
-    state = STATES.MULTIPLAYER
+    state = STATES.ALLBUTTONS
   elseif selected == 4 then
+    state = STATES.LOAD_REPLAY
+  elseif selected == 5 then
+    state = STATES.MULTIPLAYER
+  elseif selected == 6 then
     state = STATES.SETTINGS
-  elseif selected == 5 or selected == nil then
+  elseif selected == 7 or selected == nil then
     state = STATES.NONE
   else
     error("invalid selection (internal error)")
@@ -137,6 +146,62 @@ local function practice()
   end
 end
 
+local function randomizermenu()
+  local selected = ui.select({
+    "Proficiency: " .. randomizer.proficiency,
+    "Unseeded",
+    "Seeded",
+    "Reset",
+    "Back",
+  })
+  if selected == 1 then
+    local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
+    index = ((index - 1 + 1) % #randomizer.proficiencies) + 1
+    randomizer.proficiency = randomizer.proficiencies[index]
+  elseif selected == 2 then
+    randomizer.seed = ""
+    randomizer.randomize()
+    state = STATES.RANDOMIZER
+  elseif selected == 3 then
+    local seed = nil
+    local error = ""
+    while type(seed) ~= "number" do
+      local input = ui.input(error .. "Input Seed", randomizer.seed)
+      seed = tonumber(input)
+      error = "Invalid Number. "
+    end
+    randomizer.seed = seed
+    randomizer.randomize()
+    state = STATES.RANDOMIZER
+  elseif selected == 4 then
+    randomizer.reset()
+    state = STATES.MENU
+  elseif selected == 5 or selected == nil then
+    state = STATES.MENU
+  else
+    error("invalid selection (internal error)")
+  end
+end
+
+local function allbuttonsmenu()
+  local selected = ui.select({
+    "Start",
+    "Reset",
+    "Back"
+  })
+  if selected == 1 then
+    allbuttons.start()
+    state = STATES.NONE
+  elseif selected == 2 then
+    allbuttons.reset()
+    state = STATES.NONE
+  elseif selected == 3 or selected == nil then
+    state = STATES.NONE
+  else
+    error("invalid selection (internal error)")
+  end
+end
+
 local function loadreplay()
   local replays = record.listall()
   local query = {}
@@ -230,6 +295,12 @@ drawhud = function()
     menu()
   elseif state == STATES.PRACTICE then
     practice()
+  elseif state == STATES.RANDOMIZERMENU then
+    randomizermenu()
+  elseif state == STATES.RANDOMIZER then
+    randomizer.drawhud()
+  elseif state == STATES.ALLBUTTONS then
+    allbuttonsmenu()
   elseif state == STATES.LOAD_REPLAY then
     loadreplay()
   elseif state == STATES.MULTIPLAYER then
@@ -259,7 +330,7 @@ onkeydown = function(key, char, rep)
   end
 
   if key == KEYS.KEY_M then
-    if state == STATES.NONE or state == STATES.FIRSTSTART then
+    if state == STATES.NONE or state == STATES.FIRSTSTART or state == STATES.RANDOMIZER then
       state = STATES.MENU
     else
       state = STATES.NONE

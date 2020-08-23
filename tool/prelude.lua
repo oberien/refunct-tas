@@ -8,7 +8,7 @@ jump = "jump"
 crouch = "crouch"
 menu = "menu"
 
-local deltatime = 0;
+local deltatime = 0
 
 function num(var)
   return var and 1 or 0
@@ -19,17 +19,21 @@ function math.round(num, numDecimalPlaces)
   return math.floor(num * mult + 0.5) / mult
 end
 
-function contains(list, element)
-  for k,v in pairs(list) do
+function table.contains(list, element)
+  return table.indexof(list, element) ~= -1
+end
+
+function table.indexof(list, element)
+  for i,v in ipairs(list) do
     if v == element then
-      return true
+      return i
     end
   end
-  return false
+  return -1
 end
 
 function print(...)
-  local res = "";
+  local res = ""
   local args = table.pack(...)
   for i=1,args.n do
     if i > 1 then

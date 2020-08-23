@@ -173,24 +173,33 @@ impl GameInterface {
 
 impl LuaInterface for GameInterface {
     fn step(&self, lua: Context<'_>) -> LuaResult<Event> {
-        let mut level_state = LevelState::get();
+        // get level state before and after we advance the UE frame to see changes created by Refunct itself
+        let level_state = LevelState::get();
 
         self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
         loop {
             self.syscall()?;
             match self.ue_lua_rx.recv().unwrap() {
-                UeToLua::Tick => {
+                e @ UeToLua::Tick | e @ UeToLua::NewGame => {
                     // call level-state event functions
                     let new_level_state = LevelState::get();
-                    if level_state.level != new_level_state.level {
+                    // level changed
+                    if level_state.level != new_level_state.level
+                        // new game but no level change will be triggered because we hit new game
+                        // when level was still 0
+                        || e == UeToLua::NewGame && level_state.level == 0
+                    {
                         lua.on_level_change(new_level_state.level)?;
                     }
                     if level_state.resets != new_level_state.resets {
                         lua.on_reset(new_level_state.resets)?;
                     }
-                    return Ok(Event::Stopped);
+                    return Ok(match e {
+                        UeToLua::Tick => Event::Stopped,
+                        UeToLua::NewGame => Event::NewGame,
+                        _ => unreachable!()
+                    });
                 },
-                UeToLua::NewGame => return Ok(Event::NewGame),
                 UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
                 UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat)?,
                 UeToLua::DrawHud => lua.draw_hud()?,
