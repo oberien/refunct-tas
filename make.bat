@@ -18,15 +18,13 @@ copy tool\turn.lua build\windows
 copy tool\rotation.lua build\windows
 copy tool\printstats.lua build\windows
 copy tool\teleportbutton-prelude.lua build\windows
-copy tool\teleportbuttons.lua build\windows
-copy tool\spiral.lua build\windows
-copy tool\setvelocity.lua build\windows
-copy tool\setposition.lua build\windows
 copy tool\menu.lua build\windows
 copy tool\record.lua build\windows
 copy tool\keys.lua build\windows
 copy tool\ui.lua build\windows
 copy tool\multiplayer.lua build\windows
+copy tool\randomizer.lua build\windows
+copy tool\allbuttons.lua build\windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert prelude.lua
@@ -35,15 +33,13 @@ call :convert turn.lua
 call :convert rotation.lua
 call :convert printstats.lua
 call :convert teleportbutton-prelude.lua
-call :convert teleportbuttons.lua
-call :convert spiral.lua
-call :convert setvelocity.lua
-call :convert setposition.lua
 call :convert menu.lua
 call :convert record.lua
 call :convert keys.lua
 call :convert ui.lua
 call :convert multiplayer.lua
+call :convert randomizer.lua
+call :convert allbuttons.lua
 
 powershell -Command "(gc build\windows\Config.toml) -replace \"forward = 'v'\", \"forward = 'W'\" -replace \"backward = 'i'\", \"backward = 'S'\" -replace \"left = 'u'\", \"left = 'A'\" -replace \"right = 'a'\", \"right = 'D'\" -replace \"crouch = 1073742049\", \"crouch = 160\" | sc build\windows\Config.toml"
 
