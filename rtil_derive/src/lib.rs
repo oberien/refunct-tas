@@ -278,12 +278,12 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
 
 
             // call function_to_call
-            llvm_asm!("call $0" :: "P"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#function_to_call as usize) :: "intel","volatile");
             // get consumed stack (negative value)
             llvm_asm!("sub ebx, esp" :::: "intel","volatile");
 
             // restore original function
-            llvm_asm!("call $0" :: "P"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#unhook_function_name as usize) :: "intel","volatile");
             // restore stack
             llvm_asm!(r"
                 add esp, 0x60
@@ -330,7 +330,7 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             " :::: "intel","volatile");
 
             // hook method again
-            llvm_asm!("call $0" :: "P"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#hook_function_name as usize) :: "intel","volatile");
 
             // restore all registers
             #POPALL_WINDOWS
@@ -390,7 +390,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             // restore original function
             #PUSHALL_WINDOWS
-            llvm_asm!("call $0" :: "P"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#unhook_function_name as usize) :: "intel","volatile");
             #POPALL_WINDOWS
 
             // call original function
@@ -400,9 +400,9 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
             llvm_asm!("push eax" :::: "intel","volatile");
 
             // hook method again
-            llvm_asm!("call $0" :: "P"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#hook_function_name as usize) :: "intel","volatile");
             // call function_to_call
-            llvm_asm!("call $0" :: "P"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "r"(#function_to_call as usize) :: "intel","volatile");
 
             // restore eax
             llvm_asm!("pop eax" :::: "intel","volatile");
