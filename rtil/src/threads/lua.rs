@@ -182,14 +182,10 @@ impl LuaInterface for GameInterface {
                 UeToLua::Tick => {
                     // call level-state event functions
                     let new_level_state = LevelState::get();
-                    log!("old {:?}", level_state);
-                    log!("new {:?}", new_level_state);
                     if level_state.level != new_level_state.level {
-                        log!("level changed");
                         lua.on_level_change(new_level_state.level)?;
                     }
                     if level_state.resets != new_level_state.resets {
-                        log!("reset");
                         lua.on_reset(new_level_state.resets)?;
                     }
                     return Ok(Event::Stopped);
