@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["oberien <jaro.fietz@gmx.de>"]
 
 [dependencies]
-rlua = "0.13"
+#rlua = "0.13"
+rlua = "0.17.0"

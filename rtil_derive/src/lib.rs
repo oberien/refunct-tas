@@ -135,14 +135,14 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
             #PUSHALL_LINUX
             #ALIGNSTACK_PRE_LINUX
             // call function_to_call
-            asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
             // restore original function
-            asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
             // restore register
             #POPALL_LINUX
             // jump to original function
-            asm!("jmp rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("jmp rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
 
@@ -153,13 +153,13 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
             // save registers
             #PUSHALL_WINDOWS
             // call function_to_call
-            asm!("call eax" :: "{eax}"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call eax" :: "{eax}"(#function_to_call as usize) :: "intel","volatile");
             // unhook original function
-            asm!("call eax" :: "{eax}"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call eax" :: "{eax}"(#unhook_function_name as usize) :: "intel","volatile");
             // restore registers
             #POPALL_WINDOWS
             // jump to original function
-            asm!("jmp eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("jmp eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }
@@ -178,30 +178,30 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             #PUSHALL_LINUX
             #ALIGNSTACK_PRE_LINUX
             // call function_to_call
-            asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
             // restore original function
-            asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
             #POPALL_LINUX
 
             // call original function
             #ALIGNSTACK_PRE_LINUX
-            asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
 
             // save rax (return value of original function
-            asm!("push rax" :::: "intel","volatile");
+            llvm_asm!("push rax" :::: "intel","volatile");
 
             // hook method again
             #ALIGNSTACK_PRE_LINUX
-            asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
 
             // restore rax
-            asm!("pop rax" :::: "intel","volatile");
+            llvm_asm!("pop rax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel","volatile");
+            llvm_asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
 
@@ -261,7 +261,7 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             // save all registers
             #PUSHALL_WINDOWS
             // Reserve some stack which we copy everything into.
-            asm!(r"
+            llvm_asm!(r"
                 sub esp, 0x100
                 mov ecx, 0x100
                 lea esi, [esp + 0x100]
@@ -271,28 +271,28 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             // restore copied registers
             #POPALL_WINDOWS
             // remove old return address, which will be replaced by our `call`
-            asm!("pop eax" :::: "intel","volatile");
+            llvm_asm!("pop eax" :::: "intel","volatile");
             // save current stack pointer in non-volatile register to find out
             // how many arguments are cleared, which we use to adjust the stack back
-            asm!("mov ebx, esp" :::: "intel","volatile");
+            llvm_asm!("mov ebx, esp" :::: "intel","volatile");
 
 
             // call function_to_call
-            asm!("call $0" :: "i"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#function_to_call as usize) :: "intel","volatile");
             // get consumed stack (negative value)
-            asm!("sub ebx, esp" :::: "intel","volatile");
+            llvm_asm!("sub ebx, esp" :::: "intel","volatile");
 
             // restore original function
-            asm!("call $0" :: "i"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#unhook_function_name as usize) :: "intel","volatile");
             // restore stack
-            asm!(r"
+            llvm_asm!(r"
                 add esp, 0x60
                 add esp, ebx
             " :::: "intel","volatile");
 
 
             // copy stack again and do the same with the original function
-            asm!(r"
+            llvm_asm!(r"
                 sub esp, 0x100
                 mov ecx, 0x100
                 lea esi, [esp + 0x100]
@@ -302,27 +302,27 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             // restore registers
             #POPALL_WINDOWS
             // pop return address
-            asm!("pop eax" :::: "intel","volatile");
+            llvm_asm!("pop eax" :::: "intel","volatile");
             // save stack pointer
-            asm!("mov ebx, esp" :::: "intel","volatile");
+            llvm_asm!("mov ebx, esp" :::: "intel","volatile");
             // call original function
-            asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
 
             // get consumed stack (negative value)
-            asm!("sub ebx, esp" :::: "intel","volatile");
+            llvm_asm!("sub ebx, esp" :::: "intel","volatile");
             // restore stack
-            asm!(r"
+            llvm_asm!(r"
                 add esp, 0x60
                 add esp, ebx
             " :::: "intel","volatile");
 
             // save eax (return value of original function) to pushed registers
-            asm!("mov [esp + 0x98], eax" :::: "intel","volatile");
+            llvm_asm!("mov [esp + 0x98], eax" :::: "intel","volatile");
             // save consumed stack to ecx in the pushed registers, so we can consume as much
             // after popping the registers before returning
-            asm!("mov [esp + 0x90], ebx" :::: "intel","volatile");
+            llvm_asm!("mov [esp + 0x90], ebx" :::: "intel","volatile");
             // move original return address to correct position after arg-consumption
-            asm!(r"
+            llvm_asm!(r"
                 mov eax, [esp + 0x9c]
                 lea edx, [esp + 0x9c]
                 sub edx, ebx
@@ -330,16 +330,16 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
             " :::: "intel","volatile");
 
             // hook method again
-            asm!("call $0" :: "i"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#hook_function_name as usize) :: "intel","volatile");
 
             // restore all registers
             #POPALL_WINDOWS
             // do not pop old return address, because we wrote the return address to the last argument
             // consume arguments
-            asm!("sub esp, ecx" :::: "intel","volatile");
+            llvm_asm!("sub esp, ecx" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel","volatile");
+            llvm_asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }
@@ -358,30 +358,30 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
             // restore original function
             #PUSHALL_LINUX
             #ALIGNSTACK_PRE_LINUX
-            asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
             #POPALL_LINUX
 
             // call original function
             #ALIGNSTACK_PRE_LINUX
-            asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
 
             // save rax (return value of original function
-            asm!("push rax" :::: "intel","volatile");
+            llvm_asm!("push rax" :::: "intel","volatile");
 
             #ALIGNSTACK_PRE_LINUX
             // hook method again
-            asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
             // call function_to_call
-            asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
             #ALIGNSTACK_POST_LINUX
 
             // restore rax
-            asm!("pop rax" :::: "intel","volatile");
+            llvm_asm!("pop rax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel","volatile");
+            llvm_asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
 
@@ -390,25 +390,25 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             // restore original function
             #PUSHALL_WINDOWS
-            asm!("call $0" :: "i"(#unhook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#unhook_function_name as usize) :: "intel","volatile");
             #POPALL_WINDOWS
 
             // call original function
-            asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
+            llvm_asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
 
             // save eax (return value of original function)
-            asm!("push eax" :::: "intel","volatile");
+            llvm_asm!("push eax" :::: "intel","volatile");
 
             // hook method again
-            asm!("call $0" :: "i"(#hook_function_name as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#hook_function_name as usize) :: "intel","volatile");
             // call function_to_call
-            asm!("call $0" :: "i"(#function_to_call as usize) :: "intel","volatile");
+            llvm_asm!("call $0" :: "i"(#function_to_call as usize) :: "intel","volatile");
 
             // restore eax
-            asm!("pop eax" :::: "intel","volatile");
+            llvm_asm!("pop eax" :::: "intel","volatile");
 
             // return to original caller
-            asm!("ret" :::: "intel","volatile");
+            llvm_asm!("ret" :::: "intel","volatile");
             ::std::intrinsics::unreachable()
         }
     }
@@ -502,7 +502,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
 
 
 const PUSHALL_LINUX: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         push rax
         push rbx
         push rcx
@@ -522,7 +522,7 @@ const PUSHALL_LINUX: StrTokens<'_> = StrTokens(r#"
     " :::: "intel","volatile");
 "#);
 const POPALL_LINUX: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         movdqu xmm7, [rsp]
         movdqu xmm6, [rsp+0x10]
         movdqu xmm5, [rsp+0x20]
@@ -542,20 +542,20 @@ const POPALL_LINUX: StrTokens<'_> = StrTokens(r#"
     " :::: "intel","volatile");
 "#);
 const ALIGNSTACK_PRE_LINUX: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         push rbp
         mov rbp, rsp
         and rsp, 0xfffffffffffffff0
     " :::: "intel","volatile");
 "#);
 const ALIGNSTACK_POST_LINUX: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         mov rsp, rbp
         pop rbp
     " :::: "intel","volatile");
 "#);
 const PUSHALL_WINDOWS: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         push eax
         push ebx
         push ecx
@@ -575,7 +575,7 @@ const PUSHALL_WINDOWS: StrTokens<'_> = StrTokens(r#"
     " :::: "intel","volatile");
 "#);
 const POPALL_WINDOWS: StrTokens<'_> = StrTokens(r#"
-    asm!(r"
+    llvm_asm!(r"
         movdqu xmm7, [esp]
         movdqu xmm6, [esp+0x10]
         movdqu xmm5, [esp+0x20]

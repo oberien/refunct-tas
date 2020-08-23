@@ -9,8 +9,8 @@ use native::{
     unhook_fslateapplication_onkeyup,
     hook_fslateapplication_onkeyup,
     AMyHud,
+    UWorld,
 };
-use native::UWorld;
 
 lazy_static! {
     static ref STATE: Static<State> = Static::new();

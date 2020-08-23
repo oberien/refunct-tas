@@ -1,9 +1,11 @@
 use std::env;
+use std::fs;
 use std::ptr;
 use std::collections::HashMap;
 
-use libc::{self, c_void, c_char, PROT_READ, PROT_WRITE, PROT_EXEC};
+use libc::{self, c_void, c_char, c_int, PROT_READ, PROT_WRITE, PROT_EXEC};
 use dynsym;
+use object::{Object, ObjectSegment};
 
 pub mod consts;
 
@@ -13,7 +15,13 @@ pub mod consts;
 #[link_section=".init_array"]
 pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
 
+extern "C" {
+    fn dlinfo(handle: *mut c_void, request: c_int, info: *mut c_void) -> c_int;
+}
+const RTLD_DI_LINKMAP: c_int = 2;
+
 pub fn base_address() -> usize {
+    #[derive(Debug)]
     #[repr(C)]
     struct LinkMap {
         addr: isize,
@@ -22,14 +30,20 @@ pub fn base_address() -> usize {
         l_next: *mut LinkMap,
         l_prev: *mut LinkMap,
     }
-    let baseptr = unsafe {
+    let base_offset = unsafe {
         let handle = libc::dlopen(ptr::null(), libc::RTLD_LAZY);
         let mut ptr: *mut LinkMap = ptr::null_mut();
         let ret = dlinfo(handle, RTLD_DI_LINKMAP, (&mut ptr) as *mut _ as *mut c_void);
         assert_eq!(ret, 0);
         (*ptr).addr
     };
-    baseptr as usize
+    let current_exe = env::current_exe().unwrap();
+    let data = fs::read(current_exe).unwrap();
+    let elf_object = object::File::parse(&data).unwrap();
+    // get first LOAD header
+    let elf_base_address = elf_object.segments().next().unwrap().address();
+
+    (elf_base_address as isize + base_offset) as usize
 }
 
 macro_rules! find {

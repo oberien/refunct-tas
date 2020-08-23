@@ -47,6 +47,7 @@ pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::AMyHud;
 pub use self::uworld::{APawn, UWorld};
+pub use self::level_state::LevelState;
 
 pub fn init() {
     #[cfg(windows)] windows::init();
