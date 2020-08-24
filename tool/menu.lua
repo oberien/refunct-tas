@@ -22,7 +22,7 @@ local STATES = {
 
 local state = STATES.FIRSTSTART
 local drawstats = false
-local practicefunction = nil
+local resetfunction = nil
 local replay = {}
 
 local function firststart()
@@ -52,7 +52,7 @@ end
 
 local function practice()
   local function sel(val)
-    return practicefunction == val and " (Selected)" or ""
+    return resetfunction == val and " (Selected)" or ""
   end
   local selected = ui.select({
     "None" .. sel(nil) ,
@@ -98,47 +98,47 @@ local function practice()
     "Button 32" .. sel(button32),
     "Back"
   })
-  if selected == 1 then practicefunction = nil
-  elseif selected == 2 then practicefunction = dive
-  elseif selected == 3 then practicefunction = spiral
-  elseif selected == 4 then practicefunction = finalclimb
-  elseif selected == 5 then practicefunction = lsjump
-  elseif selected == 6 then practicefunction = pit
-  elseif selected == 7 then practicefunction = pillars
-  elseif selected == 8 then practicefunction = firstele
-  elseif selected == 9 then practicefunction = sixteen
-  elseif selected == 10 then practicefunction = spiralslide
-  elseif selected == 11 then practicefunction = button2
-  elseif selected == 12 then practicefunction = button3
-  elseif selected == 13 then practicefunction = button4
-  elseif selected == 14 then practicefunction = button5
-  elseif selected == 15 then practicefunction = button6
-  elseif selected == 16 then practicefunction = button7
-  elseif selected == 17 then practicefunction = button8
-  elseif selected == 18 then practicefunction = button9
-  elseif selected == 19 then practicefunction = button10
-  elseif selected == 20 then practicefunction = button11
-  elseif selected == 21 then practicefunction = button12
-  elseif selected == 22 then practicefunction = button13
-  elseif selected == 23 then practicefunction = button14
-  elseif selected == 24 then practicefunction = button15
-  elseif selected == 25 then practicefunction = button16
-  elseif selected == 26 then practicefunction = button17
-  elseif selected == 27 then practicefunction = button18
-  elseif selected == 28 then practicefunction = button19
-  elseif selected == 29 then practicefunction = button20
-  elseif selected == 30 then practicefunction = button21
-  elseif selected == 31 then practicefunction = button22
-  elseif selected == 32 then practicefunction = button23
-  elseif selected == 33 then practicefunction = button24
-  elseif selected == 34 then practicefunction = button25
-  elseif selected == 35 then practicefunction = button26
-  elseif selected == 36 then practicefunction = button27
-  elseif selected == 37 then practicefunction = button28
-  elseif selected == 38 then practicefunction = button29
-  elseif selected == 39 then practicefunction = button30
-  elseif selected == 40 then practicefunction = button31
-  elseif selected == 41 then practicefunction = button32
+  if selected == 1 then resetfunction = nil
+  elseif selected == 2 then resetfunction = dive
+  elseif selected == 3 then resetfunction = spiral
+  elseif selected == 4 then resetfunction = finalclimb
+  elseif selected == 5 then resetfunction = lsjump
+  elseif selected == 6 then resetfunction = pit
+  elseif selected == 7 then resetfunction = pillars
+  elseif selected == 8 then resetfunction = firstele
+  elseif selected == 9 then resetfunction = sixteen
+  elseif selected == 10 then resetfunction = spiralslide
+  elseif selected == 11 then resetfunction = button2
+  elseif selected == 12 then resetfunction = button3
+  elseif selected == 13 then resetfunction = button4
+  elseif selected == 14 then resetfunction = button5
+  elseif selected == 15 then resetfunction = button6
+  elseif selected == 16 then resetfunction = button7
+  elseif selected == 17 then resetfunction = button8
+  elseif selected == 18 then resetfunction = button9
+  elseif selected == 19 then resetfunction = button10
+  elseif selected == 20 then resetfunction = button11
+  elseif selected == 21 then resetfunction = button12
+  elseif selected == 22 then resetfunction = button13
+  elseif selected == 23 then resetfunction = button14
+  elseif selected == 24 then resetfunction = button15
+  elseif selected == 25 then resetfunction = button16
+  elseif selected == 26 then resetfunction = button17
+  elseif selected == 27 then resetfunction = button18
+  elseif selected == 28 then resetfunction = button19
+  elseif selected == 29 then resetfunction = button20
+  elseif selected == 30 then resetfunction = button21
+  elseif selected == 31 then resetfunction = button22
+  elseif selected == 32 then resetfunction = button23
+  elseif selected == 33 then resetfunction = button24
+  elseif selected == 34 then resetfunction = button25
+  elseif selected == 35 then resetfunction = button26
+  elseif selected == 36 then resetfunction = button27
+  elseif selected == 37 then resetfunction = button28
+  elseif selected == 38 then resetfunction = button29
+  elseif selected == 39 then resetfunction = button30
+  elseif selected == 40 then resetfunction = button31
+  elseif selected == 41 then resetfunction = button32
   elseif selected == 42 or selected == nil then
    state = STATES.MENU
   else
@@ -149,34 +149,46 @@ end
 local function randomizermenu()
   local selected = ui.select({
     "Proficiency: " .. randomizer.proficiency,
+    "New Seed on New Game    " .. (randomizer.newgamenewseed and "On" or "Off"),
     "Unseeded",
     "Seeded",
     "Reset",
     "Back",
   })
-  if selected == 1 then
+  if selected == 1 then -- Proficiency
     local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
     index = ((index - 1 + 1) % #randomizer.proficiencies) + 1
     randomizer.proficiency = randomizer.proficiencies[index]
-  elseif selected == 2 then
-    randomizer.seed = ""
-    randomizer.randomize()
-    state = STATES.RANDOMIZER
-  elseif selected == 3 then
-    local seed = nil
-    local error = ""
-    while type(seed) ~= "number" do
-      local input = ui.input(error .. "Input Seed", randomizer.seed)
-      seed = tonumber(input)
-      error = "Invalid Number. "
+  elseif selected == 2 then -- New Seed on New Game
+    randomizer.newgamenewseed = not randomizer.newgamenewseed
+    if not randomizer.newgamenewseed and resetfunction ~= nil then
+      resetfunction = nil
+    elseif randomizer.newgamenewseed and randomizer.kind == randomizer.KINDS.UNSEEDED then
+      resetfunction = randomizer.new
     end
-    randomizer.seed = seed
-    randomizer.randomize()
+  elseif selected == 3 then -- Unseeded
+    randomizer.kind = randomizer.KINDS.UNSEEDED
+    randomizer.new()
+    if randomizer.newgamenewseed then
+      resetfunction = randomizer.new
+    end
     state = STATES.RANDOMIZER
-  elseif selected == 4 then
+  elseif selected == 4 then -- Seeded
+    randomizer.kind = randomizer.KINDS.SEEDED
+    randomizer.new()
+    if randomizer.newgamenewseed then
+      randomizer.newgamenewseed = false
+      resetfunction = nil
+    end
+    state = STATES.RANDOMIZER
+  elseif selected == 5 then -- Reset
+    if randomizer.newgamenewseed then
+      randomizer.newgamenewseed = false
+      resetfunction = nil
+    end
     randomizer.reset()
     state = STATES.MENU
-  elseif selected == 5 or selected == nil then
+  elseif selected == 6 or selected == nil then -- Back
     state = STATES.MENU
   else
     error("invalid selection (internal error)")
@@ -479,8 +491,8 @@ end
 
 while true do
   waitfornewgame()
-  if practicefunction ~= nil then
-    practicefunction()
+  if resetfunction ~= nil then
+    resetfunction()
   end
 end
 

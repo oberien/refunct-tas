@@ -32,9 +32,16 @@ for proficiency, deps in pairs(dependencies) do
     end
 end
 
+randomizer.KINDS = {
+    UNSEEDED = {},
+    SEEDED = {},
+}
+
+randomizer.kind = {}
 randomizer.seed = ""
 randomizer.proficiency = "beginner"
 randomizer.proficiencies = { "beginner", "intermediate", "advanced" }
+randomizer.newgamenewseed = false
 
 local levelsequence
 local levelindex
@@ -53,6 +60,25 @@ local function nextlevel()
         tas:set_level(levelsequence[levelindex])
     end
     levelindex = levelindex + 1
+end
+
+function randomizer.new()
+    if randomizer.kind == randomizer.KINDS.UNSEEDED then
+        randomizer.seed = ""
+        randomizer.randomize()
+    elseif randomizer.kind == randomizer.KINDS.SEEDED then
+        local seed = nil
+        local error = ""
+        while type(seed) ~= "number" do
+            local input = ui.input(error .. "Input Seed", randomizer.seed)
+            seed = tonumber(input)
+            error = "Invalid Number. "
+        end
+        randomizer.seed = seed
+        randomizer.randomize()
+    else
+        error("invalid randomizer kind (internal error)")
+    end
 end
 
 function randomizer.randomize()
@@ -106,6 +132,7 @@ end
 function randomizer.reset()
     _G.onlevelchange = nil
     _G.onreset = nil
+    randomizer.kind = {}
 end
 
 return randomizer
