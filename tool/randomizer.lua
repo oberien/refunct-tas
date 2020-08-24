@@ -56,9 +56,6 @@ function randomizer.hudlines()
     elseif levelindex > 1 then
         table.insert( randomizerlines, "Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1 )
     end
-    for _, line in ipairs(randomizerlines) do
-        print(line)
-    end
     return randomizerlines
 end
 
