@@ -177,9 +177,9 @@ local function randomizermenu()
     local seed = nil
     local error = ""
     while type(seed) ~= "number" do
-        local input = ui.input(error .. "Input Seed", randomizer.seed)
-        seed = tonumber(input)
-        error = "Invalid Number. "
+      local input = ui.input(error .. "Input Seed", randomizer.seed)
+      seed = tonumber(input)
+      error = "Invalid Number. "
     end
     randomizer.seedqueue = {seed}
     randomizer.seed = seed
@@ -313,7 +313,7 @@ drawhud = function()
     if drawstats then
       statslines = stats()
     end
-    for _,line in ipairs(statslines) do 
+    for _,line in ipairs(statslines) do
       table.insert(randomizerlines, line)
   end
     ui.drawlines(randomizerlines)
