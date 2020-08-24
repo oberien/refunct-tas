@@ -44,19 +44,22 @@ randomizer.newgamenewseedui = { ["On"] = "ON", ["Off"] = "OFF", ["Auto"] = "Auto
 local levelsequence
 local levelindex = 0
 
-function randomizer.drawhud()
-    local info = {}
-    firstline = "Randomizer " .. randomizer.proficiency .. " " .. randomizer.seedtype
+function randomizer.hudlines()
+    local randomizerlines = {}
+    local firstline = "Randomizer " .. randomizer.proficiency .. " " .. randomizer.seedtype
     if randomizer.seed ~= "" then
         firstline = firstline .. ": " .. randomizer.seed
     end
-    table.insert( info, firstline )
+    table.insert( randomizerlines, firstline )
     if levelindex == 0 then
-        table.insert( info, "Press New Game to start" )
+        table.insert( randomizerlines, "Press New Game to start" )
     elseif levelindex > 1 then
-        table.insert( info, "Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1 )
+        table.insert( randomizerlines, "Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1 )
     end
-    ui.drawlines(info)
+    for _, line in ipairs(randomizerlines) do
+        print(line)
+    end
+    return randomizerlines
 end
 
 local function nextlevel()

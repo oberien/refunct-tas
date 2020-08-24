@@ -292,24 +292,31 @@ local function stats()
   local velx, vely, velz = getvelocity()
   local pitch, yaw, roll = getrotation()
   local accx, accy, accz = getacceleration()
-  ui.drawlines({
+  local statslines = {
     string.format("x: %6.2f    y: %6.2f    z: %6.2f", x, y, z),
     string.format("velx: %6.2f    vely: %6.2f    velz: %6.2f", velx, vely, velz),
     string.format("velxy: %6.2f", math.sqrt(velx*velx + vely*vely)),
     string.format("velxyz: %6.2f", math.sqrt(velx*velx + vely*vely + velz*velz)),
     string.format("pitch: %6.2f    yaw: %6.2f    roll: %6.2f", pitch, yaw, roll),
-  })
+  }
+  return statslines
 end
 
 drawhud = function()
   mp.draw()
 
   if state == STATES.NONE then
-    if drawstats then
-      stats()
-    elseif drawrandomizer then
-      randomizer.drawhud()
+    local randomizerlines, statslines = {}, {}
+    if drawrandomizer then
+      randomizerlines = randomizer.hudlines()
     end
+    if drawstats then
+      statslines = stats()
+    end
+    for _,line in ipairs(statslines) do 
+      table.insert(randomizerlines, line)
+  end
+    ui.drawlines(randomizerlines)
   elseif state == STATES.FIRSTSTART then
     firststart()
   elseif state == STATES.MENU then
