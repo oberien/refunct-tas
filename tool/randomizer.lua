@@ -41,7 +41,9 @@ randomizer.kind = {}
 randomizer.seed = ""
 randomizer.proficiency = "beginner"
 randomizer.proficiencies = { "beginner", "intermediate", "advanced" }
-randomizer.newgamenewseed = false
+randomizer.newgamenewseed = "Auto"
+randomizer.newgamenewseedvalues = { "On", "Off", "Auto" }
+randomizer.newgamenewseedui = { ["On"] = "ON", ["Off"] = "OFF", ["Auto"] = "Auto (ON for Unseeded / OFF for Seeded)" }
 
 local levelsequence
 local levelindex
@@ -133,6 +135,7 @@ function randomizer.reset()
     _G.onlevelchange = nil
     _G.onreset = nil
     randomizer.kind = {}
+    randomizer.newgamenewseed = "Auto"
 end
 
 return randomizer

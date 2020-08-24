@@ -148,48 +148,56 @@ end
 
 local function randomizermenu()
   local selected = ui.select({
+    "New Seed on New Game    " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
     "Proficiency: " .. randomizer.proficiency,
-    "New Seed on New Game    " .. (randomizer.newgamenewseed and "On" or "Off"),
     "Unseeded",
     "Seeded",
     "Reset",
     "Back",
   })
-  if selected == 1 then -- Proficiency
+  if selected == 1 then -- New Seed on New Game
+    local index = table.indexof(randomizer.newgamenewseedvalues, randomizer.newgamenewseed)
+    index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
+    randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
+    if randomizer.newgamenewseed == "Off" and resetfunction ~= nil then
+      resetfunction = nil
+    elseif (randomizer.newgamenewseed == "On" or randomizer.newgamenewseed == "Auto") and randomizer.kind == randomizer.KINDS.UNSEEDED then
+      resetfunction = randomizer.new
+    end
+
+  elseif selected == 2 then -- Proficiency
     local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
     index = ((index - 1 + 1) % #randomizer.proficiencies) + 1
     randomizer.proficiency = randomizer.proficiencies[index]
-  elseif selected == 2 then -- New Seed on New Game
-    randomizer.newgamenewseed = not randomizer.newgamenewseed
-    if not randomizer.newgamenewseed and resetfunction ~= nil then
-      resetfunction = nil
-    elseif randomizer.newgamenewseed and randomizer.kind == randomizer.KINDS.UNSEEDED then
-      resetfunction = randomizer.new
-    end
+
   elseif selected == 3 then -- Unseeded
     randomizer.kind = randomizer.KINDS.UNSEEDED
     randomizer.new()
-    if randomizer.newgamenewseed then
+    if (randomizer.newgamenewseed == "On" or randomizer.newgamenewseed == "Auto") then
       resetfunction = randomizer.new
     end
     state = STATES.RANDOMIZER
+
   elseif selected == 4 then -- Seeded
     randomizer.kind = randomizer.KINDS.SEEDED
     randomizer.new()
-    if randomizer.newgamenewseed then
-      randomizer.newgamenewseed = false
+    if randomizer.newgamenewseed == "Auto" and resetfunction ~= nil then
       resetfunction = nil
+    elseif randomizer.newgamenewseed == "On" then
+      resetfunction = randomizer.new
+      -- Switch to unseeded for any further resets
+      randomizer.kind = randomizer.KINDS.UNSEEDED
     end
     state = STATES.RANDOMIZER
+
   elseif selected == 5 then -- Reset
-    if randomizer.newgamenewseed then
-      randomizer.newgamenewseed = false
-      resetfunction = nil
-    end
+    resetfunction = nil
     randomizer.reset()
     state = STATES.MENU
+
   elseif selected == 6 or selected == nil then -- Back
     state = STATES.MENU
+
   else
     error("invalid selection (internal error)")
   end
