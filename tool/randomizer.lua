@@ -40,14 +40,19 @@ local levelsequence
 local levelindex
 
 function randomizer.drawhud()
-    ui.drawlines({ "Randomizer " .. randomizer.proficiency .. " Seed " .. tostring(randomizer.seed) })
+    local info = {}
+    table.insert( info, "Randomizer " .. randomizer.proficiency .. " Seed " .. tostring(randomizer.seed) )
+    if levelindex > 1 then
+        table.insert( info, "Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1 )
+    end
+    ui.drawlines(info)
 end
 
 local function nextlevel()
     if levelindex <= #levelsequence then
         tas:set_level(levelsequence[levelindex])
-        levelindex = levelindex + 1
     end
+    levelindex = levelindex + 1
 end
 
 function randomizer.randomize()
