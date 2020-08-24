@@ -32,13 +32,9 @@ for proficiency, deps in pairs(dependencies) do
     end
 end
 
-randomizer.KINDS = {
-    UNSEEDED = {},
-    SEEDED = {},
-}
-
-randomizer.kind = {}
+randomizer.seedqueue = {}
 randomizer.seed = ""
+randomizer.seedtype = ""
 randomizer.proficiency = "beginner"
 randomizer.proficiencies = { "beginner", "intermediate", "advanced" }
 randomizer.newgamenewseed = "Auto"
@@ -46,12 +42,18 @@ randomizer.newgamenewseedvalues = { "On", "Off", "Auto" }
 randomizer.newgamenewseedui = { ["On"] = "ON", ["Off"] = "OFF", ["Auto"] = "Auto (ON for Unseeded / OFF for Seeded)" }
 
 local levelsequence
-local levelindex
+local levelindex = 0
 
 function randomizer.drawhud()
     local info = {}
-    table.insert( info, "Randomizer " .. randomizer.proficiency .. " Seed " .. tostring(randomizer.seed) )
-    if levelindex > 1 then
+    firstline = "Randomizer " .. randomizer.proficiency .. " " .. randomizer.seedtype
+    if randomizer.seed ~= "" then
+        firstline = firstline .. ": " .. randomizer.seed
+    end
+    table.insert( info, firstline )
+    if levelindex == 0 then
+        table.insert( info, "Press New Game to start" )
+    elseif levelindex > 1 then
         table.insert( info, "Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1 )
     end
     ui.drawlines(info)
@@ -64,28 +66,15 @@ local function nextlevel()
     levelindex = levelindex + 1
 end
 
-function randomizer.new()
-    if randomizer.kind == randomizer.KINDS.UNSEEDED then
-        randomizer.seed = ""
-        randomizer.randomize()
-    elseif randomizer.kind == randomizer.KINDS.SEEDED then
-        local seed = nil
-        local error = ""
-        while type(seed) ~= "number" do
-            local input = ui.input(error .. "Input Seed", randomizer.seed)
-            seed = tonumber(input)
-            error = "Invalid Number. "
-        end
-        randomizer.seed = seed
-        randomizer.randomize()
-    else
-        error("invalid randomizer kind (internal error)")
-    end
-end
-
 function randomizer.randomize()
-    if not randomizer.seed or randomizer.seed == "" then
-        randomizer.seed = os.time() .. math.floor(os.clock()*10000)
+    if #randomizer.seedqueue == 0 then
+        if randomizer.newgamenewseed == "On" or (randomizer.newgamenewseed == "Off" and randomizer.seed == "")
+        or (randomizer.newgamenewseed == "Auto" and randomizer.seedtype == "Random seed") then
+            randomizer.seed = os.time() .. math.floor(os.clock()*10000)
+            randomizer.seedtype = "Random seed"
+        end
+    else
+        randomizer.seed = table.remove( randomizer.seedqueue, 1 )
     end
     math.randomseed(tonumber(randomizer.seed))
 
@@ -134,7 +123,9 @@ end
 function randomizer.reset()
     _G.onlevelchange = nil
     _G.onreset = nil
-    randomizer.kind = {}
+    levelindex = 0
+    randomizer.seedqueue = {}
+    randomizer.seed = ""
     randomizer.newgamenewseed = "Auto"
 end
 

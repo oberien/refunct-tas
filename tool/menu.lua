@@ -13,7 +13,6 @@ local STATES = {
   MENU = {},
   PRACTICE = {},
   RANDOMIZERMENU = {},
-  RANDOMIZER = {},
   ALLBUTTONS = {},
   LOAD_REPLAY = {},
   MULTIPLAYER = {},
@@ -22,6 +21,7 @@ local STATES = {
 
 local state = STATES.FIRSTSTART
 local drawstats = false
+local drawrandomizer = false
 local resetfunction = nil
 local replay = {}
 
@@ -150,8 +150,8 @@ local function randomizermenu()
   local selected = ui.select({
     "New Seed on New Game    " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
     "Proficiency: " .. randomizer.proficiency,
-    "Unseeded",
-    "Seeded",
+    "Random seed",
+    "Set seed",
     "Reset",
     "Back",
   })
@@ -159,11 +159,6 @@ local function randomizermenu()
     local index = table.indexof(randomizer.newgamenewseedvalues, randomizer.newgamenewseed)
     index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
     randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
-    if randomizer.newgamenewseed == "Off" and resetfunction ~= nil then
-      resetfunction = nil
-    elseif (randomizer.newgamenewseed == "On" or randomizer.newgamenewseed == "Auto") and randomizer.kind == randomizer.KINDS.UNSEEDED then
-      resetfunction = randomizer.new
-    end
 
   elseif selected == 2 then -- Proficiency
     local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
@@ -171,28 +166,32 @@ local function randomizermenu()
     randomizer.proficiency = randomizer.proficiencies[index]
 
   elseif selected == 3 then -- Unseeded
-    randomizer.kind = randomizer.KINDS.UNSEEDED
-    randomizer.new()
-    if (randomizer.newgamenewseed == "On" or randomizer.newgamenewseed == "Auto") then
-      resetfunction = randomizer.new
-    end
-    state = STATES.RANDOMIZER
+    randomizer.seedqueue = {}
+    randomizer.seed = ""
+    randomizer.seedtype = "Random seed"
+    drawrandomizer = true
+    resetfunction = randomizer.randomize
+    state = STATES.NONE
 
   elseif selected == 4 then -- Seeded
-    randomizer.kind = randomizer.KINDS.SEEDED
-    randomizer.new()
-    if randomizer.newgamenewseed == "Auto" and resetfunction ~= nil then
-      resetfunction = nil
-    elseif randomizer.newgamenewseed == "On" then
-      resetfunction = randomizer.new
-      -- Switch to unseeded for any further resets
-      randomizer.kind = randomizer.KINDS.UNSEEDED
+    local seed = nil
+    local error = ""
+    while type(seed) ~= "number" do
+        local input = ui.input(error .. "Input Seed", randomizer.seed)
+        seed = tonumber(input)
+        error = "Invalid Number. "
     end
-    state = STATES.RANDOMIZER
+    randomizer.seedqueue = {seed}
+    randomizer.seed = seed
+    randomizer.seedtype = "Set seed"
+    drawrandomizer = true
+    resetfunction = randomizer.randomize
+    state = STATES.NONE
 
   elseif selected == 5 then -- Reset
-    resetfunction = nil
     randomizer.reset()
+    drawrandomizer = false
+    resetfunction = nil
     state = STATES.MENU
 
   elseif selected == 6 or selected == nil then -- Back
@@ -308,6 +307,8 @@ drawhud = function()
   if state == STATES.NONE then
     if drawstats then
       stats()
+    elseif drawrandomizer then
+      randomizer.drawhud()
     end
   elseif state == STATES.FIRSTSTART then
     firststart()
@@ -317,8 +318,6 @@ drawhud = function()
     practice()
   elseif state == STATES.RANDOMIZERMENU then
     randomizermenu()
-  elseif state == STATES.RANDOMIZER then
-    randomizer.drawhud()
   elseif state == STATES.ALLBUTTONS then
     allbuttonsmenu()
   elseif state == STATES.LOAD_REPLAY then
@@ -350,7 +349,7 @@ onkeydown = function(key, char, rep)
   end
 
   if key == KEYS.KEY_M then
-    if state == STATES.NONE or state == STATES.FIRSTSTART or state == STATES.RANDOMIZER then
+    if state == STATES.NONE or state == STATES.FIRSTSTART then
       state = STATES.MENU
     else
       state = STATES.NONE
