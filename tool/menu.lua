@@ -149,7 +149,7 @@ end
 local function randomizermenu()
   local selected = ui.select({
     "New Seed on New Game    " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
-    "Proficiency: " .. randomizer.proficiency,
+    "Difficulty: " .. randomizer.difficulty,
     "Random seed",
     "Set seed",
     "Reset",
@@ -160,20 +160,20 @@ local function randomizermenu()
     index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
     randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
 
-  elseif selected == 2 then -- Proficiency
-    local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
-    index = ((index - 1 + 1) % #randomizer.proficiencies) + 1
-    randomizer.proficiency = randomizer.proficiencies[index]
+  elseif selected == 2 then -- Difficulty
+    local index = table.indexof(randomizer.difficulties, randomizer.difficulty)
+    index = ((index - 1 + 1) % #randomizer.difficulties) + 1
+    randomizer.difficulty = randomizer.difficulties[index]
 
-  elseif selected == 3 then -- Unseeded
-    randomizer.seedqueue = {}
-    randomizer.seed = ""
-    randomizer.seedtype = "Random seed"
+  elseif selected == 3 then -- Random seed
+    randomizer.seedqueue = {""}
+    randomizer.seedtype = randomizer.SEEDTYPE.RANDOMSEED
     drawrandomizer = true
+    randomizer.hudisfornextseed = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
 
-  elseif selected == 4 then -- Seeded
+  elseif selected == 4 then -- Set seed
     local seed = nil
     local error = ""
     while type(seed) ~= "number" do
@@ -181,10 +181,10 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.seedqueue = {seed}
-    randomizer.seed = seed
-    randomizer.seedtype = "Set seed"
+    randomizer.seedqueue = {randomizer.seedqueue[1], seed}
+    randomizer.seedtype = randomizer.SEEDTYPE.SETSEED
     drawrandomizer = true
+    randomizer.hudisfornextseed = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
 
