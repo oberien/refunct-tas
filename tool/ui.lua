@@ -34,12 +34,19 @@ function ui.input(text, prefill)
   local stop_input = false
   local lshift_pressed = false
   local rshift_pressed = false
+  local lctrl_pressed = false
+  local rctrl_pressed = false
 
   _G.onkeydown = function(key, char, rep)
+    print("onkeydown", key, char, rep)
     if key == KEYS.KEY_LEFT_SHIFT then
       lshift_pressed = true
     elseif key == KEYS.KEY_RIGHT_SHIFT then
       rshift_pressed = true
+    elseif key == KEYS.KEY_LEFT_CTRL then
+      lctrl_pressed = true
+    elseif key == KEYS.KEY_RIGHT_CTRL then
+      rctrl_pressed = true
     elseif key == KEYS.KEY_BACKSPACE then
       input = string.sub(input, 0, -2)
     elseif key == KEYS.KEY_ESCAPE then
@@ -47,6 +54,8 @@ function ui.input(text, prefill)
       stop_input = true
     elseif key == KEYS.KEY_RETURN then
       stop_input = true
+    elseif key == KEYS.KEY_V and (lctrl_pressed or rctrl_pressed) then
+      input = input .. tas:get_clipboard()
     else
       char = tochar(char)
       if lshift_pressed or rshift_pressed then
@@ -59,10 +68,15 @@ function ui.input(text, prefill)
   end
 
   _G.onkeyup = function(key, char, rep)
+    print("onkeyup", key, char, rep)
     if key == KEYS.KEY_LEFT_SHIFT then
       lshift_pressed = false
     elseif key == KEYS.KEY_RIGHT_SHIFT then
       rshift_pressed = false
+    elseif key == KEYS.KEY_LEFT_CTRL then
+      lctrl_pressed = true
+    elseif key == KEYS.KEY_RIGHT_CTRL then
+      rctrl_pressed = true
     end
   end
 

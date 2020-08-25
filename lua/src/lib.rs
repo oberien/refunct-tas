@@ -1,10 +1,12 @@
 extern crate rlua;
+extern crate clipboard;
 
 pub mod stub;
 
 use std::rc::Rc;
 
 use rlua::{Value, ToLua, UserData, UserDataMethods, Error as LuaError, Function};
+use clipboard::{ClipboardProvider, ClipboardContext};
 pub use rlua::{Result as LuaResult, Lua as RLua, Context};
 
 #[derive(Debug)]
@@ -100,6 +102,14 @@ pub trait LuaInterface {
     fn tcp_move(&self, x: f32, y: f32, z: f32) -> IfaceResult<()>;
 
     fn set_level(&self, level: i32) -> IfaceResult<()>;
+    fn get_clipboard(&self) -> IfaceResult<String> {
+        Ok(get_clipboard().unwrap_or_default())
+    }
+}
+
+fn get_clipboard() -> Result<String, Box<std::error::Error>> {
+    let mut ctx: ClipboardContext = ClipboardProvider::new()?;
+    ctx.get_contents()
 }
 
 struct Wrapper<T>(T);
@@ -222,6 +232,10 @@ impl<T: 'static + LuaInterface> UserData for Wrapper<Rc<T>> {
         methods.add_method("set_level", |_, this, (level): (i32)| {
             Ok(this.set_level(level)?)
         });
+
+        methods.add_method("get_clipboard", |_, this, ()| {
+            Ok(this.get_clipboard()?)
+        })
     }
 }
 
