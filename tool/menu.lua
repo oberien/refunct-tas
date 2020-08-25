@@ -148,8 +148,8 @@ end
 
 local function randomizermenu()
   local selected = ui.select({
-    "New Seed on New Game    " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
-    "Difficulty: " .. randomizer.difficulty,
+    "New Seed on New Game: " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
+    "Difficulty: " .. randomizer.queue[2].difficulty,
     "Random seed",
     "Set seed",
     "Reset",
@@ -159,17 +159,21 @@ local function randomizermenu()
     local index = table.indexof(randomizer.newgamenewseedvalues, randomizer.newgamenewseed)
     index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
     randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
+    if randomizer.newgamenewseed == "On" and #randomizer.queue == 2 then
+      randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
+    elseif randomizer.newgamenewseed == "Off" and randomizer.queue[1].seed ~= "" then
+      randomizer.queue[2].seed = randomizer.queue[1].seed
+      randomizer.queue[2].seedtype = randomizer.queue[1].seedtype
+    end
 
   elseif selected == 2 then -- Difficulty
-    local index = table.indexof(randomizer.difficulties, randomizer.difficulty)
+    local index = table.indexof(randomizer.difficulties, randomizer.queue[2].difficulty)
     index = ((index - 1 + 1) % #randomizer.difficulties) + 1
-    randomizer.difficulty = randomizer.difficulties[index]
+    randomizer.queue[2].difficulty = randomizer.difficulties[index]
 
   elseif selected == 3 then -- Random seed
-    randomizer.seedqueue = {""}
-    randomizer.seedtype = randomizer.SEEDTYPE.RANDOMSEED
+    randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
     drawrandomizer = true
-    randomizer.hudisfornextseed = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
 
@@ -181,10 +185,8 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.seedqueue = {randomizer.seedqueue[1], seed}
-    randomizer.seedtype = randomizer.SEEDTYPE.SETSEED
+    randomizer.queue = {randomizer.queue[1], {seed = seed, seedtype = randomizer.SEEDTYPE.SETSEED, difficulty = randomizer.queue[2].difficulty}}
     drawrandomizer = true
-    randomizer.hudisfornextseed = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
 
