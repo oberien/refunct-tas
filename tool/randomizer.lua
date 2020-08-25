@@ -25,7 +25,7 @@ randomizer.SEEDTYPE = {
     SETSEED = "Set Seed",
 }
 
-local dependants = {{}}
+local dependants = {}
 for difficulty, deps in pairs(dependencies) do
     dependants[difficulty] = {}
     for level, requirements in pairs(deps) do
