@@ -20,44 +20,89 @@ dependencies.beginner = {
     [22] = { 3, 11, 12, 20, 30 },
 }
 
+randomizer.SEEDTYPE = {
+    RANDOMSEED = "Random Seed",
+    SETSEED = "Set Seed",
+}
+
 local dependants = {}
-for proficiency, deps in pairs(dependencies) do
-    dependants[proficiency] = {}
+for difficulty, deps in pairs(dependencies) do
+    dependants[difficulty] = {}
     for level, requirements in pairs(deps) do
         for _, requirement in ipairs(requirements) do
-            local list = dependants[proficiency][requirement] or {}
+            local list = dependants[difficulty][requirement] or {}
             table.insert(list, level)
-            dependants[proficiency][requirement] = list
+            dependants[difficulty][requirement] = list
         end
     end
 end
 
-randomizer.seed = ""
-randomizer.proficiency = "beginner"
-randomizer.proficiencies = { "beginner", "intermediate", "advanced" }
+randomizer.difficulties = { "beginner", "intermediate", "advanced" }
+-- randomizer.queue[1] is always the current running randomizer, while randomizer.queue[2] is always the planned next randomizer. Indexes 3 and beyond are optional
+randomizer.queue = {{seed = ""}, {seed = "", difficulty = randomizer.difficulties[1]}}
+randomizer.newgamenewseed = "Auto"
+randomizer.newgamenewseedvalues = { "On", "Off", "Auto" }
+randomizer.newgamenewseedui = { ["On"] = "Always ON", ["Off"] = "Always OFF", ["Auto"] = "Auto (ON for Random Seed / OFF for Set Seed)" }
 
 local levelsequence
-local levelindex
+local levelindex = 1
 
-function randomizer.drawhud()
-    ui.drawlines({ "Randomizer " .. randomizer.proficiency .. " Seed " .. tostring(randomizer.seed) })
+function randomizer.hudlines()
+    local currentseedline
+    local nextseedline = "Next: " .. randomizer.queue[2].difficulty .. " "
+    local progressline = ""
+
+    if randomizer.queue[1].seed == "" then -- If the user isn't currently playing a randomizer
+        currentseedline = "Press New Game to start"
+    else
+        currentseedline = "Current: " .. randomizer.queue[1].difficulty .. " " .. randomizer.queue[1].seedtype .. ": " .. randomizer.queue[1].seed
+        currentseedline = currentseedline .. "   Progress " .. levelindex - 2 .. "/" .. #levelsequence + 1
+    end
+
+    if randomizer.queue[2].seed == "" then -- If the next seed will be random
+        nextseedline = nextseedline .. randomizer.SEEDTYPE.RANDOMSEED
+    else
+        if randomizer.queue[1].seed == randomizer.queue[2].seed then -- If the next seed is the same as the current one
+            nextseedline = nextseedline .. "Keep current seed"
+        else
+            nextseedline = nextseedline .. randomizer.queue[2].seedtype .. ": " .. randomizer.queue[2].seed
+        end
+    end
+
+    local randomizerlines = {currentseedline, nextseedline}
+    return randomizerlines
 end
 
 local function nextlevel()
     if levelindex <= #levelsequence then
         tas:set_level(levelsequence[levelindex])
-        levelindex = levelindex + 1
     end
+    levelindex = levelindex + 1
 end
 
 function randomizer.randomize()
-    if not randomizer.seed or randomizer.seed == "" then
-        randomizer.seed = os.time() .. math.floor(os.clock()*10000)
+    table.remove(randomizer.queue, 1)
+    if randomizer.queue[1].seed == "" then
+        randomizer.queue[1].seed = os.time() .. math.floor(os.clock()*10000)
+        if randomizer.newgamenewseed == "Off" then
+            table.insert(randomizer.queue, randomizer.queue[1])
+        else
+            table.insert(randomizer.queue, {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[1].difficulty})
+        end
+    else
+        if #randomizer.queue == 1 then
+            if randomizer.newgamenewseed == "On" then
+                table.insert(randomizer.queue, {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[1].difficulty})
+            else
+                table.insert(randomizer.queue, randomizer.queue[1])
+            end
+        end
     end
-    math.randomseed(tonumber(randomizer.seed))
 
-    if dependencies[randomizer.proficiency] == nil then
-        error("proficiency is not advanced, intermediate or beginner")
+    math.randomseed(tonumber(randomizer.queue[1].seed))
+
+    if dependencies[randomizer.queue[1].difficulty] == nil then
+        error("difficulty is not advanced, intermediate or beginner")
     end
 
     local levels = {}
@@ -67,7 +112,7 @@ function randomizer.randomize()
     levelindex = 1
 
     for i=2,30 do
-        if dependencies[randomizer.proficiency][i] == nil then
+        if dependencies[randomizer.queue[1].difficulty][i] == nil then
             table.insert(workingset, i)
         end
     end
@@ -77,7 +122,7 @@ function randomizer.randomize()
         local newlevel = workingset[newlevelindex]
         table.insert(visited, newlevel)
         table.remove(workingset, newlevelindex)
-        for _, nowvalid in pairs(dependants[randomizer.proficiency][newlevel] or {}) do
+        for _, nowvalid in pairs(dependants[randomizer.queue[1].difficulty][newlevel] or {}) do
             if not table.contains(visited, nowvalid) and not table.contains(workingset, nowvalid) then
                 table.insert(workingset, nowvalid)
             end
@@ -101,6 +146,7 @@ end
 function randomizer.reset()
     _G.onlevelchange = nil
     _G.onreset = nil
+    randomizer.queue = {{seed = ""}, {seed = "", difficulty = randomizer.difficulties[1]}}
 end
 
 return randomizer

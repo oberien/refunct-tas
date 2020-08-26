@@ -13,7 +13,6 @@ local STATES = {
   MENU = {},
   PRACTICE = {},
   RANDOMIZERMENU = {},
-  RANDOMIZER = {},
   ALLBUTTONS = {},
   LOAD_REPLAY = {},
   MULTIPLAYER = {},
@@ -22,7 +21,8 @@ local STATES = {
 
 local state = STATES.FIRSTSTART
 local drawstats = false
-local practicefunction = nil
+local drawrandomizer = false
+local resetfunction = nil
 local replay = {}
 
 local function firststart()
@@ -52,7 +52,7 @@ end
 
 local function practice()
   local function sel(val)
-    return practicefunction == val and " (Selected)" or ""
+    return resetfunction == val and " (Selected)" or ""
   end
   local selected = ui.select({
     "None" .. sel(nil) ,
@@ -98,47 +98,47 @@ local function practice()
     "Button 32" .. sel(button32),
     "Back"
   })
-  if selected == 1 then practicefunction = nil
-  elseif selected == 2 then practicefunction = dive
-  elseif selected == 3 then practicefunction = spiral
-  elseif selected == 4 then practicefunction = finalclimb
-  elseif selected == 5 then practicefunction = lsjump
-  elseif selected == 6 then practicefunction = pit
-  elseif selected == 7 then practicefunction = pillars
-  elseif selected == 8 then practicefunction = firstele
-  elseif selected == 9 then practicefunction = sixteen
-  elseif selected == 10 then practicefunction = spiralslide
-  elseif selected == 11 then practicefunction = button2
-  elseif selected == 12 then practicefunction = button3
-  elseif selected == 13 then practicefunction = button4
-  elseif selected == 14 then practicefunction = button5
-  elseif selected == 15 then practicefunction = button6
-  elseif selected == 16 then practicefunction = button7
-  elseif selected == 17 then practicefunction = button8
-  elseif selected == 18 then practicefunction = button9
-  elseif selected == 19 then practicefunction = button10
-  elseif selected == 20 then practicefunction = button11
-  elseif selected == 21 then practicefunction = button12
-  elseif selected == 22 then practicefunction = button13
-  elseif selected == 23 then practicefunction = button14
-  elseif selected == 24 then practicefunction = button15
-  elseif selected == 25 then practicefunction = button16
-  elseif selected == 26 then practicefunction = button17
-  elseif selected == 27 then practicefunction = button18
-  elseif selected == 28 then practicefunction = button19
-  elseif selected == 29 then practicefunction = button20
-  elseif selected == 30 then practicefunction = button21
-  elseif selected == 31 then practicefunction = button22
-  elseif selected == 32 then practicefunction = button23
-  elseif selected == 33 then practicefunction = button24
-  elseif selected == 34 then practicefunction = button25
-  elseif selected == 35 then practicefunction = button26
-  elseif selected == 36 then practicefunction = button27
-  elseif selected == 37 then practicefunction = button28
-  elseif selected == 38 then practicefunction = button29
-  elseif selected == 39 then practicefunction = button30
-  elseif selected == 40 then practicefunction = button31
-  elseif selected == 41 then practicefunction = button32
+  if selected == 1 then resetfunction = nil
+  elseif selected == 2 then resetfunction = dive
+  elseif selected == 3 then resetfunction = spiral
+  elseif selected == 4 then resetfunction = finalclimb
+  elseif selected == 5 then resetfunction = lsjump
+  elseif selected == 6 then resetfunction = pit
+  elseif selected == 7 then resetfunction = pillars
+  elseif selected == 8 then resetfunction = firstele
+  elseif selected == 9 then resetfunction = sixteen
+  elseif selected == 10 then resetfunction = spiralslide
+  elseif selected == 11 then resetfunction = button2
+  elseif selected == 12 then resetfunction = button3
+  elseif selected == 13 then resetfunction = button4
+  elseif selected == 14 then resetfunction = button5
+  elseif selected == 15 then resetfunction = button6
+  elseif selected == 16 then resetfunction = button7
+  elseif selected == 17 then resetfunction = button8
+  elseif selected == 18 then resetfunction = button9
+  elseif selected == 19 then resetfunction = button10
+  elseif selected == 20 then resetfunction = button11
+  elseif selected == 21 then resetfunction = button12
+  elseif selected == 22 then resetfunction = button13
+  elseif selected == 23 then resetfunction = button14
+  elseif selected == 24 then resetfunction = button15
+  elseif selected == 25 then resetfunction = button16
+  elseif selected == 26 then resetfunction = button17
+  elseif selected == 27 then resetfunction = button18
+  elseif selected == 28 then resetfunction = button19
+  elseif selected == 29 then resetfunction = button20
+  elseif selected == 30 then resetfunction = button21
+  elseif selected == 31 then resetfunction = button22
+  elseif selected == 32 then resetfunction = button23
+  elseif selected == 33 then resetfunction = button24
+  elseif selected == 34 then resetfunction = button25
+  elseif selected == 35 then resetfunction = button26
+  elseif selected == 36 then resetfunction = button27
+  elseif selected == 37 then resetfunction = button28
+  elseif selected == 38 then resetfunction = button29
+  elseif selected == 39 then resetfunction = button30
+  elseif selected == 40 then resetfunction = button31
+  elseif selected == 41 then resetfunction = button32
   elseif selected == 42 or selected == nil then
    state = STATES.MENU
   else
@@ -148,21 +148,36 @@ end
 
 local function randomizermenu()
   local selected = ui.select({
-    "Proficiency: " .. randomizer.proficiency,
-    "Unseeded",
-    "Seeded",
+    "New Seed on New Game: " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
+    "Difficulty: " .. randomizer.queue[2].difficulty,
+    "Random seed",
+    "Set seed",
     "Reset",
     "Back",
   })
-  if selected == 1 then
-    local index = table.indexof(randomizer.proficiencies, randomizer.proficiency)
-    index = ((index - 1 + 1) % #randomizer.proficiencies) + 1
-    randomizer.proficiency = randomizer.proficiencies[index]
-  elseif selected == 2 then
-    randomizer.seed = ""
-    randomizer.randomize()
-    state = STATES.RANDOMIZER
-  elseif selected == 3 then
+  if selected == 1 then -- New Seed on New Game
+    local index = table.indexof(randomizer.newgamenewseedvalues, randomizer.newgamenewseed)
+    index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
+    randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
+    if randomizer.newgamenewseed == "On" and #randomizer.queue == 2 then
+      randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
+    elseif randomizer.newgamenewseed == "Off" and randomizer.queue[1].seed ~= "" then
+      randomizer.queue[2].seed = randomizer.queue[1].seed
+      randomizer.queue[2].seedtype = randomizer.queue[1].seedtype
+    end
+
+  elseif selected == 2 then -- Difficulty
+    local index = table.indexof(randomizer.difficulties, randomizer.queue[2].difficulty)
+    index = ((index - 1 + 1) % #randomizer.difficulties) + 1
+    randomizer.queue[2].difficulty = randomizer.difficulties[index]
+
+  elseif selected == 3 then -- Random seed
+    randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
+    drawrandomizer = true
+    resetfunction = randomizer.randomize
+    state = STATES.NONE
+
+  elseif selected == 4 then -- Set seed
     local seed = nil
     local error = ""
     while type(seed) ~= "number" do
@@ -170,14 +185,20 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.seed = seed
-    randomizer.randomize()
-    state = STATES.RANDOMIZER
-  elseif selected == 4 then
+    randomizer.queue = {randomizer.queue[1], {seed = seed, seedtype = randomizer.SEEDTYPE.SETSEED, difficulty = randomizer.queue[2].difficulty}}
+    drawrandomizer = true
+    resetfunction = randomizer.randomize
+    state = STATES.NONE
+
+  elseif selected == 5 then -- Reset
     randomizer.reset()
+    drawrandomizer = false
+    resetfunction = nil
     state = STATES.MENU
-  elseif selected == 5 or selected == nil then
+
+  elseif selected == 6 or selected == nil then -- Back
     state = STATES.MENU
+
   else
     error("invalid selection (internal error)")
   end
@@ -273,22 +294,31 @@ local function stats()
   local velx, vely, velz = getvelocity()
   local pitch, yaw, roll = getrotation()
   local accx, accy, accz = getacceleration()
-  ui.drawlines({
+  local statslines = {
     string.format("x: %6.2f    y: %6.2f    z: %6.2f", x, y, z),
     string.format("velx: %6.2f    vely: %6.2f    velz: %6.2f", velx, vely, velz),
     string.format("velxy: %6.2f", math.sqrt(velx*velx + vely*vely)),
     string.format("velxyz: %6.2f", math.sqrt(velx*velx + vely*vely + velz*velz)),
     string.format("pitch: %6.2f    yaw: %6.2f    roll: %6.2f", pitch, yaw, roll),
-  })
+  }
+  return statslines
 end
 
 drawhud = function()
   mp.draw()
 
   if state == STATES.NONE then
-    if drawstats then
-      stats()
+    local randomizerlines, statslines = {}, {}
+    if drawrandomizer then
+      randomizerlines = randomizer.hudlines()
     end
+    if drawstats then
+      statslines = stats()
+    end
+    for _,line in ipairs(statslines) do
+      table.insert(randomizerlines, line)
+  end
+    ui.drawlines(randomizerlines)
   elseif state == STATES.FIRSTSTART then
     firststart()
   elseif state == STATES.MENU then
@@ -297,8 +327,6 @@ drawhud = function()
     practice()
   elseif state == STATES.RANDOMIZERMENU then
     randomizermenu()
-  elseif state == STATES.RANDOMIZER then
-    randomizer.drawhud()
   elseif state == STATES.ALLBUTTONS then
     allbuttonsmenu()
   elseif state == STATES.LOAD_REPLAY then
@@ -330,7 +358,7 @@ onkeydown = function(key, char, rep)
   end
 
   if key == KEYS.KEY_M then
-    if state == STATES.NONE or state == STATES.FIRSTSTART or state == STATES.RANDOMIZER then
+    if state == STATES.NONE or state == STATES.FIRSTSTART then
       state = STATES.MENU
     else
       state = STATES.NONE
@@ -479,8 +507,8 @@ end
 
 while true do
   waitfornewgame()
-  if practicefunction ~= nil then
-    practicefunction()
+  if resetfunction ~= nil then
+    resetfunction()
   end
 end
 
