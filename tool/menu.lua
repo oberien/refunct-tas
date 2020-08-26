@@ -148,31 +148,22 @@ end
 
 local function randomizermenu()
   local selected = ui.select({
-    "New Seed on New Game: " .. randomizer.newgamenewseedui[randomizer.newgamenewseed],
-    "Difficulty: " .. randomizer.queue[2].difficulty,
+    "New Seed when starting New Game: " .. randomizer.getnewgamenewseed(),
+    "Difficulty: " .. randomizer.getdifficulty(),
     "Random seed",
     "Set seed",
     "Reset",
     "Back",
   })
   if selected == 1 then -- New Seed on New Game
-    local index = table.indexof(randomizer.newgamenewseedvalues, randomizer.newgamenewseed)
-    index = ((index - 1 + 1) % #randomizer.newgamenewseedvalues) + 1
-    randomizer.newgamenewseed = randomizer.newgamenewseedvalues[index]
-    if randomizer.newgamenewseed == "On" and #randomizer.queue == 2 then
-      randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
-    elseif randomizer.newgamenewseed == "Off" and randomizer.queue[1].seed ~= "" then
-      randomizer.queue[2].seed = randomizer.queue[1].seed
-      randomizer.queue[2].seedtype = randomizer.queue[1].seedtype
-    end
+    randomizer.cyclenewgamenewseed()
+    randomizer.setnextseedwithlogic()
 
   elseif selected == 2 then -- Difficulty
-    local index = table.indexof(randomizer.difficulties, randomizer.queue[2].difficulty)
-    index = ((index - 1 + 1) % #randomizer.difficulties) + 1
-    randomizer.queue[2].difficulty = randomizer.difficulties[index]
+    randomizer.cycledifficulty()
 
   elseif selected == 3 then -- Random seed
-    randomizer.queue = {randomizer.queue[1], {seed = "", seedtype = randomizer.SEEDTYPE.RANDOMSEED, difficulty = randomizer.queue[2].difficulty}}
+    randomizer.setnextseed(randomizer.SEEDTYPE.RANDOMSEED)
     drawrandomizer = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
@@ -185,7 +176,7 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.queue = {randomizer.queue[1], {seed = seed, seedtype = randomizer.SEEDTYPE.SETSEED, difficulty = randomizer.queue[2].difficulty}}
+    randomizer.setnextseed(randomizer.SEEDTYPE.SETSEED, seed)
     drawrandomizer = true
     resetfunction = randomizer.randomize
     state = STATES.NONE
@@ -294,14 +285,13 @@ local function stats()
   local velx, vely, velz = getvelocity()
   local pitch, yaw, roll = getrotation()
   local accx, accy, accz = getacceleration()
-  local statslines = {
+  return {
     string.format("x: %6.2f    y: %6.2f    z: %6.2f", x, y, z),
     string.format("velx: %6.2f    vely: %6.2f    velz: %6.2f", velx, vely, velz),
     string.format("velxy: %6.2f", math.sqrt(velx*velx + vely*vely)),
     string.format("velxyz: %6.2f", math.sqrt(velx*velx + vely*vely + velz*velz)),
     string.format("pitch: %6.2f    yaw: %6.2f    roll: %6.2f", pitch, yaw, roll),
   }
-  return statslines
 end
 
 drawhud = function()
