@@ -29,6 +29,7 @@ enum StateType {
 }
 
 pub fn run(lua_ue_rx: Receiver<LuaToUe>, ue_lua_tx: Sender<UeToLua>) {
+    log!("\"starting\" ue thread");
     STATE.set(State {
         typ: StateType::Running,
         lua_ue_rx,

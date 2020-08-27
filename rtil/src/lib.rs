@@ -49,7 +49,9 @@ pub extern "C" fn initialize() {
         }));
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();
+        log!("got exe: {:?}", exe);
         let file = exe.file_name().unwrap();
+        log!("got exe file name: {:?}", file);
         if cfg!(unix) && file == "Refunct-Linux-Shipping" || cfg!(windows) && file == "Refunct-Win32-Shipping.exe" {
             thread::spawn(|| {
                 log!("Starting initialize");
@@ -60,7 +62,11 @@ pub extern "C" fn initialize() {
                 // start threads
                 threads::start();
                 // hook stuff
+                #[cfg(windows)]
+                let handles = native::suspend_threads();
                 native::init();
+                #[cfg(windows)]
+                native::resume_threads(handles);
             });
         }
     });

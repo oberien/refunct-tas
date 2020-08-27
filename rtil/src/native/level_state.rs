@@ -1,10 +1,10 @@
-lazy_static! {
-    static ref LEVEL_STATE_ADDRESS: usize = level_state_address();
-}
-
 use super::consts::LEVEL_POINTER_PATH;
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
+
+lazy_static! {
+    static ref LEVEL_STATE_ADDRESS: usize = level_state_address();
+}
 
 #[repr(C)]
 #[derive(Debug, Clone)]
@@ -28,7 +28,10 @@ impl LevelState {
     }
 
     unsafe fn get_ptr() -> *mut LevelState {
-        let addr: usize = *LEVEL_STATE_ADDRESS;
+        Self::get_ptr_raw(*LEVEL_STATE_ADDRESS)
+    }
+
+    unsafe fn get_ptr_raw(addr: usize) -> *mut LevelState {
         let ptr = addr as *mut LevelState;
         ptr
     }
@@ -55,6 +58,8 @@ fn level_state_address() -> usize {
     }
     let state_addr = level_addr + last[0] - level_offset;
     log!("level_state-addr: {:#x}", state_addr);
+    let state = unsafe { (*LevelState::get_ptr_raw(state_addr)).clone() };
+    log!("Got state {:?}", state);
     state_addr
 }
 

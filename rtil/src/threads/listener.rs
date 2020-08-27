@@ -8,6 +8,7 @@ use threads::{stream_read, stream_write, StreamToListener, StreamToLua, LuaToStr
 use error::*;
 
 pub fn run(stream_lua_tx: Sender<StreamToLua>, lua_stream_rx: Receiver<LuaToStream>) -> Result<()> {
+    log!("starting listener thread");
     let listener = TcpListener::bind("localhost:21337")?;
     let mut stream_lua_tx = Some(stream_lua_tx);
     let mut lua_stream_rx = Some(lua_stream_rx);

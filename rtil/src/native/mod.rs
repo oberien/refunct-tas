@@ -34,7 +34,7 @@ mod level_state;
 #[cfg(windows)] use self::windows::*;
 
 #[cfg(unix)] pub use self::linux::INITIALIZE_CTOR;
-#[cfg(windows)] pub use self::windows::DllMain;
+#[cfg(windows)] pub use self::windows::{DllMain, suspend_threads, resume_threads};
 pub use self::character::AMyCharacter;
 pub use self::slateapp::{
     FSlateApplication,

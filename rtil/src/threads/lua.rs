@@ -20,6 +20,7 @@ struct Tas {
 
 pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStream>,
            lua_ue_tx: Sender<LuaToUe>, ue_lua_rx: Receiver<UeToLua>) {
+    log!("starting lua thread");
     thread::spawn(move|| {
         let iface = Rc::new(GameInterface {
             pressed_keys: RefCell::new(HashSet::new()),
