@@ -32,6 +32,25 @@ function table.indexof(list, element)
   return -1
 end
 
+function table.checkifinbounds(seq, lowerbound, upperbound)
+  for i in ipairs(seq) do
+      if i > upperbound or i < lowerbound then
+       return false
+      end
+  end
+  return true
+end
+
+function table.checkifduplicate(seq)
+  local test = -1
+  for i in ipairs(seq) do
+      if i == test then
+         return false
+      end
+  end
+  return true
+end
+
 function print(...)
   local res = ""
   local args = table.pack(...)

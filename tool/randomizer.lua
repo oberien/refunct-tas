@@ -24,6 +24,7 @@ randomizer.SEEDTYPE = {
     RANDOMSEED = "Random Seed",
     SETSEED = "Set Seed",
     KEEPSEED = "Keep current seed",
+    SETSEQUENCE = "Set Sequence"
 }
 
 local dependants = {}
@@ -41,10 +42,11 @@ end
 local levelsequence
 local levelindex = 1
 local difficulties = { "beginner", "intermediate", "advanced" }
+local difficulty = difficulties[1]
 -- queue[1] is always the current running randomizer
 -- queue[2] is always the planned next randomizer
 -- queue[3] and beyond are optional
-local queue = {{seed = ""}, {seed = "", difficulty = difficulties[1]}}
+local queue = {{seed = ""}}
 -- nextseedindex is usually at 2 except when anything is being removed from the queue
 local nextseedindex = 2
 local newgamenewseed = "Auto"
@@ -90,31 +92,37 @@ function randomizer.cyclenewgamenewseed()
 end
 
 function randomizer.getdifficulty()
-    return queue[2].difficulty
+    return difficulty
 end
 
 function randomizer.cycledifficulty()
-    local index = table.indexof(difficulties, queue[2].difficulty)
+    local index = table.indexof(difficulties, difficulty)
     index = ((index - 1 + 1) % #difficulties) + 1
-    queue[2].difficulty = difficulties[index]
+    difficulty = difficulties[index]
 end
 
 function randomizer.setnextseed(seedtype, seed)
-    seed = seed or ""
-    local difficulty = queue[nextseedindex].difficulty
-    queue = {queue[1], {seedtype = seedtype, difficulty = difficulty}}
+    local nextdifficulty = difficulty
+    local nextseed = seed or ""
+    local nextseedtype = seedtype
     if seedtype == randomizer.SEEDTYPE.RANDOMSEED then
-        queue[2].seed = ""
+        nextseed = ""
     elseif seedtype == randomizer.SEEDTYPE.SETSEED then
-        if seed == "" then
+        if nextseed == "" then
             error("Cannot assign empty seed with SETSEED")
         end
-        queue[2].seed = seed
+    elseif seedtype == randomizer.SEEDTYPE.SETSEQUENCE then
+        if nextseed == "" then
+            error("Cannot assign empty seed with SETSEQUENCE")
+        end
     elseif seedtype == randomizer.SEEDTYPE.KEEPSEED then
-        queue[2].seed = queue[1].seed
+        nextdifficulty = queue[1].difficulty
+        nextseed = queue[1].seed
+        nextseedtype = queue[1].seedtype
     else
-        error("seedtype is not RANDOMSEED, SETSEED or KEEPSEED")
+        error("seedtype is not RANDOMSEED, SETSEED, SETSEQUENCE or KEEPSEED")
     end
+    table.insert(queue, {seed = nextseed, seedtype = nextseedtype, difficulty = nextdifficulty})
 end
 
 function randomizer.setnextseedwithlogic()
@@ -131,8 +139,12 @@ function randomizer.setnextseedwithlogic()
                 if #queue == nextseedindex then
                     randomizer.setnextseed(randomizer.SEEDTYPE.KEEPSEED)
                 end
+            elseif queue[1].seedtype == randomizer.SEEDTYPE.SETSEQUENCE then
+                if #queue == nextseedindex then
+                    randomizer.setnextseed(randomizer.SEEDTYPE.KEEPSEED)
+                end
             else
-                error("Current seedtype is not RANDOMSEED or SETSEED")
+                error("Current seedtype is not RANDOMSEED, SETSEED or SETSEQUENCE")
             end
         else
             error("newgamenewseed is not On, Off or Auto")
@@ -148,9 +160,6 @@ local function nextlevel()
 end
 
 function randomizer.randomize()
-    if queue[2].seedtype == randomizer.SEEDTYPE.KEEPSEED then
-        queue[2].seedtype = queue[1].seedtype
-    end
     table.remove(queue, 1)
     nextseedindex = 1
     if #queue == 1 then -- If there is no seed planned for the next game
@@ -160,38 +169,42 @@ function randomizer.randomize()
         randomizer.setnextseedwithlogic()
     end
     nextseedindex = 2
+    if queue[1].seedtype == randomizer.SEEDTYPE.SETSEED or queue[1].seedtype == randomizer.SEEDTYPE.RANDOMSEED then
+        math.randomseed(tonumber(queue[1].seed))
 
-    math.randomseed(tonumber(queue[1].seed))
-
-    if dependencies[queue[1].difficulty] == nil then
-        error("difficulty is not advanced, intermediate or beginner")
-    end
-
-    local levels = {}
-    local workingset = {}
-    local visited = { 0 }
-    levelsequence = {}
-    levelindex = 1
-
-    for i=2,30 do
-        if dependencies[queue[1].difficulty][i] == nil then
-            table.insert(workingset, i)
+        if dependencies[queue[1].difficulty] == nil then
+            error("difficulty is not advanced, intermediate or beginner")
         end
-    end
-
-    while #workingset ~= 0 do
-        local newlevelindex = math.random(#workingset)
-        local newlevel = workingset[newlevelindex]
-        table.insert(visited, newlevel)
-        table.remove(workingset, newlevelindex)
-        for _, nowvalid in pairs(dependants[queue[1].difficulty][newlevel] or {}) do
-            if not table.contains(visited, nowvalid) and not table.contains(workingset, nowvalid) then
-                table.insert(workingset, nowvalid)
+    
+        local levels = {}
+        local workingset = {}
+        local visited = { 0 }
+        levelsequence = {}
+        levelindex = 1
+    
+        for i=2,30 do
+            if dependencies[queue[1].difficulty][i] == nil then
+                table.insert(workingset, i)
             end
         end
-        table.insert(levelsequence, newlevel - 2)
+    
+        while #workingset ~= 0 do
+            local newlevelindex = math.random(#workingset)
+            local newlevel = workingset[newlevelindex]
+            table.insert(visited, newlevel)
+            table.remove(workingset, newlevelindex)
+            for _, nowvalid in pairs(dependants[queue[1].difficulty][newlevel] or {}) do
+                if not table.contains(visited, nowvalid) and not table.contains(workingset, nowvalid) then
+                    table.insert(workingset, nowvalid)
+                end
+            end
+            table.insert(levelsequence, newlevel - 2)
+        end
+        table.insert(levelsequence, 31 - 2)
+    elseif queue[1].seedtype == randomizer.SEEDTYPE.SETSEQUENCE then
+        levelsequence = queue[1].seed
     end
-    table.insert(levelsequence, 31 - 2)
+
 
     _G.onlevelchange = function(level)
         if level > 0 then
@@ -208,7 +221,7 @@ end
 function randomizer.reset()
     _G.onlevelchange = nil
     _G.onreset = nil
-    queue = {{seed = ""}, {seed = "", difficulty = difficulties[1]}}
+    queue = {{seed = ""}}
 end
 
 return randomizer
