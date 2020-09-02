@@ -150,8 +150,9 @@ local function randomizermenu()
   local selected = ui.select({
     "New Seed when starting New Game: " .. randomizer.getnewgamenewseed(),
     "Difficulty: " .. randomizer.getdifficulty(),
-    "Random seed",
-    "Set seed",
+    "Random Seed",
+    "Set Seed",
+    "Set Sequence",
     "Reset",
     "Back",
   })
@@ -181,13 +182,32 @@ local function randomizermenu()
     resetfunction = randomizer.randomize
     state = STATES.NONE
 
-  elseif selected == 5 then -- Reset
+  elseif selected == 5 then -- Set Sequence
+    local sequence = nil
+    local check = false
+    local error = ""
+    while check == false do
+      local input = ui.input(error .. "Input Sequence")
+      sequence = nil
+      for i in string.gmatch(input, "%d+") do
+        table.insert(sequence, math.floor(i - 2))
+      end
+      if #sequence > 0 and table.checkifinbounds(sequence, 0, 29) and table.checkifduplicate(sequence) and table.contains(sequence, 29) then
+        check = true
+      end
+    end
+    randomizer.setnextseed(randomizer.SEEDTYPE.SETSEQUENCE, sequence)
+    drawrandomizer = true
+    resetfunction = randomizer.randomize
+    state = STATES.NONE
+
+  elseif selected == 6 then -- Reset
     randomizer.reset()
     drawrandomizer = false
     resetfunction = nil
     state = STATES.MENU
 
-  elseif selected == 6 or selected == nil then -- Back
+  elseif selected == 7 or selected == nil then -- Back
     state = STATES.MENU
 
   else
