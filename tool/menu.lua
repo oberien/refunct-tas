@@ -158,15 +158,17 @@ local function randomizermenu()
   })
   if selected == 1 then -- New Seed on New Game
     randomizer.cyclenewgamenewseed()
-    randomizer.setnextseedwithlogic()
+    if queue[2].seedtype == randomizer.SEEDTYPE.KEEPSEED or queue[2].seedtype == randomizer.SEEDTYPE.RANDOMSEED then
+      randomizer.setnextseedlogic()
+    end
 
   elseif selected == 2 then -- Difficulty
     randomizer.cycledifficulty()
 
   elseif selected == 3 then -- Random seed
-    randomizer.setnextseed(randomizer.SEEDTYPE.RANDOMSEED)
+    randomizer.randseed()
     drawrandomizer = true
-    resetfunction = randomizer.randomize
+    resetfunction = randomizer.run
     state = STATES.NONE
 
   elseif selected == 4 then -- Set seed
@@ -177,28 +179,32 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.setnextseed(randomizer.SEEDTYPE.SETSEED, seed)
+    randomizer.setseed(seed)
     drawrandomizer = true
-    resetfunction = randomizer.randomize
+    resetfunction = randomizer.run
     state = STATES.NONE
 
   elseif selected == 5 then -- Set Sequence
-    local sequence = nil
+    local sequence = {}
+    local sequencestr = ""
     local check = false
     local error = ""
-    while check == false do
+    while not check do
       local input = ui.input(error .. "Input Sequence")
-      sequence = nil
       for i in string.gmatch(input, "%d+") do
         table.insert(sequence, math.floor(i - 2))
       end
-      if #sequence > 0 and table.checkifinbounds(sequence, 0, 29) and table.checkifduplicate(sequence) and table.contains(sequence, 29) then
+      if #sequence > 0 and table.allvaluesbetweenincluding(sequence, 0, 29) and not table.containsduplicate(sequence) and table.contains(sequence, 29) then
         check = true
+        sequencestr = string.gsub(input,"%D+",",")
+      else
+        sequence = {}
+        error = "Invalid Sequence. "
       end
     end
-    randomizer.setnextseed(randomizer.SEEDTYPE.SETSEQUENCE, sequence)
+    randomizer.setsequence(sequence,sequencestr)
     drawrandomizer = true
-    resetfunction = randomizer.randomize
+    resetfunction = randomizer.run
     state = STATES.NONE
 
   elseif selected == 6 then -- Reset
