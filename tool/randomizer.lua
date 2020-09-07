@@ -47,7 +47,6 @@ local difficulty = difficulties[1]
 -- queue[2] is always the planned next randomizer
 -- queue[3] and beyond are optional
 queue = {{seed = ""}, {seedtype = randomizer.SEEDTYPE.KEEPSEED}}
-local nextseedindex = 2
 local newgamenewseed = "Auto"
 
 function randomizer.hudlines()
@@ -127,7 +126,6 @@ function randomizer.createsequence(seed, difficulty)
         error("difficulty is not advanced, intermediate or beginner")
     end
 
-    local levels = {}
     local workingset = {}
     local visited = { 0 }
     local sequence = {}
