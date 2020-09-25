@@ -21,10 +21,10 @@ dependencies.beginner = {
 }
 
 randomizer.SEEDTYPE = {
-    RANDOMSEED = "Random seed",
-    SETSEED = "Set seed",
-    KEEPSEED = "Keep current seed/sequence",
-    SETSEQUENCE = "Set sequence"
+    RANDOMSEED = "Random seed", -- a sequence generated from a random seed
+    SETSEED = "Set seed", -- a sequence generated from a set seed
+    KEEPSEED = "Keep current seed/sequence", -- this seedtype will copy the current run in its entirety before becoming the current run
+    SETSEQUENCE = "Set sequence" -- a set sequence
 }
 
 local dependants = {}
@@ -46,13 +46,12 @@ local difficulty = difficulties[1]
 -- queue[1] is always the current running randomizer
 -- queue[2] is always the planned next randomizer
 -- queue[3] and beyond are optional
-queue = {{seed = ""}, {seedtype = randomizer.SEEDTYPE.KEEPSEED}}
+local queue = {{seed = ""}, {seedtype = randomizer.SEEDTYPE.KEEPSEED}}
 local newgamenewseed = "Auto"
 
 function randomizer.hudlines()
     local currentseedline
     local nextseedline = "Next: "
-    local progressline = ""
 
     if queue[1].seed == "" then -- If the user isn't currently playing a randomizer
         currentseedline = "Press New Game to start"
@@ -101,6 +100,10 @@ function randomizer.cycledifficulty()
     local index = table.indexof(difficulties, difficulty)
     index = ((index - 1 + 1) % #difficulties) + 1
     difficulty = difficulties[index]
+end
+
+function randomizer.checknexttype()
+    return queue[2].seedtype == randomizer.SEEDTYPE.KEEPSEED or queue[2].seedtype == randomizer.SEEDTYPE.RANDOMSEED
 end
 
 function randomizer.setnextseedlogic()
@@ -221,3 +224,27 @@ function randomizer.reset()
 end
 
 return randomizer
+
+--[[ queue notes:
+The queue is a queue of runs, queue[1] being the current run being played, queue[2] being the next, queue[3] the one after etc...
+
+run elements:
+sequence: the sequence of buttons that will rise on the run
+seed: the seed used to creaate sequence of the run (only valid for RANDOMSEED and SETSEED)
+difficulty: the difficulty logic used to create sequence (only valid for RANDOMSEED and SETSEED)
+sequencestr: the sequence of the run in string form. It is used in randomizer.hudlines() (only valid for SETSEQUENCE)
+seedtype: the type of run. See randomizer.SEEDTYPE for details.
+
+On reset randomizer.run() will be called:
+If the next seed is RANDOMSEED or KEEPSEED, their respective action will be conducted
+The current run is deleted, shifting all other runs up 1 place
+The new current run's sequence is used as the sequence of buttons to raise
+If the current seed is the only run in the queue, randomizer.setnextseedlogic() is called (see below for details)
+Parameters are set for the randomizer and the run starts
+
+When setnextseedlogic is called (this only happens when newgamenewseed is cycled AND the next seed ):
+New Game on New Seed is checked
+if NGoNS is "ON" the next run is set to RANDOMSEED
+if NGoNS is "OFF" the next run is set to KEEPSEED
+if NGoNS is "Auto" the next run is set to RANDOMSEED if the current run is RANDOMSEED and it's set to KEEPSEED if the current run is SETSEED or SETSEQUENCE
+--]]

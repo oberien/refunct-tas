@@ -157,8 +157,8 @@ local function randomizermenu()
     "Back",
   })
   if selected == 1 then -- New Seed on New Game
-    randomizer.cyclenewgamenewseed()
-    if queue[2].seedtype == randomizer.SEEDTYPE.KEEPSEED or queue[2].seedtype == randomizer.SEEDTYPE.RANDOMSEED then
+    randomizer.cyclenewgamenewseed() -- cycles between on, off or auto
+    if randomizer.checknexttype() then -- checks if the next seed is a keepseed or a randomseed
       randomizer.setnextseedlogic()
     end
 
@@ -166,7 +166,7 @@ local function randomizermenu()
     randomizer.cycledifficulty()
 
   elseif selected == 3 then -- Random seed
-    randomizer.randseed()
+    randomizer.randseed() -- deletes the queue and sets the next seed to be a randomseed
     drawrandomizer = true
     resetfunction = randomizer.run
     state = STATES.NONE
@@ -179,7 +179,7 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.setseed(seed)
+    randomizer.setseed(seed) -- adds a sequence randomly generated to the end of the queue (replaces KEEPSEED and RANDOMSEED which will only queue[2] can ever be)
     drawrandomizer = true
     resetfunction = randomizer.run
     state = STATES.NONE
@@ -192,7 +192,7 @@ local function randomizermenu()
     while not check do
       local input = ui.input(error .. "Input Sequence")
       for i in string.gmatch(input, "%d+") do
-        table.insert(sequence, math.floor(i - 2))
+        table.insert(sequence, i - 2)
       end
       if #sequence > 0 and table.allvaluesbetweenincluding(sequence, 0, 29) and not table.containsduplicate(sequence) and table.contains(sequence, 29) then
         check = true
@@ -202,7 +202,7 @@ local function randomizermenu()
         error = "Invalid Sequence. "
       end
     end
-    randomizer.setsequence(sequence,sequencestr)
+    randomizer.setsequence(sequence,sequencestr) -- adds a set sequence to the end of the queue (replaces KEEPSEED and RANDOMSEED which will only queue[2] can ever be)
     drawrandomizer = true
     resetfunction = randomizer.run
     state = STATES.NONE
