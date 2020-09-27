@@ -150,22 +150,25 @@ local function randomizermenu()
   local selected = ui.select({
     "New Seed when starting New Game: " .. randomizer.getnewgamenewseed(),
     "Difficulty: " .. randomizer.getdifficulty(),
-    "Random seed",
-    "Set seed",
+    "Random Seed",
+    "Set Seed",
+    "Set Sequence",
     "Reset",
     "Back",
   })
   if selected == 1 then -- New Seed on New Game
-    randomizer.cyclenewgamenewseed()
-    randomizer.setnextseedwithlogic()
+    randomizer.cyclenewgamenewseed() -- cycles between on, off or auto
+    if randomizer.checknexttype() then -- checks if the next seed is a keepseed or a randomseed
+      randomizer.setnextseedlogic()
+    end
 
   elseif selected == 2 then -- Difficulty
     randomizer.cycledifficulty()
 
   elseif selected == 3 then -- Random seed
-    randomizer.setnextseed(randomizer.SEEDTYPE.RANDOMSEED)
+    randomizer.randseed() -- deletes the queue and sets the next seed to be a randomseed
     drawrandomizer = true
-    resetfunction = randomizer.randomize
+    resetfunction = randomizer.run
     state = STATES.NONE
 
   elseif selected == 4 then -- Set seed
@@ -176,18 +179,41 @@ local function randomizermenu()
       seed = tonumber(input)
       error = "Invalid Number. "
     end
-    randomizer.setnextseed(randomizer.SEEDTYPE.SETSEED, seed)
+    randomizer.setseed(seed) -- adds a sequence randomly generated to the end of the queue (replaces KEEPSEED and RANDOMSEED which will only queue[2] can ever be)
     drawrandomizer = true
-    resetfunction = randomizer.randomize
+    resetfunction = randomizer.run
     state = STATES.NONE
 
-  elseif selected == 5 then -- Reset
+  elseif selected == 5 then -- Set Sequence
+    local sequence = {}
+    local sequencestr = ""
+    local check = false
+    local error = ""
+    while not check do
+      local input = ui.input(error .. "Input Sequence")
+      for i in string.gmatch(input, "%d+") do
+        table.insert(sequence, i - 2)
+      end
+      if #sequence > 0 and table.allvaluesbetweenincluding(sequence, 0, 29) and not table.containsduplicate(sequence) and table.contains(sequence, 29) then
+        check = true
+        sequencestr = string.gsub(input,"%D+",",")
+      else
+        sequence = {}
+        error = "Invalid Sequence. "
+      end
+    end
+    randomizer.setsequence(sequence,sequencestr) -- adds a set sequence to the end of the queue (replaces KEEPSEED and RANDOMSEED which will only queue[2] can ever be)
+    drawrandomizer = true
+    resetfunction = randomizer.run
+    state = STATES.NONE
+
+  elseif selected == 6 then -- Reset
     randomizer.reset()
     drawrandomizer = false
     resetfunction = nil
     state = STATES.MENU
 
-  elseif selected == 6 or selected == nil then -- Back
+  elseif selected == 7 or selected == nil then -- Back
     state = STATES.MENU
 
   else

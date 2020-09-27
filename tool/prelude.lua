@@ -32,6 +32,26 @@ function table.indexof(list, element)
   return -1
 end
 
+function table.allvaluesbetweenincluding(seq, lowerbound, upperbound)
+  for i,v in ipairs(seq) do
+      if v > upperbound or v < lowerbound then
+       return false
+      end
+  end
+  return true
+end
+
+function table.containsduplicate(seq)
+  local seq2 = seq
+  table.sort(seq2)
+  for i,v in ipairs(seq2) do
+      if v == seq2[i-1] then
+         return true
+      end
+  end
+  return false
+end
+
 function print(...)
   local res = ""
   local args = table.pack(...)
