@@ -42,7 +42,10 @@ function table.allvaluesbetweenincluding(seq, lowerbound, upperbound)
 end
 
 function table.containsduplicate(seq)
-  local seq2 = seq
+  local seq2 = {}
+  for i in pairs(seq) do
+      table.insert(seq2, i)
+  end
   table.sort(seq2)
   for i,v in ipairs(seq2) do
       if v == seq2[i-1] then
