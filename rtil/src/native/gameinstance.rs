@@ -3,7 +3,7 @@ use native::{UWorld, LevelState};
 #[repr(C)]
 pub struct UMyGameInstance {
     #[cfg(windows)]
-    pad: [u8; 0x98],
+    pad: [u8; 0x9c],
     #[cfg(unix)]
     pad: [u8; 0x134],
     level_state: LevelState,
