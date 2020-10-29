@@ -5,6 +5,7 @@ use std::ptr;
 
 use native::ue::{FName, FVector, FRotator};
 use native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
+use native::gameinstance::UMyGameInstance;
 
 pub(in native) type AActor = c_void;
 pub enum APawn {}
@@ -58,10 +59,17 @@ impl APawn {
     }
 }
 
-pub struct UWorld;
+#[repr(C)]
+pub struct UWorld {
+    #[cfg(windows)]
+    pad: [u8; 0xc0],
+    #[cfg(unix)]
+    pad: [u8; 0x138],
+    game_instance: *mut UMyGameInstance,
+}
 
 impl UWorld {
-    fn spawn_actor(
+    unsafe fn spawn_actor(
         class: *const UClass, location: *const FVector, rotation: *const FRotator,
         spawn_parameters: *const FActorSpawnParameters,
     ) -> *mut AActor {
@@ -72,7 +80,7 @@ impl UWorld {
         let this = Self::get_global();
         fun(this, class, location, rotation, spawn_parameters)
     }
-    fn destroy_actor( actor: *const AActor, net_force: bool, should_modify_level: bool ) -> bool {
+    unsafe fn destroy_actor(actor: *const AActor, net_force: bool, should_modify_level: bool) -> bool {
         let fun: extern_fn!(fn(
             this: *const UWorld, actor: *const AActor, net_force: bool, should_modify_level: bool
         ) -> c_int) = unsafe { ::std::mem::transmute(UWORLD_DESTROYACTOR) };
@@ -81,21 +89,31 @@ impl UWorld {
         res != 0
     }
 
-    pub(in native) fn get_global() -> *const UWorld {
-        unsafe { *(GWORLD as *const _)}
+    pub(in native) fn get_global() -> *mut UWorld {
+        unsafe { *(GWORLD as *mut *mut UWorld)}
+    }
+
+    pub fn get_umygameinstance() -> *mut UMyGameInstance {
+        unsafe {
+            (*Self::get_global()).game_instance
+        }
     }
 
     pub fn spawn_amycharacter() -> AMyCharacter {
-        let ptr = Self::spawn_actor(
-            AMyCharacter::static_class(), &FVector { x: -500.0, y: -1125.0, z: 90.0 },
-            &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0}, &FActorSpawnParameters::default(),
-        ) as *mut AMyCharacter;
-        let my_character = unsafe { AMyCharacter::new(ptr) };
-        APawn::spawn_default_controller(my_character.as_ptr() as *const APawn);
-        my_character
+        unsafe {
+            let ptr = Self::spawn_actor(
+                AMyCharacter::static_class(), &FVector { x: -500.0, y: -1125.0, z: 90.0 },
+                &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0 }, &FActorSpawnParameters::default(),
+            ) as *mut AMyCharacter;
+            let my_character = AMyCharacter::new(ptr);
+            APawn::spawn_default_controller(my_character.as_ptr() as *const APawn);
+            my_character
+        }
     }
     pub fn destroy_amycharaccter(my_character: AMyCharacter) {
-        let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, false, true);
-        assert!(destroyed, "amycharacter not destroyed");
+        unsafe {
+            let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, false, true);
+            assert!(destroyed, "amycharacter not destroyed");
+        }
     }
 }

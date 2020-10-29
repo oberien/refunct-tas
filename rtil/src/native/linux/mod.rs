@@ -7,8 +7,6 @@ use libc::{self, c_void, c_char, c_int, PROT_READ, PROT_WRITE, PROT_EXEC};
 use dynsym;
 use object::{Object, ObjectSegment};
 
-pub mod consts;
-
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.

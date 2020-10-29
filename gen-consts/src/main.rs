@@ -113,7 +113,7 @@ fn main() {
     println!("{}", s);
     let mut file = File::create("../rtil/src/native/windows/consts.rs").unwrap();
     file.write_all(s.as_bytes()).unwrap();
-    writeln!(file, "{}", get_windows_level_pointer_path()).unwrap();
+    // writeln!(file, "{}", get_windows_level_pointer_path()).unwrap();
 
     // Linux level pointer path
     let mut file = File::create("../rtil/src/native/linux/consts.rs").unwrap();

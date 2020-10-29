@@ -29,6 +29,7 @@ mod memory;
 mod hud;
 mod uworld;
 mod level_state;
+mod gameinstance;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
