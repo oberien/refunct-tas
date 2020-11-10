@@ -1,4 +1,5 @@
 require "prelude"
+require "teleportbutton-prelude2"
 ui = require "ui"
 
 local randomizer = {}
@@ -214,6 +215,18 @@ function randomizer.run()
     _G.onreset = function()
         levelindex = 1
         nextlevel()
+        setdelta(1/2)
+        wait(9)
+        setdelta(1/60)
+        teleportexact(1)
+        while levelsequence[levelindex-2] ~= 29 do
+            teleportexact(levelsequence[levelindex-2] + 2)
+        end
+        local cubes = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
+        for _, cube in ipairs(cubes) do
+            teleportcube(cube)
+        end
+        teleportexact(31)
     end
 end
 
