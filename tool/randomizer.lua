@@ -226,6 +226,9 @@ function randomizer.run()
         for _, cube in ipairs(cubes) do
             teleportcube(cube)
         end
+        for i=1,202 do
+          teleportplatform(i)
+        end
         teleportexact(31)
     end
 end
