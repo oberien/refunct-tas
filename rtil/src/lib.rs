@@ -12,12 +12,15 @@ extern crate backtrace;
 extern crate failure;
 extern crate protocol;
 extern crate crossbeam_channel;
+extern crate itertools;
+extern crate clipboard;
 
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate dynsym;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 extern crate object;
+extern crate rebo;
 
 use std::sync::{Once, ONCE_INIT};
 use std::thread;

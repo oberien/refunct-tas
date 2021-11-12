@@ -15,6 +15,9 @@ rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.3.8"
 memoffset = "0.5.5"
 object = { version = "0.21.1", default-features = false, features = ["read"] }
+rebo = { path = "../../rebo/rebo" }
+itertools = "0.10.1"
+clipboard = "0.5.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"

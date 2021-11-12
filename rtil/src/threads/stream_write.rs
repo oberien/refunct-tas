@@ -44,6 +44,7 @@ impl StreamWrite {
                     self.con.write_u8(0)?;
                     self.con.write_u32::<LittleEndian>(s.len() as u32)?;
                     self.con.write_all(s.as_bytes())?;
+                    self.con.flush()?;
                 }
                 LuaToStream::MiDone => {
                     log!("Writing done to socket.");

@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::collections::{HashSet, HashMap};
 use std::net::TcpStream;
 use std::io::{Write, Read};
+use std::sync::Mutex;
 
 use lua::{Lua, LuaInterface, LuaEvents, Event, IfaceResult, IfaceError, Context, LuaResult};
 use failure::Fail;
@@ -13,85 +14,92 @@ use crossbeam_channel::{Sender, Receiver, TryRecvError};
 use threads::{StreamToLua, LuaToStream, LuaToUe, UeToLua, Config};
 use native::{AMyCharacter, FApp, UWorld, AMyHud, LevelState};
 
-struct Tas {
-    iface: Rc<GameInterface>,
-    lua: Lua<GameInterface>,
+mod rebo_init;
+
+lazy_static! {
+    static ref STATE: Mutex<Option<State>> = Mutex::new(None);
+}
+
+struct State {
+    delta: Option<f64>,
+    stream_lua_rx: Receiver<StreamToLua>,
+    lua_stream_tx: Sender<LuaToStream>,
+    lua_ue_tx: Sender<LuaToUe>,
+    ue_lua_rx: Receiver<UeToLua>,
+    config: Config,
+    working_dir: Option<String>,
+    pressed_keys: HashSet<i32>,
+    tcp_stream: Option<(TcpStream, Receiver<Message>)>,
+    pawns: HashMap<u32, AMyCharacter>,
+    pawn_id: u32,
 }
 
 pub fn run(stream_lua_rx: Receiver<StreamToLua>, lua_stream_tx: Sender<LuaToStream>,
            lua_ue_tx: Sender<LuaToUe>, ue_lua_rx: Receiver<UeToLua>) {
     log!("starting lua thread");
-    thread::spawn(move|| {
-        let iface = Rc::new(GameInterface {
-            pressed_keys: RefCell::new(HashSet::new()),
+    thread::spawn(move || {
+        *STATE.lock().unwrap() = Some(State {
+            delta: None,
             stream_lua_rx,
             lua_stream_tx,
             lua_ue_tx,
             ue_lua_rx,
-            config: RefCell::new(Config::default()),
-            should_exit: RefCell::new(false),
-            working_dir: RefCell::new(None),
-            tcp_stream: RefCell::new(None),
-            pawns: RefCell::new(HashMap::new()),
-            pawn_id: RefCell::new(0),
+            config: Config::default(),
+            working_dir: None,
+            pressed_keys: HashSet::new(),
+            tcp_stream: None,
+            pawns: HashMap::new(),
+            pawn_id: 0,
         });
-        let mut tas = Tas {
-            iface: iface.clone(),
-            lua: Lua::new(iface),
-        };
 
         loop {
-            tas.handle_rx();
+            handle_rx();
         }
     });
 }
 
-impl Tas {
-    fn handle_rx(&mut self) {
-        let res = self.iface.stream_lua_rx.recv().unwrap();
-        match res {
-            StreamToLua::Stop => {},
-            StreamToLua::Config(config) => {
-                log!("Set config before running");
-                *self.iface.config.borrow_mut() = config;
-            },
-            StreamToLua::WorkingDir(dir) => {
-                log!("Set working dir");
-                *self.iface.working_dir.borrow_mut() = Some(dir);
+fn handle_rx() {
+    let res = STATE.lock().unwrap().as_ref().unwrap().stream_lua_rx.recv().unwrap();
+    match res {
+        StreamToLua::Stop => {},
+        StreamToLua::Config(config) => {
+            log!("Set config before running");
+            STATE.lock().unwrap().as_mut().unwrap().config = config;
+        },
+        StreamToLua::WorkingDir(dir) => {
+            log!("Set working dir");
+            STATE.lock().unwrap().as_mut().unwrap().working_dir = Some(dir);
+        }
+        StreamToLua::Start(s) => {
+            log!("Starting rebo...");
+            log!("Cleaning ue_lua_rx...");
+            let mut count = 0;
+            while let Ok(_) = STATE.lock().unwrap().as_ref().unwrap().ue_lua_rx.try_recv() {
+                count += 1;
             }
-            StreamToLua::Start(s) => {
-                log!("Starting lua...");
-                log!("Cleaning ue_lua_rx...");
-                let mut count = 0;
-                while let Ok(_) = self.iface.ue_lua_rx.try_recv() {
-                    count += 1;
-                }
-                log!("Removed {} messages", count);
-                self.lua = Lua::new(self.iface.clone());
-                if let Some(dir) = self.iface.working_dir.borrow().as_ref() {
-                    log!("Add {} to package.path.", dir);
-                    let dir = format!(r#"package.path = package.path .. ";{}/?.lua""#, dir.replace('\\', "\\\\"));
-                    self.lua.execute(&dir).unwrap();
-                    log!("Added");
-                }
-                self.iface.lua_ue_tx.send(LuaToUe::Stop).unwrap();
-                log!("Executing Lua code.");
-                if let Err(e) = self.lua.execute(&s) {
-                    let mut err = format!("Lua error'd: {}\n", e);
-                    let mut e: &Fail = &e;
-                    while let Some(cause) = e.cause() {
-                        err += &format!("caused by: {}\n", cause);
-                        e = cause;
-                    }
-                    log!("{}", err);
-                    self.iface.lua_stream_tx.send(LuaToStream::Print(err)).unwrap();
-                }
-                log!("Lua execution done. Starting cleanup...");
-                self.iface.reset();
-                self.iface.lua_ue_tx.send(LuaToUe::Resume).unwrap();
-                self.iface.lua_stream_tx.send(LuaToStream::MiDone).unwrap();
-                log!("Cleanup finished.");
+            log!("Removed {} messages", count);
+
+            STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::Stop).unwrap();
+            let lua_stream_tx = STATE.lock().unwrap().as_ref().unwrap().lua_stream_tx.clone();
+            let config = rebo_init::create_config(lua_stream_tx);
+            log!("Executing rebo code.");
+            rebo::run_with_config("file.re".to_string(), s, config);
+            log!("Rebo execution done. Starting cleanup...");
+
+            // reset STATE
+            let mut state = STATE.lock().unwrap();
+            let state = state.as_mut().unwrap();
+            state.delta = None;
+            state.tcp_stream.take();
+            state.pawns.clear();
+            state.pawn_id = 0;
+            for key in state.pressed_keys.drain() {
+                state.lua_ue_tx.send(LuaToUe::ReleaseKey(key, key as u32, false)).unwrap();
             }
+
+            state.lua_ue_tx.send(LuaToUe::Resume).unwrap();
+            state.lua_stream_tx.send(LuaToStream::MiDone).unwrap();
+            log!("Cleanup finished.");
         }
     }
 }
@@ -147,14 +155,6 @@ impl GameInterface {
         Ok(())
     }
 
-    fn reset(&self) {
-        let mut pressed_keys = self.pressed_keys.borrow_mut();
-        for key in pressed_keys.drain() {
-            self.lua_ue_tx.send(LuaToUe::ReleaseKey(key, key as u32, false)).unwrap();
-        }
-        *self.should_exit.borrow_mut() = false;
-    }
-
     fn to_key(&self, key: &str) -> i32 {
         match key {
             "forward" => self.config.borrow().forward,
@@ -174,58 +174,7 @@ impl GameInterface {
 
 impl LuaInterface for GameInterface {
     fn step(&self, lua: Context<'_>) -> LuaResult<Event> {
-        // get level state before and after we advance the UE frame to see changes created by Refunct itself
-        let level_state = LevelState::get();
-
-        self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
-        loop {
-            self.syscall()?;
-            match self.ue_lua_rx.recv().unwrap() {
-                e @ UeToLua::Tick | e @ UeToLua::NewGame => {
-                    // call level-state event functions
-                    let new_level_state = LevelState::get();
-                    // level changed
-                    if level_state.level != new_level_state.level
-                        // new game but no level change will be triggered because we hit new game
-                        // when level was still 0
-                        || e == UeToLua::NewGame && level_state.level == 0
-                    {
-                        lua.on_level_change(new_level_state.level)?;
-                    }
-                    if level_state.resets != new_level_state.resets {
-                        lua.on_reset(new_level_state.resets)?;
-                    }
-                    return Ok(match e {
-                        UeToLua::Tick => Event::Stopped,
-                        UeToLua::NewGame => Event::NewGame,
-                        _ => unreachable!()
-                    });
-                },
-                UeToLua::KeyDown(key, char, repeat) => lua.on_key_down(key, char, repeat)?,
-                UeToLua::KeyUp(key, char, repeat) => lua.on_key_up(key, char, repeat)?,
-                UeToLua::DrawHud => lua.draw_hud()?,
-                UeToLua::AMyCharacterSpawned(_) => unreachable!(),
-            }
-            loop {
-                if self.tcp_stream.borrow().is_none() {
-                    break;
-                }
-                match self.tcp_stream.borrow().as_ref().unwrap().1.try_recv() {
-                    Ok(Message::PlayerJoinedRoom(id, x, y, z)) => lua.tcp_joined(id, x, y, z)?,
-                    Ok(Message::PlayerLeftRoom(id)) => lua.tcp_left(id)?,
-                    Ok(Message::MoveOther(id, x, y, z)) => lua.tcp_moved(id, x, y, z)?,
-                    Ok(msg @ Message::JoinRoom(..))
-                    | Ok(msg @ Message::MoveSelf(..)) => {
-                        log!("got unexpected message from server, ignoring: {:?}", msg);
-                    }
-                    Err(TryRecvError::Disconnected) => drop(self.tcp_stream.borrow_mut().take()),
-                    Err(TryRecvError::Empty) => break,
-                }
-            }
-            // We aren't actually advancing a frame, but just returning from the
-            // key event or drawhud interceptor.
-            self.lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
-        }
+        unimplemented!()
     }
 
     fn press_key(&self, key: String) -> IfaceResult<()> {
