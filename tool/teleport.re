@@ -24,6 +24,7 @@ fn tp_to(loc: Location) {
     Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
     // wait for change to register
     wait(3);
+    /*wait(1);*/
 }
 
 fn button(loc: Location, frames: int) {
@@ -50,21 +51,54 @@ fn teleport_exact(index: int) {
     match b {
         TpButton::Simple(b) => button(b.loc, b.frames),
         TpButton::Two(first, b) => {
-            Tas::set_location(first);
-            wait(1);
+            tp_to(first);
             button(b.loc, b.frames);
         },
         TpButton::Three(first, second, b) => {
-            Tas::set_location(first);
-            wait(1);
-            Tas::set_location(second);
-            wait(1);
+            tp_to(first);
+            tp_to(second);
             button(b.loc, b.frames);
         },
         TpButton::Final(last) => {
-            Tas::set_location(last);
-            wait(1);
+            tp_to(last);
         }
+    }
+}
+/// only possible if all buttons are already raised but not pressed
+fn teleport_all_buttons_up_to(up_to: int) {
+    let delta = Tas::get_delta();
+    Tas::set_delta(Option::Some(1. / 2.));
+    wait(9);
+    Tas::set_delta(delta);
+
+    let mut i = 0;
+    while i < up_to {
+        let b = BUTTONS.get(i).unwrap();
+        match b {
+            TpButton::Simple(b) => {
+                Tas::set_location(b.loc);
+                wait(1);
+            },
+            TpButton::Two(first, b) => {
+                Tas::set_location(first);
+                wait(1);
+                Tas::set_location(b.loc);
+                wait(1);
+            },
+            TpButton::Three(first, second, b) => {
+                Tas::set_location(first);
+                wait(1);
+                Tas::set_location(second);
+                wait(1);
+                Tas::set_location(b.loc);
+                wait(1);
+            },
+            TpButton::Final(last) => {
+                Tas::set_location(last);
+                wait(1);
+            },
+        }
+        i = i + 1;
     }
 }
 fn teleport_buttons(up_to: int) {

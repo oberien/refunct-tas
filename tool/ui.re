@@ -1,30 +1,37 @@
 struct Ui {
-    name: string,
+    name: Text,
     elements: List<UiElement>,
     on_key_down: Option<fn(KeyCode)>,
+    on_draw: Option<fn()>,
     selected: int,
 }
 impl Ui {
     fn new(name: string, elements: List<UiElement>) -> Ui {
-        Ui { name: name, elements: elements, on_key_down: Option::None, selected: 0 }
+        Ui { name: Text { text: name }, elements: elements, on_key_down: Option::None, on_draw: Option::None, selected: 0 }
     }
 }
 enum UiElement {
     Button(Button),
     Input(Input),
-    Text(Text),
+    Slider(Slider),
 }
 struct Button {
-    label: string,
+    label: Text,
     onclick: fn(),
 }
 struct Input {
-    label: string,
+    label: Text,
     input: string,
     onclick: fn(string),
 }
 struct Text {
-    label: string,
+    text: string,
+}
+struct Slider {
+    label: Text,
+    content: Text,
+    onleft: fn(),
+    onright: fn(),
 }
 
 static mut UI_STACK: List<Ui> = List::new();
@@ -110,10 +117,10 @@ impl Ui {
                 0
             } else {
                 self.selected + 1
-            }
+            };
         } else if key.to_small() == KEY_UP.to_small() {
             self.selected = if self.selected == 0 {
-                self.elements.len()
+                self.elements.len() - 1
             } else {
                 self.selected - 1
             };
@@ -124,8 +131,12 @@ impl Ui {
         }
     }
     fn draw(self) {
+        match self.on_draw {
+            Option::Some(f) => f(),
+            Option::None => (),
+        }
         Tas::draw_text(DrawText {
-            text: self.name,
+            text: self.name.text,
             color: COLOR_BLACK,
             x: 0.,
             y: 0.,
@@ -146,21 +157,21 @@ impl UiElement {
         match self {
             UiElement::Button(button) => button.onclick(),
             UiElement::Input(input) => input.onclick(),
-            UiElement::Text(text) => (),
+            UiElement::Slider(slider) => (),
         }
     }
     fn onkey(self, key: KeyCode, chr: Option<string>) {
         match self {
             UiElement::Button(button) => (),
             UiElement::Input(input) => input.onkey(key, chr),
-            UiElement::Text(text) => (),
+            UiElement::Slider(slider) => slider.onkey(key, chr),
         }
     }
     fn draw(self, y: float, color: Color) {
         match self {
             UiElement::Button(button) => button.draw(y, color),
             UiElement::Input(input) => input.draw(y, color),
-            UiElement::Text(text) => text.draw(y),
+            UiElement::Slider(slider) => slider.draw(y, color),
         }
     }
 }
@@ -172,7 +183,7 @@ impl Button {
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
-            text: f"    {self.label}",
+            text: f"    {self.label.text}",
             color: color,
             x: 0.,
             y: y,
@@ -200,7 +211,7 @@ impl Input {
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
-            text: f"    {self.label}: {self.input}",
+            text: f"    {self.label.text}: {self.input}",
             color: color,
             x: 0.,
             y: y,
@@ -209,11 +220,20 @@ impl Input {
         })
     }
 }
-impl Text {
-    fn draw(self, y: float) {
+impl Slider {
+    fn onkey(self, key: KeyCode, chr: Option<string>) {
+        if key.to_small() == KEY_LEFT.to_small() {
+            let f = self.onleft;
+            f();
+        } else if key.to_small() == KEY_RIGHT.to_small() {
+            let f = self.onright;
+            f();
+        }
+    }
+    fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
-            text: f"    {self.label}",
-            color: COLOR_BLACK,
+            text: f"    {self.label.text}: < {self.content.text} >",
+            color: color,
             x: 0.,
             y: y,
             scale: UI_SCALE,
