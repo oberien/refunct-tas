@@ -17,7 +17,7 @@ enum UiElement {
 }
 struct Button {
     label: Text,
-    onclick: fn(),
+    onclick: fn(Text),
 }
 struct Input {
     label: Text,
@@ -179,7 +179,7 @@ impl UiElement {
 impl Button {
     fn onclick(self) {
         let f = self.onclick;
-        f();
+        f(self.label);
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {

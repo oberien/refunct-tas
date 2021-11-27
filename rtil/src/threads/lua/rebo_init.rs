@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::thread;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value};
+use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue};
 use itertools::Itertools;
 use native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::Message;
@@ -115,7 +115,7 @@ fn interrupt_function(_vm: &mut VmContext) -> Result<(), ExecError> {
 
 #[rebo::function(raw("print"))]
 fn print(..: _) {
-    let joined = args.join(", ");
+    let joined = args.as_slice().into_iter().map(|arg| DisplayValue(arg)).join(", ");
     log!("{}", joined);
     STATE.lock().unwrap().as_ref().unwrap().lua_stream_tx.send(LuaToStream::Print(joined)).unwrap();
 }

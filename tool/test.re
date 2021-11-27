@@ -2,6 +2,7 @@ include "keys.re";
 include "ui.re";
 include "teleport.re";
 include "newgame.re";
+include "practice.re";
 
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
@@ -25,12 +26,12 @@ static START_MENU = Ui {
             let velxyz = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
             let velxyz = velxyz.sqrt();
             START_MENU_TEXT.text = f"Press 'm' for menu.
-x: {loc.x.round(2)}, y: {loc.y.round(2)}, z: {loc.z.round(2)}
-velx {vel.x.round(2)}, vely: {vel.y.round(2)}, velz: {vel.z.round(2)}
-velxy: {velxy.round(2)}
-velxyz: {velxyz.round(2)}
-accx {acc.x.round(2)}, accy: {acc.y.round(2)}, accz: {acc.z.round(2)}
-pitch {rot.pitch.round(2)}, yaw: {rot.yaw.round(2)}, roll: {rot.roll.round(2)}
+x: {loc.x:8.2}    y: {loc.y:8.2}    z: {loc.z:8.2}
+velx {vel.x:8.2}    vely: {vel.y:8.2}    velz: {vel.z:8.2}
+velxy: {velxy:8.2}
+velxyz: {velxyz:8.2}
+accx {acc.x:8.2}    accy: {acc.y:8.2}    accz: {acc.z:8.2}
+pitch {rot.pitch:8.2}    yaw: {rot.yaw:8.2}    roll: {rot.roll:8.2}
 ";
         }
     }),
@@ -38,34 +39,63 @@ pitch {rot.pitch.round(2)}, yaw: {rot.yaw.round(2)}, roll: {rot.roll.round(2)}
 };
 static BASE_MENU = Ui::new("Menu:", List::of(
     UiElement::Button(Button {
+        label: Text { text: "Practice" },
+        onclick: fn(label: Text) { enter_ui(PRACTICE_MENU); },
+    }),
+    UiElement::Button(Button {
         label: Text { text: "New Game Actions" },
-        onclick: fn() { enter_ui(NEW_GAME_ACTIONS_MENU); },
+        onclick: fn(label: Text) { enter_ui(NEW_GAME_ACTIONS_MENU); },
     }),
     UiElement::Button(Button {
         label: Text { text: "Settings" },
-        onclick: fn() { enter_ui(SETTINGS_MENU); },
+        onclick: fn(label: Text) { enter_ui(SETTINGS_MENU); },
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },
-        onclick: leave_ui,
+        onclick: fn(label: Text) { leave_ui() },
     }),
 ));
+static PRACTICE_MENU = Ui::new("Practice:", {
+    let mut buttons = List::of(
+        UiElement::Button(Button {
+            label: Text { text: "Nothing" },
+            onclick: fn(label: Text) {
+                new_game_nothing();
+                leave_ui();
+            },
+        }),
+    );
+    for practice in PRACTICE_POINTS {
+        buttons.push(UiElement::Button(Button {
+            label: Text { text: practice.name },
+            onclick: fn(label: Text) {
+                for practice in PRACTICE_POINTS {
+                    if practice.name == label.text {
+                        new_game_practice(practice);
+                    }
+                }
+                leave_ui();
+            }
+        }));
+    }
+    buttons
+});
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Nothing" },
-        onclick: fn() { new_game_nothing(); leave_ui(); },
+        onclick: fn(label: Text) { new_game_nothing(); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "100%" },
-        onclick: fn() { new_game_100_percent(); leave_ui(); },
+        onclick: fn(label: Text) { new_game_100_percent(); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "All Buttons" },
-        onclick: fn() { new_game_level_reset(29, 0); leave_ui(); },
+        onclick: fn(label: Text) { new_game_level_reset(29, 0); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "NGG" },
-        onclick: fn() { new_game_level_reset(1, 1); leave_ui(); },
+        onclick: fn(label: Text) { new_game_level_reset(1, 1); leave_ui(); },
     }),
 ));
 static mut UI_SCALE_TEXT = Text { text: f"{UI_SCALE}" };
@@ -86,14 +116,14 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
     }),
     UiElement::Button(Button {
         label: SHOW_STATS_BUTTON_TEXT,
-        onclick: fn() {
+        onclick: fn(label: Text) {
             SHOW_STATS = !SHOW_STATS;
             SHOW_STATS_BUTTON_TEXT.text = f"Show Stats: {SHOW_STATS}";
         },
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },
-        onclick: leave_ui,
+        onclick: fn(label: Text) { leave_ui() },
     }),
 ));
 

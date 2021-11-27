@@ -24,7 +24,6 @@ fn tp_to(loc: Location) {
     Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
     // wait for change to register
     wait(3);
-    /*wait(1);*/
 }
 
 fn button(loc: Location, frames: int) {

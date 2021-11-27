@@ -738,6 +738,7 @@ dependencies = [
  "petgraph",
  "rebo_derive",
  "regex",
+ "rt-format",
  "strsim 0.10.0",
  "strum",
  "strum_macros",
@@ -818,6 +819,14 @@ dependencies = [
  "cc",
  "libc",
  "num-traits",
+]
+
+[[package]]
+name = "rt-format"
+version = "0.1.1"
+dependencies = [
+ "lazy_static",
+ "regex",
 ]
 
 [[package]]
