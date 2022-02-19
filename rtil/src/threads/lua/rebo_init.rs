@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::thread;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue};
+use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig};
 use itertools::Itertools;
 use native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::Message;
@@ -71,7 +71,7 @@ pub fn create_config(lua_stream_tx: Sender<LuaToStream>) -> ReboConfig {
         .add_required_rebo_function(on_reset)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
-        cfg = cfg.include_directory(PathBuf::from(working_dir));
+        cfg = cfg.include_directory(IncludeDirectoryConfig::Path(PathBuf::from(working_dir)));
     }
     cfg
 }
@@ -82,7 +82,7 @@ pub enum Event {
 }
 
 /// Check internal state and channels to see if we should stop.
-fn interrupt_function(_vm: &mut VmContext) -> Result<(), ExecError> {
+fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(), ExecError<'a, 'i>> {
     loop {
         let result = STATE.lock().unwrap().as_ref().unwrap().stream_lua_rx.try_recv();
         match result {
@@ -124,7 +124,7 @@ fn print(..: _) {
 fn step() {
     step_internal(vm)?;
 }
-fn step_internal(vm: &mut VmContext) -> Result<Event, ExecError> {
+fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, ExecError<'a, 'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let level_state = LevelState::get();
 

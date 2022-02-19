@@ -36,16 +36,24 @@ fn button(loc: Location, frames: int) {
 }
 
 fn teleport_all_cubes() {
+    let delta = Tas::get_delta();
+    Tas::set_delta(Option::Some(1./60.));
     for cube in CUBES {
         tp_to(cube);
     }
+    Tas::set_delta(delta);
 }
 fn teleport_all_platforms() {
+    let delta = Tas::get_delta();
+    Tas::set_delta(Option::Some(1./60.));
     for platform in PLATFORMS {
         tp_to(platform);
     }
+    Tas::set_delta(delta);
 }
 fn teleport_exact(index: int) {
+    let delta = Tas::get_delta();
+    Tas::set_delta(Option::Some(1./60.));
     let b = BUTTONS.get(index).unwrap();
     match b {
         TpButton::Simple(b) => button(b.loc, b.frames),
@@ -62,6 +70,7 @@ fn teleport_exact(index: int) {
             tp_to(last);
         }
     }
+    Tas::set_delta(delta);
 }
 /// only possible if all buttons are already raised but not pressed
 fn teleport_all_buttons_up_to(up_to: int) {

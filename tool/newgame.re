@@ -1,25 +1,34 @@
 fn new_game_nothing() {
     NEW_GAME_FUNCTION = new_game_noop_function;
-    ON_LEVEL_CHANGE_VALUE = Option::None;
-    ON_RESET_VALUE = Option::None;
+    ON_LEVEL_CHANGE_FUNCTION = on_level_change_noop_function;
+    ON_RESET_FUNCTION = on_reset_noop_function;
 }
 fn new_game_100_percent() {
     NEW_GAME_FUNCTION = new_game_100_percent_function;
-    ON_LEVEL_CHANGE_VALUE = Option::None;
-    ON_RESET_VALUE = Option::None;
+    ON_LEVEL_CHANGE_FUNCTION = on_level_change_noop_function;
+    ON_RESET_FUNCTION = on_reset_noop_function;
     /*ON_LEVEL_CHANGE_VALUE = Option::Some(30);*/
     /*ON_RESET_VALUE = Option::Some(30);*/
 }
 fn new_game_level_reset(level_change: int, reset: int) {
     NEW_GAME_FUNCTION = new_game_noop_function;
-    ON_LEVEL_CHANGE_VALUE = Option::Some(level_change);
-    ON_RESET_VALUE = Option::Some(reset);
+    ON_LEVEL_CHANGE_VALUE = level_change;
+    ON_LEVEL_CHANGE_FUNCTION = on_level_zero_set_value_function;
+    ON_RESET_VALUE = reset;
+    ON_RESET_FUNCTION = on_reset_set_value_function;
 }
 fn new_game_practice(practice: Practice) {
     NEW_GAME_PRACTICE = practice;
     NEW_GAME_FUNCTION = new_game_practice_function;
-    ON_LEVEL_CHANGE_VALUE = Option::Some(practice.button);
-    ON_RESET_VALUE = Option::Some(practice.button);
+    ON_LEVEL_CHANGE_VALUE = practice.button;
+    ON_LEVEL_CHANGE_FUNCTION = on_level_zero_set_value_function;
+    ON_RESET_VALUE = practice.button;
+    ON_RESET_FUNCTION = on_reset_set_value_function;
+}
+fn new_game_randomizer() {
+    NEW_GAME_FUNCTION = randomizer_new_game_function;
+    ON_LEVEL_CHANGE_FUNCTION = randomizer_on_level_change_function;
+    ON_RESET_FUNCTION = randomizer_on_reset_function;
 }
 
 struct Practice {
@@ -31,6 +40,7 @@ struct Practice {
 
 static mut NEW_GAME_PRACTICE = Practice { name: "none", button: 0, location: Location { x: 0., y: 0., z: 0. }, rotation: Rotation { pitch: 0., yaw: 0., roll: 0. } };
 
+// new game
 static mut NEW_GAME_FUNCTION = new_game_noop_function;
 fn new_game_noop_function() {}
 fn new_game_100_percent_function() {
@@ -63,20 +73,26 @@ fn new_game_practice_function() {
     /*Tas::set_delta(old_delta);*/
 }
 
-static mut ON_LEVEL_CHANGE_VALUE = Option::None;
-static mut ON_RESET_VALUE = Option::None;
-
-fn on_level_change(level: int) {
+// on level change
+static mut ON_LEVEL_CHANGE_FUNCTION = on_level_change_noop_function;
+fn on_level_change_noop_function(level: int) {}
+static mut ON_LEVEL_CHANGE_VALUE = 0;
+fn on_level_zero_set_value_function(level: int) {
     if level == 0 {
-        match ON_LEVEL_CHANGE_VALUE {
-            Option::Some(level) => Tas::set_level(level),
-            Option::None => (),
-        }
+        Tas::set_level(ON_LEVEL_CHANGE_VALUE);
     }
 }
+fn on_level_change(level: int) {
+    ON_LEVEL_CHANGE_FUNCTION(level);
+}
+
+// on reset
+static mut ON_RESET_FUNCTION = on_reset_noop_function;
+fn on_reset_noop_function(reset: int) {}
+static mut ON_RESET_VALUE = 0;
+fn on_reset_set_value_function(reset: int) {
+    Tas::set_level(ON_RESET_VALUE);
+}
 fn on_reset(reset: int) {
-    match ON_RESET_VALUE {
-        Option::Some(reset) => Tas::set_level(reset),
-        Option::None => (),
-    }
+    ON_RESET_FUNCTION(reset);
 }

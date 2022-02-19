@@ -1,6 +1,7 @@
 include "keys.re";
 include "ui.re";
 include "teleport.re";
+include "randomizer.re";
 include "newgame.re";
 include "practice.re";
 
@@ -14,9 +15,34 @@ static START_MENU = Ui {
         }
     }),
     on_draw: Option::Some(fn() {
-        if !SHOW_STATS {
-            START_MENU_TEXT.text = f"Press 'm' for menu.";
-        } else {
+        let mut text = "Press 'm' for menu.";
+        match RANDOMIZER_STATE.kind {
+            RandomizerStateKind::Disabled => (),
+            RandomizerStateKind::RandomSeed(seed) => {
+                let next = match RANDOMIZER_STATE.new_game_new_seed {
+                    NewGameNewSeed::Auto => "new seed",
+                    NewGameNewSeed::On => "new seed",
+                    NewGameNewSeed::Off => "same seed",
+                };
+                text = f"{text}\nRandom Seed: {seed} - Next: {next}";
+            },
+            RandomizerStateKind::SetSeed(seed) => {
+                let next = match RANDOMIZER_STATE.new_game_new_seed {
+                    NewGameNewSeed::Auto => "same seed",
+                    NewGameNewSeed::On => "new seed",
+                    NewGameNewSeed::Off => "same seed",
+                };
+                text = f"{text}\nSet Seed: {seed} - Next: {next}";
+            },
+            RandomizerStateKind::SetSequence => {
+                let mut seq = "1";
+                for platform in RANDOMIZER_STATE.sequence {
+                    seq = f"{seq}, {platform+2}";
+                }
+                text = f"{text}\nSet Sequence: {seq}";
+            },
+        }
+        if SHOW_STATS {
             let loc = Tas::get_location();
             let vel = Tas::get_velocity();
             let rot = Tas::get_rotation();
@@ -25,15 +51,15 @@ static START_MENU = Ui {
             let velxy = velxy.sqrt();
             let velxyz = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
             let velxyz = velxyz.sqrt();
-            START_MENU_TEXT.text = f"Press 'm' for menu.
+            text = f"{text}
 x: {loc.x:8.2}    y: {loc.y:8.2}    z: {loc.z:8.2}
 velx {vel.x:8.2}    vely: {vel.y:8.2}    velz: {vel.z:8.2}
 velxy: {velxy:8.2}
 velxyz: {velxyz:8.2}
 accx {acc.x:8.2}    accy: {acc.y:8.2}    accz: {acc.z:8.2}
-pitch {rot.pitch:8.2}    yaw: {rot.yaw:8.2}    roll: {rot.roll:8.2}
-";
+pitch {rot.pitch:8.2}    yaw: {rot.yaw:8.2}    roll: {rot.roll:8.2}";
         }
+        START_MENU_TEXT.text = text;
     }),
     selected: 0,
 };
@@ -41,6 +67,10 @@ static BASE_MENU = Ui::new("Menu:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Practice" },
         onclick: fn(label: Text) { enter_ui(PRACTICE_MENU); },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Randomizer" },
+        onclick: fn(label: Text) { enter_ui(RANDOMIZER_MENU); },
     }),
     UiElement::Button(Button {
         label: Text { text: "New Game Actions" },
@@ -80,6 +110,80 @@ static PRACTICE_MENU = Ui::new("Practice:", {
     }
     buttons
 });
+static mut RANDOMIZER_DIFFICULTY = 0;
+static mut RANDOMIZER_NEW_GAME_NEW_SEED = 0;
+static mut RANDOMIZER_SET_SEED_LABEL = Text { text: "Set Seed" };
+static mut RANDOMIZER_SET_SEQUENCE_LABEL = Text { text: "Set Sequence" };
+static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
+    UiElement::Button(Button {
+        label: Text { text: "Disable" },
+        onclick: fn(label: Text) {
+            new_game_nothing();
+            randomizer_disable();
+            leave_ui();
+        },
+    }),
+    UiElement::Chooser(Chooser {
+        label: Text { text: "Difficulty" },
+        options: List::of(
+            Text { text: "Beginner" },
+            Text { text: "Intermediate" },
+            Text { text: "Advanced" },
+        ),
+        selected: RANDOMIZER_DIFFICULTY,
+        onchange: fn(index: int) {
+            RANDOMIZER_DIFFICULTY = index;
+        },
+    }),
+    UiElement::Chooser(Chooser {
+        label: Text { text: "New Seed when starting New Game" },
+        options: List::of(
+            Text { text: "Auto (On for Random Seed / Off for Set Seed)" },
+            Text { text: "On" },
+            Text { text: "Off" },
+        ),
+        selected: RANDOMIZER_NEW_GAME_NEW_SEED,
+        onchange: fn(index: int) {
+            RANDOMIZER_NEW_GAME_NEW_SEED = index;
+        },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Random Seed" },
+        onclick: fn(label: Text) {
+            randomizer_random_seed(RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+            new_game_randomizer();
+            leave_ui();
+        },
+    }),
+    UiElement::Input(Input {
+        label: RANDOMIZER_SET_SEED_LABEL,
+        input: "",
+        onclick: fn(input: string) {
+            match randomizer_parse_seed(input) {
+                Result::Err(msg) => RANDOMIZER_SET_SEED_LABEL.text = f"Set Seed ({msg})",
+                Result::Ok(seed) => {
+                    randomizer_set_seed(seed, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+                    new_game_randomizer();
+                    leave_ui();
+                },
+            }
+        }
+    }),
+    UiElement::Input(Input {
+        label: RANDOMIZER_SET_SEQUENCE_LABEL,
+        input: "",
+        onclick: fn(input: string) {
+            match randomizer_parse_sequence(input) {
+                Result::Err(msg) => RANDOMIZER_SET_SEQUENCE_LABEL.text = f"Set Sequence ({msg})",
+                Result::Ok(seq) => {
+                    randomizer_set_sequence(seq, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+                    new_game_randomizer();
+                    leave_ui();
+                },
+            }
+        }
+    }),
+));
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Nothing" },
@@ -136,3 +240,4 @@ while true {
 fn tcp_joined(id: int, x: float, y: float, z: float) {}
 fn tcp_left(id: int) {}
 fn tcp_moved(id: int, x: float, y: float, z: float) {}
+

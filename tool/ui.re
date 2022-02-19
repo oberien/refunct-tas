@@ -14,6 +14,7 @@ enum UiElement {
     Button(Button),
     Input(Input),
     Slider(Slider),
+    Chooser(Chooser),
 }
 struct Button {
     label: Text,
@@ -32,6 +33,12 @@ struct Slider {
     content: Text,
     onleft: fn(),
     onright: fn(),
+}
+struct Chooser {
+    label: Text,
+    selected: int,
+    options: List<Text>,
+    onchange: fn(int),
 }
 
 static mut UI_STACK: List<Ui> = List::new();
@@ -158,6 +165,7 @@ impl UiElement {
             UiElement::Button(button) => button.onclick(),
             UiElement::Input(input) => input.onclick(),
             UiElement::Slider(slider) => (),
+            UiElement::Chooser(chooser) => (),
         }
     }
     fn onkey(self, key: KeyCode, chr: Option<string>) {
@@ -165,6 +173,7 @@ impl UiElement {
             UiElement::Button(button) => (),
             UiElement::Input(input) => input.onkey(key, chr),
             UiElement::Slider(slider) => slider.onkey(key, chr),
+            UiElement::Chooser(chooser) => chooser.onkey(key, chr),
         }
     }
     fn draw(self, y: float, color: Color) {
@@ -172,6 +181,7 @@ impl UiElement {
             UiElement::Button(button) => button.draw(y, color),
             UiElement::Input(input) => input.draw(y, color),
             UiElement::Slider(slider) => slider.draw(y, color),
+            UiElement::Chooser(chooser) => chooser.draw(y, color),
         }
     }
 }
@@ -233,6 +243,37 @@ impl Slider {
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
             text: f"    {self.label.text}: < {self.content.text} >",
+            color: color,
+            x: 0.,
+            y: y,
+            scale: UI_SCALE,
+            scale_position: true,
+        })
+    }
+}
+impl Chooser {
+    fn onkey(mut self, key: KeyCode, chr: Option<string>) {
+        if key.to_small() == KEY_LEFT.to_small() {
+            self.selected = if self.selected  == self.options.len()-1 {
+                0
+            } else {
+                self.selected + 1
+            };
+            let f = self.onchange;
+            f(self.selected);
+        } else if key.to_small() == KEY_RIGHT.to_small() {
+            self.selected = if self.selected == 0 {
+                self.options.len() - 1
+            } else {
+                self.selected - 1
+            };
+            let f = self.onchange;
+            f(self.selected);
+        }
+    }
+    fn draw(self, y: float, color: Color) {
+        Tas::draw_text(DrawText {
+            text: f"    {self.label.text}: < {self.options.get(self.selected).unwrap().text} >",
             color: color,
             x: 0.,
             y: y,
