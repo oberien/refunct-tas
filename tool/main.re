@@ -159,6 +159,14 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         }
     }),
     UiElement::Button(Button {
+        label: Text { text: "Copy Seed to Clipboard" },
+        onclick: fn(label: Text) { randomizer_copy_seed() },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Copy Sequence to Clipboard" },
+        onclick: fn(label: Text) { randomizer_copy_sequence() },
+    }),
+    UiElement::Button(Button {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui() },
     }),

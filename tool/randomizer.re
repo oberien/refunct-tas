@@ -26,6 +26,15 @@ enum RandomizerStateKind {
     SetSeed(int),
     SetSequence,
 }
+impl RandomizerState {
+    fn sequence_string(self) -> string {
+        let mut seq = "";
+        for platform in self.sequence {
+            seq = f"{seq}{platform}, ";
+        }
+        seq.slice(0, -2)
+    }
+}
 
 static mut RANDOMIZER_STATE = RandomizerState {
     difficulty: Difficulty::Beginner,
@@ -74,6 +83,21 @@ fn randomizer_set_sequence(seq: List<int>, difficulty: int, new_game_new_seed: i
         kind: RandomizerStateKind::SetSequence,
     };
 }
+fn randomizer_copy_seed() {
+    match RANDOMIZER_STATE.kind {
+        RandomizerStateKind::Disabled => (),
+        RandomizerStateKind::RandomSeed(seed) => {
+            Tas::set_clipboard(f"{seed}");
+        },
+        RandomizerStateKind::SetSeed(seed) => {
+            Tas::set_clipboard(f"{seed}");
+        },
+        RandomizerStateKind::SetSequence => (),
+    }
+}
+fn randomizer_copy_sequence() {
+    Tas::set_clipboard(RANDOMIZER_STATE.sequence_string());
+}
 
 // runtime functions
 fn randomizer_hud_lines(text: string) -> string {
@@ -96,11 +120,7 @@ fn randomizer_hud_lines(text: string) -> string {
             f"{text}\nSet Seed: {seed} ({RANDOMIZER_STATE.difficulty}) - Next: {next}"
         },
         RandomizerStateKind::SetSequence => {
-            let mut seq = "";
-            for platform in RANDOMIZER_STATE.sequence {
-                seq = f"{seq}{platform}, ";
-            }
-            f"{text}\nSet Sequence: {seq.slice(0, -2)}"
+            f"{text}\nSet Sequence: {RANDOMIZER_STATE.sequence_string()}"
         },
     };
     let prog = RANDOMIZER_STATE.seq_index-2;
@@ -243,7 +263,6 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
         }
     }
     sequence.push(31);
-    print(f"sequence: {sequence}");
     sequence
 }
 

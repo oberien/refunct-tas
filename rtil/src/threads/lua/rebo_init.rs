@@ -52,6 +52,7 @@ pub fn create_config(lua_stream_tx: Sender<LuaToStream>) -> ReboConfig {
         .add_function(is_windows)
         .add_function(is_linux)
         .add_function(get_clipboard)
+        .add_function(set_clipboard)
         .add_external_type(Key)
         .add_external_type(Location)
         .add_external_type(Rotation)
@@ -471,4 +472,14 @@ fn get_clipboard() -> String {
         let mut ctx: ClipboardContext = ClipboardProvider::new()?;
         ctx.get_contents()
     })().unwrap_or_default()
+}
+#[rebo::function("Tas::set_clipboard")]
+fn set_clipboard(content: String) {
+    let _ = (|| {
+        let mut ctx: ClipboardContext = match ClipboardProvider::new() {
+            Ok(ctx) => ctx,
+            Err(_) => return,
+        };
+        let _ = ctx.set_contents(content);
+    })();
 }
