@@ -56,10 +56,10 @@ fn main() {
         println!("TAS created successfully.");
     }
     let script_file = if env::args().len() == 1 {
-        if !Path::new("tas.lua").is_file() {
+        if !Path::new("main.re").is_file() {
             panic!("No tas file specified. Usage: refunct-tas <file.lua>");
         } else {
-            PathBuf::from("tas.lua")
+            PathBuf::from("main.re")
         }
     } else {
         PathBuf::from(env::args().nth(1).unwrap())
@@ -68,5 +68,5 @@ fn main() {
     tas.execute(script_file, &config);
     println!("Script Executed.");
     println!("Finished");
-
 }
+

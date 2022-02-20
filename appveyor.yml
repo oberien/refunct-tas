@@ -18,16 +18,14 @@ build: false
 test_script:
   - make.bat
 after_test:
-  - cd build\windows
-  - 7z a refunct-tas-windows.zip *
-  - move menu.lua tas.lua && 7z a practice-windows.zip refunct-tas.exe rtil.dll prelude.lua record.lua keys.lua ui.lua teleportbutton-prelude.lua tas.lua multiplayer.lua allbuttons.lua randomizer.lua Config.toml
+  - cd build
+  - 7z a practice-windows.zip practice-windows
 matrix:
   allow_failures:
     - channel: beta
     - channel: nightly
 artifacts:
-  - path: build\windows\refunct-tas-windows.zip
-  - path: build\windows\practice-windows.zip
+  - path: build\practice-windows.zip
 deploy:
   provider: GitHub
   artifact: /.*\.zip/
