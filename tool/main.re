@@ -158,6 +158,10 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
             }
         }
     }),
+    UiElement::Button(Button {
+        label: Text { text: "Back" },
+        onclick: fn(label: Text) { leave_ui() },
+    }),
 ));
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     UiElement::Button(Button {
