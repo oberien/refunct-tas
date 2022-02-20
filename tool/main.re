@@ -190,10 +190,12 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
         content: UI_SCALE_TEXT,
         onleft: fn() {
             UI_SCALE = UI_SCALE - 0.5;
+            UI_SCALE = UI_SCALE.max(0.5);
             UI_SCALE_TEXT.text = f"{UI_SCALE}";
         },
         onright: fn() {
             UI_SCALE = UI_SCALE + 0.5;
+            UI_SCALE = UI_SCALE.min(10.);
             UI_SCALE_TEXT.text = f"{UI_SCALE}";
         },
     }),
