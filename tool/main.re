@@ -16,32 +16,7 @@ static START_MENU = Ui {
     }),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
-        match RANDOMIZER_STATE.kind {
-            RandomizerStateKind::Disabled => (),
-            RandomizerStateKind::RandomSeed(seed) => {
-                let next = match RANDOMIZER_STATE.new_game_new_seed {
-                    NewGameNewSeed::Auto => "new seed",
-                    NewGameNewSeed::On => "new seed",
-                    NewGameNewSeed::Off => "same seed",
-                };
-                text = f"{text}\nRandom Seed: {seed} - Next: {next}";
-            },
-            RandomizerStateKind::SetSeed(seed) => {
-                let next = match RANDOMIZER_STATE.new_game_new_seed {
-                    NewGameNewSeed::Auto => "same seed",
-                    NewGameNewSeed::On => "new seed",
-                    NewGameNewSeed::Off => "same seed",
-                };
-                text = f"{text}\nSet Seed: {seed} - Next: {next}";
-            },
-            RandomizerStateKind::SetSequence => {
-                let mut seq = "1";
-                for platform in RANDOMIZER_STATE.sequence {
-                    seq = f"{seq}, {platform+2}";
-                }
-                text = f"{text}\nSet Sequence: {seq}";
-            },
-        }
+        text = randomizer_hud_lines(text);
         if SHOW_STATS {
             let loc = Tas::get_location();
             let vel = Tas::get_velocity();

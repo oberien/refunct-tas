@@ -31,7 +31,7 @@ static mut RANDOMIZER_STATE = RandomizerState {
     difficulty: Difficulty::Beginner,
     new_game_new_seed: NewGameNewSeed::Auto,
     sequence: List::new(),
-    seq_index: 0,
+    seq_index: 1,
     kind: RandomizerStateKind::Disabled,
 };
 fn randomizer_disable() {
@@ -46,7 +46,7 @@ fn randomizer_random_seed(difficulty: int, new_game_new_seed: int) {
         difficulty: difficulty,
         new_game_new_seed: new_game_new_seed,
         sequence: sequence,
-        seq_index: 0,
+        seq_index: 1,
         kind: RandomizerStateKind::RandomSeed(seed),
     };
 }
@@ -59,7 +59,7 @@ fn randomizer_set_seed(seed: int, difficulty: int, new_game_new_seed: int) {
         difficulty: difficulty,
         new_game_new_seed: new_game_new_seed,
         sequence: sequence,
-        seq_index: 0,
+        seq_index: 1,
         kind: RandomizerStateKind::SetSeed(seed),
     };
 }
@@ -70,12 +70,43 @@ fn randomizer_set_sequence(seq: List<int>, difficulty: int, new_game_new_seed: i
         difficulty: difficulty,
         new_game_new_seed: new_game_new_seed,
         sequence: seq,
-        seq_index: 0,
+        seq_index: 1,
         kind: RandomizerStateKind::SetSequence,
     };
 }
 
 // runtime functions
+fn randomizer_hud_lines(text: string) -> string {
+    let text = match RANDOMIZER_STATE.kind {
+        RandomizerStateKind::Disabled => return text,
+        RandomizerStateKind::RandomSeed(seed) => {
+            let next = match RANDOMIZER_STATE.new_game_new_seed {
+                NewGameNewSeed::Auto => "new seed",
+                NewGameNewSeed::On => "new seed",
+                NewGameNewSeed::Off => "same seed",
+            };
+            f"{text}\nRandom Seed: {seed} ({RANDOMIZER_STATE.difficulty}) - Next: {next}"
+        },
+        RandomizerStateKind::SetSeed(seed) => {
+            let next = match RANDOMIZER_STATE.new_game_new_seed {
+                NewGameNewSeed::Auto => "same seed",
+                NewGameNewSeed::On => "new seed",
+                NewGameNewSeed::Off => "same seed",
+            };
+            f"{text}\nSet Seed: {seed} ({RANDOMIZER_STATE.difficulty}) - Next: {next}"
+        },
+        RandomizerStateKind::SetSequence => {
+            let mut seq = "";
+            for platform in RANDOMIZER_STATE.sequence {
+                seq = f"{seq}{platform}, ";
+            }
+            f"{text}\nSet Sequence: {seq.slice(0, -2)}"
+        },
+    };
+    let prog = RANDOMIZER_STATE.seq_index-2;
+    let prog = prog.max(0);
+    f"{text}\nProgress: {prog:02}/{RANDOMIZER_STATE.sequence.len():02}"
+}
 fn randomizer_new_game_function() {
     fn new_seed(kind_fn: fn(int) -> RandomizerStateKind) {
         let seed = Rng::set_random_seed();
@@ -83,7 +114,7 @@ fn randomizer_new_game_function() {
             difficulty: RANDOMIZER_STATE.difficulty,
             new_game_new_seed: RANDOMIZER_STATE.new_game_new_seed,
             sequence: generate_sequence(RANDOMIZER_STATE.difficulty),
-            seq_index: 0,
+            seq_index: 1,
             kind: kind_fn(seed),
         };
     }
@@ -93,7 +124,7 @@ fn randomizer_new_game_function() {
             difficulty: RANDOMIZER_STATE.difficulty,
             new_game_new_seed: RANDOMIZER_STATE.new_game_new_seed,
             sequence: generate_sequence(RANDOMIZER_STATE.difficulty),
-            seq_index: 0,
+            seq_index: 1,
             kind: kind_fn(seed),
         };
     }
@@ -110,16 +141,15 @@ fn randomizer_new_game_function() {
             NewGameNewSeed::Off => same_seed(seed, RandomizerStateKind::SetSeed),
         },
         RandomizerStateKind::SetSequence => {
-            RANDOMIZER_STATE.seq_index = 0;
+            RANDOMIZER_STATE.seq_index = 1;
         },
     }
 }
 fn next_level() {
-    if RANDOMIZER_STATE.seq_index >= RANDOMIZER_STATE.sequence.len() {
-        return;
+    if RANDOMIZER_STATE.seq_index < RANDOMIZER_STATE.sequence.len() {
+        let new_level = RANDOMIZER_STATE.sequence.get(RANDOMIZER_STATE.seq_index).unwrap();
+        Tas::set_level(new_level - 2);
     }
-    let new_level = RANDOMIZER_STATE.sequence.get(RANDOMIZER_STATE.seq_index).unwrap();
-    Tas::set_level(new_level);
     RANDOMIZER_STATE.seq_index += 1;
 }
 fn randomizer_on_level_change_function(level: int) {
@@ -129,7 +159,7 @@ fn randomizer_on_level_change_function(level: int) {
     next_level();
 }
 fn randomizer_on_reset_function(reset: int) {
-    RANDOMIZER_STATE.seq_index = 0;
+    RANDOMIZER_STATE.seq_index = 1;
     next_level();
 }
 
@@ -186,9 +216,10 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
 
     // TODO: use ranges once they are a thing
     let mut levels = List::of(
-         0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+                 2,  3,  4,  5,  6,  7,  8,  9,
         10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-        20, 21, 22, 23, 24, 25, 26, 27, 28
+        20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+        30,
     );
 
     let mut workset = List::new();
@@ -198,7 +229,7 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
         }
     }
 
-    let mut sequence = List::new();
+    let mut sequence = List::of(1);
     while !workset.is_empty() {
         let random_index = Rng::gen_int_range(0, workset.len());
         let next_level = workset.remove(random_index).unwrap();
@@ -211,7 +242,7 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
             }
         }
     }
-    sequence.push(29);
+    sequence.push(31);
     print(f"sequence: {sequence}");
     sequence
 }
@@ -239,17 +270,15 @@ fn randomizer_parse_sequence(seq: string) -> Result<List<int>, string> {
         if nums.contains(num) {
             return Result::Err(f"duplicate platform {num}");
         }
-        nums.push(num-2);
+        nums.push(num);
     }
     if matches.len() == 0 {
         Result::Err("no sequence found")
-    } else if nums.get(0).unwrap() != -1 {
+    } else if nums.get(0).unwrap() != 1 {
         Result::Err("needs to start with 1")
-    } else if nums.last().unwrap() != 29 {
+    } else if nums.last().unwrap() != 31 {
         Result::Err("needs to end with 31")
     } else {
-        // remove first platform as it always rises first
-        nums.remove(0);
         Result::Ok(nums)
     }
 }
