@@ -1,5 +1,5 @@
 static RANDOMIZER_COMPONENT = Component {
-    draw_hud: randomizer_hud_lines,
+    draw_hud: randomizer_draw_hud,
     on_new_game: randomizer_new_game_function,
     on_level_change: randomizer_on_level_change_function,
     on_reset: randomizer_on_reset_function,
@@ -17,159 +17,188 @@ enum NewGameNewSeed {
     Off,
 }
 struct RandomizerState {
-    difficulty: Difficulty,
     new_game_new_seed: NewGameNewSeed,
-    sequence: List<int>,
+    prev: Option<RandomizerStateKind>,
+    current: Option<RandomizerStateKind>,
+    queue: List<RandomizerStateKind>,
     seq_index: int,
-    kind: RandomizerStateKind,
 }
 enum RandomizerStateKind {
-    Disabled,
-    // seed
-    RandomSeed(int),
-    // seed
-    SetSeed(int),
-    SetSequence,
+    // seed, difficulty, sequence
+    RandomSeed(int, Difficulty, List<int>),
+    // seed, difficulty, sequence
+    SetSeed(int, Difficulty, List<int>),
+    // sequence
+    SetSequence(List<int>),
 }
-impl RandomizerState {
+impl RandomizerStateKind {
+    fn sequence(self) -> List<int> {
+        match self {
+            RandomizerStateKind::RandomSeed(seed, diff, seq) => seq,
+            RandomizerStateKind::SetSeed(seed, diff, seq) => seq,
+            RandomizerStateKind::SetSequence(seq) => seq,
+        }
+    }
     fn sequence_string(self) -> string {
         let mut seq = "";
-        for platform in self.sequence {
+        for platform in self.sequence() {
             seq = f"{seq}{platform}, ";
         }
         seq.slice(0, -2)
     }
+    fn hud_string(self, with_info: bool) -> string {
+        match self {
+            RandomizerStateKind::RandomSeed(seed, difficulty, seq) => if with_info {
+                f"Random Seed: {seed} ({difficulty}) [{self.sequence_string()}]"
+            } else {
+                f"Random Seed ({difficulty})"
+            },
+            RandomizerStateKind::SetSeed(seed, difficulty, seq) => if with_info {
+                f"Set Seed: {seed} ({difficulty}) [{self.sequence_string()}]"
+            } else {
+                f"Set Seed: {seed} ({difficulty})"
+            },
+            RandomizerStateKind::SetSequence(seq) => {
+                f"Set Sequence: [{self.sequence_string()}]"
+            },
+        }
+    }
 }
 
 static mut RANDOMIZER_STATE = RandomizerState {
-    difficulty: Difficulty::Beginner,
     new_game_new_seed: NewGameNewSeed::Auto,
-    sequence: List::new(),
+    prev: Option::None,
+    current: Option::None,
+    queue: List::new(),
     seq_index: 1,
-    kind: RandomizerStateKind::Disabled,
 };
-fn randomizer_random_seed(difficulty: int, new_game_new_seed: int) {
-    let difficulty = convert_difficulty(difficulty);
-    let new_game_new_seed = convert_new_game_new_seed(new_game_new_seed);
+fn randomizer_random_seed(difficulty: Difficulty) {
     let seed = Rng::set_random_seed();
     let sequence = generate_sequence(difficulty);
-    RANDOMIZER_STATE = RandomizerState {
-        difficulty: difficulty,
-        new_game_new_seed: new_game_new_seed,
-        sequence: sequence,
-        seq_index: 1,
-        kind: RandomizerStateKind::RandomSeed(seed),
-    };
+    RANDOMIZER_STATE.queue.clear();
+    RANDOMIZER_STATE.queue.push(RandomizerStateKind::RandomSeed(seed, difficulty, sequence));
+    RANDOMIZER_STATE.seq_index = 1;
 }
-fn randomizer_set_seed(seed: int, difficulty: int, new_game_new_seed: int) {
-    let difficulty = convert_difficulty(difficulty);
-    let new_game_new_seed = convert_new_game_new_seed(new_game_new_seed);
+fn randomizer_set_seed(seed: int, difficulty: Difficulty) {
     Rng::set_seed(seed);
     let sequence = generate_sequence(difficulty);
-    RANDOMIZER_STATE = RandomizerState {
-        difficulty: difficulty,
-        new_game_new_seed: new_game_new_seed,
-        sequence: sequence,
-        seq_index: 1,
-        kind: RandomizerStateKind::SetSeed(seed),
-    };
+    RANDOMIZER_STATE.queue.clear();
+    RANDOMIZER_STATE.queue.push(RandomizerStateKind::SetSeed(seed, difficulty, sequence));
+    RANDOMIZER_STATE.seq_index = 1;
 }
-fn randomizer_set_sequence(seq: List<int>, difficulty: int, new_game_new_seed: int) {
-    let difficulty = convert_difficulty(difficulty);
-    let new_game_new_seed = convert_new_game_new_seed(new_game_new_seed);
-    RANDOMIZER_STATE = RandomizerState {
-        difficulty: difficulty,
-        new_game_new_seed: new_game_new_seed,
-        sequence: seq,
-        seq_index: 1,
-        kind: RandomizerStateKind::SetSequence,
-    };
+fn randomizer_set_sequence(seq: List<int>) {
+    RANDOMIZER_STATE.queue.clear();
+    RANDOMIZER_STATE.queue.push(RandomizerStateKind::SetSequence(seq));
+    RANDOMIZER_STATE.seq_index = 1;
 }
-fn randomizer_copy_seed() {
-    match RANDOMIZER_STATE.kind {
-        RandomizerStateKind::Disabled => (),
-        RandomizerStateKind::RandomSeed(seed) => {
+fn randomizer_copy_prev_seed() {
+    let prev = match RANDOMIZER_STATE.prev {
+        Option::Some(prev) => prev,
+        Option::None => return,
+    };
+    match prev {
+        RandomizerStateKind::RandomSeed(seed, diff, seq) => {
             Tas::set_clipboard(f"{seed}");
         },
-        RandomizerStateKind::SetSeed(seed) => {
+        RandomizerStateKind::SetSeed(seed, diff, seq) => {
             Tas::set_clipboard(f"{seed}");
         },
-        RandomizerStateKind::SetSequence => (),
+        RandomizerStateKind::SetSequence(seq) => (),
     }
 }
-fn randomizer_copy_sequence() {
-    Tas::set_clipboard(RANDOMIZER_STATE.sequence_string());
+fn randomizer_copy_prev_sequence() {
+    let prev = match RANDOMIZER_STATE.prev {
+        Option::Some(prev) => prev,
+        Option::None => return,
+    };
+    Tas::set_clipboard(prev.sequence_string());
 }
 
 // runtime functions
-fn randomizer_hud_lines(text: string) -> string {
-    let text = match RANDOMIZER_STATE.kind {
-        RandomizerStateKind::Disabled => return text,
-        RandomizerStateKind::RandomSeed(seed) => {
-            let next = match RANDOMIZER_STATE.new_game_new_seed {
-                NewGameNewSeed::Auto => "new seed",
-                NewGameNewSeed::On => "new seed",
-                NewGameNewSeed::Off => "same seed",
-            };
-            f"{text}\nRandom Seed: {seed} ({RANDOMIZER_STATE.difficulty}) - Next: {next}"
-        },
-        RandomizerStateKind::SetSeed(seed) => {
-            let next = match RANDOMIZER_STATE.new_game_new_seed {
-                NewGameNewSeed::Auto => "same seed",
-                NewGameNewSeed::On => "new seed",
-                NewGameNewSeed::Off => "same seed",
-            };
-            f"{text}\nSet Seed: {seed} ({RANDOMIZER_STATE.difficulty}) - Next: {next}"
-        },
-        RandomizerStateKind::SetSequence => {
-            f"{text}\nSet Sequence: {RANDOMIZER_STATE.sequence_string()}"
+fn randomizer_draw_hud(text: string) -> string {
+    let text = match RANDOMIZER_STATE.prev {
+        Option::Some(prev) => f"{text}\nPrevious: {prev.hud_string(true)}",
+        Option::None => text,
+    };
+    let text = match RANDOMIZER_STATE.current {
+        Option::Some(current) => f"{text}\nCurrent: {current.hud_string(false)}",
+        Option::None => f"{text}\nPress \"New Game\" to start",
+    };
+    let text = match RANDOMIZER_STATE.queue.get(0) {
+        Option::Some(next) => f"{text}\nNext: {next.hud_string(false)}",
+        Option::None => {
+            match RANDOMIZER_STATE.current {
+                Option::Some(current) => {
+                    let next = match current {
+                        RandomizerStateKind::RandomSeed(seed, diff, seq) => match RANDOMIZER_STATE.new_game_new_seed {
+                            NewGameNewSeed::Auto => "new seed",
+                            NewGameNewSeed::On => "new seed",
+                            NewGameNewSeed::Off => "same seed",
+                        },
+                        RandomizerStateKind::SetSeed(seed, diff, seq) => match RANDOMIZER_STATE.new_game_new_seed {
+                            NewGameNewSeed::Auto => "same seed",
+                            NewGameNewSeed::On => "new seed",
+                            NewGameNewSeed::Off => "same seed",
+                        },
+                        RandomizerStateKind::SetSequence(seq) => "same sequence",
+                    };
+                    f"{text}\nNext: {next}"
+                },
+                Option::None => text,
+            }
         },
     };
-    let prog = RANDOMIZER_STATE.seq_index-2;
-    let prog = prog.max(0);
-    f"{text}\nProgress: {prog:02}/{RANDOMIZER_STATE.sequence.len():02}"
+    match RANDOMIZER_STATE.current {
+        Option::Some(current) => {
+            let prog = RANDOMIZER_STATE.seq_index-2;
+            let prog = prog.max(0);
+            f"{text}\nProgress: {prog:02}/{current.sequence().len():02}"
+        },
+        Option::None => text
+    }
 }
 fn randomizer_new_game_function() {
-    fn new_seed(kind_fn: fn(int) -> RandomizerStateKind) {
-        let seed = Rng::set_random_seed();
-        RANDOMIZER_STATE = RandomizerState {
-            difficulty: RANDOMIZER_STATE.difficulty,
-            new_game_new_seed: RANDOMIZER_STATE.new_game_new_seed,
-            sequence: generate_sequence(RANDOMIZER_STATE.difficulty),
-            seq_index: 1,
-            kind: kind_fn(seed),
-        };
-    }
-    fn same_seed(seed: int, kind_fn: fn(int) -> RandomizerStateKind) {
-        Rng::set_seed(seed);
-        RANDOMIZER_STATE = RandomizerState {
-            difficulty: RANDOMIZER_STATE.difficulty,
-            new_game_new_seed: RANDOMIZER_STATE.new_game_new_seed,
-            sequence: generate_sequence(RANDOMIZER_STATE.difficulty),
-            seq_index: 1,
-            kind: kind_fn(seed),
-        };
-    }
-    match RANDOMIZER_STATE.kind {
-        RandomizerStateKind::Disabled => panic("randomizer_new_game_function called with RandomizerStateKind::Disabled"),
-        RandomizerStateKind::RandomSeed(seed) => match RANDOMIZER_STATE.new_game_new_seed {
-            NewGameNewSeed::Auto => new_seed(RandomizerStateKind::RandomSeed),
-            NewGameNewSeed::On => new_seed(RandomizerStateKind::RandomSeed),
-            NewGameNewSeed::Off => same_seed(seed, RandomizerStateKind::RandomSeed),
+    RANDOMIZER_STATE.seq_index = 1;
+    RANDOMIZER_STATE.prev = RANDOMIZER_STATE.current;
+    match RANDOMIZER_STATE.queue.remove(0) {
+        Option::Some(next) => {
+            RANDOMIZER_STATE.current = Option::Some(next);
+            return;
         },
-        RandomizerStateKind::SetSeed(seed) => match RANDOMIZER_STATE.new_game_new_seed {
-            NewGameNewSeed::Auto => same_seed(seed, RandomizerStateKind::SetSeed),
-            NewGameNewSeed::On => new_seed(RandomizerStateKind::SetSeed),
-            NewGameNewSeed::Off => same_seed(seed, RandomizerStateKind::SetSeed),
+        Option::None => (),
+    }
+
+    // nothing in queue, add element to queue, then set current to queue
+
+    let current = match RANDOMIZER_STATE.current {
+        Option::Some(current) => current,
+        Option::None => return,
+    };
+    match current {
+        RandomizerStateKind::RandomSeed(seed, difficulty, sequence) => match RANDOMIZER_STATE.new_game_new_seed {
+            NewGameNewSeed::Auto => randomizer_random_seed(difficulty),
+            NewGameNewSeed::On => randomizer_random_seed(difficulty),
+            NewGameNewSeed::Off => RANDOMIZER_STATE.queue.push(current),
         },
-        RandomizerStateKind::SetSequence => {
-            RANDOMIZER_STATE.seq_index = 1;
+        RandomizerStateKind::SetSeed(seed, difficulty, sequence) => match RANDOMIZER_STATE.new_game_new_seed {
+            NewGameNewSeed::Auto => RANDOMIZER_STATE.queue.push(current),
+            NewGameNewSeed::On => randomizer_random_seed(difficulty),
+            NewGameNewSeed::Off => RANDOMIZER_STATE.queue.push(current),
+        },
+        RandomizerStateKind::SetSequence(sequence) => {
+            RANDOMIZER_STATE.queue.push(current)
         },
     }
+    
+    RANDOMIZER_STATE.current = RANDOMIZER_STATE.queue.remove(0);
 }
 fn next_level() {
-    if RANDOMIZER_STATE.seq_index < RANDOMIZER_STATE.sequence.len() {
-        let new_level = RANDOMIZER_STATE.sequence.get(RANDOMIZER_STATE.seq_index).unwrap();
+    let sequence = match RANDOMIZER_STATE.current {
+        Option::Some(current) => current.sequence(),
+        Option::None => return,
+    };
+    if RANDOMIZER_STATE.seq_index < sequence.len() {
+        let new_level = sequence.get(RANDOMIZER_STATE.seq_index).unwrap();
         Tas::set_level(new_level - 2);
     }
     RANDOMIZER_STATE.seq_index += 1;
@@ -186,7 +215,7 @@ fn randomizer_on_reset_function(reset: int) {
 }
 
 // helper functions
-fn convert_difficulty(difficulty: int) -> Difficulty {
+fn randomizer_convert_difficulty(difficulty: int) -> Difficulty {
     match difficulty {
         0 => Difficulty::Beginner,
         1 => Difficulty::Intermediate,
@@ -226,7 +255,7 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
         for requirement in dependencies.get(level).unwrap() {
             let mut list = match dependants.get(requirement) {
                 Option::Some(list) => list,
-                None => {
+                Option::None => {
                     let list = List::new();
                     dependants.insert(requirement, list);
                     list

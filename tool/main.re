@@ -123,12 +123,13 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         selected: RANDOMIZER_NEW_GAME_NEW_SEED,
         onchange: fn(index: int) {
             RANDOMIZER_NEW_GAME_NEW_SEED = index;
+            RANDOMIZER_STATE.new_game_new_seed = convert_new_game_new_seed(RANDOMIZER_NEW_GAME_NEW_SEED);
         },
     }),
     UiElement::Button(Button {
         label: Text { text: "Random Seed" },
         onclick: fn(label: Text) {
-            randomizer_random_seed(RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+            randomizer_random_seed(randomizer_convert_difficulty(RANDOMIZER_DIFFICULTY));
             CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
             leave_ui();
         },
@@ -140,7 +141,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
             match randomizer_parse_seed(input) {
                 Result::Err(msg) => RANDOMIZER_SET_SEED_LABEL.text = f"Set Seed ({msg})",
                 Result::Ok(seed) => {
-                    randomizer_set_seed(seed, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+                    randomizer_set_seed(seed, randomizer_convert_difficulty(RANDOMIZER_DIFFICULTY));
                     CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
                     leave_ui();
                 },
@@ -154,7 +155,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
             match randomizer_parse_sequence(input) {
                 Result::Err(msg) => RANDOMIZER_SET_SEQUENCE_LABEL.text = f"Set Sequence ({msg})",
                 Result::Ok(seq) => {
-                    randomizer_set_sequence(seq, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
+                    randomizer_set_sequence(seq);
                     CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
                     leave_ui();
                 },
@@ -162,12 +163,12 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         }
     }),
     UiElement::Button(Button {
-        label: Text { text: "Copy Seed to Clipboard" },
-        onclick: fn(label: Text) { randomizer_copy_seed() },
+        label: Text { text: "Copy previous Seed to Clipboard" },
+        onclick: fn(label: Text) { randomizer_copy_prev_seed() },
     }),
     UiElement::Button(Button {
-        label: Text { text: "Copy Sequence to Clipboard" },
-        onclick: fn(label: Text) { randomizer_copy_sequence() },
+        label: Text { text: "Copy previous Sequence to Clipboard" },
+        onclick: fn(label: Text) { randomizer_copy_prev_sequence() },
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },
