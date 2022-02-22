@@ -153,7 +153,7 @@ impl Ui {
         let mut i = 0;
         for element in self.elements {
             let color = if self.selected == i { COLOR_RED } else { COLOR_BLACK };
-            element.draw(10. + i.to_float() * 10., color);
+            element.draw(12. + i.to_float() * 12., color);
             i = i + 1;
         }
     }

@@ -1,5 +1,6 @@
 include "keys.re";
 include "ui.re";
+include "component.re"
 include "teleport.re";
 include "randomizer.re";
 include "newgame.re";
@@ -16,7 +17,8 @@ static START_MENU = Ui {
     }),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
-        text = randomizer_hud_lines(text);
+        let draw_hud = CURRENT_COMPONENT.draw_hud;
+        text = draw_hud(text);
         if SHOW_STATS {
             let loc = Tas::get_location();
             let vel = Tas::get_velocity();
@@ -65,7 +67,7 @@ static PRACTICE_MENU = Ui::new("Practice:", {
         UiElement::Button(Button {
             label: Text { text: "Nothing" },
             onclick: fn(label: Text) {
-                new_game_nothing();
+                CURRENT_COMPONENT = NOOP_COMPONENT;
                 leave_ui();
             },
         }),
@@ -76,11 +78,13 @@ static PRACTICE_MENU = Ui::new("Practice:", {
             onclick: fn(label: Text) {
                 for practice in PRACTICE_POINTS {
                     if practice.name == label.text {
-                        new_game_practice(practice);
+                        CURRENT_PRACTICE = practice;
+                        CURRENT_COMPONENT = PRACTICE_COMPONENT;
+                        break;
                     }
                 }
                 leave_ui();
-            }
+            },
         }));
     }
     buttons
@@ -93,8 +97,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Disable" },
         onclick: fn(label: Text) {
-            new_game_nothing();
-            randomizer_disable();
+            CURRENT_COMPONENT = NOOP_COMPONENT;
             leave_ui();
         },
     }),
@@ -126,7 +129,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         label: Text { text: "Random Seed" },
         onclick: fn(label: Text) {
             randomizer_random_seed(RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
-            new_game_randomizer();
+            CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
             leave_ui();
         },
     }),
@@ -138,7 +141,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                 Result::Err(msg) => RANDOMIZER_SET_SEED_LABEL.text = f"Set Seed ({msg})",
                 Result::Ok(seed) => {
                     randomizer_set_seed(seed, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
-                    new_game_randomizer();
+                    CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
                     leave_ui();
                 },
             }
@@ -152,7 +155,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                 Result::Err(msg) => RANDOMIZER_SET_SEQUENCE_LABEL.text = f"Set Sequence ({msg})",
                 Result::Ok(seq) => {
                     randomizer_set_sequence(seq, RANDOMIZER_DIFFICULTY, RANDOMIZER_NEW_GAME_NEW_SEED);
-                    new_game_randomizer();
+                    CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
                     leave_ui();
                 },
             }
@@ -174,19 +177,19 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Nothing" },
-        onclick: fn(label: Text) { new_game_nothing(); leave_ui(); },
+        onclick: fn(label: Text) { CURRENT_COMPONENT = NOOP_COMPONENT; leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "100%" },
-        onclick: fn(label: Text) { new_game_100_percent(); leave_ui(); },
+        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_100_PERCENT_COMPONENT; leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "All Buttons" },
-        onclick: fn(label: Text) { new_game_level_reset(29, 0); leave_ui(); },
+        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_ALL_BUTTONS_COMPONENT; leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "NGG" },
-        onclick: fn(label: Text) { new_game_level_reset(1, 1); leave_ui(); },
+        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_NGG_COMPONENT; leave_ui(); },
     }),
 ));
 static mut UI_SCALE_TEXT = Text { text: f"{UI_SCALE}" };
@@ -224,7 +227,8 @@ enter_ui(START_MENU);
 
 while true {
     Tas::wait_for_new_game();
-    NEW_GAME_FUNCTION();
+    let on_new_game = CURRENT_COMPONENT.on_new_game;
+    on_new_game();
 }
 fn tcp_joined(id: int, x: float, y: float, z: float) {}
 fn tcp_left(id: int) {}

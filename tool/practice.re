@@ -1,3 +1,41 @@
+static mut CURRENT_PRACTICE = Practice {
+    name: "none",
+    button: 0,
+    location: Location { x: 0., y: 0., z: 0. },
+    rotation: Rotation { pitch: 0., yaw: 0., roll: 0. },
+};
+
+static PRACTICE_COMPONENT = Component {
+    draw_hud: fn(text: string) -> string {
+        f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
+    },
+    on_new_game: fn() {
+        let old_delta = Tas::get_delta();
+        Tas::set_delta(Option::Some(1./2.));
+        wait(9);
+        Tas::set_rotation(CURRENT_PRACTICE.rotation);
+        Tas::set_location(CURRENT_PRACTICE.location);
+        Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
+        Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
+        Tas::set_delta(old_delta);
+    },
+    on_level_change: fn(level: int) {
+        if level == 0 {
+            Tas::set_level(CURRENT_PRACTICE.button);
+        }
+    },
+    on_reset: fn(reset: int) {
+        Tas::set_level(CURRENT_PRACTICE.button);
+    },
+};
+
+struct Practice {
+    name: string,
+    button: int,
+    location: Location,
+    rotation: Rotation,
+}
+
 static PRACTICE_POINTS = List::of(
     Practice { name: "Dive Skip", button: 8, rotation: Rotation { pitch: 0., yaw: 0., roll: 0. }, location: Location { x: -1065., y: -3842., z: 464. } },
     Practice { name: "LoF & Spiral Skip", button: 18, rotation: Rotation { pitch: 0., yaw: 0., roll: 0. }, location: Location { x: -1065., y: -3842., z: 464. } },

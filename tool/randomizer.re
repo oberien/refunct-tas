@@ -1,4 +1,9 @@
-fn randomizer_test() {}
+static RANDOMIZER_COMPONENT = Component {
+    draw_hud: randomizer_hud_lines,
+    on_new_game: randomizer_new_game_function,
+    on_level_change: randomizer_on_level_change_function,
+    on_reset: randomizer_on_reset_function,
+};
 
 enum Difficulty {
     Beginner,
@@ -43,9 +48,6 @@ static mut RANDOMIZER_STATE = RandomizerState {
     seq_index: 1,
     kind: RandomizerStateKind::Disabled,
 };
-fn randomizer_disable() {
-    RANDOMIZER_STATE.kind = RandomizerStateKind::Disabled;
-}
 fn randomizer_random_seed(difficulty: int, new_game_new_seed: int) {
     let difficulty = convert_difficulty(difficulty);
     let new_game_new_seed = convert_new_game_new_seed(new_game_new_seed);
