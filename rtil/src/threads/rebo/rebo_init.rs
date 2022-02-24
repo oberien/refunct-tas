@@ -7,10 +7,10 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::Message;
-use threads::{Config, LuaToStream, LuaToUe, StreamToLua, UeToLua};
+use threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
 
-pub fn create_config(lua_stream_tx: Sender<LuaToStream>) -> ReboConfig {
+pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
         .stdlib(Stdlib::all() - Stdlib::PRINT)
         .interrupt_interval(100)
@@ -18,7 +18,7 @@ pub fn create_config(lua_stream_tx: Sender<LuaToStream>) -> ReboConfig {
         .diagnostic_output(Output::buffered(move |s| {
             log!("{}", s);
             eprintln!("{}", s);
-            lua_stream_tx.send(LuaToStream::Print(s)).unwrap()
+            rebo_stream_tx.send(ReboToStream::Print(s)).unwrap()
         }))
         .add_function(print)
         .add_function(step)
@@ -85,29 +85,29 @@ pub enum Event {
 /// Check internal state and channels to see if we should stop.
 fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(), ExecError<'a, 'i>> {
     loop {
-        let result = STATE.lock().unwrap().as_ref().unwrap().stream_lua_rx.try_recv();
+        let result = STATE.lock().unwrap().as_ref().unwrap().stream_rebo_rx.try_recv();
         match result {
             Ok(res) => match res {
-                StreamToLua::Config(cfg) => {
+                StreamToRebo::Config(cfg) => {
                     log!("Set Config while running");
                     STATE.lock().unwrap().as_mut().unwrap().config = cfg;
                 }
-                StreamToLua::WorkingDir(_) => {
+                StreamToRebo::WorkingDir(_) => {
                     log!("Got WorkingDir, but can't set it during execution");
                     panic!()
                 }
-                StreamToLua::Start(_) => {
-                    log!("Got StreamToLua::Start but rebo is already running");
+                StreamToRebo::Start(_) => {
+                    log!("Got StreamToRebo::Start but rebo is already running");
                     panic!()
                 }
-                StreamToLua::Stop => {
+                StreamToRebo::Stop => {
                     log!("Should Exit");
                     return Err(ExecError::Panic);
                 }
             }
             Err(TryRecvError::Empty) => return Ok(()),
             Err(e) => {
-                log!("Error stream_lua_rx.try_recv: {:?}", e);
+                log!("Error stream_rebo_rx.try_recv: {:?}", e);
                 panic!();
             }
         }
@@ -118,7 +118,7 @@ fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(),
 fn print(..: _) {
     let joined = args.as_slice().into_iter().map(|arg| DisplayValue(arg)).join(", ");
     log!("{}", joined);
-    STATE.lock().unwrap().as_ref().unwrap().lua_stream_tx.send(LuaToStream::Print(joined)).unwrap();
+    STATE.lock().unwrap().as_ref().unwrap().rebo_stream_tx.send(ReboToStream::Print(joined)).unwrap();
 }
 
 #[rebo::function(raw("Tas::step"))]
@@ -133,18 +133,18 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
         FApp::set_delta(delta);
     }
 
-    STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
+    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
     loop {
-        let res = STATE.lock().unwrap().as_ref().unwrap().ue_lua_rx.recv().unwrap();
+        let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
         match res {
-            e @ UeToLua::Tick | e @ UeToLua::NewGame => {
+            e @ UeToRebo::Tick | e @ UeToRebo::NewGame => {
                 // call level-state event functions
                 let new_level_state = LevelState::get();
                 // level changed
                 if level_state.level != new_level_state.level
                     // new game but no level change will be triggered because we hit new game
                     // when level was still 0
-                    || e == UeToLua::NewGame && level_state.level == 0
+                    || e == UeToRebo::NewGame && level_state.level == 0
                 {
                     on_level_change(vm, new_level_state.level)?;
                 }
@@ -152,15 +152,15 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
                     on_reset(vm, new_level_state.resets)?;
                 }
                 return Ok(match e {
-                    UeToLua::Tick => Event::Stopped,
-                    UeToLua::NewGame => Event::NewGame,
+                    UeToRebo::Tick => Event::Stopped,
+                    UeToRebo::NewGame => Event::NewGame,
                     _ => unreachable!()
                 });
             },
-            UeToLua::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
-            UeToLua::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
-            UeToLua::DrawHud => draw_hud(vm)?,
-            UeToLua::AMyCharacterSpawned(_) => unreachable!(),
+            UeToRebo::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
+            UeToRebo::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
+            UeToRebo::DrawHud => draw_hud(vm)?,
+            UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
         }
         loop {
             if STATE.lock().unwrap().as_ref().unwrap().tcp_stream.is_none() {
@@ -181,7 +181,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
         }
         // We aren't actually advancing a frame, but just returning from the
         // key event or drawhud interceptor.
-        STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::AdvanceFrame).unwrap();
+        STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
     }
 }
 
@@ -227,7 +227,7 @@ fn press_key(key: Key) {
     let state = state.as_mut().unwrap();
     let key = key.to_key(&state.config);
     state.pressed_keys.insert(key);
-    state.lua_ue_tx.send(LuaToUe::PressKey(key, key as u32, false)).unwrap();
+    state.rebo_ue_tx.send(ReboToUe::PressKey(key, key as u32, false)).unwrap();
 }
 #[rebo::function("Tas::release_key")]
 fn release_key(key: Key) {
@@ -235,25 +235,25 @@ fn release_key(key: Key) {
     let state = state.as_mut().unwrap();
     let key = key.to_key(&state.config);
     state.pressed_keys.remove(&key);
-    state.lua_ue_tx.send(LuaToUe::ReleaseKey(key, key as u32, false)).unwrap();
+    state.rebo_ue_tx.send(ReboToUe::ReleaseKey(key, key as u32, false)).unwrap();
 }
 #[rebo::function("Tas::key_down")]
 fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.insert(key_code);
-    state.lua_ue_tx.send(LuaToUe::PressKey(key_code, character_code, is_repeat)).unwrap();
+    state.rebo_ue_tx.send(ReboToUe::PressKey(key_code, character_code, is_repeat)).unwrap();
 }
 #[rebo::function("Tas::key_up")]
 fn key_up(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.remove(&key_code);
-    state.lua_ue_tx.send(LuaToUe::ReleaseKey(key_code, character_code, is_repeat)).unwrap();
+    state.rebo_ue_tx.send(ReboToUe::ReleaseKey(key_code, character_code, is_repeat)).unwrap();
 }
 #[rebo::function("Tas::move_mouse")]
 fn move_mouse(x: i32, y: i32) {
-    STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::MoveMouse(x, y)).unwrap();
+    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::MoveMouse(x, y)).unwrap();
 }
 #[rebo::function("Tas::get_last_frame_delta")]
 fn get_last_frame_delta() -> f64 {
@@ -354,7 +354,7 @@ struct Color {
 }
 #[rebo::function("Tas::draw_line")]
 fn draw_line(line: Line) {
-    STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::DrawLine(line.startx, line.starty, line.endx, line.endy, (line.color.red, line.color.green, line.color.blue, line.color.alpha), line.thickness)).unwrap();
+    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::DrawLine(line.startx, line.starty, line.endx, line.endy, (line.color.red, line.color.green, line.color.blue, line.color.alpha), line.thickness)).unwrap();
 }
 #[derive(Debug, Clone, rebo::ExternalType)]
 struct DrawText {
@@ -367,7 +367,7 @@ struct DrawText {
 }
 #[rebo::function("Tas::draw_text")]
 fn draw_text(text: DrawText) {
-    STATE.lock().unwrap().as_ref().unwrap().lua_ue_tx.send(LuaToUe::DrawText(text.text, (text.color.red, text.color.green, text.color.blue, text.color.alpha), text.x, text.y, text.scale, text.scale_position)).unwrap();
+    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::DrawText(text.text, (text.color.red, text.color.green, text.color.blue, text.color.alpha), text.x, text.y, text.scale, text.scale_position)).unwrap();
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
 struct Vector {
@@ -384,10 +384,10 @@ fn project(loc: Vector) -> Vector {
 fn spawn_pawn() -> u32 {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
-    state.lua_ue_tx.send(LuaToUe::SpawnAMyCharacter).unwrap();
-    let spawned = state.ue_lua_rx.recv().unwrap();
+    state.rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter).unwrap();
+    let spawned = state.ue_rebo_rx.recv().unwrap();
     let my_character = match spawned {
-        UeToLua::AMyCharacterSpawned(c) => c,
+        UeToRebo::AMyCharacterSpawned(c) => c,
         _ => unreachable!(),
     };
     let id = state.pawn_id;

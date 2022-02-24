@@ -57,7 +57,7 @@ fn main() {
     }
     let script_file = if env::args().len() == 1 {
         if !Path::new("main.re").is_file() {
-            panic!("No tas file specified. Usage: refunct-tas <file.lua>");
+            panic!("No tas file specified. Usage: refunct-tas <file.re>");
         } else {
             PathBuf::from("main.re")
         }

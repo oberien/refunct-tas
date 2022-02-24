@@ -1,9 +1,0 @@
-[package]
-name = "lua"
-version = "0.1.0"
-authors = ["oberien <jaro.fietz@gmx.de>"]
-
-[dependencies]
-#rlua = "0.13"
-rlua = "0.17.0"
-clipboard = "0.5.0"

@@ -19,8 +19,8 @@ Strings are u32-length-prefixed and UTF-8 encoded.
 
 Tool to Rtil:
 
-* `0`: Lua Code as String
-* `1`: Stop execution of Lua and reset game values
+* `0`: Rebo Code as String
+* `1`: Stop execution of Rebo and reset game values
 * `2`: Set configured keys in this order as i32. Needs to be called before executing a Tas.
     + `forward`
     + `backward`
@@ -30,13 +30,13 @@ Tool to Rtil:
     + `crouch`
     + `menu`
 * `3`: Current absolute working directory path of the tool as String.
-       This is used to set the `package.path` variable in lua.
+       This is used to resolve `includes` from.
 * `255`: Error occured. Error code following.
 
 Rtil to Tool:
 
 * `0`: Print following String to stdout
-* `1`: Lua Execution finished
+* `1`: Rebo Execution finished
 * `255`: Error occured. Error code following.
 
 Error Codes:

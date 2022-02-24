@@ -9,7 +9,6 @@ lazy_static = "1.4.0"
 byteorder = "1.0.0"
 error-chain = "0.8.1"
 backtrace = "0.3"
-lua = { path = "../lua" }
 failure = "0.1"
 rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.3.8"

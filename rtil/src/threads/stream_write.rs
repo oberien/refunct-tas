@@ -5,21 +5,21 @@ use std::thread::{self, JoinHandle};
 use byteorder::{WriteBytesExt, LittleEndian};
 use crossbeam_channel::{select, Receiver};
 
-use threads::{ListenerToStream, LuaToStream};
+use threads::{ListenerToStream, ReboToStream};
 use error::*;
 
 struct StreamWrite {
     con: TcpStream,
     listener_stream_rx: Receiver<ListenerToStream>,
-    lua_stream_rx: Receiver<LuaToStream>,
+    rebo_stream_rx: Receiver<ReboToStream>,
 }
 
 pub fn run(con: TcpStream, listener_stream_rx: Receiver<ListenerToStream>,
-           lua_stream_rx: Receiver<LuaToStream>) -> JoinHandle<Receiver<LuaToStream>> {
+           rebo_stream_rx: Receiver<ReboToStream>) -> JoinHandle<Receiver<ReboToStream>> {
     let mut stream = StreamWrite {
         con,
         listener_stream_rx,
-        lua_stream_rx,
+        rebo_stream_rx,
     };
     thread::spawn(move || {
         loop {
@@ -36,17 +36,17 @@ pub fn run(con: TcpStream, listener_stream_rx: Receiver<ListenerToStream>,
 
 impl StreamWrite {
     fn recv_and_write(&mut self) -> Result<()> {
-        let lua_stream_rx = &self.lua_stream_rx;
+        let rebo_stream_rx = &self.rebo_stream_rx;
         let listener_stream_rx = &self.listener_stream_rx;
         select! {
-            recv(lua_stream_rx) -> res => match res.unwrap() {
-                LuaToStream::Print(s) => {
+            recv(rebo_stream_rx) -> res => match res.unwrap() {
+                ReboToStream::Print(s) => {
                     self.con.write_u8(0)?;
                     self.con.write_u32::<LittleEndian>(s.len() as u32)?;
                     self.con.write_all(s.as_bytes())?;
                     self.con.flush()?;
                 }
-                LuaToStream::MiDone => {
+                ReboToStream::MiDone => {
                     log!("Writing done to socket.");
                     self.con.write_u8(1)?;
                 }
@@ -58,7 +58,7 @@ impl StreamWrite {
         Ok(())
     }
 
-    fn die(self) -> Receiver<LuaToStream> {
-        self.lua_stream_rx
+    fn die(self) -> Receiver<ReboToStream> {
+        self.rebo_stream_rx
     }
 }

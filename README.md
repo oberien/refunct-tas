@@ -37,15 +37,15 @@ Make sure to have rust installed either with [rustup](https://www.rustup.rs/)
 containing the latest nightly compiler.
 Execute `make`.
 This will create the directory `build/linux/` containing `refunct-tas`,
-`librtil.so` and some lua script files.
+`librtil.so`, `Config.toml` and some rebo script files.
 
 ## Windows
 
 Make sure to have Rust installed with [rustup](https://www.rustup.rs/) and
 installed the latest nightly-i686-pc-windows-msvc.
 Execute the file `make.bat` either with a double-click, or preferably in cmd.
-It will create a directory `build\windows\ ` containing `refunct-tas.exe`,
-`rtil.dll` and some lua script files.
+It will create a directory `build\practice-windows\ ` containing `refunct-tas.exe`,
+`rtil.dll`, `Cargo.toml` and some rebo script files.
 
 # Running
 
@@ -59,20 +59,24 @@ This can be done in Steam in Library → Right click on Refunct → Properties �
 Set Launch Options... .
 There, specify `LD_PRELOAD=/absolute/path/to/build/linux/librtil.so %command%`.
 
-To run a lua TAS script file, execute `refunct-tas <file>`.
+To run the default practice functionality, execute `refunct-tas`, which will run
+`main.re` by default.  
+To run your own rebo script file, execute `refunct-tas <file>`.
 
 ## Windows
 
-On windows open cmd (e.g. with Win+R → cmd → return) and `cd` into the directory
-containing the TAS tool files (e.g. with `cd C:\Users\User\refunct-tas\ `).
-There, execute `refunct-tas.exe <file>` to run a lua TAS script file.
+To run the default practice functionality, double-click on `refunct-tas.exe`, which
+will run `main.re` by default.
+To run your own rebo script file, open cmd (e.g. with Win+R → cmd → Enter) and `cd` into
+the directory containing the TAS tool files (e.g. with `cd C:\Users\User\refunct-tas\`).
+There, execute `refunct-tas.exe <file>` to run that rebo script file.
 
-# Writing TAS files
+# Writing Script Files
 
-TAS files are written in the [LUA](https://www.lua.org/) programming language.
-The TAS tool exposes an API which can be used to perform the TAS.
-The API documentation of the exposed API can be found [in lua-api.md](/docs/lua-api.md).
-You can find code examples in the [tool directory](tool/).
+Script files are written in the [rebo](https://github.com/oberien/rebo#readme) programming language.
+The tool exposes an API which can be used by scripts to change different things within Refunct.
+The exposed API can be seen in [rebo_init.rs](/rtil/src/threads/rebo/rebo_init.rs).
+You can find all code of the practice functionality in the [tool directory](tool/).
 
 # Troubleshooting
 

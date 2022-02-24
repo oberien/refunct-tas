@@ -54,15 +54,11 @@ deltatime to the according value.
 ## Tool
 
 The tool parses the config file `Config.toml`, injects the library into the game
-on Windows, parses and executes Lua files and thus provides an interface to the
-user to interact with the lib.
+on Windows (must be done with `LD_PRELOAD` manually on Linux), reads the rebo script
+file (defaulting to `main.re` if none was passed) and sends it to the in-game lib.
 In the `config` mod we parse the config.
 In `inject.rs`, we inject the lib into Refunct on Windows.
-The `tas` mod wraps the lib's TCP socket protocol and therefore provides
-functions to interact with the lib.
-The `lua` mod exposes functions to Lua scripts to interact with the lib.
-Those functions are mainly bare wrappers around functions provided in the `tas`
-mod.
+The `tas` mod wraps the lib's TCP socket protocol.
 
 [li]: /docs/library-injection.md
 [fps]: /docs/function-signatures.md

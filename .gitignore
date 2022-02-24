@@ -1,6 +1,6 @@
 target
 tool/replays
-build/
+build
 
 # vim swap files
 *.swp

@@ -5,21 +5,21 @@ use std::thread::{self, JoinHandle};
 use byteorder::{ReadBytesExt, LittleEndian};
 use crossbeam_channel::Sender;
 
-use threads::{StreamToListener, StreamToLua, Config};
+use threads::{StreamToListener, StreamToRebo, Config};
 use error::*;
 
 struct StreamRead {
     con: TcpStream,
     stream_listener_tx: Sender<StreamToListener>,
-    stream_lua_tx: Sender<StreamToLua>,
+    stream_rebo_tx: Sender<StreamToRebo>,
 }
 
-pub fn run(con: TcpStream, stream_listener_tx: Sender<StreamToListener>, stream_lua_tx: Sender<StreamToLua>)
-           -> JoinHandle<Sender<StreamToLua>> {
+pub fn run(con: TcpStream, stream_listener_tx: Sender<StreamToListener>, stream_rebo_tx: Sender<StreamToRebo>)
+           -> JoinHandle<Sender<StreamToRebo>> {
     let mut stream = StreamRead {
         con,
         stream_listener_tx,
-        stream_lua_tx,
+        stream_rebo_tx,
     };
     thread::spawn(move || {
         loop {
@@ -41,11 +41,11 @@ impl StreamRead {
                 log!("Reading code");
                 let code = self.read_string()?;
                 log!("Got code");
-                self.stream_lua_tx.send(StreamToLua::Start(code)).unwrap();
+                self.stream_rebo_tx.send(StreamToRebo::Start(code)).unwrap();
             }
             1 => {
                 log!("Got stop");
-                self.stream_lua_tx.send(StreamToLua::Stop).unwrap()
+                self.stream_rebo_tx.send(StreamToRebo::Stop).unwrap()
             }
             2 => {
                 log!("Reading Config...");
@@ -59,12 +59,12 @@ impl StreamRead {
                     menu: self.con.read_i32::<LittleEndian>()?,
                 };
                 log!("Got Config: {:?}", config);
-                self.stream_lua_tx.send(StreamToLua::Config(config)).unwrap();
+                self.stream_rebo_tx.send(StreamToRebo::Config(config)).unwrap();
             }
             3 => {
                 log!("Reading working dir");
                 let path = self.read_string()?;
-                self.stream_lua_tx.send(StreamToLua::WorkingDir(path)).unwrap();
+                self.stream_rebo_tx.send(StreamToRebo::WorkingDir(path)).unwrap();
             }
             255 => log!("Got Error code from client: {}", self.con.read_u8()?),
             cmd => {
@@ -89,9 +89,9 @@ impl StreamRead {
         Ok(string)
     }
 
-    fn die(self) -> Sender<StreamToLua> {
-        self.stream_lua_tx.send(StreamToLua::Stop).unwrap();
+    fn die(self) -> Sender<StreamToRebo> {
+        self.stream_rebo_tx.send(StreamToRebo::Stop).unwrap();
         self.stream_listener_tx.send(StreamToListener::ImDead).unwrap();
-        self.stream_lua_tx
+        self.stream_rebo_tx
     }
 }

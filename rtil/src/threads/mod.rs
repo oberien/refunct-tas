@@ -1,19 +1,19 @@
 mod listener;
 mod stream_read;
 mod stream_write;
-mod lua;
+mod rebo;
 pub mod ue;
 
 use native::AMyCharacter;
 
 pub fn start() {
-    let (stream_lua_tx, stream_lua_rx) = crossbeam_channel::unbounded();
-    let (lua_stream_tx, lua_stream_rx) = crossbeam_channel::unbounded();
-    let (lua_ue_tx, lua_ue_rx) = crossbeam_channel::unbounded();
-    let (ue_lua_tx, ue_lua_rx) = crossbeam_channel::unbounded();
-    listener::run(stream_lua_tx, lua_stream_rx).unwrap();
-    lua::run(stream_lua_rx, lua_stream_tx, lua_ue_tx, ue_lua_rx);
-    ue::run(lua_ue_rx, ue_lua_tx);
+    let (stream_rebo_tx, stream_rebo_rx) = crossbeam_channel::unbounded();
+    let (rebo_stream_tx, rebo_stream_rx) = crossbeam_channel::unbounded();
+    let (rebo_ue_tx, rebo_ue_rx) = crossbeam_channel::unbounded();
+    let (ue_rebo_tx, ue_rebo_rx) = crossbeam_channel::unbounded();
+    listener::run(stream_rebo_tx, rebo_stream_rx).unwrap();
+    rebo::run(stream_rebo_rx, rebo_stream_tx, rebo_ue_tx, ue_rebo_rx);
+    ue::run(rebo_ue_rx, ue_rebo_tx);
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -27,7 +27,7 @@ pub enum StreamToListener {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum StreamToLua {
+pub enum StreamToRebo {
     Start(String),
     Stop,
     Config(Config),
@@ -46,13 +46,13 @@ pub struct Config {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum LuaToStream {
+pub enum ReboToStream {
     Print(String),
     MiDone,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum LuaToUe {
+pub enum ReboToUe {
     Stop,
     AdvanceFrame,
     // we need to execute events on the main loop, because possible played audio
@@ -67,7 +67,7 @@ pub enum LuaToUe {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum UeToLua {
+pub enum UeToRebo {
     Tick,
     NewGame,
     KeyDown(i32, u32, bool),

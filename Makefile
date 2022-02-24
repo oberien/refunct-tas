@@ -3,11 +3,11 @@ TOOL := build/linux/refunct-tas
 LIB := build/linux/librtil.so
 
 .PHONY: all
-all: $(TOOL) $(LIB) lua
+all: $(TOOL) $(LIB) scripts
 
 .PHONY: zip
 zip: all
-	cd build/linux && zip refunct-tas-linux.zip *
+	cd build/ && cp -r linux practice-linux && zip practice-linux.zip practice-linux
 
 .PHONY: clippy
 clippy:
@@ -27,9 +27,9 @@ $(LIB): $(BUILDDIR)
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
-.PHONY: lua
-lua: $(BUILDDIR)
-	bash -c 'cp tool/*.lua $(BUILDDIR)'
+.PHONY: scripts
+scripts: $(BUILDDIR)
+	bash -c 'cp tool/*.rebo $(BUILDDIR)'
 	cp tool/Config.toml $(BUILDDIR)
 	sed -i "s/'v'/'w'/; s/'i'/'s'/; s/'a'/'d'/; s/'u'/'a'/" $(BUILDDIR)/Config.toml
 

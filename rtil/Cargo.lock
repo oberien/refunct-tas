@@ -101,15 +101,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
-name = "bstr"
-version = "0.2.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31accafdb70df7871592c058eca3985b71104e15ac32f64706022c58867da931"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -503,14 +494,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lua"
-version = "0.1.0"
-dependencies = [
- "clipboard",
- "rlua",
-]
-
-[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -552,15 +535,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a92518e98c078586bc6c934028adcca4c92a53d6a958196de835170a01d84e4b"
 dependencies = [
  "adler",
- "autocfg",
-]
-
-[[package]]
-name = "num-traits"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
-dependencies = [
  "autocfg",
 ]
 
@@ -859,7 +833,6 @@ dependencies = [
  "kernel32-sys",
  "lazy_static",
  "libc",
- "lua",
  "memoffset",
  "object 0.21.1",
  "protocol",
@@ -884,19 +857,6 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
-
-[[package]]
-name = "rlua"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25fa5b2c667bae0b6218361e96d365e414fe4a0fa80f476b9631aa2dea2c6881"
-dependencies = [
- "bitflags 1.3.2",
- "bstr",
- "cc",
- "libc",
- "num-traits",
-]
 
 [[package]]
 name = "rt-format"
