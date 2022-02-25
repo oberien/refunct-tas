@@ -81,7 +81,7 @@ impl AMyCharacter {
     }
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 struct AMyCharacterUE {
     #[cfg(unix)] _pad: [u8; 0x168],
     #[cfg(windows)] _pad: [u8; 0x11c],
@@ -94,14 +94,14 @@ struct AMyCharacterUE {
     movement: *mut UCharacterMovementComponent,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 struct USceneComponent {
     #[cfg(unix)] _pad: [u8; 0x1a0],
     #[cfg(windows)] _pad: [u8; 0x140],
     location: FVector,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 struct UCharacterMovementComponent {
     #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
@@ -111,7 +111,7 @@ struct UCharacterMovementComponent {
     acceleration: FVector,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 struct APlayerController {
     #[cfg(unix)] _pad: [u8; 0x3b8],
     #[cfg(windows)] _pad: [u8; 0x2d0],

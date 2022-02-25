@@ -7,7 +7,7 @@ use std::mem;
 use native::{FMemory, FNAME_FNAME};
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FVector {
     pub x: f32,
     pub y: f32,
@@ -15,7 +15,7 @@ pub struct FVector {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FRotator {
     pub pitch: f32,
     pub yaw: f32,
@@ -23,7 +23,7 @@ pub struct FRotator {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct TArray<T> {
     ptr: *mut T,
     len: i32,
@@ -124,7 +124,7 @@ impl<T: Into<FString>> From<T> for FName {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FLinearColor {
     pub red: f32,
     pub green: f32,
@@ -156,7 +156,7 @@ impl From<(f32, f32, f32, f32)> for FLinearColor {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FColor {
     pub alpha: u8,
     pub red: u8,
@@ -182,7 +182,7 @@ impl From<(u8, u8, u8, u8)> for FColor {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FQuat {
     pub x: f32,
     pub y: f32,

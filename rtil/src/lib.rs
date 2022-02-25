@@ -20,7 +20,7 @@ extern crate clipboard;
 extern crate object;
 extern crate rebo;
 
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 use std::thread;
 use std::panic;
 
@@ -32,7 +32,7 @@ mod threads;
 #[cfg(unix)] pub use native::INITIALIZE_CTOR;
 #[cfg(windows)] pub use native::DllMain;
 
-static INIT: Once = ONCE_INIT;
+static INIT: Once = Once::new();
 
 pub extern "C" fn initialize() {
     INIT.call_once(|| {

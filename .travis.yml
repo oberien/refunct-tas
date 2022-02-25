@@ -21,7 +21,7 @@ deploy:
   tag_name: $TRAVIS_TAG
   api_key:
     secure: Gwx84xXtLhPWB4yGG9/C40nC/KYdZA1n8bCQoEJet/4h+GNMk4mOWPLZktEVMdk1luwEVY8RLT+KvijbgpMfLTc+r99ZPVMoLPAeDsrLE3Vy2PLebOaS81mh2NX/7iLQyeMgCvZuDoiaYbpKjtoS6wKOB8f+U694qRtF6Wmp7fUJ46/pAqvMyQz1BJtJ/DRmy/H8oOgVRrKF35TPwtb5kduBvSbfitLZHiDfvJgVqojDSqItHg/vgOnf1CtG6ULOe8Z8Ye6rDstxFewRz51nTZyD0BX5IdrGquNPdJ2UktpgTnKhAWd95NVWJJ9+zCjkImnT6ZG6hXYAKQFplZ0wko82fUyzNHaAbHwgmkCMBtyliu3tL6UYI5z25+R66xCbxfrJwChsQdhCEpAB6Y8G+Tl+tjutxpfkdK3SwMo61OL/CrPuMJfaV07by0sonBbfw342Vg3LoNFa/92JQB6fsjclqcuLKdGh8ifoPxIxiwWsCA0tE82SbDhld8y32XQTE4vJLVfDIt9k6tbpZ9uvJKCGG3rX2lkX0Od6RN4LrBxe7nPnbOz7IXEX+w6iBz/MjcTVYdljd2cgwtpc+rx6tsnr95PlP+au9z3qjC/HKM0cGugHP/mZMMKAnC5Z4qwZQtmqwPR+JacwSDg5LIh16ZkeKPS03R5Nel9RzLQruTs=
-  file: build/linux/refunct-tas-linux.zip
+  file: build/practice-linux.zip
   skip_cleanup: true
   draft: true
   on:

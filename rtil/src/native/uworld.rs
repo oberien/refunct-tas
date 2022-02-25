@@ -23,7 +23,7 @@ enum ESpawnActorCollisionHandlingMethod {
 }
 
 #[derive(Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 struct FActorSpawnParameters {
     name: FName,
     template: *const AActor,
@@ -76,14 +76,14 @@ impl UWorld {
         let fun: extern_fn!(fn(
             this: *const UWorld, class: *const UClass, location: *const FVector,
             rotation: *const FRotator, spawn_parameters: *const FActorSpawnParameters
-        ) -> *mut AActor) = unsafe { ::std::mem::transmute(UWORLD_SPAWNACTOR) };
+        ) -> *mut AActor) = ::std::mem::transmute(UWORLD_SPAWNACTOR);
         let this = Self::get_global();
         fun(this, class, location, rotation, spawn_parameters)
     }
     unsafe fn destroy_actor(actor: *const AActor, net_force: bool, should_modify_level: bool) -> bool {
         let fun: extern_fn!(fn(
             this: *const UWorld, actor: *const AActor, net_force: bool, should_modify_level: bool
-        ) -> c_int) = unsafe { ::std::mem::transmute(UWORLD_DESTROYACTOR) };
+        ) -> c_int) = ::std::mem::transmute(UWORLD_DESTROYACTOR);
         let this = Self::get_global();
         let res = fun(this, actor, net_force, should_modify_level);
         res != 0
