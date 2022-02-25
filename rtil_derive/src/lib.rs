@@ -165,11 +165,12 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
                 // restore registers
                 #POPALL_WINDOWS,
                 // jump to original function
-                concat!("call {", #original_function_address, "}"),
+                concat!("mov eax, [{", stringify!(#original_function_address), "}]"),
+                "jmp eax",
 
                 #function_to_call = sym #function_to_call,
                 #unhook_function_name = sym #unhook_function_name,
-                #original_function_address = const crate::native::#original_function_address,
+                #original_function_address = sym crate::native::#original_function_address,
                 options(noreturn),
             )
         }
@@ -295,7 +296,7 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
 
 
                 // call function_to_call
-                concat!("call {" stringify!(#function_to_call), "}"),
+                concat!("call {", stringify!(#function_to_call), "}"),
                 // get consumed stack (negative value)
                 "sub ebx, esp",
 
@@ -319,7 +320,8 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
                 // save stack pointer
                 "mov ebx, esp",
                 // call original function
-                concat!("call {", stringify!(#original_function_address), "}"),
+                concat!("mov eax, [{", stringify!(#original_function_address), "}]"),
+                "call eax",
 
                 // get consumed stack (negative value)
                 "sub ebx, esp",
@@ -352,7 +354,7 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
 
                 #function_to_call = sym #function_to_call,
                 #unhook_function_name = sym #unhook_function_name,
-                #original_function_address = const crate::native::#original_function_address,
+                #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
                 options(noreturn),
             )
@@ -418,7 +420,8 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 #POPALL_WINDOWS,
 
                 // call original function
-                concat!("call {", stringify!(#original_function_address), "}"),
+                concat!("mov eax, [{", stringify!(#original_function_address), "}]"),
+                "call eax",
 
                 // save eax (return value of original function)
                 "push eax",
@@ -435,7 +438,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 "ret",
 
                 #unhook_function_name = sym #unhook_function_name,
-                #original_function_address = const crate::native::#original_function_address,
+                #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
                 #function_to_call = sym #function_to_call,
                 options(noreturn),

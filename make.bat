@@ -5,15 +5,16 @@ md build\practice-windows
 del /Q build\practice-windows\*
 echo Building
 cd rtil
-rustup run nightly cargo build --release --target=i686-pc-windows-msvc
+cargo build --release --target=i686-pc-windows-msvc
 cd ..\tool
-rustup run nightly cargo build --target=i686-pc-windows-msvc
+cargo build --target=i686-pc-windows-msvc
 cd ..
 echo Copying files
 copy rtil\target\i686-pc-windows-msvc\release\rtil.dll build\practice-windows
 copy tool\target\i686-pc-windows-msvc\debug\refunct-tas.exe build\practice-windows
 copy tool\Config.toml build\practice-windows
 copy tool\main.re build\practice-windows
+copy tool\component.re build\practice-windows
 copy tool\keys.re build\practice-windows
 copy tool\newgame.re build\practice-windows
 copy tool\practice.re build\practice-windows
@@ -23,6 +24,7 @@ copy tool\ui.re build\practice-windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert main.re
+call :convert component.re
 call :convert keys.re
 call :convert newgame.re
 call :convert practice.re
