@@ -1,6 +1,7 @@
 #![feature(llvm_asm)]
 #![feature(core_intrinsics)]
 #![feature(naked_functions)]
+#![feature(asm_sym)]
 #![feature(abi_thiscall)]
 #![feature(stmt_expr_attributes)]
 
