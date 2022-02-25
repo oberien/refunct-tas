@@ -1,9 +1,7 @@
-#![feature(llvm_asm)]
-#![feature(core_intrinsics)]
 #![feature(naked_functions)]
 #![feature(asm_sym)]
+#![feature(asm_const)]
 #![feature(abi_thiscall)]
-#![feature(stmt_expr_attributes)]
 
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate lazy_static;

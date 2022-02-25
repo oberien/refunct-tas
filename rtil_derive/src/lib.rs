@@ -145,6 +145,7 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
                 // jump to original function
                 concat!("mov rax, [rip+{", stringify!(#original_function_address), "}]"),
                 "jmp rax",
+
                 #function_to_call = sym #function_to_call,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
@@ -156,17 +157,21 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            // save registers
-            #PUSHALL_WINDOWS_OLD
-            // call function_to_call
-            llvm_asm!("call eax" :: "{eax}"(#function_to_call as usize) :: "intel","volatile");
-            // unhook original function
-            llvm_asm!("call eax" :: "{eax}"(#unhook_function_name as usize) :: "intel","volatile");
-            // restore registers
-            #POPALL_WINDOWS_OLD
-            // jump to original function
-            llvm_asm!("jmp eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
-            ::std::intrinsics::unreachable()
+            std::arch::asm!(
+                #PUSHALL_WINDOWS,
+                concat!("call {", stringify!(#function_to_call), "}"),
+                // unhook original function
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                // restore registers
+                #POPALL_WINDOWS,
+                // jump to original function
+                concat!("call {", #original_function_address, "}"),
+
+                #function_to_call = sym #function_to_call,
+                #unhook_function_name = sym #unhook_function_name,
+                #original_function_address = const crate::native::#original_function_address,
+                options(noreturn),
+            )
         }
     }
 }
@@ -181,34 +186,41 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
-            #PUSHALL_LINUX_OLD
-            #ALIGNSTACK_PRE_LINUX_OLD
-            // call function_to_call
-            llvm_asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
-            // restore original function
-            llvm_asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
-            #POPALL_LINUX_OLD
+            std::arch::asm!(
+                #PUSHALL_LINUX,
+                #ALIGNSTACK_PRE_LINUX,
+                // call function_to_call
+                concat!("call {", stringify!(#function_to_call), "}"),
+                // restore original function
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                #ALIGNSTACK_POST_LINUX,
+                #POPALL_LINUX,
 
-            // call original function
-            #ALIGNSTACK_PRE_LINUX_OLD
-            llvm_asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
+                // call original function
+                #ALIGNSTACK_PRE_LINUX,
+                concat!("mov rax, [rip+{", stringify!(#original_function_address), "}]"),
+                "call rax",
+                #ALIGNSTACK_POST_LINUX,
 
-            // save rax (return value of original function
-            llvm_asm!("push rax" :::: "intel","volatile");
+                // save rax (return value of original function)
+                "push rax",
 
-            // hook method again
-            #ALIGNSTACK_PRE_LINUX_OLD
-            llvm_asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
+                // hook method again
+                #ALIGNSTACK_PRE_LINUX,
+                concat!("call {", stringify!(#hook_function_name), "}"),
+                #ALIGNSTACK_POST_LINUX,
 
-            // restore rax
-            llvm_asm!("pop rax" :::: "intel","volatile");
+                // restore rax
+                "pop rax",
+                // return to original caller
+                "ret",
 
-            // return to original caller
-            llvm_asm!("ret" :::: "intel","volatile");
-            ::std::intrinsics::unreachable()
+                #function_to_call = sym #function_to_call,
+                #unhook_function_name = sym #unhook_function_name,
+                #original_function_address = sym crate::native::#original_function_address,
+                #hook_function_name = sym #hook_function_name,
+                options(noreturn),
+            )
         }
 
 //        #[cfg(windows)]
@@ -241,112 +253,109 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            // We need to duplicate the arguments and delete the return address for ours to
-            // be located correctly when using `call`.
-            // Stack Layout:
-            // esp    xmm7    10         \
-            // +10    xmm6    10          |
-            // +20    xmm5    10          |
-            // +30    xmm4    10          |
-            // +40    xmm3    10          |
-            // +50    xmm2    10          |
-            // +60    xmm1    10          |
-            // +70    xmm0    10           > 0xa0
-            // +80    ebp      4          |
-            // +84    edi      4          |
-            // +88    esi      4          |
-            // +8c    edx      4          |
-            // +90    ecx      4          |
-            // +94    ebx      4          |
-            // +98    eax      4          |
-            // +9c    ret      4         /
-            // +a0    args
-            //        caller stack frame
-            // We assume that there aren't more than 0x100-0xa0 = 0x60 bytes of arguments.
+            std::arch::asm!(
+                // We need to duplicate the arguments and delete the return address for ours to
+                // be located correctly when using `call`.
+                // Stack Layout:
+                // esp    xmm7    10         \
+                // +10    xmm6    10          |
+                // +20    xmm5    10          |
+                // +30    xmm4    10          |
+                // +40    xmm3    10          |
+                // +50    xmm2    10          |
+                // +60    xmm1    10          |
+                // +70    xmm0    10           > 0xa0
+                // +80    ebp      4          |
+                // +84    edi      4          |
+                // +88    esi      4          |
+                // +8c    edx      4          |
+                // +90    ecx      4          |
+                // +94    ebx      4          |
+                // +98    eax      4          |
+                // +9c    ret      4         /
+                // +a0    args
+                //        caller stack frame
+                // We assume that there aren't more than 0x100-0xa0 = 0x60 bytes of arguments.
 
-            // save all registers
-            #PUSHALL_WINDOWS_OLD
-            // Reserve some stack which we copy everything into.
-            llvm_asm!(r"
-                sub esp, 0x100
-                mov ecx, 0x100
-                lea esi, [esp + 0x100]
-                mov edi, esp
-                rep movsb
-            " :::: "intel","volatile");
-            // restore copied registers
-            #POPALL_WINDOWS_OLD
-            // remove old return address, which will be replaced by our `call`
-            llvm_asm!("pop eax" :::: "intel","volatile");
-            // save current stack pointer in non-volatile register to find out
-            // how many arguments are cleared, which we use to adjust the stack back
-            llvm_asm!("mov ebx, esp" :::: "intel","volatile");
-
-
-            // call function_to_call
-            llvm_asm!("call $0" :: "r"(#function_to_call as usize) :: "intel","volatile");
-            // get consumed stack (negative value)
-            llvm_asm!("sub ebx, esp" :::: "intel","volatile");
-
-            // restore original function
-            llvm_asm!("call $0" :: "r"(#unhook_function_name as usize) :: "intel","volatile");
-            // restore stack
-            llvm_asm!(r"
-                add esp, 0x60
-                add esp, ebx
-            " :::: "intel","volatile");
+                // save all registers
+                #PUSHALL_WINDOWS,
+                // Reserve some stack which we copy everything into.
+                "sub esp, 0x100",
+                "mov ecx, 0x100",
+                "lea esi, [esp + 0x100]",
+                "mov edi, esp",
+                "rep movsb",
+                // restore copied registers
+                #POPALL_WINDOWS,
+                // remove old return address, which will be replaced by our `call`
+                "pop eax",
+                // save current stack pointer in non-volatile register to find out
+                // how many arguments are cleared, which we use to adjust the stack back
+                "mov ebx, esp",
 
 
-            // copy stack again and do the same with the original function
-            llvm_asm!(r"
-                sub esp, 0x100
-                mov ecx, 0x100
-                lea esi, [esp + 0x100]
-                mov edi, esp
-                rep movsb
-            " :::: "intel","volatile");
-            // restore registers
-            #POPALL_WINDOWS_OLD
-            // pop return address
-            llvm_asm!("pop eax" :::: "intel","volatile");
-            // save stack pointer
-            llvm_asm!("mov ebx, esp" :::: "intel","volatile");
-            // call original function
-            llvm_asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
+                // call function_to_call
+                concat!("call {" stringify!(#function_to_call), "}"),
+                // get consumed stack (negative value)
+                "sub ebx, esp",
 
-            // get consumed stack (negative value)
-            llvm_asm!("sub ebx, esp" :::: "intel","volatile");
-            // restore stack
-            llvm_asm!(r"
-                add esp, 0x60
-                add esp, ebx
-            " :::: "intel","volatile");
+                // restore original function
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                // restore stack
+                "add esp, 0x60",
+                "add esp, ebx",
 
-            // save eax (return value of original function) to pushed registers
-            llvm_asm!("mov [esp + 0x98], eax" :::: "intel","volatile");
-            // save consumed stack to ecx in the pushed registers, so we can consume as much
-            // after popping the registers before returning
-            llvm_asm!("mov [esp + 0x90], ebx" :::: "intel","volatile");
-            // move original return address to correct position after arg-consumption
-            llvm_asm!(r"
-                mov eax, [esp + 0x9c]
-                lea edx, [esp + 0x9c]
-                sub edx, ebx
-                mov [edx], eax
-            " :::: "intel","volatile");
 
-            // hook method again
-            llvm_asm!("call $0" :: "r"(#hook_function_name as usize) :: "intel","volatile");
+                // copy stack again and do the same with the original function
+                "sub esp, 0x100",
+                "mov ecx, 0x100",
+                "lea esi, [esp + 0x100]",
+                "mov edi, esp",
+                "rep movsb",
+                // restore registers
+                #POPALL_WINDOWS,
+                // pop return address
+                "pop eax",
+                // save stack pointer
+                "mov ebx, esp",
+                // call original function
+                concat!("call {", stringify!(#original_function_address), "}"),
 
-            // restore all registers
-            #POPALL_WINDOWS_OLD
-            // do not pop old return address, because we wrote the return address to the last argument
-            // consume arguments
-            llvm_asm!("sub esp, ecx" :::: "intel","volatile");
+                // get consumed stack (negative value)
+                "sub ebx, esp",
+                // restore stack
+                "add esp, 0x60",
+                "add esp, ebx",
 
-            // return to original caller
-            llvm_asm!("ret" :::: "intel","volatile");
-            ::std::intrinsics::unreachable()
+                // save eax (return value of original function) to pushed registers
+                "mov [esp + 0x98], eax",
+                // save consumed stack to ecx in the pushed registers, so we can consume as much
+                // after popping the registers before returning
+                "mov [esp + 0x90], ebx",
+                // move original return address to correct position after arg-consumption
+                "mov eax, [esp + 0x9c]",
+                "lea edx, [esp + 0x9c]",
+                "sub edx, ebx",
+                "mov [edx], eax",
+
+                // hook method again
+                concat!("call {", stringify!(#hook_function_name), "}"),
+
+                // restore all registers
+                #POPALL_WINDOWS,
+                // do not pop old return address, because we wrote the return address to the last argument
+                // consume arguments
+                "sub esp, ecx",
+
+                // return to original caller
+                "ret",
+
+                #function_to_call = sym #function_to_call,
+                #unhook_function_name = sym #unhook_function_name,
+                #original_function_address = const crate::native::#original_function_address,
+                #hook_function_name = sym #hook_function_name,
+                options(noreturn),
+            )
         }
     }
 }
@@ -361,61 +370,76 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
-            // restore original function
-            #PUSHALL_LINUX_OLD
-            #ALIGNSTACK_PRE_LINUX_OLD
-            llvm_asm!("call rax" :: "{rax}"(#unhook_function_name as usize) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
-            #POPALL_LINUX_OLD
+            std::arch::asm!(
+                // restore original function
+                #PUSHALL_LINUX,
+                #ALIGNSTACK_PRE_LINUX,
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                #ALIGNSTACK_POST_LINUX,
+                #POPALL_LINUX,
 
-            // call original function
-            #ALIGNSTACK_PRE_LINUX_OLD
-            llvm_asm!("call rax" :: "{rax}"(crate::native::#original_function_address) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
+                // call original function
+                #ALIGNSTACK_PRE_LINUX,
+                concat!("mov rax, [rip+{", stringify!(#original_function_address), "}]"),
+                "call rax",
+                #ALIGNSTACK_POST_LINUX,
 
-            // save rax (return value of original function
-            llvm_asm!("push rax" :::: "intel","volatile");
+                // save rax (return value of original function
+                "push rax",
 
-            #ALIGNSTACK_PRE_LINUX_OLD
-            // hook method again
-            llvm_asm!("call rax" :: "{rax}"(#hook_function_name as usize) :: "intel","volatile");
-            // call function_to_call
-            llvm_asm!("call rax" :: "{rax}"(#function_to_call as usize) :: "intel","volatile");
-            #ALIGNSTACK_POST_LINUX_OLD
+                #ALIGNSTACK_PRE_LINUX,
+                // hook method again
+                concat!("call {", stringify!(#hook_function_name), "}"),
+                // call function_to_call
+                concat!("call {", stringify!(#function_to_call), "}"),
+                #ALIGNSTACK_POST_LINUX,
 
-            // restore rax
-            llvm_asm!("pop rax" :::: "intel","volatile");
+                // restore rax
+                "pop rax",
 
-            // return to original caller
-            llvm_asm!("ret" :::: "intel","volatile");
-            ::std::intrinsics::unreachable()
+                // return to original caller
+                "ret",
+
+                #unhook_function_name = sym #unhook_function_name,
+                #original_function_address = sym crate::native::#original_function_address,
+                #hook_function_name = sym #hook_function_name,
+                #function_to_call = sym #function_to_call,
+                options(noreturn),
+            )
         }
 
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            // restore original function
-            #PUSHALL_WINDOWS_OLD
-            llvm_asm!("call $0" :: "r"(#unhook_function_name as usize) :: "intel","volatile");
-            #POPALL_WINDOWS_OLD
+            std::arch::asm!(
+                // restore original function
+                #PUSHALL_WINDOWS,
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                #POPALL_WINDOWS,
 
-            // call original function
-            llvm_asm!("call eax" :: "{eax}"(crate::native::#original_function_address) :: "intel","volatile");
+                // call original function
+                concat!("call {", stringify!(#original_function_address), "}"),
 
-            // save eax (return value of original function)
-            llvm_asm!("push eax" :::: "intel","volatile");
+                // save eax (return value of original function)
+                "push eax",
 
-            // hook method again
-            llvm_asm!("call $0" :: "r"(#hook_function_name as usize) :: "intel","volatile");
-            // call function_to_call
-            llvm_asm!("call $0" :: "r"(#function_to_call as usize) :: "intel","volatile");
+                // hook method again
+                concat!("call {", stringify!(#hook_function_name), "}"),
+                // call function_to_call
+                concat!("call {", stringify!(#function_to_call), "}"),
 
-            // restore eax
-            llvm_asm!("pop eax" :::: "intel","volatile");
+                // restore eax
+                "pop eax",
 
-            // return to original caller
-            llvm_asm!("ret" :::: "intel","volatile");
-            ::std::intrinsics::unreachable()
+                // return to original caller
+                "ret",
+
+                #unhook_function_name = sym #unhook_function_name,
+                #original_function_address = const crate::native::#original_function_address,
+                #hook_function_name = sym #hook_function_name,
+                #function_to_call = sym #function_to_call,
+                options(noreturn),
+            )
         }
     }
 }
@@ -588,97 +612,3 @@ const POPALL_WINDOWS: &str = r#"
     pop ebx
     pop eax
 "#;
-
-const PUSHALL_LINUX_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        push rax
-        push rbx
-        push rcx
-        push rdx
-        push rsi
-        push rdi
-        push rbp
-        sub rsp, 0x80
-        movdqu [rsp+0x70], xmm0
-        movdqu [rsp+0x60], xmm1
-        movdqu [rsp+0x50], xmm2
-        movdqu [rsp+0x40], xmm3
-        movdqu [rsp+0x30], xmm4
-        movdqu [rsp+0x20], xmm5
-        movdqu [rsp+0x10], xmm6
-        movdqu [rsp], xmm7
-    " :::: "intel","volatile");
-"#);
-const POPALL_LINUX_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        movdqu xmm7, [rsp]
-        movdqu xmm6, [rsp+0x10]
-        movdqu xmm5, [rsp+0x20]
-        movdqu xmm4, [rsp+0x30]
-        movdqu xmm3, [rsp+0x40]
-        movdqu xmm2, [rsp+0x50]
-        movdqu xmm1, [rsp+0x60]
-        movdqu xmm0, [rsp+0x70]
-        add rsp, 0x80
-        pop rbp
-        pop rdi
-        pop rsi
-        pop rdx
-        pop rcx
-        pop rbx
-        pop rax
-    " :::: "intel","volatile");
-"#);
-const ALIGNSTACK_PRE_LINUX_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        push rbp
-        mov rbp, rsp
-        and rsp, 0xfffffffffffffff0
-    " :::: "intel","volatile");
-"#);
-const ALIGNSTACK_POST_LINUX_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        mov rsp, rbp
-        pop rbp
-    " :::: "intel","volatile");
-"#);
-const PUSHALL_WINDOWS_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        push eax
-        push ebx
-        push ecx
-        push edx
-        push esi
-        push edi
-        push ebp
-        sub esp, 0x80
-        movdqu [esp+0x70], xmm0
-        movdqu [esp+0x60], xmm1
-        movdqu [esp+0x50], xmm2
-        movdqu [esp+0x40], xmm3
-        movdqu [esp+0x30], xmm4
-        movdqu [esp+0x20], xmm5
-        movdqu [esp+0x10], xmm6
-        movdqu [esp], xmm7
-    " :::: "intel","volatile");
-"#);
-const POPALL_WINDOWS_OLD: StrTokens<'_> = StrTokens(r#"
-    llvm_asm!(r"
-        movdqu xmm7, [esp]
-        movdqu xmm6, [esp+0x10]
-        movdqu xmm5, [esp+0x20]
-        movdqu xmm4, [esp+0x30]
-        movdqu xmm3, [esp+0x40]
-        movdqu xmm2, [esp+0x50]
-        movdqu xmm1, [esp+0x60]
-        movdqu xmm0, [esp+0x70]
-        add esp, 0x80
-        pop ebp
-        pop edi
-        pop esi
-        pop edx
-        pop ecx
-        pop ebx
-        pop eax
-    " :::: "intel","volatile");
-"#);

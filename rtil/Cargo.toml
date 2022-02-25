@@ -26,9 +26,6 @@ dynsym = { path = "../dynsym" }
 winapi = { version = "0.3.7", features = ["winnt", "tlhelp32", "handleapi", "processthreadsapi", "minwindef", "impl-default"] }
 kernel32-sys = "0.2.2"
 
-[target.'cfg(windows)'.build]
-target = "i686-pc-windows-msvc"
-
 [lib]
 name = "rtil"
 crate_type = ["dylib"]

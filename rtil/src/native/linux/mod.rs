@@ -74,7 +74,7 @@ macro_rules! find {
                     $name = *addrs.get(NAMES[i]).unwrap();
                     log!("found {}: {:#x}", NAMES[i], $name);
                     #[allow(unused_assignments)]
-                    i += 1;
+                    { i += 1 };
                 )*
             }
         }
