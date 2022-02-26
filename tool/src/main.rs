@@ -1,7 +1,3 @@
-extern crate toml;
-#[macro_use] extern crate serde_derive;
-extern crate serde;
-extern crate byteorder;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 
@@ -13,8 +9,8 @@ mod config;
 use std::env;
 use std::path::{Path, PathBuf};
 
-use tas::Tas;
-use config::Config;
+use crate::tas::Tas;
+use crate::config::Config;
 
 fn main() {
     println!("Read config...");

@@ -6,8 +6,8 @@ use std::env;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
-use error::{Error, Result};
-use config::Config;
+use crate::error::{Error, Result};
+use crate::config::Config;
 
 pub struct Tas {
     con: TcpStream,
