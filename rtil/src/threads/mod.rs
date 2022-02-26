@@ -4,7 +4,7 @@ mod stream_write;
 mod rebo;
 pub mod ue;
 
-use native::AMyCharacter;
+use crate::native::AMyCharacter;
 
 pub fn start() {
     let (stream_rebo_tx, stream_rebo_rx) = crossbeam_channel::unbounded();

@@ -1,8 +1,8 @@
 use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
-use statics::Static;
-use threads::{UeToRebo, ReboToUe};
-use native::{
+use crate::statics::Static;
+use crate::threads::{UeToRebo, ReboToUe};
+use crate::native::{
     FSlateApplication,
     unhook_fslateapplication_onkeydown,
     hook_fslateapplication_onkeydown,
@@ -12,7 +12,7 @@ use native::{
     UWorld,
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref STATE: Static<State> = Static::new();
 }
 

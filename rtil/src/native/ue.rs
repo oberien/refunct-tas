@@ -4,7 +4,7 @@ use std::mem;
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
-use native::{FMemory, FNAME_FNAME};
+use crate::native::{FMemory, FNAME_FNAME};
 
 #[derive(Debug)]
 #[repr(C)]

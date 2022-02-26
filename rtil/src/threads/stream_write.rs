@@ -5,8 +5,8 @@ use std::thread::{self, JoinHandle};
 use byteorder::{WriteBytesExt, LittleEndian};
 use crossbeam_channel::{select, Receiver};
 
-use threads::{ListenerToStream, ReboToStream};
-use error::{Error, Result};
+use crate::threads::{ListenerToStream, ReboToStream};
+use crate::error::{Error, Result};
 
 struct StreamWrite {
     con: TcpStream,

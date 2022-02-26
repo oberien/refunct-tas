@@ -3,14 +3,14 @@ use std::ptr;
 #[cfg(unix)] use libc::{c_void, c_int};
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
-use native::ue::{FName, FVector, FRotator};
-use native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
-use native::gameinstance::UMyGameInstance;
+use crate::native::ue::{FName, FVector, FRotator};
+use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
+use crate::native::gameinstance::UMyGameInstance;
 
-pub(in native) type AActor = c_void;
+pub(in crate::native) type AActor = c_void;
 pub enum APawn {}
-pub(in native) type ULevel = c_void;
-pub(in native) type UClass = c_void;
+pub(in crate::native) type ULevel = c_void;
+pub(in crate::native) type UClass = c_void;
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -89,7 +89,7 @@ impl UWorld {
         res != 0
     }
 
-    pub(in native) fn get_global() -> *mut UWorld {
+    pub(in crate::native) fn get_global() -> *mut UWorld {
         unsafe { *(GWORLD as *mut *mut UWorld)}
     }
 

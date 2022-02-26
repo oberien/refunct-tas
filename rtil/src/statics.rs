@@ -11,19 +11,19 @@ macro_rules! log {
     }};
     ($fmt:expr) => {{
         use ::std::io::Write;
-        let mut lock = ::statics::LOGFILE.lock().unwrap();
+        let mut lock = crate::statics::LOGFILE.lock().unwrap();
         writeln!(&mut lock, $fmt).unwrap();
         lock.flush().unwrap();
     }};
     ($fmt:expr, $($vars:tt)*) => {{
         use ::std::io::Write;
-        let mut lock = ::statics::LOGFILE.lock().unwrap();
+        let mut lock = crate::statics::LOGFILE.lock().unwrap();
         writeln!(&mut lock, $fmt, $($vars)*).unwrap();
         lock.flush().unwrap();
     }};
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     pub static ref LOGFILE: Mutex<File> = {
         let mut path = ::std::env::temp_dir();
         path.push("refunct-tas.log");

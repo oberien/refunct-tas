@@ -6,12 +6,12 @@ use std::sync::Mutex;
 use protocol::Message;
 use crossbeam_channel::{Sender, Receiver};
 
-use threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo, Config};
-use native::AMyCharacter;
+use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo, Config};
+use crate::native::AMyCharacter;
 
 mod rebo_init;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref STATE: Mutex<Option<State>> = Mutex::new(None);
 }
 

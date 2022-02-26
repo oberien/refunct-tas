@@ -1,6 +1,6 @@
 use super::gameinstance::UMyGameInstance;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref LEVEL_STATE_ADDRESS: usize = {
         let levelstate = UMyGameInstance::get_levelstate();
         log!("level_state-addr: {:#x}", levelstate as usize);

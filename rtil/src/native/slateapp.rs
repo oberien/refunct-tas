@@ -1,7 +1,7 @@
-use native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
+use crate::native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
 use crate::statics::Static;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref SLATEAPP: Static<usize> = Static::new();
 }
 
@@ -48,7 +48,7 @@ fn save(this: usize) {
 fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
-        ::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
+        crate::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
     }
     #[cfg(windows)] {
         ::threads::ue::key_down(key_code, character_code, is_repeat);
@@ -59,7 +59,7 @@ fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
 fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
-        ::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
+        crate::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
     }
     #[cfg(windows)] {
         ::threads::ue::key_up(key_code, character_code, is_repeat);

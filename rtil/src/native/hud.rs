@@ -4,12 +4,12 @@ use std::ptr;
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
-use native::ue::{FLinearColor, FString, FVector};
-use native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT};
-use threads::ue;
+use crate::native::ue::{FLinearColor, FString, FVector};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT};
+use crate::threads::ue;
 use crate::statics::Static;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref AMYHUD: Static<usize> = Static::new();
 }
 

@@ -3,15 +3,6 @@
 #![feature(asm_const)]
 #![feature(abi_thiscall)]
 
-#[macro_use] extern crate lazy_static;
-extern crate byteorder;
-extern crate backtrace;
-extern crate failure;
-extern crate protocol;
-extern crate crossbeam_channel;
-extern crate itertools;
-extern crate clipboard;
-
 #[cfg(unix)] extern crate libc;
 #[cfg(unix)] extern crate dynsym;
 #[cfg(windows)] extern crate winapi;
@@ -28,7 +19,7 @@ mod error;
 mod native;
 mod threads;
 
-#[cfg(unix)] pub use native::INITIALIZE_CTOR;
+#[cfg(unix)] pub use crate::native::INITIALIZE_CTOR;
 #[cfg(windows)] pub use native::DllMain;
 
 static INIT: Once = Once::new();

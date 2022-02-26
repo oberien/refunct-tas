@@ -1,4 +1,4 @@
-use native::{UWorld, LevelState};
+use crate::native::{UWorld, LevelState};
 
 #[repr(C)]
 pub struct UMyGameInstance {

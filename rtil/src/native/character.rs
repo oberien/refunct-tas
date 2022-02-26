@@ -1,9 +1,9 @@
-use native::ue::{FVector, FRotator};
-use native::uworld::UClass;
-use native::AMYCHARACTER_STATICCLASS;
-use statics::Static;
+use crate::native::ue::{FVector, FRotator};
+use crate::native::uworld::UClass;
+use crate::native::AMYCHARACTER_STATICCLASS;
+use crate::statics::Static;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref CHARACTER: Static<usize> = Static::new();
 }
 
@@ -11,7 +11,7 @@ lazy_static! {
 pub struct AMyCharacter(usize);
 
 impl AMyCharacter {
-    pub(in native) fn static_class() -> *const UClass {
+    pub(in crate::native) fn static_class() -> *const UClass {
         let fun: extern "C" fn() -> *const UClass
             = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS) };
         let res = fun();

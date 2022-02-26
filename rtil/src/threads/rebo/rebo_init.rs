@@ -5,9 +5,9 @@ use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig};
 use itertools::Itertools;
-use native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::Message;
-use threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
+use crate::threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {

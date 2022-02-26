@@ -11,7 +11,7 @@ use object::{Object, ObjectSegment};
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.
 #[link_section=".init_array"]
-pub static INITIALIZE_CTOR: extern "C" fn() = ::initialize;
+pub static INITIALIZE_CTOR: extern "C" fn() = crate::initialize;
 
 extern "C" {
     fn dlinfo(handle: *mut c_void, request: c_int, info: *mut c_void) -> c_int;
@@ -47,7 +47,7 @@ pub fn base_address() -> usize {
 macro_rules! find {
     ($($name:ident, $symbol:expr,)*) => {
         $(
-            pub(in native) static mut $name: usize = 0;
+            pub(in crate::native) static mut $name: usize = 0;
         )*
         const NAMES: &[&str] = &[
             $(
@@ -55,7 +55,7 @@ macro_rules! find {
             )*
         ];
 
-        pub(in native) fn init() {
+        pub(in crate::native) fn init() {
             let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
                 .filter_map(|(name, addr)| NAMES.iter()
                     .find(|&&pattern| {
@@ -104,13 +104,13 @@ find! {
     AHUD_PROJECT, "^AHUD::Project(FVector)",
 }
 
-pub(in native) fn make_rw(addr: usize) {
+pub(in crate::native) fn make_rw(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_WRITE); }
 }
 
-pub(in native) fn make_rx(addr: usize) {
+pub(in crate::native) fn make_rx(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut c_void;
     unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_EXEC); }

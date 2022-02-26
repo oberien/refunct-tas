@@ -3,7 +3,7 @@ use std::mem;
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
-use native::{FMEMORY_FREE, FMEMORY_MALLOC};
+use crate::native::{FMEMORY_FREE, FMEMORY_MALLOC};
 
 pub struct FMemory;
 
