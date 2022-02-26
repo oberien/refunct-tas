@@ -5,7 +5,7 @@ use std::thread::{self, JoinHandle};
 use crossbeam_channel::{Sender, Receiver, TryRecvError};
 
 use threads::{stream_read, stream_write, StreamToListener, StreamToRebo, ReboToStream, ListenerToStream};
-use error::*;
+use error::Result;
 
 pub fn run(stream_rebo_tx: Sender<StreamToRebo>, rebo_stream_rx: Receiver<ReboToStream>) -> Result<()> {
     log!("starting listener thread");

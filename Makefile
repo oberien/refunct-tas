@@ -14,6 +14,11 @@ clippy:
 	cd rtil && cargo clippy
 	cd tool && cargo clippy
 
+.PHONY: check
+check:
+	cd rtil && cargo check
+	cd tool && cargo check
+
 .PHONY: $(TOOL) # always execute cargo
 $(TOOL): $(BUILDDIR)
 	cd tool && cargo build
@@ -29,7 +34,7 @@ $(BUILDDIR):
 
 .PHONY: scripts
 scripts: $(BUILDDIR)
-	bash -c 'cp tool/*.rebo $(BUILDDIR)'
+	bash -c 'cp tool/*.re $(BUILDDIR)'
 	cp tool/Config.toml $(BUILDDIR)
 	sed -i "s/'v'/'w'/; s/'i'/'s'/; s/'a'/'d'/; s/'u'/'a'/" $(BUILDDIR)/Config.toml
 

@@ -7,7 +7,6 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 protocol = { path = "../protocol" }
 lazy_static = "1.4.0"
 byteorder = "1.0.0"
-error-chain = "0.8.1"
 backtrace = "0.3"
 failure = "0.1"
 rtil_derive = { path = "../rtil_derive" }
@@ -17,6 +16,7 @@ object = { version = "0.21.1", default-features = false, features = ["read"] }
 rebo = { path = "../../rebo/rebo" }
 itertools = "0.10.1"
 clipboard = "0.5.0"
+thiserror = "1.0.30"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.20"

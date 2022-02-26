@@ -6,7 +6,7 @@ use byteorder::{ReadBytesExt, LittleEndian};
 use crossbeam_channel::Sender;
 
 use threads::{StreamToListener, StreamToRebo, Config};
-use error::*;
+use error::Result;
 
 struct StreamRead {
     con: TcpStream,

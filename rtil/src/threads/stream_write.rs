@@ -6,7 +6,7 @@ use byteorder::{WriteBytesExt, LittleEndian};
 use crossbeam_channel::{select, Receiver};
 
 use threads::{ListenerToStream, ReboToStream};
-use error::*;
+use error::{Error, Result};
 
 struct StreamWrite {
     con: TcpStream,
@@ -52,7 +52,7 @@ impl StreamWrite {
                 }
             },
             recv(listener_stream_rx) -> res => match res.unwrap() {
-                ListenerToStream::KillYourself => return Err("We should kill ourselves".into())
+                ListenerToStream::KillYourself => return Err(Error::StopListening)
             }
         }
         Ok(())

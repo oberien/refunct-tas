@@ -1,4 +1,3 @@
-#[macro_use] extern crate error_chain;
 extern crate toml;
 #[macro_use] extern crate serde_derive;
 extern crate serde;
@@ -6,7 +5,7 @@ extern crate byteorder;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 
-#[macro_use] mod error;
+mod error;
 mod tas;
 mod config;
 #[cfg(windows)] mod inject;
@@ -39,7 +38,7 @@ fn main() {
                 tas = val;
                 println!("DLL already injected.");
             },
-            Err(_) => {
+            Err(error::Error::CantConnectToRtil) => {
                 println!("DLL has not been injected yet, injecting...");
                 inject::inject();
                 println!("DLL Injected");

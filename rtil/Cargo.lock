@@ -265,15 +265,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "error-chain"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6930e04918388a9a2e41d518c25cf679ccafe26733fb4127dbf21993f2575d46"
-dependencies = [
- "backtrace",
-]
-
-[[package]]
 name = "failure"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -827,7 +818,6 @@ dependencies = [
  "clipboard",
  "crossbeam-channel",
  "dynsym",
- "error-chain",
  "failure",
  "itertools 0.10.1",
  "kernel32-sys",
@@ -838,6 +828,7 @@ dependencies = [
  "protocol",
  "rebo",
  "rtil_derive",
+ "thiserror",
  "winapi 0.3.9",
 ]
 

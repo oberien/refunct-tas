@@ -6,7 +6,7 @@ use std::env;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
-use error::*;
+use error::{Error, Result};
 use config::Config;
 
 pub struct Tas {
@@ -15,7 +15,8 @@ pub struct Tas {
 
 impl Tas {
     pub fn new() -> Result<Tas> {
-        let con = TcpStream::connect("localhost:21337")?;
+        let con = TcpStream::connect("localhost:21337")
+            .map_err(|_ | Error::CantConnectToRtil)?;
         Ok(Tas {
             con,
         })
