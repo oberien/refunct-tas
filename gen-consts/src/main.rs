@@ -46,7 +46,7 @@ fn get_windows_level_pointer_path() -> String {
             continue;
         }
         let addr_path = line.split(':').nth(1).unwrap();
-        let addr_path = addr_path.split(';').nth(0).unwrap().trim();
+        let addr_path = addr_path.split(';').next().unwrap().trim();
         return format!("pub const LEVEL_POINTER_PATH: &[usize] = &[{}];", addr_path);
 
     }

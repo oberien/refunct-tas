@@ -3,8 +3,6 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use serde::{Serialize, Deserialize};
 
-use toml;
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub forward: Key,

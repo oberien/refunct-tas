@@ -13,7 +13,7 @@ use crate::native::{
     UWorld,
 };
 
-static STATE: Lazy<Static<State>> = Lazy::new(|| Static::new());
+static STATE: Lazy<Static<State>> = Lazy::new(Static::new);
 
 struct State {
     typ: StateType,

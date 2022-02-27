@@ -116,7 +116,7 @@ fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(),
 
 #[rebo::function(raw("print"))]
 fn print(..: _) {
-    let joined = args.as_slice().into_iter().map(|arg| DisplayValue(arg)).join(", ");
+    let joined = args.as_slice().iter().map(DisplayValue).join(", ");
     log!("{}", joined);
     STATE.lock().unwrap().as_ref().unwrap().rebo_stream_tx.send(ReboToStream::Print(joined)).unwrap();
 }

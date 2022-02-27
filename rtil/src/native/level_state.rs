@@ -36,8 +36,7 @@ impl LevelState {
     }
 
     unsafe fn get_ptr_raw(addr: usize) -> *mut LevelState {
-        let ptr = addr as *mut LevelState;
-        ptr
+        addr as *mut LevelState
     }
 
     pub fn set_level(level: i32) {

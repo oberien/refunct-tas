@@ -5,7 +5,7 @@ use crate::native::uworld::UClass;
 use crate::native::AMYCHARACTER_STATICCLASS;
 use crate::statics::Static;
 
-static CHARACTER: Lazy<Static<usize>> = Lazy::new(|| Static::new());
+static CHARACTER: Lazy<Static<usize>> = Lazy::new(Static::new);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct AMyCharacter(usize);
@@ -14,8 +14,7 @@ impl AMyCharacter {
     pub(in crate::native) fn static_class() -> *const UClass {
         let fun: extern "C" fn() -> *const UClass
             = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS.load(Ordering::SeqCst)) };
-        let res = fun();
-        res
+        fun()
     }
     fn as_ue(&self) -> *mut AMyCharacterUE {
         self.0 as *mut AMyCharacterUE

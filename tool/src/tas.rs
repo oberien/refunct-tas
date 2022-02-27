@@ -47,7 +47,7 @@ impl Tas {
         println!("Current dir: {}", current_dir);
         self.con.write_u8(3).unwrap();
         self.con.write_u32::<LittleEndian>(current_dir.len() as u32).unwrap();
-        self.con.write_all(&current_dir.as_bytes()).unwrap();
+        self.con.write_all(current_dir.as_bytes()).unwrap();
 
         println!("Sending code");
         self.con.write_u8(0).unwrap();

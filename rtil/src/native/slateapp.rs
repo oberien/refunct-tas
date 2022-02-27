@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use crate::native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
 use crate::statics::Static;
 
-static SLATEAPP: Lazy<Static<usize>> = Lazy::new(|| Static::new());
+static SLATEAPP: Lazy<Static<usize>> = Lazy::new(Static::new);
 
 pub struct FSlateApplication;
 

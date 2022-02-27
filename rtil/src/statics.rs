@@ -66,9 +66,7 @@ pub struct MutexGuardWrapper<'a, T: 'a> {
 
 impl<'a, T> MutexGuardWrapper<'a, T> {
     fn new(guard: MutexGuard<'a, Option<T>>) -> MutexGuardWrapper<T> {
-        MutexGuardWrapper {
-            guard: guard,
-        }
+        MutexGuardWrapper { guard }
     }
 }
 

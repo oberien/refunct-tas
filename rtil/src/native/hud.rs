@@ -11,7 +11,7 @@ use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT};
 use crate::threads::ue;
 use crate::statics::Static;
 
-static AMYHUD: Lazy<Static<usize>> = Lazy::new(|| Static::new());
+static AMYHUD: Lazy<Static<usize>> = Lazy::new(Static::new);
 
 pub struct AMyHud;
 

@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
-use dynsym;
 
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
@@ -57,8 +56,8 @@ macro_rules! find {
             let addrs: HashMap<_, _> = dynsym::iter(env::current_exe().unwrap()).into_iter()
                 .filter_map(|(name, addr)| NAMES.iter()
                     .find(|&&pattern| {
-                        if pattern.starts_with('^') {
-                            name.starts_with(&pattern[1..])
+                        if let Some(pattern) = pattern.strip_prefix('^') {
+                            name.starts_with(pattern)
                         } else {
                             name.contains(pattern)
                         }
