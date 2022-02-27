@@ -83,7 +83,7 @@ impl StreamRead {
             Ok(code) => code,
             Err(e) => {
                 let _ = self.con.write_all(&[255, 2]);
-                return Err(e.into());
+                Err(e).unwrap()
             }
         };
         Ok(string)
