@@ -465,7 +465,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
         pub extern "C" fn #hook_function_name() {
             use byteorder::{WriteBytesExt, LittleEndian};
             if #log { log!("Hooking {}", #original_function_name); }
-            let addr = unsafe { crate::native::#original_function_address };
+            let addr = crate::native::#original_function_address.load(std::sync::atomic::Ordering::SeqCst);
             crate::native::make_rw(addr);
             let interceptor_address = #interceptor_name as *const () as usize;
             let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 12) };
@@ -487,7 +487,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
         pub extern "thiscall" fn #hook_function_name() {
             use byteorder::{WriteBytesExt, LittleEndian};
             if #log { log!("Hooking {}", #original_function_name); }
-            let addr = unsafe { crate::native::#original_function_address };
+            let addr = crate::native::#original_function_address.load(std::sync::atomic::Ordering::SeqCst);
             crate::native::make_rw(addr);
             let interceptor_address = #interceptor_name as *const () as usize;
             let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 7) };
@@ -508,7 +508,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
         #[cfg(unix)]
         pub extern "C" fn #unhook_function_name() {
             if #log { log!("Restoring {}", #original_function_name); }
-            let addr = unsafe { crate::native::#original_function_address };
+            let addr = crate::native::#original_function_address.load(std::sync::atomic::Ordering::SeqCst);
             crate::native::make_rw(addr);
             let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 12) };
             slice[..].copy_from_slice(&*#original_bytes_backup_name.get());
@@ -519,7 +519,7 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
         #[cfg(windows)]
         pub extern "thiscall" fn #unhook_function_name() {
             if #log { log!("Unhooking {}", #original_function_name); }
-            let addr = unsafe { crate::native::#original_function_address };
+            let addr = crate::native::#original_function_address.load(std::sync::atomic::Ordering::SeqCst);
             crate::native::make_rw(addr);
             let slice = unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, 7) };
             slice[..].copy_from_slice(&*#original_bytes_backup_name.get());

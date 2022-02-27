@@ -2,6 +2,7 @@ pub mod consts;
 
 use std::ptr;
 use std::mem;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use winapi::ctypes::c_void;
 use winapi::shared::minwindef::FALSE;
@@ -109,14 +110,14 @@ pub fn base_address() -> usize {
 macro_rules! find {
     ($($name:ident,)*) => {
         $(
-            pub(in native) static mut $name: usize = 0;
+            pub(in native) static $name: AtomicUsize = AtomicUsize::new(0);
         )*
         pub(in native) fn init() {
             let base = base_address();
             log!("Got Base address: {:#x}", base);
             unsafe {
                 $(
-                    $name = base + self::consts::$name;
+                    $name.set(base + self::consts::$name, Ordering::SeqCst);
                 )*
             }
         }

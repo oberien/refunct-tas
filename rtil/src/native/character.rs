@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use once_cell::sync::Lazy;
 use crate::native::ue::{FVector, FRotator};
 use crate::native::uworld::UClass;
@@ -12,7 +13,7 @@ pub struct AMyCharacter(usize);
 impl AMyCharacter {
     pub(in crate::native) fn static_class() -> *const UClass {
         let fun: extern "C" fn() -> *const UClass
-            = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS) };
+            = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS.load(Ordering::SeqCst)) };
         let res = fun();
         res
     }

@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use once_cell::sync::Lazy;
 use crate::native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
 use crate::statics::Static;
@@ -9,17 +10,17 @@ pub struct FSlateApplication;
 impl FSlateApplication {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: u32) {
         let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
-            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN) };
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::SeqCst)) };
         fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
     }
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: u32) {
         let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
-            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP) };
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP.load(Ordering::SeqCst)) };
         fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
     }
     fn on_raw_mouse_move(x: i32, y: i32) {
         let fun: extern_fn!(fn(this: usize, x: i32, y: i32)) =
-            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE) };
+            unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::SeqCst)) };
         fun(*SLATEAPP.get(), x, y)
     }
 

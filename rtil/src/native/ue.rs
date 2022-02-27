@@ -1,5 +1,6 @@
 use std::ptr;
 use std::mem;
+use std::sync::atomic::Ordering;
 
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
@@ -119,7 +120,7 @@ impl<T: Into<FString>> From<T> for FName {
         };
         unsafe {
             let fun: extern_fn!(fn(this: *mut FName, name: *const TCHAR, find_type: u64) -> u64)
-                = mem::transmute(FNAME_FNAME);
+                = mem::transmute(FNAME_FNAME.load(Ordering::SeqCst));
             fun(&mut name as *mut FName, s.as_ptr(), 1);
         }
         name

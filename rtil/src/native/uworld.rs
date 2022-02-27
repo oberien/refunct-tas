@@ -1,4 +1,5 @@
 use std::ptr;
+use std::sync::atomic::Ordering;
 
 #[cfg(unix)] use libc::{c_void, c_int};
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
@@ -55,7 +56,7 @@ impl Default for FActorSpawnParameters {
 impl APawn {
     fn spawn_default_controller(this: *const APawn) {
         let fun: extern_fn!(fn(this: *const APawn))
-            = unsafe { ::std::mem::transmute(APAWN_SPAWNDEFAULTCONTROLLER) };
+            = unsafe { ::std::mem::transmute(APAWN_SPAWNDEFAULTCONTROLLER.load(Ordering::SeqCst)) };
         fun(this)
     }
 }
@@ -77,21 +78,21 @@ impl UWorld {
         let fun: extern_fn!(fn(
             this: *const UWorld, class: *const UClass, location: *const FVector,
             rotation: *const FRotator, spawn_parameters: *const FActorSpawnParameters
-        ) -> *mut AActor) = ::std::mem::transmute(UWORLD_SPAWNACTOR);
+        ) -> *mut AActor) = ::std::mem::transmute(UWORLD_SPAWNACTOR.load(Ordering::SeqCst));
         let this = Self::get_global();
         fun(this, class, location, rotation, spawn_parameters)
     }
     unsafe fn destroy_actor(actor: *const AActor, net_force: bool, should_modify_level: bool) -> bool {
         let fun: extern_fn!(fn(
             this: *const UWorld, actor: *const AActor, net_force: bool, should_modify_level: bool
-        ) -> c_int) = ::std::mem::transmute(UWORLD_DESTROYACTOR);
+        ) -> c_int) = ::std::mem::transmute(UWORLD_DESTROYACTOR.load(Ordering::SeqCst));
         let this = Self::get_global();
         let res = fun(this, actor, net_force, should_modify_level);
         res != 0
     }
 
     pub(in crate::native) fn get_global() -> *mut UWorld {
-        unsafe { *(GWORLD as *mut *mut UWorld)}
+        unsafe { *(GWORLD.load(Ordering::SeqCst) as *mut *mut UWorld)}
     }
 
     pub fn get_umygameinstance() -> *mut UMyGameInstance {

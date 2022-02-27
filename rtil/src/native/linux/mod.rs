@@ -1,5 +1,6 @@
 use std::env;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
 use dynsym;
@@ -44,7 +45,7 @@ pub static INITIALIZE_CTOR: extern "C" fn() = crate::initialize;
 macro_rules! find {
     ($($name:ident, $symbol:expr,)*) => {
         $(
-            pub(in crate::native) static mut $name: usize = 0;
+            pub(in crate::native) static $name: AtomicUsize = AtomicUsize::new(0);
         )*
         const NAMES: &[&str] = &[
             $(
@@ -66,14 +67,12 @@ macro_rules! find {
                 .collect();
             log!("{:?}", addrs);
             let mut i = 0;
-            unsafe {
-                $(
-                    $name = *addrs.get(NAMES[i]).unwrap();
-                    log!("found {}: {:#x}", NAMES[i], $name);
-                    #[allow(unused_assignments)]
-                    { i += 1 };
-                )*
-            }
+            $(
+                $name.store(*addrs.get(NAMES[i]).unwrap(), Ordering::SeqCst);
+                log!("found {}: {:#x}", NAMES[i], $name.load(Ordering::SeqCst));
+                #[allow(unused_assignments)]
+                { i += 1 };
+            )*
         }
     }
 }
@@ -89,7 +88,7 @@ find! {
     FAPP_DELTATIME, "^FApp::DeltaTime",
     FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
     FMEMORY_FREE, "^FMemory::Free(void*)",
-    FNAME_FNAME, "^FName::complete object constructor(wchar_t const*, EFindName)",
+    FNAME_FNAME, "^FName::FName(wchar_t const*, EFindName)",
     AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
     AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
