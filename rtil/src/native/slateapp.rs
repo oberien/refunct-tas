@@ -1,9 +1,8 @@
+use once_cell::sync::Lazy;
 use crate::native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
 use crate::statics::Static;
 
-lazy_static::lazy_static! {
-    static ref SLATEAPP: Static<usize> = Static::new();
-}
+static SLATEAPP: Lazy<Static<usize>> = Lazy::new(|| Static::new());
 
 pub struct FSlateApplication;
 

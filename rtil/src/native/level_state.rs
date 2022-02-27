@@ -1,15 +1,14 @@
+use once_cell::sync::Lazy;
 use super::gameinstance::UMyGameInstance;
 
-lazy_static::lazy_static! {
-    static ref LEVEL_STATE_ADDRESS: usize = {
-        let levelstate = UMyGameInstance::get_levelstate();
-        log!("level_state-addr: {:#x}", levelstate as usize);
-        unsafe {
-            log!("Got state {:?}", *levelstate);
-        }
-        levelstate as usize
-    };
-}
+static LEVEL_STATE_ADDRESS: Lazy<usize> = Lazy::new(|| {
+    let levelstate = UMyGameInstance::get_levelstate();
+    log!("level_state-addr: {:#x}", levelstate as usize);
+    unsafe {
+        log!("Got state {:?}", *levelstate);
+    }
+    levelstate as usize
+});
 
 #[repr(C)]
 #[derive(Debug, Clone)]

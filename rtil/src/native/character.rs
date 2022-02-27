@@ -1,11 +1,10 @@
+use once_cell::sync::Lazy;
 use crate::native::ue::{FVector, FRotator};
 use crate::native::uworld::UClass;
 use crate::native::AMYCHARACTER_STATICCLASS;
 use crate::statics::Static;
 
-lazy_static::lazy_static! {
-    static ref CHARACTER: Static<usize> = Static::new();
-}
+static CHARACTER: Lazy<Static<usize>> = Lazy::new(|| Static::new());
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct AMyCharacter(usize);

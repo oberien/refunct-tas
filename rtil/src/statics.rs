@@ -1,6 +1,7 @@
 use std::sync::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 use std::fs::{File, OpenOptions};
+use once_cell::sync::Lazy;
 
 macro_rules! log {
     () => {{
@@ -23,15 +24,13 @@ macro_rules! log {
     }};
 }
 
-lazy_static::lazy_static! {
-    pub static ref LOGFILE: Mutex<File> = {
-        let mut path = ::std::env::temp_dir();
-        path.push("refunct-tas.log");
-        Mutex::new(OpenOptions::new()
-        .create(true).write(true).truncate(true)
-        .open(path).unwrap())
-    };
-}
+pub static LOGFILE: Lazy<Mutex<File>> = Lazy::new(|| {
+    let mut path = ::std::env::temp_dir();
+    path.push("refunct-tas.log");
+    Mutex::new(OpenOptions::new()
+    .create(true).write(true).truncate(true)
+    .open(path).unwrap())
+});
 
 pub struct Static<T> {
     val: Mutex<Option<T>>,

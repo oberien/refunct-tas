@@ -5,15 +5,14 @@ use std::sync::Mutex;
 
 use protocol::Message;
 use crossbeam_channel::{Sender, Receiver};
+use once_cell::sync::Lazy;
 
 use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo, Config};
 use crate::native::AMyCharacter;
 
 mod rebo_init;
 
-lazy_static::lazy_static! {
-    static ref STATE: Mutex<Option<State>> = Mutex::new(None);
-}
+static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
 
 struct State {
     delta: Option<f64>,

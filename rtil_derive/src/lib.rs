@@ -20,7 +20,7 @@ struct Attrs {
     original_function_name: String,
     /// name of the variable in which the address of the original function address is stored
     original_function_address: Ident,
-    /// name of the lazy_static backup of the original overwritten bytes for unhooking
+    /// name of the static backup of the original overwritten bytes for unhooking
     original_bytes_backup_name: Ident,
     /// name of function hooking the original function
     hook_function_name: Ident,
@@ -457,13 +457,9 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
 
     quote! {
         #[cfg(unix)]
-        lazy_static::lazy_static! {
-            static ref #original_bytes_backup_name: crate::statics::Static<[u8; 12]> = crate::statics::Static::new();
-        }
+        static #original_bytes_backup_name: once_cell::sync::Lazy<crate::statics::Static<[u8; 12]>> = once_cell::sync::Lazy::new(|| crate::statics::Static::new());
         #[cfg(windows)]
-        lazy_static::lazy_static! {
-            static ref #original_bytes_backup_name: crate::statics::Static<[u8; 7]> = crate::statics::Static::new();
-        }
+        static #original_bytes_backup_name: once_cell::sync::Lazy<crate::statics::Static<[u8; 7]>> = once_cell::sync::Lazy::new(|| crate::statics::Static::new());
 
         #[cfg(unix)]
         pub extern "C" fn #hook_function_name() {

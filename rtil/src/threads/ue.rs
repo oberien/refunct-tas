@@ -1,4 +1,5 @@
 use crossbeam_channel::{Sender, Receiver, TryRecvError};
+use once_cell::sync::Lazy;
 
 use crate::statics::Static;
 use crate::threads::{UeToRebo, ReboToUe};
@@ -12,9 +13,7 @@ use crate::native::{
     UWorld,
 };
 
-lazy_static::lazy_static! {
-    static ref STATE: Static<State> = Static::new();
-}
+static STATE: Lazy<Static<State>> = Lazy::new(|| Static::new());
 
 struct State {
     typ: StateType,
