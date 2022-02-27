@@ -1,7 +1,3 @@
-extern crate object;
-extern crate cpp_demangle;
-extern crate memmap;
-
 use std::path::Path;
 use std::fs::File;
 

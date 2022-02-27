@@ -2,6 +2,7 @@
 name = "dynsym"
 version = "0.1.0"
 authors = ["oberien <jaro.fietz@gmx.de>"]
+edition = "2021"
 
 [dependencies]
 object = "0.28.3"

@@ -1,5 +1,3 @@
-extern crate dynsym;
-
 use std::env;
 
 fn main() {
