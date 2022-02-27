@@ -14,6 +14,7 @@ pub(in crate::native) type UClass = c_void;
 
 #[derive(Debug)]
 #[repr(u8)]
+#[allow(unused)]
 enum ESpawnActorCollisionHandlingMethod {
     Undefined,
     AlwaysSpawn,

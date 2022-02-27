@@ -14,8 +14,7 @@ use kernel32::{VirtualProtect, GetModuleHandleA};
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/123333-demo-pure-rust-internal-coding.html
 // Entry Point
 #[no_mangle]
-#[allow(non_snake_case)]
-#[allow(unused_variables)]
+#[allow(non_snake_case, unused_variables)]
 pub extern "stdcall" fn DllMain(module: u32, reason: u32, reserved: *mut c_void) {
     match reason {
         1 => ::initialize(),

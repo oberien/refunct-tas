@@ -31,6 +31,7 @@ pub struct TArray<T> {
 }
 
 impl<T> TArray<T> {
+    #[allow(unused)]
     pub fn new() -> TArray<T> {
         TArray::with_capacity(0)
     }
@@ -66,6 +67,7 @@ pub type TCHAR = u16;
 pub struct FString(TArray<TCHAR>);
 
 impl FString {
+    #[allow(unused)]
     pub fn new() -> FString {
         FString(TArray::new())
     }
@@ -100,6 +102,7 @@ impl<T> Drop for TArray<T> {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct FName {
+    #[allow(unused)]
     number: u64,
 }
 
