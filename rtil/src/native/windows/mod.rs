@@ -19,7 +19,7 @@ use winapi::um::libloaderapi::GetModuleHandleA;
 #[allow(non_snake_case, unused_variables)]
 pub extern "stdcall" fn DllMain(module: u32, reason: u32, reserved: *mut c_void) {
     match reason {
-        1 => ::initialize(),
+        1 => crate::initialize(),
         _ => ()
     }
 }
@@ -110,16 +110,14 @@ pub fn base_address() -> usize {
 macro_rules! find {
     ($($name:ident,)*) => {
         $(
-            pub(in native) static $name: AtomicUsize = AtomicUsize::new(0);
+            pub(in crate::native) static $name: AtomicUsize = AtomicUsize::new(0);
         )*
-        pub(in native) fn init() {
+        pub(in crate::native) fn init() {
             let base = base_address();
             log!("Got Base address: {:#x}", base);
-            unsafe {
-                $(
-                    $name.set(base + self::consts::$name, Ordering::SeqCst);
-                )*
-            }
+            $(
+                $name.store(base + self::consts::$name, Ordering::SeqCst);
+            )*
         }
     }
 }
@@ -147,14 +145,14 @@ find! {
     APAWN_SPAWNDEFAULTCONTROLLER,
 }
 
-pub(in native) fn make_rw(addr: usize) {
+pub(in crate::native) fn make_rw(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut std::ffi::c_void;
     let mut out = 0;
     unsafe { VirtualProtect(page, 0x1000, PAGE_READWRITE, &mut out); }
 }
 
-pub(in native) fn make_rx(addr: usize) {
+pub(in crate::native) fn make_rx(addr: usize) {
     let page = addr & !0xfff;
     let page = page as *mut std::ffi::c_void;
     let mut out = 0;

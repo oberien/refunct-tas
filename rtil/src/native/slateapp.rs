@@ -51,7 +51,7 @@ fn key_down(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
         crate::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
     }
     #[cfg(windows)] {
-        ::threads::ue::key_down(key_code, character_code, is_repeat);
+        crate::threads::ue::key_down(key_code, character_code, is_repeat);
     }
 }
 
@@ -62,6 +62,6 @@ fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
         crate::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
     }
     #[cfg(windows)] {
-        ::threads::ue::key_up(key_code, character_code, is_repeat);
+        crate::threads::ue::key_up(key_code, character_code, is_repeat);
     }
 }
