@@ -1,7 +1,7 @@
 #![recursion_limit="256"]
 extern crate proc_macro;
 
-use crate::proc_macro::TokenStream;
+use proc_macro::TokenStream;
 use proc_macro2::{TokenStream as TokenStream2, Span};
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, ItemFn, Ident, token::Colon2, Result, Abi, LitStr, token::Extern};
@@ -58,7 +58,7 @@ impl Parse for Attrs {
 pub fn hook_once(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let attrs = parse_macro_input!(attr as Attrs);
-    let function_to_call = &input.ident;
+    let function_to_call = &input.sig.ident;
     let item = generate_item(&input);
     let hook_unhook = generate_hook_unhook(&attrs, true);
     let hook_once = generate_hook_once(&attrs, function_to_call);
@@ -74,7 +74,7 @@ pub fn hook_once(attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn hook_before(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let attrs = parse_macro_input!(attr as Attrs);
-    let function_to_call = &input.ident;
+    let function_to_call = &input.sig.ident;
     let item = generate_item(&input);
     let hook_unhook = generate_hook_unhook(&attrs, false);
     let hook_before = generate_hook_before(&attrs, function_to_call);
@@ -90,7 +90,7 @@ pub fn hook_before(attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn hook_after(attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);
     let attrs = parse_macro_input!(attr as Attrs);
-    let function_to_call = &input.ident;
+    let function_to_call = &input.sig.ident;
     let item = generate_item(&input);
     let hook_unhook = generate_hook_unhook(&attrs, false);
     let hook_after = generate_hook_after(&attrs, function_to_call);
@@ -111,8 +111,8 @@ fn generate_item(input: &ItemFn) -> TokenStream2 {
     }
     let mut input_linux = input.clone();
     let mut input_windows = input.clone();
-    input_linux.abi = Some(abi("C"));
-    input_windows.abi = Some(abi("thiscall"));
+    input_linux.sig.abi = Some(abi("C"));
+    input_windows.sig.abi = Some(abi("thiscall"));
     quote! {
         #[cfg(unix)]
         #input_linux

@@ -2,12 +2,12 @@
 name = "rtil_derive"
 version = "0.1.0"
 authors = ["oberien <jaro.fietz@gmx.de>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-syn = { version = "0.15.30", features = ["full"] }
-quote = "0.6.12"
-proc-macro2 = "0.4.27"
+syn = { version = "1.0.86", features = ["full"] }
+quote = "1.0.15"
+proc-macro2 = "1.0.36"
