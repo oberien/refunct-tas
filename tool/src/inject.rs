@@ -4,15 +4,10 @@ use std::ffi::CString;
 use std::ptr::null_mut;
 use std::mem;
 
-use kernel32::{
-    CreateRemoteThread,
-    OpenProcess,
-    GetProcAddress,
-    GetModuleHandleA,
-    VirtualAllocEx,
-    WriteProcessMemory,
-    CloseHandle,
-};
+use winapi::um::processthreadsapi::{CreateRemoteThread, OpenProcess};
+use winapi::um::libloaderapi::{GetProcAddress, GetModuleHandleA};
+use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory};
+use winapi::um::handleapi::CloseHandle;
 use winapi::winnt::{PROCESS_ALL_ACCESS, MEM_RESERVE, MEM_COMMIT, PAGE_READWRITE};
 
 // http://resources.infosecinstitute.com/using-createremotethread-for-dll-injection-on-windows/
