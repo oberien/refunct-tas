@@ -19,6 +19,8 @@ jobs:
         with:
             toolchain: nightly
             default: true
+      - name: Install libxcb components
+        run: sudo apt-get install libxcb-render0-dev libxcb-xfixes0-dev
       - name: Build
         run: make all zip
       - name: release
