@@ -5,6 +5,6 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 edition = "2021"
 
 [dependencies]
-goblin = "0.0.11"
-pdb = "0.1.6"
-ureq = "1.4.0"
+goblin = "0.5.1"
+pdb = "0.7.0"
+ureq = "2.4.0"

@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::process;
 
 use goblin::Object;
-use pdb::{PDB, SymbolData};
+use pdb::{PDB, PublicSymbol, SymbolData, DataSymbol};
 use pdb::FallibleIterator;
 
 const NAMES: &[(&str, &str)] = &[
@@ -37,6 +37,7 @@ fn get_linux_level_pointer_path() -> String {
 fn get_windows_level_pointer_path() -> String {
     let res = ureq::get("https://raw.githubusercontent.com/BatedUrGonnaDie/Autosplitters/master/Refunct/Refunct.asl")
         .call()
+        .unwrap()
         .into_string()
         .unwrap();
     for line in res.lines() {
@@ -76,19 +77,19 @@ fn main() {
     while let Some(symbol) = iter.next().expect("Error getting next symbol") {
         let symbol_data = symbol.parse().expect("Error parsing symbol");
 
-        let (segment, offset) = match symbol_data {
-            SymbolData::PublicSymbol { function: true, segment, offset, .. } => (segment, offset),
-            SymbolData::DataSymbol { segment, offset, .. } => (segment, offset),
+        let offset = match symbol_data {
+            SymbolData::Public(PublicSymbol { function: true, offset, .. }) => offset,
+            SymbolData::Data(DataSymbol { offset, .. }) => offset,
             _ => continue
         };
-        let name = match symbol.name() {
-            Ok(name) => name.to_string(),
-            Err(e) => { eprintln!("Error getting symbol name: {}", e); continue }
+        let name = match symbol_data.name() {
+            Some(name) => name.to_string(),
+            None => { eprintln!("Error getting symbol name"); continue }
         };
         for &(start, _) in NAMES {
             if name.starts_with(start) {
-                match pe.sections.get((segment as usize).wrapping_sub(1)) {
-                    Some(section) => consts.push((name.clone(), section.virtual_address + offset)),
+                match pe.sections.get((offset.section as usize).wrapping_sub(1)) {
+                    Some(section) => consts.push((name.clone(), section.virtual_address + offset.offset)),
                     None => eprintln!("Error getting section")
                 }
             }
