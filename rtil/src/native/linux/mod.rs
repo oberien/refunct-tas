@@ -34,7 +34,7 @@ pub static INITIALIZE_CTOR: extern "C" fn() = crate::initialize;
 //     };
 //     let current_exe = env::current_exe().unwrap();
 //     let data = fs::read(current_exe).unwrap();
-//     let elf_object = object::File::parse(&data).unwrap();
+//     let elf_object = object::File::parse(&*data).unwrap();
 //     // get first LOAD header
 //     let elf_base_address = elf_object.segments().next().unwrap().address();
 //

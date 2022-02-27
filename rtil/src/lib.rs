@@ -2,13 +2,6 @@
 #![feature(asm_sym)]
 #![feature(abi_thiscall)]
 
-#[cfg(unix)] extern crate libc;
-#[cfg(unix)] extern crate dynsym;
-#[cfg(windows)] extern crate winapi;
-#[cfg(windows)] extern crate kernel32;
-extern crate object;
-extern crate rebo;
-
 use std::sync::Once;
 use std::thread;
 use std::panic;

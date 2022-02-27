@@ -7,25 +7,23 @@ edition = "2021"
 [dependencies]
 protocol = { path = "../protocol" }
 once_cell = "1.9.0"
-byteorder = "1.0.0"
-backtrace = "0.3"
-failure = "0.1"
+byteorder = "1.4.3"
+backtrace = "0.3.64"
 rtil_derive = { path = "../rtil_derive" }
-crossbeam-channel = "0.3.8"
-memoffset = "0.5.5"
-object = { version = "0.21.1", default-features = false, features = ["read"] }
+crossbeam-channel = "0.5.2"
+memoffset = "0.6.5"
+#object = "0.28.3"
 rebo = { path = "../../rebo/rebo" }
-itertools = "0.10.1"
+itertools = "0.10.3"
 clipboard = "0.5.0"
 thiserror = "1.0.30"
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2.20"
+libc = "0.2.119"
 dynsym = { path = "../dynsym" }
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.7", features = ["winnt", "tlhelp32", "handleapi", "processthreadsapi", "minwindef", "impl-default"] }
-kernel32-sys = "0.2.2"
+winapi = { version = "0.3.9", features = ["winnt", "tlhelp32", "handleapi", "processthreadsapi", "minwindef", "impl-default", "memoryapi", "libloaderapi"] }
 
 [lib]
 name = "rtil"

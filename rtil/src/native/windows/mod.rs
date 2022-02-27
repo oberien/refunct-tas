@@ -9,7 +9,8 @@ use winapi::um::winnt::{PAGE_READWRITE, PAGE_EXECUTE_READ, HANDLE, THREAD_ALL_AC
 use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, TH32CS_SNAPTHREAD, THREADENTRY32, Thread32First, Thread32Next};
 use winapi::um::handleapi::{INVALID_HANDLE_VALUE, CloseHandle};
 use winapi::um::processthreadsapi::{GetCurrentThreadId, GetCurrentProcessId, OpenThread, SuspendThread, ResumeThread};
-use kernel32::{VirtualProtect, GetModuleHandleA};
+use winapi::um::memoryapi::VirtualProtect;
+use winapi::um::libloaderapi::GetModuleHandleA;
 
 // https://www.unknowncheats.me/forum/general-programming-and-reversing/123333-demo-pure-rust-internal-coding.html
 // Entry Point
