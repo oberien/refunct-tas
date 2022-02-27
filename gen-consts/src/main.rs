@@ -1,6 +1,3 @@
-extern crate goblin;
-extern crate pdb;
-
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -116,6 +113,6 @@ fn main() {
     // writeln!(file, "{}", get_windows_level_pointer_path()).unwrap();
 
     // Linux level pointer path
-    let mut file = File::create("../rtil/src/native/linux/consts.rs").unwrap();
-    writeln!(file, "{}", get_linux_level_pointer_path()).unwrap();
+    // let mut file = File::create("../rtil/src/native/linux/consts.rs").unwrap();
+    // writeln!(file, "{}", get_linux_level_pointer_path()).unwrap();
 }
