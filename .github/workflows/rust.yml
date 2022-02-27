@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            default: true
+      - name: Build
+        run: make all zip
+      - name: release
+        if: github.event_name == 'create' && github.event.ref_type == 'tag' && startsWith(github.event.ref, 'v')
+        uses: ncipollo/release-action@v1
+        with:
+          draft: true
+          omitBody: true
+          omitName: true
+          artifacts: "build/practice-linux.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
