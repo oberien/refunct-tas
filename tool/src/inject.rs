@@ -8,7 +8,7 @@ use winapi::um::processthreadsapi::{CreateRemoteThread, OpenProcess};
 use winapi::um::libloaderapi::{GetProcAddress, GetModuleHandleA};
 use winapi::um::memoryapi::{VirtualAllocEx, WriteProcessMemory};
 use winapi::um::handleapi::CloseHandle;
-use winapi::winnt::{PROCESS_ALL_ACCESS, MEM_RESERVE, MEM_COMMIT, PAGE_READWRITE};
+use winapi::um::winnt::{PROCESS_ALL_ACCESS, MEM_RESERVE, MEM_COMMIT, PAGE_READWRITE};
 
 // http://resources.infosecinstitute.com/using-createremotethread-for-dll-injection-on-windows/
 pub fn inject() {
