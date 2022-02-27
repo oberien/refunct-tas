@@ -7,7 +7,7 @@ all: $(TOOL) $(LIB) scripts
 
 .PHONY: zip
 zip: all
-	cd build/ && cp -r linux practice-linux && zip practice-linux.zip practice-linux
+	cd build/ && cp -r linux practice-linux && zip -r practice-linux.zip practice-linux
 
 .PHONY: clippy
 clippy:

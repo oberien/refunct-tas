@@ -1,6 +1,3 @@
-#[cfg(windows)] extern crate winapi;
-#[cfg(windows)] extern crate kernel32;
-
 mod error;
 mod tas;
 mod config;

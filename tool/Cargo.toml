@@ -11,4 +11,4 @@ serde = { version = "1.0.136", features = ["derive"] }
 byteorder = "1.4.3"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = ["processthreadsapi", "libloaderapi", "memoryapi", "handleapi"] }
+winapi = { version = "0.3.9", features = ["processthreadsapi", "libloaderapi", "memoryapi", "handleapi", "winnt"] }
