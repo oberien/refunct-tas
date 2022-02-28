@@ -27,7 +27,7 @@ jobs:
       - name: debug stuff
         run: echo ${{ github.event_name }}; echo ${{ github.event.ref_type }}; echo ${{ github.event.ref }}; echo ${{ startsWith(github.event.ref, 'v') }}; echo $?
       - name: release
-        if: github.event_name == 'create' && github.event.ref_type == 'tag' && startsWith(github.event.ref, 'v')
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
         uses: ncipollo/release-action@v1
         with:
           draft: true
