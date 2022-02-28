@@ -28,8 +28,15 @@ jobs:
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
         uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
           draft: true
           omitBody: true
+          omitBodyDuringUpdate: true
           omitName: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
+          removeArtifacts: false
+          replaceArtifacts: true
           artifacts: "build/practice-linux.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
