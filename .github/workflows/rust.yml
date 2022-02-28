@@ -15,17 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-#      - name: Install latest nightly
-#        uses: actions-rs/toolchain@v1
-#        with:
-#            toolchain: nightly
-#            default: true
-#      - name: Install libxcb components
-#        run: sudo apt-get install libxcb-render0-dev libxcb-xfixes0-dev
-#      - name: Build
-#        run: make all zip
-      - name: debug stuff
-        run: echo ${{ github.event_name }}; echo ${{ github.event.ref_type }}; echo ${{ github.event.ref }}; echo ${{ startsWith(github.event.ref, 'v') }}; echo $?
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            default: true
+      - name: Install libxcb components
+        run: sudo apt-get install libxcb-render0-dev libxcb-xfixes0-dev
+      - name: Build
+        run: make all zip
       - name: release
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
         uses: ncipollo/release-action@v1
