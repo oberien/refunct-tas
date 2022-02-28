@@ -37,6 +37,6 @@ jobs:
           omitNameDuringUpdate: true
           omitPrereleaseDuringUpdate: true
           removeArtifacts: false
-          replaceArtifacts: true
+          replacesArtifacts: true
           artifacts: "build/practice-linux.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
