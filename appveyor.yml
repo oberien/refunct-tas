@@ -19,5 +19,6 @@ deploy:
   auth_token:
     secure: DlUswOQNtvR+uA4kWXwS/9dz2bHAjK/EPzYJ5jfq47e8vjeurpUIn5buFwTV7p5R
   draft: true
+  force_update: true
   on:
     appveyor_repo_tag: true
