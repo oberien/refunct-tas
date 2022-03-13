@@ -38,6 +38,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_velocity)
         .add_function(get_acceleration)
         .add_function(set_acceleration)
+        .add_function(get_level_state)
         .add_function(wait_for_new_game)
         .add_function(draw_line)
         .add_function(draw_text)
@@ -62,14 +63,14 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Line)
         .add_external_type(Color)
         .add_external_type(DrawText)
+        .add_external_type(LevelState)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(draw_hud)
         .add_required_rebo_function(tcp_joined)
         .add_required_rebo_function(tcp_left)
         .add_required_rebo_function(tcp_moved)
-        .add_required_rebo_function(on_level_change)
-        .add_required_rebo_function(on_reset)
+        .add_required_rebo_function(on_level_state_change)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
         cfg = cfg.include_directory(IncludeDirectoryConfig::Path(PathBuf::from(working_dir)));
@@ -127,7 +128,7 @@ fn step() {
 }
 fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, ExecError<'a, 'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
-    let level_state = LevelState::get();
+    let old_level_state = LevelState::get();
 
     if let Some(delta) = STATE.lock().unwrap().as_ref().unwrap().delta {
         FApp::set_delta(delta);
@@ -138,18 +139,10 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
         let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
         match res {
             e @ UeToRebo::Tick | e @ UeToRebo::NewGame => {
-                // call level-state event functions
+                // call level-state event function
                 let new_level_state = LevelState::get();
-                // level changed
-                if level_state.level != new_level_state.level
-                    // new game but no level change will be triggered because we hit new game
-                    // when level was still 0
-                    || e == UeToRebo::NewGame && level_state.level == 0
-                {
-                    on_level_change(vm, new_level_state.level)?;
-                }
-                if level_state.resets != new_level_state.resets {
-                    on_reset(vm, new_level_state.resets)?;
+                if old_level_state != new_level_state {
+                    on_level_state_change(vm, old_level_state, new_level_state)?;
                 }
                 return Ok(match e {
                     UeToRebo::Tick => Event::Stopped,
@@ -193,8 +186,7 @@ extern "rebo" {
     fn tcp_joined(id: u32, x: f32, y: f32, z: f32);
     fn tcp_left(id: u32);
     fn tcp_moved(id: u32, x: f32, y: f32, z: f32);
-    fn on_level_change(level: i32);
-    fn on_reset(reset: i32);
+    fn on_level_state_change(old: LevelState, new: LevelState);
 }
 
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
@@ -326,6 +318,10 @@ fn get_acceleration() -> Acceleration {
 #[rebo::function("Tas::set_acceleration")]
 fn set_acceleration(acc: Acceleration) {
     AMyCharacter::get_player().set_acceleration(acc.x, acc.y, acc.z);
+}
+#[rebo::function("Tas::get_level_state")]
+fn get_level_state() -> LevelState {
+    LevelState::get()
 }
 #[rebo::function(raw("Tas::wait_for_new_game"))]
 fn wait_for_new_game() {

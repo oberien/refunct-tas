@@ -11,7 +11,7 @@ static LEVEL_STATE_ADDRESS: Lazy<usize> = Lazy::new(|| {
 });
 
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, rebo::ExternalType)]
 pub struct LevelState {
     pub level: i32,
     pub platforms: i32,

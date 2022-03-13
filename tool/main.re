@@ -19,7 +19,7 @@ static START_MENU = Ui {
         let mut text = "Press 'm' for menu.";
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
-        if SHOW_STATS {
+        if SHOW_CHARACTER_STATS {
             let loc = Tas::get_location();
             let vel = Tas::get_velocity();
             let rot = Tas::get_rotation();
@@ -35,6 +35,14 @@ velxy: {velxy:8.2}
 velxyz: {velxyz:8.2}
 accx {acc.x:8.2}    accy: {acc.y:8.2}    accz: {acc.z:8.2}
 pitch {rot.pitch:8.2}    yaw: {rot.yaw:8.2}    roll: {rot.roll:8.2}";
+        }
+        if SHOW_GAME_STATS {
+            text = f"{text}
+Level: {GAME_STATS.current_level} (Total: {GAME_STATS.total_levels})
+Buttons: {GAME_STATS.current_buttons} (Total: {GAME_STATS.total_buttons})
+Cubes: {GAME_STATS.current_cubes} (Total: {GAME_STATS.total_cubes})
+Platforms: {GAME_STATS.current_platforms} (Total: {GAME_STATS.total_platforms})
+Resets: {GAME_STATS.total_resets} | Any%: {GAME_STATS.total_runs_completed} | 100%: {GAME_STATS.total_100_runs_completed} | All Platforms: {GAME_STATS.total_all_platforms_runs_completed} | All Cubes: {GAME_STATS.total_all_cubes_runs_completed} | Lowest #Platforms: {GAME_STATS.fewest_platform_run}";
         }
         START_MENU_TEXT.text = text;
     }),
@@ -194,8 +202,10 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     }),
 ));
 static mut UI_SCALE_TEXT = Text { text: f"{UI_SCALE}" };
-static mut SHOW_STATS = false;
-static mut SHOW_STATS_BUTTON_TEXT = Text { text: f"Show Stats: {SHOW_STATS}" };
+static mut SHOW_CHARACTER_STATS = false;
+static mut SHOW_GAME_STATS = false;
+static mut SHOW_CHARACTER_STATS_BUTTON_TEXT = Text { text: f"Show Character Stats: {SHOW_CHARACTER_STATS}" };
+static mut SHOW_GAME_STATS_BUTTON_TEXT = Text { text: f"Show Game Stats: {SHOW_GAME_STATS}" };
 static SETTINGS_MENU = Ui::new("Settings:", List::of(
     UiElement::Slider(Slider {
         label: Text { text: "UI Scale" },
@@ -212,11 +222,22 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
         },
     }),
     UiElement::Button(Button {
-        label: SHOW_STATS_BUTTON_TEXT,
+        label: SHOW_CHARACTER_STATS_BUTTON_TEXT,
         onclick: fn(label: Text) {
-            SHOW_STATS = !SHOW_STATS;
-            SHOW_STATS_BUTTON_TEXT.text = f"Show Stats: {SHOW_STATS}";
+            SHOW_CHARACTER_STATS = !SHOW_CHARACTER_STATS;
+            SHOW_CHARACTER_STATS_BUTTON_TEXT.text = f"Show Character Stats: {SHOW_CHARACTER_STATS}";
         },
+    }),
+    UiElement::Button(Button {
+        label: SHOW_GAME_STATS_BUTTON_TEXT,
+        onclick: fn(label: Text) {
+            SHOW_GAME_STATS = !SHOW_GAME_STATS;
+            SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SHOW_GAME_STATS}";
+        },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Reset Game Stats" },
+        onclick: fn(label: Text) { GAME_STATS.reset() },
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },

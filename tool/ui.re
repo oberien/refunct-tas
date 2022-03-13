@@ -253,7 +253,7 @@ impl Slider {
 }
 impl Chooser {
     fn onkey(mut self, key: KeyCode, chr: Option<string>) {
-        if key.to_small() == KEY_LEFT.to_small() {
+        if key.to_small() == KEY_RIGHT.to_small() {
             self.selected = if self.selected  == self.options.len()-1 {
                 0
             } else {
@@ -261,7 +261,7 @@ impl Chooser {
             };
             let f = self.onchange;
             f(self.selected);
-        } else if key.to_small() == KEY_RIGHT.to_small() {
+        } else if key.to_small() == KEY_LEFT.to_small() {
             self.selected = if self.selected == 0 {
                 self.options.len() - 1
             } else {
