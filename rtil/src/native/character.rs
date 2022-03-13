@@ -105,7 +105,7 @@ struct UCharacterMovementComponent {
     #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
     velocity: FVector,
-    #[cfg(unix)] _pad2: [u8; 0x178],
+    #[cfg(unix)] _pad2: [u8; 0x160],
     #[cfg(windows)] _pad2: [u8; 0x14c],
     acceleration: FVector,
 }
