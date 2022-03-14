@@ -3,7 +3,7 @@ use std::collections::{HashSet, HashMap};
 use std::net::TcpStream;
 use std::sync::Mutex;
 
-use protocol::Message;
+use protocol::Response;
 use crossbeam_channel::{Sender, Receiver};
 use once_cell::sync::Lazy;
 
@@ -23,7 +23,7 @@ struct State {
     config: Config,
     working_dir: Option<String>,
     pressed_keys: HashSet<i32>,
-    tcp_stream: Option<(TcpStream, Receiver<Message>)>,
+    tcp_stream: Option<(TcpStream, Receiver<Response>)>,
     pawns: HashMap<u32, AMyCharacter>,
     pawn_id: u32,
 }

@@ -1,8 +1,0 @@
-[package]
-name = "server_test"
-version = "0.1.0"
-authors = ["oberien <jaro.fietz@gmx.de>"]
-edition = "2018"
-
-[dependencies]
-protocol = { path = "../protocol" }

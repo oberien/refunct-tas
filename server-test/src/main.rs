@@ -1,19 +1,19 @@
-use std::net::TcpStream;
-use std::io::{Read, Write, Result};
 use std::thread;
 use std::time::Duration;
+use websocket::{ClientBuilder, Message};
 
-use protocol::Message;
+use protocol::Request;
 
-fn main() -> Result<()> {
-    let mut stream = TcpStream::connect("novalis.oberien.de:6337")?;
-    Message::JoinRoom("Test".to_string(), 0.0, 0.0, 0.0).serialize(&mut stream)?;
-    stream.flush()?;
+fn main() {
+    let mut client = ClientBuilder::new("ws://localhost:8080/ws").unwrap().connect_insecure().unwrap();
+    let msg = Request::JoinRoom("Test".to_string(), 0.0, 0.0, 0.0);
+    client.send_message(&Message::text(serde_json::to_string(&msg).unwrap())).unwrap();
+    thread::sleep(Duration::new(5, 0));
     for &(x, y, z) in LOCATIONS.iter() {
         thread::sleep(Duration::new(0, (1_000_000_000.0 / 60.0) as u32));
-        Message::MoveSelf(x, y, z).serialize(&mut stream)?;
+        let msg = Request::MoveSelf(x, y, z);
+        client.send_message(&Message::text(serde_json::to_string(&msg).unwrap())).unwrap();
     }
-    Ok(())
 }
 
 const LOCATIONS: &[(f32, f32, f32)] = &[

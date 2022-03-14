@@ -6,7 +6,7 @@ use clipboard::{ClipboardProvider, ClipboardContext};
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig};
 use itertools::Itertools;
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
-use protocol::Message;
+use protocol::{Request, Response};
 use crate::threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
 
@@ -161,13 +161,9 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
             }
             let res = STATE.lock().unwrap().as_ref().unwrap().tcp_stream.as_ref().unwrap().1.try_recv();
             match res {
-                Ok(Message::PlayerJoinedRoom(id, x, y, z)) => tcp_joined(vm, id, x, y, z)?,
-                Ok(Message::PlayerLeftRoom(id)) => tcp_left(vm, id)?,
-                Ok(Message::MoveOther(id, x, y, z)) => tcp_moved(vm, id, x, y, z)?,
-                Ok(msg @ Message::JoinRoom(..))
-                | Ok(msg @ Message::MoveSelf(..)) => {
-                    log!("got unexpected message from server, ignoring: {:?}", msg);
-                }
+                Ok(Response::PlayerJoinedRoom(id, x, y, z)) => tcp_joined(vm, id.id(), x, y, z)?,
+                Ok(Response::PlayerLeftRoom(id)) => tcp_left(vm, id.id())?,
+                Ok(Response::MoveOther(id, x, y, z)) => tcp_moved(vm, id.id(), x, y, z)?,
                 Err(TryRecvError::Disconnected) => drop(STATE.lock().unwrap().as_mut().unwrap().tcp_stream.take()),
                 Err(TryRecvError::Empty) => break,
             }
@@ -410,7 +406,7 @@ fn tcp_connect(server_port: String) {
     let (msg_tx, msg_rx) = crossbeam_channel::unbounded();
     thread::spawn(move || {
         loop {
-            let msg = Message::deserialize(&mut read).unwrap();
+            let msg = serde_json::from_reader(&mut read).unwrap();
             msg_tx.send(msg).unwrap();
         }
     });
@@ -429,8 +425,8 @@ fn tcp_join_room(room: String, loc: Location) {
         // TODO: error propagation?
         return Ok(Value::Unit);
     }
-    let msg = Message::JoinRoom(room, loc.x, loc.y, loc.z);
-    if let Err(e) = msg.serialize(&mut state.tcp_stream.as_mut().unwrap().0) {
+    let msg = Request::JoinRoom(room, loc.x, loc.y, loc.z);
+    if let Err(e) = serde_json::to_writer(&mut state.tcp_stream.as_mut().unwrap().0, &msg) {
         log!("error sending join room request: {:?}", e);
         state.tcp_stream.take();
     }
@@ -444,8 +440,8 @@ fn tcp_move(loc: Location) {
         // TODO: error propagation?
         return Ok(Value::Unit);
     }
-    let msg = Message::MoveSelf(loc.x, loc.y, loc.z);
-    if let Err(e) = msg.serialize(&mut state.tcp_stream.as_mut().unwrap().0) {
+    let msg = Request::MoveSelf(loc.x, loc.y, loc.z);
+    if let Err(e) = serde_json::to_writer(&mut state.tcp_stream.as_mut().unwrap().0, &msg) {
         log!("error sending join room request: {:?}", e);
         state.tcp_stream.take();
     }
