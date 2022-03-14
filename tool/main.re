@@ -5,6 +5,7 @@ include "teleport.re";
 include "randomizer.re";
 include "newgame.re";
 include "practice.re";
+include "multiplayer.re";
 
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
@@ -60,6 +61,10 @@ static BASE_MENU = Ui::new("Menu:", List::of(
     UiElement::Button(Button {
         label: Text { text: "New Game Actions" },
         onclick: fn(label: Text) { enter_ui(NEW_GAME_ACTIONS_MENU); },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Multiplayer" },
+        onclick: fn(label: Text) { enter_ui(MULTIPLAYER_MENU); },
     }),
     UiElement::Button(Button {
         label: Text { text: "Settings" },
@@ -201,6 +206,33 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
         onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_NGG_COMPONENT; leave_ui(); },
     }),
 ));
+static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
+    UiElement::Input(Input {
+        label: Text { text: "Join/Create Room" },
+        input: "",
+        onclick: fn(input: string) {
+            if input.len_utf8() == 0 {
+                return;
+            }
+            multiplayer_connect();
+            multiplayer_join_room(input);
+            CURRENT_COMPONENT = MULTIPLAYER_COMPONENT;
+            leave_ui();
+        },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Disconnect" },
+        onclick: fn(label: Text) {
+            multiplayer_disconnect();
+            CURRENT_COMPONENT = NOOP_COMPONENT;
+            leave_ui();
+        },
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Back" },
+        onclick: fn(label: Text) { leave_ui(); },
+    }),
+));
 static mut UI_SCALE_TEXT = Text { text: f"{UI_SCALE}" };
 static mut SHOW_CHARACTER_STATS = false;
 static mut SHOW_GAME_STATS = false;
@@ -252,7 +284,3 @@ while true {
     let on_new_game = CURRENT_COMPONENT.on_new_game;
     on_new_game();
 }
-fn tcp_joined(id: int, x: float, y: float, z: float) {}
-fn tcp_left(id: int) {}
-fn tcp_moved(id: int, x: float, y: float, z: float) {}
-

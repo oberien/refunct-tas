@@ -1,11 +1,11 @@
 use std::thread;
 use std::collections::{HashSet, HashMap};
-use std::net::TcpStream;
 use std::sync::Mutex;
 
-use protocol::Response;
 use crossbeam_channel::{Sender, Receiver};
 use once_cell::sync::Lazy;
+use websocket::sync::Client;
+use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo, Config};
 use crate::native::AMyCharacter;
@@ -23,7 +23,7 @@ struct State {
     config: Config,
     working_dir: Option<String>,
     pressed_keys: HashSet<i32>,
-    tcp_stream: Option<(TcpStream, Receiver<Response>)>,
+    websocket: Option<Client<Box<dyn NetworkStream + Send>>>,
     pawns: HashMap<u32, AMyCharacter>,
     pawn_id: u32,
 }
@@ -41,7 +41,7 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
             config: Config::default(),
             working_dir: None,
             pressed_keys: HashSet::new(),
-            tcp_stream: None,
+            websocket: None,
             pawns: HashMap::new(),
             pawn_id: 0,
         });
@@ -84,7 +84,7 @@ fn handle_rx() {
             let mut state = STATE.lock().unwrap();
             let state = state.as_mut().unwrap();
             state.delta = None;
-            state.tcp_stream.take();
+            state.websocket.take();
             state.pawns.clear();
             state.pawn_id = 0;
             for key in state.pressed_keys.drain() {

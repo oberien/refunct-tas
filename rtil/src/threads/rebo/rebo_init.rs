@@ -1,10 +1,10 @@
-use std::net::TcpStream;
+use std::io::ErrorKind;
 use std::path::PathBuf;
-use std::thread;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig};
 use itertools::Itertools;
+use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::{Request, Response};
 use crate::threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
@@ -46,9 +46,10 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(spawn_pawn)
         .add_function(destroy_pawn)
         .add_function(move_pawn)
-        .add_function(tcp_connect)
-        .add_function(tcp_disconnect)
-        .add_function(tcp_move)
+        .add_function(connect_to_server)
+        .add_function(disconnect_from_server)
+        .add_function(join_multiplayer_room)
+        .add_function(move_on_server)
         .add_function(set_level)
         .add_function(is_windows)
         .add_function(is_linux)
@@ -67,9 +68,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(draw_hud)
-        .add_required_rebo_function(tcp_joined)
-        .add_required_rebo_function(tcp_left)
-        .add_required_rebo_function(tcp_moved)
+        .add_required_rebo_function(player_joined_multiplayer_room)
+        .add_required_rebo_function(player_left_multiplayer_room)
+        .add_required_rebo_function(player_moved)
         .add_required_rebo_function(on_level_state_change)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
@@ -156,16 +157,35 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
             UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
         }
         loop {
-            if STATE.lock().unwrap().as_ref().unwrap().tcp_stream.is_none() {
+            // let mut state = STATE.lock().unwrap();
+            // if state.as_ref().unwrap().websocket.is_none() {
+            //     break;
+            // }
+            if STATE.lock().unwrap().as_ref().unwrap().websocket.is_none() {
                 break;
             }
-            let res = STATE.lock().unwrap().as_ref().unwrap().tcp_stream.as_ref().unwrap().1.try_recv();
-            match res {
-                Ok(Response::PlayerJoinedRoom(id, x, y, z)) => tcp_joined(vm, id.id(), x, y, z)?,
-                Ok(Response::PlayerLeftRoom(id)) => tcp_left(vm, id.id())?,
-                Ok(Response::MoveOther(id, x, y, z)) => tcp_moved(vm, id.id(), x, y, z)?,
-                Err(TryRecvError::Disconnected) => drop(STATE.lock().unwrap().as_mut().unwrap().tcp_stream.take()),
-                Err(TryRecvError::Empty) => break,
+            // let websocket = state.as_mut().unwrap().websocket.as_mut().unwrap();
+            // websocket.set_nonblocking(true).unwrap();
+            // let res = websocket.recv_message();
+            // websocket.set_nonblocking(false).unwrap();
+            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(true).unwrap();
+            let res = STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().recv_message();
+            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(false).unwrap();
+            let response = match res {
+                Ok(OwnedMessage::Text(text)) => serde_json::from_str(&text).unwrap(),
+                Ok(OwnedMessage::Binary(_) | OwnedMessage::Ping(_) | OwnedMessage::Pong(_)) => continue,
+                Err(WebSocketError::IoError(io)) if io.kind() == ErrorKind::WouldBlock => break,
+                Ok(OwnedMessage::Close(_)) | Err(_) => {
+                    // drop(state.as_mut().unwrap().websocket.take());
+                    drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                    break
+                },
+            };
+            // drop(state);
+            match response {
+                Response::PlayerJoinedRoom(id, x, y, z) => player_joined_multiplayer_room(vm, id.id(), Location { x, y, z})?,
+                Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
+                Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
             }
         }
         // We aren't actually advancing a frame, but just returning from the
@@ -179,9 +199,9 @@ extern "rebo" {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
     fn draw_hud();
-    fn tcp_joined(id: u32, x: f32, y: f32, z: f32);
-    fn tcp_left(id: u32);
-    fn tcp_moved(id: u32, x: f32, y: f32, z: f32);
+    fn player_joined_multiplayer_room(id: u32, loc: Location);
+    fn player_left_multiplayer_room(id: u32);
+    fn player_moved(id: u32, loc: Location);
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
 
@@ -368,8 +388,8 @@ struct Vector {
     z: f32,
 }
 #[rebo::function("Tas::project")]
-fn project(loc: Vector) -> Vector {
-    let (x, y, z) = AMyHud::project(loc.x, loc.y, loc.z);
+fn project(vec: Vector) -> Vector {
+    let (x, y, z) = AMyHud::project(vec.x, vec.y, vec.z);
     Vector { x, y, z }
 }
 #[rebo::function("Tas::spawn_pawn")]
@@ -399,51 +419,56 @@ fn move_pawn(pawn_id: u32, loc: Location) {
     let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
     my_character.set_location(loc.x, loc.y, loc.z);
 }
-#[rebo::function("Tas::tcp_connect")]
-fn tcp_connect(server_port: String) {
-    let stream = TcpStream::connect(server_port).expect("Could not connect to server");
-    let mut read = stream.try_clone().unwrap();
-    let (msg_tx, msg_rx) = crossbeam_channel::unbounded();
-    thread::spawn(move || {
-        loop {
-            let msg = serde_json::from_reader(&mut read).unwrap();
-            msg_tx.send(msg).unwrap();
+#[rebo::function("Tas::connect_to_server")]
+fn connect_to_server() {
+    let client = ClientBuilder::new(&format!("ws://localhost:8080/ws")).unwrap().connect(None);
+    // let client = ClientBuilder::new(&format!("wss://refunct-tas.oberien.de/ws")).unwrap().connect(None).unwrap();
+    let client = match client {
+        Ok(client) => client,
+        Err(e) => {
+            log!("couldn't connect to server: {e:?}");
+            return Ok(Value::Unit)
         }
-    });
-    STATE.lock().unwrap().as_mut().unwrap().tcp_stream = Some((stream, msg_rx));
+    };
+    log!("connected to server");
+    STATE.lock().unwrap().as_mut().unwrap().websocket = Some(client);
 }
-#[rebo::function("Tas::tcp_disconnect")]
-fn tcp_disconnect() {
-    STATE.lock().unwrap().as_mut().unwrap().tcp_stream.take();
+#[rebo::function("Tas::disconnect_from_server")]
+fn disconnect_from_server() {
+    STATE.lock().unwrap().as_mut().unwrap().websocket.take();
 }
-#[rebo::function("Tas::tcp_join_room")]
-fn tcp_join_room(room: String, loc: Location) {
+#[rebo::function("Tas::join_multiplayer_room")]
+fn join_multiplayer_room(room: String, loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
-    if state.tcp_stream.is_none() {
-        log!("called join room without active tcp session");
+    if state.websocket.is_none() {
+        log!("called join room without active websocket session");
         // TODO: error propagation?
         return Ok(Value::Unit);
     }
     let msg = Request::JoinRoom(room, loc.x, loc.y, loc.z);
-    if let Err(e) = serde_json::to_writer(&mut state.tcp_stream.as_mut().unwrap().0, &msg) {
+    let msg = serde_json::to_string(&msg).unwrap();
+    let msg = Message::text(msg);
+    if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
         log!("error sending join room request: {:?}", e);
-        state.tcp_stream.take();
+        state.websocket.take();
     }
 }
-#[rebo::function("Tas::tcp_move")]
-fn tcp_move(loc: Location) {
+#[rebo::function("Tas::move_on_server")]
+fn move_on_server(loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
-    if state.tcp_stream.is_none() {
-        log!("called move without active tcp session");
+    if state.websocket.is_none() {
+        log!("called move without active websocket session");
         // TODO: error propagation?
         return Ok(Value::Unit);
     }
     let msg = Request::MoveSelf(loc.x, loc.y, loc.z);
-    if let Err(e) = serde_json::to_writer(&mut state.tcp_stream.as_mut().unwrap().0, &msg) {
-        log!("error sending join room request: {:?}", e);
-        state.tcp_stream.take();
+    let msg = serde_json::to_string(&msg).unwrap();
+    let msg = Message::text(msg);
+    if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
+        log!("error sending move request: {:?}", e);
+        state.websocket.take();
     }
 }
 #[rebo::function("Tas::set_level")]

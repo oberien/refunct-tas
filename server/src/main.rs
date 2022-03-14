@@ -134,7 +134,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
 
         match request {
             Request::JoinRoom(name, x, y, z) => {
-                let sender = match remove_from_current_room().await {
+                let mut sender = match remove_from_current_room().await {
                     Some(player) => player.sender,
                     None => sender.take().unwrap(),
                 };
@@ -144,8 +144,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
                 let mut state = state.lock().await;
                 let room = state.multiplayer_rooms.entry(name).or_default();
 
-                for (_, player) in &mut room.players {
+                for (id, player) in &mut room.players {
                     let _ = player.sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(player_id, x, y, z)).unwrap())).await;
+                    let _ = sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(*id, player.x, player.y, player.z)).unwrap())).await;
                 }
 
                 room.players.insert(player_id, Player { id: player_id, x, y, z, sender, });
