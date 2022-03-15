@@ -116,12 +116,6 @@ fn player_left_multiplayer_room(id: int) {
 fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
     Tas::move_pawn(player.pawn_id, loc);
-    // print(f"moved {loc:?}");
-    // player.loc = loc;
-    player.loc.x = loc.x;
-    player.loc.y = loc.y;
-    player.loc.z = loc.z;
-    // print(f"bar {loc:?}");
-    // print(f"foo {player.loc:?}");
+    player.loc = loc;
 }
 

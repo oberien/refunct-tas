@@ -113,9 +113,7 @@ fn handle(event: UeToRebo) {
                         AMyHud::draw_text(text, color, x, y, scale, scale_position),
                     ReboToUe::SpawnAMyCharacter => {
                         let my_character = UWorld::spawn_amycharacter();
-                        state = STATE.get();
-                        state.ue_rebo_tx.send(UeToRebo::AMyCharacterSpawned(my_character)).unwrap();
-                        drop(state);
+                        STATE.get().ue_rebo_tx.send(UeToRebo::AMyCharacterSpawned(my_character)).unwrap();
                     },
                     _ => unreachable!()
                 }

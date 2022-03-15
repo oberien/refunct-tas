@@ -394,17 +394,15 @@ fn project(vec: Vector) -> Vector {
 }
 #[rebo::function("Tas::spawn_pawn")]
 fn spawn_pawn() -> u32 {
-    let mut state = STATE.lock().unwrap();
-    let state = state.as_mut().unwrap();
-    state.rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter).unwrap();
-    let spawned = state.ue_rebo_rx.recv().unwrap();
+    STATE.lock().unwrap().as_mut().unwrap().rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter).unwrap();
+    let spawned = STATE.lock().unwrap().as_mut().unwrap().ue_rebo_rx.recv().unwrap();
     let my_character = match spawned {
         UeToRebo::AMyCharacterSpawned(c) => c,
         _ => unreachable!(),
     };
-    let id = state.pawn_id;
-    state.pawn_id += 1;
-    state.pawns.insert(id, my_character);
+    let id = STATE.lock().unwrap().as_mut().unwrap().pawn_id;
+    STATE.lock().unwrap().as_mut().unwrap().pawn_id += 1;
+    STATE.lock().unwrap().as_mut().unwrap().pawns.insert(id, my_character);
     id
 }
 #[rebo::function("Tas::destroy_pawn")]
