@@ -5,7 +5,8 @@ use websocket::{ClientBuilder, Message};
 use protocol::Request;
 
 fn main() {
-    let mut client = ClientBuilder::new("ws://localhost:8080/ws").unwrap().connect(None).unwrap();
+    // let mut client = ClientBuilder::new("ws://localhost:8080/ws").unwrap().connect(None).unwrap();
+    let mut client = ClientBuilder::new("wss://refunct-tas.oberien.de/ws").unwrap().connect(None).unwrap();
     let msg = Request::JoinRoom("Test".to_string(), 0.0, 0.0, 0.0);
     client.send_message(&Message::text(serde_json::to_string(&msg).unwrap())).unwrap();
     thread::sleep(Duration::new(5, 0));

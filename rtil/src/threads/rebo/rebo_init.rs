@@ -421,8 +421,8 @@ fn move_pawn(pawn_id: u32, loc: Location) {
 }
 #[rebo::function("Tas::connect_to_server")]
 fn connect_to_server() {
-    let client = ClientBuilder::new(&format!("ws://localhost:8080/ws")).unwrap().connect(None);
-    // let client = ClientBuilder::new(&format!("wss://refunct-tas.oberien.de/ws")).unwrap().connect(None).unwrap();
+    // let client = ClientBuilder::new(&format!("ws://localhost:8080/ws")).unwrap().connect(None);
+    let client = ClientBuilder::new(&format!("wss://refunct-tas.oberien.de/ws")).unwrap().connect(None);
     let client = match client {
         Ok(client) => client,
         Err(e) => {
