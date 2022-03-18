@@ -81,7 +81,7 @@ fn multiplayer_connect() {
     if MULTIPLAYER_STATE.connected {
         return;
     }
-    Tas::connect_to_server();
+    Tas::connect_to_server(Server::Remote);
     MULTIPLAYER_STATE.connected = true;
 }
 fn multiplayer_disconnect() {

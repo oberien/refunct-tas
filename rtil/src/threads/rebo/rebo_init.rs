@@ -46,6 +46,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(spawn_pawn)
         .add_function(destroy_pawn)
         .add_function(move_pawn)
+        .add_function(pawn_location)
         .add_function(connect_to_server)
         .add_function(disconnect_from_server)
         .add_function(join_multiplayer_room)
@@ -65,6 +66,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Color)
         .add_external_type(DrawText)
         .add_external_type(LevelState)
+        .add_external_type(Server)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(draw_hud)
@@ -417,10 +419,27 @@ fn move_pawn(pawn_id: u32, loc: Location) {
     let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
     my_character.set_location(loc.x, loc.y, loc.z);
 }
+#[rebo::function("Tas::pawn_location")]
+fn pawn_location(pawn_id: u32) -> Location {
+    let mut state = STATE.lock().unwrap();
+    let state = state.as_mut().unwrap();
+    let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
+    let (x, y, z) = my_character.location();
+    Location { x, y, z }
+}
+#[derive(rebo::ExternalType)]
+enum Server {
+    Localhost,
+    Remote,
+}
+
 #[rebo::function("Tas::connect_to_server")]
-fn connect_to_server() {
-    // let client = ClientBuilder::new(&format!("ws://localhost:8080/ws")).unwrap().connect(None);
-    let client = ClientBuilder::new(&format!("wss://refunct-tas.oberien.de/ws")).unwrap().connect(None);
+fn connect_to_server(server: Server) {
+    let address = match server {
+        Server::Localhost => "ws://localhost:8080/ws",
+        Server::Remote => "wss://refunct-tas.oberien.de/ws",
+    };
+    let client = ClientBuilder::new(address).unwrap().connect(None);
     let client = match client {
         Ok(client) => client,
         Err(e) => {
