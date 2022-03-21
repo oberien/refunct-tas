@@ -4,8 +4,24 @@ struct MultiplayerState {
     players: Map<int, Player>,
 }
 struct Player {
+    alive: bool,
+    pawns: List<Pawn>,
+}
+struct Pawn {
     pawn_id: int,
-    loc: Location,
+    spawned_at_millis: int,
+    at_00: bool,
+}
+impl Pawn {
+    fn spawn(loc: Location) -> Pawn {
+        let pawn_id = Tas::spawn_pawn();
+        Tas::move_pawn(pawn_id, loc);
+        Pawn {
+            pawn_id: pawn_id,
+            spawned_at_millis: current_time_millis(),
+            at_00: false,
+        }
+    }
 }
 
 static mut MULTIPLAYER_STATE = MultiplayerState {
@@ -20,15 +36,19 @@ static MULTIPLAYER_COMPONENT = Component {
             return text;
         }
 
-        // update server location
-        let loc = Tas::get_location();
-        Tas::move_on_server(loc);
+        static mut LAST_MILLIS = current_time_millis();
+
+        // only update 10 times per second
+        let current_millis = current_time_millis();
+        if current_millis - LAST_MILLIS > 100 {
+            // update server location
+            let loc = Tas::get_location();
+            Tas::move_on_server(loc);
+            LAST_MILLIS += 100;
+        }
 
         // draw pawns
-        for player in MULTIPLAYER_STATE.players.values() {
-            let loc = player.loc;
-            draw_player(Location { x: loc.x, y: loc.y, z: loc.z });
-        }
+        update_and_render_players();
 
         match MULTIPLAYER_STATE.current_room {
             Option::None => f"{text}\nMultiplayer connected to server",
@@ -40,18 +60,20 @@ static MULTIPLAYER_COMPONENT = Component {
     on_reset: fn(reset: int) {},
 };
 
-fn draw_player(mut loc: Location) {
-    // print(f"draw {loc:?}");
-    loc.z -= 100.;
-    let a = Tas::project(Vector { x: loc.x-50., y: loc.y, z: loc.z});
-    let b = Tas::project(Vector { x: loc.x+50., y: loc.y, z: loc.z});
-    let c = Tas::project(Vector { x: loc.x-50., y: loc.y, z: loc.z+200.});
-    let d = Tas::project(Vector { x: loc.x+50., y: loc.y, z: loc.z+200.});
+fn draw_player(loc: Location) {
+    let x = loc.x;
+    let y = loc.y;
+    let z = loc.z - 100.;
 
-    let e = Tas::project(Vector { x: loc.x, y: loc.y-50., z: loc.z});
-    let f = Tas::project(Vector { x: loc.x, y: loc.y+50., z: loc.z});
-    let g = Tas::project(Vector { x: loc.x, y: loc.y-50., z: loc.z+200.});
-    let h = Tas::project(Vector { x: loc.x, y: loc.y+50., z: loc.z+200.});
+    let a = Tas::project(Vector { x: x-50., y: y, z: z});
+    let b = Tas::project(Vector { x: x+50., y: y, z: z});
+    let c = Tas::project(Vector { x: x-50., y: y, z: z+200.});
+    let d = Tas::project(Vector { x: x+50., y: y, z: z+200.});
+
+    let e = Tas::project(Vector { x: x, y: y-50., z: z});
+    let f = Tas::project(Vector { x: x, y: y+50., z: z});
+    let g = Tas::project(Vector { x: x, y: y-50., z: z+200.});
+    let h = Tas::project(Vector { x: x, y: y+50., z: z+200.});
 
     fn draw_player_line(start: Vector, end: Vector) {
         if start.z > 0. && end.z > 0. {
@@ -99,23 +121,54 @@ fn multiplayer_join_room(room: string) {
     MULTIPLAYER_STATE.current_room = Option::Some(room);
 }
 
+fn update_and_render_players() {
+    let current_time = current_time_millis();
+    for player_id in MULTIPLAYER_STATE.players.keys() {
+        let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
+        draw_player(player.loc);
+        print(player.pawns.len());
+        let mut i = 0;
+        while i < player.pawns.len() {
+            // keep last pawn if player is alive
+            if i == player.pawns.len() - 1 && player.alive {
+                break;
+            }
+
+            let mut pawn = player.pawns.get(i).unwrap();
+            if pawn.spawned_at_millis + 500 < current_time {
+                Tas::destroy_pawn(pawn.pawn_id);
+                player.pawns.swap_remove(i);
+                continue;
+            } else if !pawn.at_00 && pawn.spawned_at_millis + 250 < current_time {
+                pawn.at_00 = true;
+                let loc = Location { x: 0., y: 0., z: -1000. };
+                Tas::move_pawn(pawn.pawn_id, loc);
+            }
+
+            draw_player(Tas::pawn_location(pawn));
+
+            i += 1;
+        }
+        if player.pawns.len() == 0 {
+            assert(!player.alive);
+            MULTIPLAYER_STATE.players.swap_remove(player_id).unwrap();
+        }
+    }
+}
+
 fn player_joined_multiplayer_room(id: int, loc: Location) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
-    let pawn_id = Tas::spawn_pawn();
-    Tas::move_pawn(pawn_id, loc);
     MULTIPLAYER_STATE.players.insert(id, Player {
-        pawn_id: pawn_id,
-        loc: loc,
+        alive: true,
+        pawns: List::of(Pawn::spawn(loc)),
     });
 }
 fn player_left_multiplayer_room(id: int) {
     print(f"player {id} left");
-    let player = MULTIPLAYER_STATE.players.remove(id).unwrap();
-    Tas::destroy_pawn(player.pawn_id);
+    let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
+    player.alive = false;
 }
 fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
-    Tas::move_pawn(player.pawn_id, loc);
-    player.loc = loc;
+    player.pawns.push(Pawn::spawn(loc));
 }
-
