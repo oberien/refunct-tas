@@ -5,9 +5,8 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
-use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
+use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
 use crate::native::gameinstance::UMyGameInstance;
-use crate::native::linux::AACTOR_SETACTORENABLECOLLISION;
 
 pub enum AActor {}
 pub enum APawn {}
