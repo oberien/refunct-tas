@@ -21,6 +21,7 @@ copy tool\practice.re build\practice-windows
 copy tool\randomizer.re build\practice-windows
 copy tool\teleport.re build\practice-windows
 copy tool\ui.re build\practice-windows
+copy tool\multiplayer.re build\practice-windows
 echo Converting lf to crlf
 call :convert Config.toml
 call :convert main.re
@@ -31,6 +32,7 @@ call :convert practice.re
 call :convert randomizer.re
 call :convert teleport.re
 call :convert ui.re
+call :convert multiplayer.re
 
 powershell -Command "(gc build\practice-windows\Config.toml) -replace \"forward = 'v'\", \"forward = 'W'\" -replace \"backward = 'i'\", \"backward = 'S'\" -replace \"left = 'u'\", \"left = 'A'\" -replace \"right = 'a'\", \"right = 'D'\" -replace \"crouch = 1073742049\", \"crouch = 160\" | sc build\practice-windows\Config.toml"
 

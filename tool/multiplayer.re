@@ -5,19 +5,20 @@ struct MultiplayerState {
 }
 struct Player {
     alive: bool,
+    loc: Location,
     pawns: List<Pawn>,
 }
 struct Pawn {
-    pawn_id: int,
+    id: int,
     spawned_at_millis: int,
     at_00: bool,
 }
 impl Pawn {
     fn spawn(loc: Location) -> Pawn {
-        let pawn_id = Tas::spawn_pawn();
-        Tas::move_pawn(pawn_id, loc);
+        let id = Tas::spawn_pawn();
+        Tas::move_pawn(id, loc);
         Pawn {
-            pawn_id: pawn_id,
+            id: id,
             spawned_at_millis: current_time_millis(),
             at_00: false,
         }
@@ -126,7 +127,6 @@ fn update_and_render_players() {
     for player_id in MULTIPLAYER_STATE.players.keys() {
         let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
         draw_player(player.loc);
-        print(player.pawns.len());
         let mut i = 0;
         while i < player.pawns.len() {
             // keep last pawn if player is alive
@@ -135,23 +135,23 @@ fn update_and_render_players() {
             }
 
             let mut pawn = player.pawns.get(i).unwrap();
-            if pawn.spawned_at_millis + 500 < current_time {
-                Tas::destroy_pawn(pawn.pawn_id);
+            if pawn.spawned_at_millis + 250 < current_time {
+                Tas::destroy_pawn(pawn.id);
                 player.pawns.swap_remove(i);
                 continue;
-            } else if !pawn.at_00 && pawn.spawned_at_millis + 250 < current_time {
+            } else if !pawn.at_00 && pawn.spawned_at_millis + 125 < current_time {
                 pawn.at_00 = true;
                 let loc = Location { x: 0., y: 0., z: -1000. };
-                Tas::move_pawn(pawn.pawn_id, loc);
+                Tas::move_pawn(pawn.id, loc);
             }
 
-            draw_player(Tas::pawn_location(pawn));
+//            draw_player(Tas::pawn_location(pawn.id));
 
             i += 1;
         }
         if player.pawns.len() == 0 {
             assert(!player.alive);
-            MULTIPLAYER_STATE.players.swap_remove(player_id).unwrap();
+            MULTIPLAYER_STATE.players.remove(player_id).unwrap();
         }
     }
 }
@@ -160,6 +160,7 @@ fn player_joined_multiplayer_room(id: int, loc: Location) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
     MULTIPLAYER_STATE.players.insert(id, Player {
         alive: true,
+        loc: loc,
         pawns: List::of(Pawn::spawn(loc)),
     });
 }
@@ -170,5 +171,6 @@ fn player_left_multiplayer_room(id: int) {
 }
 fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
+    player.loc = loc;
     player.pawns.push(Pawn::spawn(loc));
 }

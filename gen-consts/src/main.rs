@@ -8,13 +8,13 @@ use pdb::{PDB, PublicSymbol, SymbolData, DataSymbol};
 use pdb::FallibleIterator;
 
 const NAMES: &[(&str, &str)] = &[
-    ("?UpdateTimeAndHandleMaxTickRate@UEngine", "UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE"),
     ("?Tick@FSlateApplication", "FSLATEAPPLICATION_TICK"),
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
-    ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
+    ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
+    ("?UpdateTimeAndHandleMaxTickRate@UEngine", "UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE"),
     ("FApp::DeltaTime", "FAPP_DELTATIME"),
     ("?Malloc@FMemory@@SAPAXKI@Z", "FMEMORY_MALLOC"),
     ("?Free@FMemory@@SAXPAX@Z", "FMEMORY_FREE"),
@@ -28,6 +28,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
     ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
+    ("?SetActorEnableCollision@AActor@@QAEX_N@Z", "AACTOR_SETACTORENABLECOLLISION"),
 ];
 
 fn get_linux_level_pointer_path() -> String {
@@ -86,6 +87,7 @@ fn main() {
             Some(name) => name.to_string(),
             None => { eprintln!("Error getting symbol name"); continue }
         };
+        println!("{}", name);
         for &(start, _) in NAMES {
             if name.starts_with(start) {
                 match pe.sections.get((offset.section as usize).wrapping_sub(1)) {

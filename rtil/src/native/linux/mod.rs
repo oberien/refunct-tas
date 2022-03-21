@@ -77,13 +77,13 @@ macro_rules! find {
 }
 
 find! {
-    AMYCHARACTER_FORCEDUNCROUCH, "^AMyCharacter::ForcedUnCrouch()",
     FSLATEAPPLICATION_TICK, "^FSlateApplication::Tick()",
     FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
     AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
+    AMYCHARACTER_FORCEDUNCROUCH, "^AMyCharacter::ForcedUnCrouch()",
     FAPP_DELTATIME, "^FApp::DeltaTime",
     FMEMORY_MALLOC, "^FMemory::Malloc(unsigned long, unsigned int)",
     FMEMORY_FREE, "^FMemory::Free(void*)",
@@ -91,12 +91,13 @@ find! {
     AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
     AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
+    AHUD_PROJECT, "^AHUD::Project(FVector)",
     GWORLD, "^GWorld",
     UWORLD_SPAWNACTOR, "^UWorld::SpawnActor(UClass*, FVector const*, FRotator const*, FActorSpawnParameters const&)",
     UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
     AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",
     APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
-    AHUD_PROJECT, "^AHUD::Project(FVector)",
+    AACTOR_SETACTORENABLECOLLISION, "^AActor::SetActorEnableCollision(bool)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

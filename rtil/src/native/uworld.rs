@@ -7,8 +7,9 @@ use std::sync::atomic::Ordering;
 use crate::native::ue::{FName, FVector, FRotator};
 use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
 use crate::native::gameinstance::UMyGameInstance;
+use crate::native::linux::AACTOR_SETACTORENABLECOLLISION;
 
-pub(in crate::native) type AActor = c_void;
+pub enum AActor {}
 pub enum APawn {}
 pub(in crate::native) type ULevel = c_void;
 pub(in crate::native) type UClass = c_void;
@@ -46,7 +47,7 @@ impl Default for FActorSpawnParameters {
             owner: ptr::null(),
             instigator: ptr::null(),
             override_level: ptr::null(),
-            spawn_collision_handling_override: ESpawnActorCollisionHandlingMethod::Undefined,
+            spawn_collision_handling_override: ESpawnActorCollisionHandlingMethod::AlwaysSpawn,
             some_flags: 0,
             object_flags: 0x00000008,
         }
@@ -58,6 +59,13 @@ impl APawn {
         let fun: extern_fn!(fn(this: *const APawn))
             = unsafe { ::std::mem::transmute(APAWN_SPAWNDEFAULTCONTROLLER.load(Ordering::SeqCst)) };
         fun(this)
+    }
+}
+impl AActor {
+    fn set_actor_enable_collision(this: *const AActor, enable: bool) {
+        let fun: extern_fn!(fn(this: *const AActor, enable: u32))
+            = unsafe { ::std::mem::transmute(AACTOR_SETACTORENABLECOLLISION.load(Ordering::SeqCst)) };
+        fun(this, enable as u32)
     }
 }
 
@@ -103,19 +111,26 @@ impl UWorld {
 
     pub fn spawn_amycharacter() -> AMyCharacter {
         unsafe {
+            let location = FVector { x: -500.0, y: -1125.0, z: 90.0 };
+            let rotation = FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0 };
+            let spawn_parameters = FActorSpawnParameters::default();
             let ptr = Self::spawn_actor(
-                AMyCharacter::static_class(), &FVector { x: -500.0, y: -1125.0, z: 90.0 },
-                &FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0 }, &FActorSpawnParameters::default(),
+                AMyCharacter::static_class(), &location, &rotation, &spawn_parameters,
             ) as *mut AMyCharacter;
+            assert!(!ptr.is_null(), "UWorld::SpawnActor returned null");
             let my_character = AMyCharacter::new(ptr);
             APawn::spawn_default_controller(my_character.as_ptr() as *const APawn);
+            AActor::set_actor_enable_collision(my_character.as_ptr() as *const AActor, true);
             my_character
         }
     }
     pub fn destroy_amycharaccter(my_character: AMyCharacter) {
         unsafe {
             let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, false, true);
-            assert!(destroyed, "amycharacter not destroyed");
+            // assert!(destroyed, "amycharacter not destroyed");
+            if !destroyed {
+                log!("amycharacter {:p} not destroyed", my_character.as_ptr());
+            }
         }
     }
 }
