@@ -39,13 +39,13 @@ static MULTIPLAYER_COMPONENT = Component {
 
         static mut LAST_MILLIS = current_time_millis();
 
-        // only update 10 times per second
+        // only update ~30 times per second (capped at FPS as we are in draw_hud)
         let current_millis = current_time_millis();
-        if current_millis - LAST_MILLIS > 100 {
+        if current_millis - LAST_MILLIS > 33 {
             // update server location
             let loc = Tas::get_location();
             Tas::move_on_server(loc);
-            LAST_MILLIS += 100;
+            LAST_MILLIS += 33;
         }
 
         // draw pawns
