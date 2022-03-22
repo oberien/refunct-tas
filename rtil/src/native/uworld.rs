@@ -125,7 +125,7 @@ impl UWorld {
     }
     pub fn destroy_amycharaccter(my_character: AMyCharacter) {
         unsafe {
-            let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, false, true);
+            let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, true, true);
             // assert!(destroyed, "amycharacter not destroyed");
             if !destroyed {
                 log!("amycharacter {:p} not destroyed", my_character.as_ptr());
