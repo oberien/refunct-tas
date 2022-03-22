@@ -182,7 +182,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
             };
             // drop(state);
             match response {
-                Response::PlayerJoinedRoom(id, x, y, z) => player_joined_multiplayer_room(vm, id.id(), Location { x, y, z})?,
+                Response::PlayerJoinedRoom(id, name, x, y, z) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z})?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
             }
@@ -198,7 +198,7 @@ extern "rebo" {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
     fn draw_hud();
-    fn player_joined_multiplayer_room(id: u32, loc: Location);
+    fn player_joined_multiplayer_room(id: u32, name: String, loc: Location);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location);
     fn on_level_state_change(old: LevelState, new: LevelState);
@@ -436,7 +436,7 @@ fn disconnect_from_server() {
     STATE.lock().unwrap().as_mut().unwrap().websocket.take();
 }
 #[rebo::function(raw("Tas::join_multiplayer_room"))]
-fn join_multiplayer_room(room: String, loc: Location) {
+fn join_multiplayer_room(room: String, name: String, loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     if state.websocket.is_none() {
@@ -444,7 +444,7 @@ fn join_multiplayer_room(room: String, loc: Location) {
         // TODO: error propagation?
         return Ok(Value::Unit);
     }
-    let msg = Request::JoinRoom(room, loc.x, loc.y, loc.z);
+    let msg = Request::JoinRoom(room, name, loc.x, loc.y, loc.z);
     let msg = serde_json::to_string(&msg).unwrap();
     let msg = Message::text(msg);
     if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {

@@ -17,6 +17,7 @@ struct MultiplayerRoom {
 
 struct Player {
     id: PlayerId,
+    name: String,
     x: f32,
     y: f32,
     z: f32,
@@ -133,23 +134,23 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
         };
 
         match request {
-            Request::JoinRoom(name, x, y, z) => {
+            Request::JoinRoom(room_name, player_name, x, y, z) => {
                 let mut sender = match remove_from_current_room().await {
                     Some(player) => player.sender,
                     None => sender.take().unwrap(),
                 };
 
-                log::info!("Player {player_id:?} joins room {name:?}");
-                *multiplayer_room.lock().await = Some(name.clone());
+                log::info!("Player {player_id:?} ({player_name}) joins room {room_name:?}");
+                *multiplayer_room.lock().await = Some(room_name.clone());
                 let mut state = state.lock().await;
-                let room = state.multiplayer_rooms.entry(name).or_default();
+                let room = state.multiplayer_rooms.entry(room_name).or_default();
 
                 for (id, player) in &mut room.players {
-                    let _ = player.sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(player_id, x, y, z)).unwrap())).await;
-                    let _ = sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(*id, player.x, player.y, player.z)).unwrap())).await;
+                    let _ = player.sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z)).unwrap())).await;
+                    let _ = sender.send(Message::Text(serde_json::to_string(&Response::PlayerJoinedRoom(*id, player.name.clone(), player.x, player.y, player.z)).unwrap())).await;
                 }
 
-                room.players.insert(player_id, Player { id: player_id, x, y, z, sender, });
+                room.players.insert(player_id, Player { id: player_id, name: player_name, x, y, z, sender, });
             }
             Request::MoveSelf(x, y, z) => {
                 let room = multiplayer_room.lock().await;

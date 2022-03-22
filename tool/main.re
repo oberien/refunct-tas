@@ -209,6 +209,13 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
 ));
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
+        label: Text { text: "Name" },
+        input: SETTINGS.multiplayer_name,
+        onclick: fn(input: string) {
+            SETTINGS.set_multiplayer_name(input);
+        },
+    }),
+    UiElement::Input(Input {
         label: Text { text: "Join/Create Room" },
         input: "",
         onclick: fn(input: string) {
