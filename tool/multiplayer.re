@@ -102,11 +102,12 @@ fn draw_player(name: string, loc: Location) {
     draw_player_line(g, h);
     draw_player_line(h, e);
     if top_middle.z > 0. {
+        let size = Tas::get_text_size(name, SETTINGS.ui_scale);
         Tas::draw_text(DrawText {
             text: name,
             color: COLOR_BLACK,
-            x: top_middle.x,
-            y: top_middle.y - 30.,
+            x: top_middle.x - size.width / 2.,
+            y: top_middle.y - size.height,
             scale: SETTINGS.ui_scale,
             scale_position: false,
         });

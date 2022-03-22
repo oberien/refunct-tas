@@ -3,6 +3,7 @@ pub const FMEMORY_MALLOC: usize = 0x148750;
 pub const FMEMORY_FREE: usize = 0x1410d0;
 pub const APAWN_SPAWNDEFAULTCONTROLLER: usize = 0xd82510;
 pub const AACTOR_SETACTORENABLECOLLISION: usize = 0xa4d540;
+pub const AHUD_GETTEXTSIZE: usize = 0xc54e00;
 pub const AHUD_DRAWTEXT: usize = 0xc4b600;
 pub const AHUD_DRAWLINE: usize = 0xc4b1c0;
 pub const AHUD_PROJECT: usize = 0xc5a680;

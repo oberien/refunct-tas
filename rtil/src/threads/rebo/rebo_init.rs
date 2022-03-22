@@ -45,6 +45,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(draw_line)
         .add_function(draw_text)
         .add_function(project)
+        .add_function(get_text_size)
         .add_function(spawn_pawn)
         .add_function(destroy_pawn)
         .add_function(move_pawn)
@@ -63,6 +64,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Velocity)
         .add_external_type(Acceleration)
         .add_external_type(Vector)
+        .add_external_type(TextSize)
         .add_external_type(Line)
         .add_external_type(Color)
         .add_external_type(DrawText)
@@ -374,6 +376,16 @@ struct Vector {
 fn project(vec: Vector) -> Vector {
     let (x, y, z) = AMyHud::project(vec.x, vec.y, vec.z);
     Vector { x, y, z }
+}
+#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+struct TextSize {
+    width: f32,
+    height: f32,
+}
+#[rebo::function("Tas::get_text_size")]
+fn get_text_size(text: String, scale: f32) -> TextSize {
+    let (width, height) = AMyHud::get_text_size(text, scale);
+    TextSize { width, height }
 }
 #[rebo::function("Tas::spawn_pawn")]
 fn spawn_pawn(loc: Location, rot: Rotation) -> u32 {

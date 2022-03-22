@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT, AHUD_GETTEXTSIZE};
 use crate::threads::ue;
 use crate::statics::Static;
 
@@ -41,6 +41,20 @@ impl AMyHud {
                 = mem::transmute(AHUD_PROJECT.load(Ordering::SeqCst));
             let vec = fun(*AMYHUD.get(), FVector { x, y, z });
             (vec.x, vec.y, vec.z)
+        }
+    }
+
+    pub fn get_text_size<S: Into<FString>>(text: S, scale: f32) -> (f32, f32) {
+        unsafe {
+            let fun: extern_fn!(fn(
+                this: usize, text: *const FString, out_width: &mut f32, out_height: &mut f32,
+                font: *const c_void, scale: f32
+            )) = mem::transmute(AHUD_GETTEXTSIZE.load(Ordering::SeqCst));
+            let mut width = 0.;
+            let mut height = 0.;
+            let s = text.into();
+            fun(*AMYHUD.get(), &s as *const FString, &mut width, &mut height, ptr::null(), scale);
+            (width, height)
         }
     }
 }
