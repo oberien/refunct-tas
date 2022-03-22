@@ -328,6 +328,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "dynsym"
 version = "0.1.0"
 dependencies = [
@@ -1197,7 +1217,7 @@ dependencies = [
 [[package]]
 name = "rebo"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=b970ba4209e93a7aa679d2e111298189a5ff0e96#b970ba4209e93a7aa679d2e111298189a5ff0e96"
+source = "git+https://github.com/oberien/rebo?rev=7191ba48ac654af59e77eb5ea200a7c24fb1053f#7191ba48ac654af59e77eb5ea200a7c24fb1053f"
 dependencies = [
  "bitflags",
  "derive_more",
@@ -1229,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "rebo_derive"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=b970ba4209e93a7aa679d2e111298189a5ff0e96#b970ba4209e93a7aa679d2e111298189a5ff0e96"
+source = "git+https://github.com/oberien/rebo?rev=7191ba48ac654af59e77eb5ea200a7c24fb1053f#7191ba48ac654af59e77eb5ea200a7c24fb1053f"
 dependencies = [
  "itertools 0.10.3",
  "proc-macro-error",
@@ -1255,6 +1275,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7776223e2696f1aa4c6b0170e83212f47296a00424305117d013dfe86fb0fe55"
+dependencies = [
+ "getrandom",
+ "redox_syscall 0.2.11",
+ "thiserror",
+]
+
+[[package]]
 name = "refunct-tas-ingame-lib"
 version = "0.1.0"
 dependencies = [
@@ -1262,6 +1293,7 @@ dependencies = [
  "byteorder",
  "clipboard",
  "crossbeam-channel",
+ "dirs",
  "dynsym",
  "itertools 0.10.3",
  "libc",

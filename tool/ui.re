@@ -42,7 +42,6 @@ struct Chooser {
 }
 
 static mut UI_STACK: List<Ui> = List::new();
-static mut UI_SCALE = 2.0;
 static mut LSHIFT_PRESSED = false;
 static mut RSHIFT_PRESSED = false;
 static mut LCTRL_PRESSED = false;
@@ -147,7 +146,7 @@ impl Ui {
             color: COLOR_BLACK,
             x: 0.,
             y: 0.,
-            scale: UI_SCALE,
+            scale: SETTINGS.ui_scale,
             scale_position: true,
         });
         let mut i = 0;
@@ -197,7 +196,7 @@ impl Button {
             color: color,
             x: 0.,
             y: y,
-            scale: UI_SCALE,
+            scale: SETTINGS.ui_scale,
             scale_position: true,
         })
     }
@@ -225,7 +224,7 @@ impl Input {
             color: color,
             x: 0.,
             y: y,
-            scale: UI_SCALE,
+            scale: SETTINGS.ui_scale,
             scale_position: true,
         })
     }
@@ -246,7 +245,7 @@ impl Slider {
             color: color,
             x: 0.,
             y: y,
-            scale: UI_SCALE,
+            scale: SETTINGS.ui_scale,
             scale_position: true,
         })
     }
@@ -277,7 +276,7 @@ impl Chooser {
             color: color,
             x: 0.,
             y: y,
-            scale: UI_SCALE,
+            scale: SETTINGS.ui_scale,
             scale_position: true,
         })
     }

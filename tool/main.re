@@ -1,3 +1,4 @@
+include "settings.re";
 include "keys.re";
 include "ui.re";
 include "component.re"
@@ -20,7 +21,7 @@ static START_MENU = Ui {
         let mut text = "Press 'm' for menu.";
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
-        if SHOW_CHARACTER_STATS {
+        if SETTINGS.show_character_stats {
             let loc = Tas::get_location();
             let vel = Tas::get_velocity();
             let rot = Tas::get_rotation();
@@ -37,7 +38,7 @@ velxyz: {velxyz:8.2}
 accx {acc.x:8.2}    accy: {acc.y:8.2}    accz: {acc.z:8.2}
 pitch {rot.pitch:8.2}    yaw: {rot.yaw:8.2}    roll: {rot.roll:8.2}";
         }
-        if SHOW_GAME_STATS {
+        if SETTINGS.show_game_stats {
             text = f"{text}
 Level: {GAME_STATS.current_level} (Total: {GAME_STATS.total_levels})
 Buttons: {GAME_STATS.current_buttons} (Total: {GAME_STATS.total_buttons})
@@ -233,38 +234,34 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
         onclick: fn(label: Text) { leave_ui(); },
     }),
 ));
-static mut UI_SCALE_TEXT = Text { text: f"{UI_SCALE}" };
-static mut SHOW_CHARACTER_STATS = false;
-static mut SHOW_GAME_STATS = false;
-static mut SHOW_CHARACTER_STATS_BUTTON_TEXT = Text { text: f"Show Character Stats: {SHOW_CHARACTER_STATS}" };
-static mut SHOW_GAME_STATS_BUTTON_TEXT = Text { text: f"Show Game Stats: {SHOW_GAME_STATS}" };
+static mut UI_SCALE_TEXT = Text { text: f"{SETTINGS.ui_scale}" };
+static mut SHOW_CHARACTER_STATS_BUTTON_TEXT = Text { text: f"Show Character Stats: {SETTINGS.show_character_stats}" };
+static mut SHOW_GAME_STATS_BUTTON_TEXT = Text { text: f"Show Game Stats: {SETTINGS.show_game_stats}" };
 static SETTINGS_MENU = Ui::new("Settings:", List::of(
     UiElement::Slider(Slider {
         label: Text { text: "UI Scale" },
         content: UI_SCALE_TEXT,
         onleft: fn() {
-            UI_SCALE = UI_SCALE - 0.5;
-            UI_SCALE = UI_SCALE.max(0.5);
-            UI_SCALE_TEXT.text = f"{UI_SCALE}";
+            SETTINGS.decrease_ui_scale();
+            UI_SCALE_TEXT.text = f"{SETTINGS.ui_scale}";
         },
         onright: fn() {
-            UI_SCALE = UI_SCALE + 0.5;
-            UI_SCALE = UI_SCALE.min(10.);
-            UI_SCALE_TEXT.text = f"{UI_SCALE}";
+            SETTINGS.increase_ui_scale();
+            UI_SCALE_TEXT.text = f"{SETTINGS.ui_scale}";
         },
     }),
     UiElement::Button(Button {
         label: SHOW_CHARACTER_STATS_BUTTON_TEXT,
         onclick: fn(label: Text) {
-            SHOW_CHARACTER_STATS = !SHOW_CHARACTER_STATS;
-            SHOW_CHARACTER_STATS_BUTTON_TEXT.text = f"Show Character Stats: {SHOW_CHARACTER_STATS}";
+            SETTINGS.toggle_show_character_stats();
+            SHOW_CHARACTER_STATS_BUTTON_TEXT.text = f"Show Character Stats: {SETTINGS.show_character_stats}";
         },
     }),
     UiElement::Button(Button {
         label: SHOW_GAME_STATS_BUTTON_TEXT,
         onclick: fn(label: Text) {
-            SHOW_GAME_STATS = !SHOW_GAME_STATS;
-            SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SHOW_GAME_STATS}";
+            SETTINGS.toggle_show_game_stats();
+            SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
         },
     }),
     UiElement::Button(Button {

@@ -135,7 +135,7 @@ fn update_and_render_players() {
             }
 
             let mut pawn = player.pawns.get(i).unwrap();
-            if pawn.spawned_at_millis + 250 < current_time {
+            if pawn.spawned_at_millis + 1000 < current_time {
                 Tas::destroy_pawn(pawn.id);
                 player.pawns.swap_remove(i);
                 continue;

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::fs::File;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -202,46 +204,30 @@ extern "rebo" {
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
 
-#[derive(Debug, Clone, Copy, rebo::ExternalType)]
-enum Key {
-    Forward,
-    Backward,
-    Left,
-    Right,
-    Jump,
-    Crouch,
-    Menu,
-}
-impl Key {
-    fn to_key(self, config: &Config) -> i32 {
-        match self {
-            Key::Forward => config.forward,
-            Key::Backward => config.backward,
-            Key::Left => config.left,
-            Key::Right => config.right,
-            Key::Jump => config.jump,
-            Key::Crouch => config.crouch,
-            Key::Menu => config.menu,
-        }
+fn settings_file_path() -> PathBuf {
+    let cfg_dir = dirs::config_dir().unwrap()
+        .join("refunct-tas");
+    if !cfg_dir.is_dir() {
+        std::fs::create_dir(&cfg_dir).unwrap();
     }
+    cfg_dir.join("settings.json")
 }
 
-#[rebo::function("Tas::press_key")]
-fn press_key(key: Key) {
-    let mut state = STATE.lock().unwrap();
-    let state = state.as_mut().unwrap();
-    let key = key.to_key(&state.config);
-    state.pressed_keys.insert(key);
-    state.rebo_ue_tx.send(ReboToUe::PressKey(key, key as u32, false)).unwrap();
+#[rebo::function("Tas::load_settings")]
+fn load_settings() -> Option<Map<String, String>> {
+    let path = settings_file_path();
+    let file = File::open(path).ok()?;
+    let map: HashMap<String, String> = serde_json::from_reader(file).unwrap();
+    Some(Map::new(map))
 }
-#[rebo::function("Tas::release_key")]
-fn release_key(key: Key) {
-    let mut state = STATE.lock().unwrap();
-    let state = state.as_mut().unwrap();
-    let key = key.to_key(&state.config);
-    state.pressed_keys.remove(&key);
-    state.rebo_ue_tx.send(ReboToUe::ReleaseKey(key, key as u32, false)).unwrap();
+#[rebo::function("Tas::store_settings")]
+fn store_settings(settings: Map<String, String>) {
+    let path = settings_file_path();
+    let file = File::create(path).unwrap();
+    let map = settings.clone_btreemap();
+    serde_json::to_writer_pretty(file, &map).unwrap();
 }
+
 #[rebo::function("Tas::key_down")]
 fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();

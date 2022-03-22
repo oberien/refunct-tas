@@ -14,12 +14,13 @@ crossbeam-channel = "0.5.2"
 memoffset = "0.6.5"
 #object = "0.28.3"
 #rebo = { path = "../../rebo/rebo" }
-rebo = { git = "https://github.com/oberien/rebo", rev = "b970ba4209e93a7aa679d2e111298189a5ff0e96" }
+rebo = { git = "https://github.com/oberien/rebo", rev = "7191ba48ac654af59e77eb5ea200a7c24fb1053f" }
 itertools = "0.10.3"
 clipboard = "0.5.0"
 thiserror = "1.0.30"
 serde_json = "1.0.79"
 websocket = "0.26.3"
+dirs = "4.0.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.119"
