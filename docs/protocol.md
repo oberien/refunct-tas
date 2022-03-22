@@ -21,14 +21,6 @@ Tool to Rtil:
 
 * `0`: Rebo Code as String
 * `1`: Stop execution of Rebo and reset game values
-* `2`: Set configured keys in this order as i32. Needs to be called before executing a Tas.
-    + `forward`
-    + `backward`
-    + `left`
-    + `right`
-    + `jump`
-    + `crouch`
-    + `menu`
 * `3`: Current absolute working directory path of the tool as String.
        This is used to resolve `includes` from.
 * `255`: Error occured. Error code following.

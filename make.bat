@@ -12,7 +12,6 @@ cd ..
 echo Copying files
 copy rtil\target\i686-pc-windows-msvc\release\rtil.dll build\practice-windows
 copy tool\target\i686-pc-windows-msvc\debug\refunct-tas.exe build\practice-windows
-copy tool\Config.toml build\practice-windows
 copy tool\main.re build\practice-windows
 copy tool\component.re build\practice-windows
 copy tool\keys.re build\practice-windows
@@ -23,7 +22,6 @@ copy tool\teleport.re build\practice-windows
 copy tool\ui.re build\practice-windows
 copy tool\multiplayer.re build\practice-windows
 echo Converting lf to crlf
-call :convert Config.toml
 call :convert main.re
 call :convert component.re
 call :convert keys.re
@@ -33,8 +31,6 @@ call :convert randomizer.re
 call :convert teleport.re
 call :convert ui.re
 call :convert multiplayer.re
-
-powershell -Command "(gc build\practice-windows\Config.toml) -replace \"forward = 'v'\", \"forward = 'W'\" -replace \"backward = 'i'\", \"backward = 'S'\" -replace \"left = 'u'\", \"left = 'A'\" -replace \"right = 'a'\", \"right = 'D'\" -replace \"crouch = 1073742049\", \"crouch = 160\" | sc build\practice-windows\Config.toml"
 
 echo Don't forget to create a zip
 exit /b 0

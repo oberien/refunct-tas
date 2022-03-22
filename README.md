@@ -3,30 +3,6 @@
 This project is a tool enabling Tool assisted Speedruns in the game
 [Refunct](http://refunctgame.com/).
 
-# Configuration
-
-You can configure your inputs in `Config.toml`.
-Make sure to set the inputs to the same keys you use ingame.
-Otherwise the TAS won't work as expected.
-
-All keys can be either a single character inside single-ticks or the decimal
-number belonging to the virtual-key code.
-A list of virtual-key codes on Windows can be found at
-http://cherrytree.at/misc/vk.htm .
-Characters must be uppercase on Windows and lowercase on Linux.
-
-For example if you want to use RMB for Jump on Windows, the according virtual-key
-code is called VK_RBUTTON and its decimal value is 2. So you'll need to specify
-`jump = 2`.
-If instead you would like to have space as jump, you can use the character
-`jump = ' '`.
-
-While on Windows Unreal Engine relies on the Virtual-Key Codes, on Linux it uses
-its own key definitions.
-Therefore it might be needed to add `(1<<30)` to the modifier's value.
-For example left shift on Windows is `160` while it's
-`(1<<30) + 225 = 1073742049` on Linux.
-
 # Building
 
 Refunct-tas is supported on Linux and Windows.
@@ -37,7 +13,7 @@ Make sure to have rust installed either with [rustup](https://www.rustup.rs/)
 containing the latest nightly compiler.
 Execute `make`.
 This will create the directory `build/linux/` containing `refunct-tas`,
-`librtil.so`, `Config.toml` and some rebo script files.
+`librtil.so` and some rebo script files.
 
 ## Windows
 
@@ -108,9 +84,6 @@ You can find all code of the practice functionality in the [tool directory](tool
   into quarantine.
   Redownload the zip file and either whitelist `refunct-tas.exe` or disable it
   while you are using the TAS tool.
-* **The TAS tool doesn't move correctly**:
-  Please make sure that the keys configured in `Config.toml` match the ones
-  configured ingame.
 * **I got EAC banned**:
   No, you didn't. Refunct does not come with EAC. Period.
 

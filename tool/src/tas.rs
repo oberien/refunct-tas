@@ -7,7 +7,6 @@ use std::env;
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
 use crate::error::{Error, Result};
-use crate::config::Config;
 
 pub struct Tas {
     con: TcpStream,
@@ -22,20 +21,11 @@ impl Tas {
         })
     }
 
-    pub fn execute<P: AsRef<Path>>(&mut self, path: P, config: &Config) {
+    pub fn execute<P: AsRef<Path>>(&mut self, path: P) {
         let path = path.as_ref();
         let mut file = File::open(path).expect(&format!("Couldn't open TAS file {:?}", path));
         let mut s = String::new();
         file.read_to_string(&mut s).unwrap();
-        println!("Setting Config");
-        self.con.write_u8(2).unwrap();
-        self.con.write_i32::<LittleEndian>(config.forward.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.backward.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.left.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.right.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.jump.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.crouch.into()).unwrap();
-        self.con.write_i32::<LittleEndian>(config.menu.into()).unwrap();
 
         println!("Setting Environment");
         let current_dir = env::current_dir().unwrap();

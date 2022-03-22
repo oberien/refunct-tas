@@ -5,7 +5,7 @@ use std::thread::{self, JoinHandle};
 use byteorder::{ReadBytesExt, LittleEndian};
 use crossbeam_channel::Sender;
 
-use crate::threads::{StreamToListener, StreamToRebo, Config};
+use crate::threads::{StreamToListener, StreamToRebo};
 use crate::error::Result;
 
 struct StreamRead {
@@ -46,20 +46,6 @@ impl StreamRead {
             1 => {
                 log!("Got stop");
                 self.stream_rebo_tx.send(StreamToRebo::Stop).unwrap()
-            }
-            2 => {
-                log!("Reading Config...");
-                let config = Config {
-                    forward: self.con.read_i32::<LittleEndian>()?,
-                    backward: self.con.read_i32::<LittleEndian>()?,
-                    left: self.con.read_i32::<LittleEndian>()?,
-                    right: self.con.read_i32::<LittleEndian>()?,
-                    jump: self.con.read_i32::<LittleEndian>()?,
-                    crouch: self.con.read_i32::<LittleEndian>()?,
-                    menu: self.con.read_i32::<LittleEndian>()?,
-                };
-                log!("Got Config: {:?}", config);
-                self.stream_rebo_tx.send(StreamToRebo::Config(config)).unwrap();
             }
             3 => {
                 log!("Reading working dir");

@@ -30,19 +30,7 @@ pub enum StreamToListener {
 pub enum StreamToRebo {
     Start(String),
     Stop,
-    Config(Config),
     WorkingDir(String),
-}
-
-#[derive(Debug, PartialEq, Eq, Default)]
-pub struct Config {
-    forward: i32,
-    backward: i32,
-    left: i32,
-    right: i32,
-    jump: i32,
-    crouch: i32,
-    menu: i32,
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
-use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo, Config};
+use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo};
 use crate::native::AMyCharacter;
 
 mod rebo_init;
@@ -20,7 +20,6 @@ struct State {
     rebo_stream_tx: Sender<ReboToStream>,
     rebo_ue_tx: Sender<ReboToUe>,
     ue_rebo_rx: Receiver<UeToRebo>,
-    config: Config,
     working_dir: Option<String>,
     pressed_keys: HashSet<i32>,
     websocket: Option<Client<Box<dyn NetworkStream + Send>>>,
@@ -38,7 +37,6 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
             rebo_stream_tx,
             rebo_ue_tx,
             ue_rebo_rx,
-            config: Config::default(),
             working_dir: None,
             pressed_keys: HashSet::new(),
             websocket: None,
@@ -56,10 +54,6 @@ fn handle_rx() {
     let res = STATE.lock().unwrap().as_ref().unwrap().stream_rebo_rx.recv().unwrap();
     match res {
         StreamToRebo::Stop => {},
-        StreamToRebo::Config(config) => {
-            log!("Set config before running");
-            STATE.lock().unwrap().as_mut().unwrap().config = config;
-        },
         StreamToRebo::WorkingDir(dir) => {
             log!("Set working dir");
             STATE.lock().unwrap().as_mut().unwrap().working_dir = Some(dir);

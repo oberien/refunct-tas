@@ -35,8 +35,6 @@ $(BUILDDIR):
 .PHONY: scripts
 scripts: $(BUILDDIR)
 	bash -c 'cp tool/*.re $(BUILDDIR)'
-	cp tool/Config.toml $(BUILDDIR)
-	sed -i "s/'v'/'w'/; s/'i'/'s'/; s/'a'/'d'/; s/'u'/'a'/" $(BUILDDIR)/Config.toml
 
 .PHONY: clean
 clean:

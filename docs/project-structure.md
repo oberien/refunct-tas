@@ -53,7 +53,7 @@ deltatime to the according value.
 
 ## Tool
 
-The tool parses the config file `Config.toml`, injects the library into the game
+The tool injects the library into the game
 on Windows (must be done with `LD_PRELOAD` manually on Linux), reads the rebo script
 file (defaulting to `main.re` if none was passed) and sends it to the in-game lib.
 In the `config` mod we parse the config.

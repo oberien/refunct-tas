@@ -4,18 +4,18 @@ fn wait(mut frames: int) {
     Tas::move_mouse(wait_direction, wait_direction);
     wait_direction = wait_direction * -1;
     // all keys pressed to disable user input
-    Tas::press_key(Key::Forward);
-    Tas::press_key(Key::Backward);
-    Tas::press_key(Key::Left);
-    Tas::press_key(Key::Right);
+//    Tas::press_key(Key::Forward);
+//    Tas::press_key(Key::Backward);
+//    Tas::press_key(Key::Left);
+//    Tas::press_key(Key::Right);
     while frames > 1 {
         Tas::step();
         frames = frames - 1;
     }
-    Tas::release_key(Key::Forward);
-    Tas::release_key(Key::Backward);
-    Tas::release_key(Key::Left);
-    Tas::release_key(Key::Right);
+//    Tas::release_key(Key::Forward);
+//    Tas::release_key(Key::Backward);
+//    Tas::release_key(Key::Left);
+//    Tas::release_key(Key::Right);
     Tas::step();
 }
 fn tp_to(loc: Location) {

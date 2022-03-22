@@ -2,12 +2,12 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig};
+use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::{Request, Response};
-use crate::threads::{Config, ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
+use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -22,8 +22,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         }))
         .add_function(print)
         .add_function(step)
-        .add_function(press_key)
-        .add_function(release_key)
+        .add_function(load_settings)
+        .add_function(store_settings)
         .add_function(key_down)
         .add_function(key_up)
         .add_function(move_mouse)
@@ -56,7 +56,6 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(is_linux)
         .add_function(get_clipboard)
         .add_function(set_clipboard)
-        .add_external_type(Key)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -92,10 +91,6 @@ fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(),
         let result = STATE.lock().unwrap().as_ref().unwrap().stream_rebo_rx.try_recv();
         match result {
             Ok(res) => match res {
-                StreamToRebo::Config(cfg) => {
-                    log!("Set Config while running");
-                    STATE.lock().unwrap().as_mut().unwrap().config = cfg;
-                }
                 StreamToRebo::WorkingDir(_) => {
                     log!("Got WorkingDir, but can't set it during execution");
                     panic!()
@@ -433,7 +428,7 @@ enum Server {
     Remote,
 }
 
-#[rebo::function("Tas::connect_to_server")]
+#[rebo::function(raw("Tas::connect_to_server"))]
 fn connect_to_server(server: Server) {
     let address = match server {
         Server::Localhost => "ws://localhost:8080/ws",
@@ -454,7 +449,7 @@ fn connect_to_server(server: Server) {
 fn disconnect_from_server() {
     STATE.lock().unwrap().as_mut().unwrap().websocket.take();
 }
-#[rebo::function("Tas::join_multiplayer_room")]
+#[rebo::function(raw("Tas::join_multiplayer_room"))]
 fn join_multiplayer_room(room: String, loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
@@ -471,7 +466,7 @@ fn join_multiplayer_room(room: String, loc: Location) {
         state.websocket.take();
     }
 }
-#[rebo::function("Tas::move_on_server")]
+#[rebo::function(raw("Tas::move_on_server"))]
 fn move_on_server(loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
