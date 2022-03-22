@@ -63,7 +63,8 @@ pub enum ReboToUe {
     DrawLine(f32, f32, f32, f32, (f32, f32, f32, f32), f32),
     DrawText(String, (f32, f32, f32, f32), f32, f32, f32, bool),
     Resume,
-    SpawnAMyCharacter,
+    /// x, y, z, pitch, yaw, roll
+    SpawnAMyCharacter(f32, f32, f32, f32, f32, f32),
 }
 
 #[derive(Debug, PartialEq, Eq)]

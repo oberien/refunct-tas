@@ -89,7 +89,7 @@ fn handle(event: UeToRebo) {
             | evt @ ReboToUe::MoveMouse(..)
             | evt @ ReboToUe::DrawLine(..)
             | evt @ ReboToUe::DrawText(..)
-            | evt @ ReboToUe::SpawnAMyCharacter => {
+            | evt @ ReboToUe::SpawnAMyCharacter(..) => {
                 // Release STATE lock, as events can trigger a new game,
                 // which needs to acquire the lock.
                 drop(state);
@@ -111,8 +111,8 @@ fn handle(event: UeToRebo) {
                         AMyHud::draw_line(startx, starty, endx, endy, color, thickness),
                     ReboToUe::DrawText(text, color, x, y, scale, scale_position) =>
                         AMyHud::draw_text(text, color, x, y, scale, scale_position),
-                    ReboToUe::SpawnAMyCharacter => {
-                        let my_character = UWorld::spawn_amycharacter();
+                    ReboToUe::SpawnAMyCharacter(x, y, z, pitch, yaw, roll) => {
+                        let my_character = UWorld::spawn_amycharacter(x, y, z, pitch, yaw, roll);
                         STATE.get().ue_rebo_tx.send(UeToRebo::AMyCharacterSpawned(my_character)).unwrap();
                     },
                     _ => unreachable!()

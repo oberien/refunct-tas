@@ -395,8 +395,8 @@ fn project(vec: Vector) -> Vector {
     Vector { x, y, z }
 }
 #[rebo::function("Tas::spawn_pawn")]
-fn spawn_pawn() -> u32 {
-    STATE.lock().unwrap().as_mut().unwrap().rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter).unwrap();
+fn spawn_pawn(loc: Location, rot: Rotation) -> u32 {
+    STATE.lock().unwrap().as_mut().unwrap().rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter(loc.x, loc.y, loc.z, rot.pitch, rot.yaw, rot.roll)).unwrap();
     let spawned = STATE.lock().unwrap().as_mut().unwrap().ue_rebo_rx.recv().unwrap();
     let my_character = match spawned {
         UeToRebo::AMyCharacterSpawned(c) => c,

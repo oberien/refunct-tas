@@ -15,8 +15,8 @@ struct Pawn {
 }
 impl Pawn {
     fn spawn(loc: Location) -> Pawn {
-        let id = Tas::spawn_pawn();
-        Tas::move_pawn(id, loc);
+        let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
+        let id = Tas::spawn_pawn(loc, rot);
         Pawn {
             id: id,
             spawned_at_millis: current_time_millis(),

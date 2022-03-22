@@ -108,10 +108,10 @@ impl UWorld {
         }
     }
 
-    pub fn spawn_amycharacter() -> AMyCharacter {
+    pub fn spawn_amycharacter(x: f32, y: f32, z: f32, pitch: f32, yaw: f32, roll: f32) -> AMyCharacter {
         unsafe {
-            let location = FVector { x: -500.0, y: -1125.0, z: 90.0 };
-            let rotation = FRotator { pitch: 0.0, yaw: 0.0, roll: 0.0 };
+            let location = FVector { x, y, z };
+            let rotation = FRotator { pitch, yaw, roll };
             let spawn_parameters = FActorSpawnParameters::default();
             let ptr = Self::spawn_actor(
                 AMyCharacter::static_class(), &location, &rotation, &spawn_parameters,
