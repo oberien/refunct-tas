@@ -17,6 +17,9 @@ static NOOP_COMPONENT = Component {
 static mut CURRENT_COMPONENT = NOOP_COMPONENT;
 
 fn set_current_component(component: Component) {
+    if component == CURRENT_COMPONENT {
+        return;
+    }
     let on_component_exit = CURRENT_COMPONENT.on_component_exit;
     on_component_exit();
     CURRENT_COMPONENT = component;

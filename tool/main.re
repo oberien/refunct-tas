@@ -222,7 +222,6 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
             if input.len_utf8() == 0 {
                 return;
             }
-            multiplayer_connect();
             multiplayer_join_room(input);
             set_current_component(MULTIPLAYER_COMPONENT);
             leave_ui();

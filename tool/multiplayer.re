@@ -128,12 +128,15 @@ fn draw_player(name: string, loc: Location) {
 
 fn multiplayer_connect() {
     if MULTIPLAYER_STATE.connected {
-        return;
+        multiplayer_disconnect();
     }
     Tas::connect_to_server(Server::Remote);
     MULTIPLAYER_STATE.connected = true;
 }
 fn multiplayer_disconnect() {
+    if !MULTIPLAYER_STATE.connected {
+        return;
+    }
     Tas::disconnect_from_server();
     MULTIPLAYER_STATE.connected = false;
     MULTIPLAYER_STATE.current_room = Option::None;
@@ -148,9 +151,8 @@ fn multiplayer_disconnect() {
     MULTIPLAYER_STATE.players = Map::new();
 }
 fn multiplayer_join_room(room: string) {
-    if !MULTIPLAYER_STATE.connected {
-        return;
-    }
+    multiplayer_disconnect();
+    multiplayer_connect();
     let loc = Tas::get_location();
     Tas::join_multiplayer_room(room, SETTINGS.multiplayer_name, loc);
     MULTIPLAYER_STATE.current_room = Option::Some(room);
