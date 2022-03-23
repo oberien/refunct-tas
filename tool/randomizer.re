@@ -3,6 +3,7 @@ static RANDOMIZER_COMPONENT = Component {
     on_new_game: randomizer_new_game_function,
     on_level_change: randomizer_on_level_change_function,
     on_reset: randomizer_on_reset_function,
+    on_component_exit: fn() {},
 };
 
 enum Difficulty {

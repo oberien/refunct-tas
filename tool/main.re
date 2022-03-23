@@ -81,7 +81,7 @@ static PRACTICE_MENU = Ui::new("Practice:", {
         UiElement::Button(Button {
             label: Text { text: "Nothing" },
             onclick: fn(label: Text) {
-                CURRENT_COMPONENT = NOOP_COMPONENT;
+                set_current_component(NOOP_COMPONENT);
                 leave_ui();
             },
         }),
@@ -93,7 +93,7 @@ static PRACTICE_MENU = Ui::new("Practice:", {
                 for practice in PRACTICE_POINTS {
                     if practice.name == label.text {
                         CURRENT_PRACTICE = practice;
-                        CURRENT_COMPONENT = PRACTICE_COMPONENT;
+                        set_current_component(PRACTICE_COMPONENT);
                         break;
                     }
                 }
@@ -111,7 +111,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Disable" },
         onclick: fn(label: Text) {
-            CURRENT_COMPONENT = NOOP_COMPONENT;
+            set_current_component(NOOP_COMPONENT);
             leave_ui();
         },
     }),
@@ -144,7 +144,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         label: Text { text: "Random Seed" },
         onclick: fn(label: Text) {
             randomizer_random_seed(randomizer_convert_difficulty(RANDOMIZER_DIFFICULTY));
-            CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
+            set_current_component(RANDOMIZER_COMPONENT);
             leave_ui();
         },
     }),
@@ -156,7 +156,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                 Result::Err(msg) => RANDOMIZER_SET_SEED_LABEL.text = f"Set Seed ({msg})",
                 Result::Ok(seed) => {
                     randomizer_set_seed(seed, randomizer_convert_difficulty(RANDOMIZER_DIFFICULTY));
-                    CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
+                    set_current_component(RANDOMIZER_COMPONENT);
                     leave_ui();
                 },
             }
@@ -170,7 +170,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                 Result::Err(msg) => RANDOMIZER_SET_SEQUENCE_LABEL.text = f"Set Sequence ({msg})",
                 Result::Ok(seq) => {
                     randomizer_set_sequence(seq);
-                    CURRENT_COMPONENT = RANDOMIZER_COMPONENT;
+                    set_current_component(RANDOMIZER_COMPONENT);
                     leave_ui();
                 },
             }
@@ -192,19 +192,19 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Nothing" },
-        onclick: fn(label: Text) { CURRENT_COMPONENT = NOOP_COMPONENT; leave_ui(); },
+        onclick: fn(label: Text) { set_current_component(NOOP_COMPONENT); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "100%" },
-        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_100_PERCENT_COMPONENT; leave_ui(); },
+        onclick: fn(label: Text) { set_current_component(NEW_GAME_100_PERCENT_COMPONENT); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "All Buttons" },
-        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_ALL_BUTTONS_COMPONENT; leave_ui(); },
+        onclick: fn(label: Text) { set_current_component(NEW_GAME_ALL_BUTTONS_COMPONENT); leave_ui(); },
     }),
     UiElement::Button(Button {
         label: Text { text: "NGG" },
-        onclick: fn(label: Text) { CURRENT_COMPONENT = NEW_GAME_NGG_COMPONENT; leave_ui(); },
+        onclick: fn(label: Text) { set_current_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
     }),
 ));
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
@@ -224,15 +224,14 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
             }
             multiplayer_connect();
             multiplayer_join_room(input);
-            CURRENT_COMPONENT = MULTIPLAYER_COMPONENT;
+            set_current_component(MULTIPLAYER_COMPONENT);
             leave_ui();
         },
     }),
     UiElement::Button(Button {
         label: Text { text: "Disconnect" },
         onclick: fn(label: Text) {
-            multiplayer_disconnect();
-            CURRENT_COMPONENT = NOOP_COMPONENT;
+            set_current_component(NOOP_COMPONENT);
             leave_ui();
         },
     }),

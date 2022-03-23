@@ -71,6 +71,7 @@ static MULTIPLAYER_COMPONENT = Component {
     on_new_game: fn() {},
     on_level_change: fn(level: int) {},
     on_reset: fn(reset: int) {},
+    on_component_exit: fn() { multiplayer_disconnect(); },
 };
 
 fn draw_player(name: string, loc: Location) {
@@ -136,6 +137,14 @@ fn multiplayer_disconnect() {
     Tas::disconnect_from_server();
     MULTIPLAYER_STATE.connected = false;
     MULTIPLAYER_STATE.current_room = Option::None;
+    for player_id in MULTIPLAYER_STATE.players.keys() {
+        let player = MULTIPLAYER_STATE.players.remove(player_id).unwrap();
+        for pawn in player.pawns {
+            let loc = Location { x: 0., y: 0., z: -1000. };
+            Tas::move_pawn(pawn.id, loc);
+            Tas::destroy_pawn(pawn.id);
+        }
+    }
     MULTIPLAYER_STATE.players = Map::new();
 }
 fn multiplayer_join_room(room: string) {

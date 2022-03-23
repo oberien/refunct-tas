@@ -27,6 +27,7 @@ static PRACTICE_COMPONENT = Component {
     on_reset: fn(reset: int) {
         Tas::set_level(CURRENT_PRACTICE.button);
     },
+    on_component_exit: fn() {},
 };
 
 struct Practice {

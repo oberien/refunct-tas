@@ -10,6 +10,7 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     },
     on_level_change: fn(level: int) {},
     on_reset: fn(reset: int) {},
+    on_component_exit: fn() {},
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
@@ -24,6 +25,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     on_reset: fn(reset: int) {
         Tas::set_level(0);
     },
+    on_component_exit: fn() {},
 };
 static NEW_GAME_NGG_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
@@ -38,6 +40,7 @@ static NEW_GAME_NGG_COMPONENT = Component {
     on_reset: fn(reset: int) {
         Tas::set_level(1);
     },
+    on_component_exit: fn() {},
 };
 
 fn on_level_state_change(old: LevelState, new: LevelState) {
