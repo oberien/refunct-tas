@@ -5,9 +5,10 @@ use axum::extract::ws::{Message, WebSocket};
 use axum::response::{Html, IntoResponse};
 use axum::Router;
 use axum::routing::get;
-use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
-use tokio::sync::{Mutex, RwLock};
+use std::sync::{Mutex as StdMutex, RwLock as StdRwLock};
+use tokio::sync::Mutex as TokioMutex;
+use tokio::sync::mpsc::{self, Sender};
 use protocol::{PlayerId, Request, Response};
 
 struct State {
@@ -16,33 +17,36 @@ struct State {
 
 #[derive(Clone, Default)]
 struct MultiplayerRoom {
-    players: Arc<RwLock<HashMap<PlayerId, Arc<Mutex<Player>>>>>,
+    players: Arc<StdRwLock<HashMap<PlayerId, Arc<Player>>>>,
     name: String,
 }
 
 impl MultiplayerRoom {
-    async fn broadcast(&self, sender: PlayerId, message: &Response) {
-        let players: Vec<_> = self.players.read().await.iter().map(|(k, v)| (*k, Arc::clone(v))).collect();
-        for (id, player) in players {
-            if id == sender {
+    async fn broadcast(&self, sender: PlayerId, message: Response) {
+        let players = self.players.read().unwrap();
+        for (id, player) in players.iter() {
+            if *id == sender {
                 continue;
             }
-            player.lock().await.send(message).await;
+            player.send(message.clone());
         }
     }
 }
 
 struct Player {
     id: PlayerId,
+    data: StdMutex<PlayerData>,
+    sender: Sender<Response>,
+}
+struct PlayerData {
     name: String,
     x: f32,
     y: f32,
     z: f32,
-    sender: SplitSink<WebSocket, Message>,
 }
 impl Player {
-    async fn send(&mut self, message: &Response) {
-        let _ = self.sender.send(Message::Text(serde_json::to_string(&message).unwrap())).await;
+    fn send(&self, message: Response) {
+        let _ = self.sender.try_send(message);
     }
 }
 
@@ -51,7 +55,7 @@ async fn main() {
     console_subscriber::init();
     env_logger::init();
 
-    let state = Arc::new(Mutex::new(State {
+    let state = Arc::new(StdMutex::new(State {
         multiplayer_rooms: HashMap::new(),
     }));
 
@@ -71,15 +75,15 @@ async fn main() {
         .unwrap();
 }
 
-async fn hello_world(state: Arc<Mutex<State>>) -> Html<String> {
+async fn hello_world(state: Arc<StdMutex<State>>) -> Html<String> {
     let mut res = "<html><body>Rooms:<ul>".to_string();
-    let rooms: Vec<_> = state.lock().await.multiplayer_rooms.values().cloned().collect();
+    let rooms: Vec<_> = state.lock().unwrap().multiplayer_rooms.values().cloned().collect();
     for room in rooms {
-        let players: Vec<_> = room.players.read().await.values().cloned().collect();
+        let players = room.players.read().unwrap();
         res += &format!("<li>{} ({}):<ul>", room.name, players.len());
-        for player in players {
-            let player = player.lock().await;
-            res += &format!("<li>{}: {} {} {}", player.id.id(), player.x, player.y, player.z);
+        for player in players.values() {
+            let data = player.data.lock().unwrap();
+            res += &format!("<li>{}({}): {} {} {}", data.name, player.id.id(), data.x, data.y, data.z);
         }
         res += "</ul></li>";
     }
@@ -87,25 +91,39 @@ async fn hello_world(state: Arc<Mutex<State>>) -> Html<String> {
     Html(res)
 }
 
-async fn handle_socket_upgrade(ws: WebSocketUpgrade, state: Arc<Mutex<State>>) -> impl IntoResponse {
+async fn handle_socket_upgrade(ws: WebSocketUpgrade, state: Arc<StdMutex<State>>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| async { handle_socket(socket, state).await })
 }
 
-async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
-    let (sender, mut receiver) = socket.split();
+async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
+    let (mut wstx, mut wsrx) = socket.split();
+
+    // spawn writing task
+    let (sender, mut receiver) = mpsc::channel(1000);
+    tokio::spawn(async move {
+        loop {
+            match receiver.recv().await {
+                Some(msg) => {
+                    let _ = wstx.send(Message::Text(serde_json::to_string(&msg).unwrap())).await;
+                }
+                None => break,
+            }
+        }
+    });
+
     let mut sender = Some(sender);
 
     let player_id = PlayerId::next();
     log::info!("Player connected: {:?}", player_id);
-    let multiplayer_room: Mutex<Option<MultiplayerRoom>> = Mutex::new(None);
+    let multiplayer_room: TokioMutex<Option<MultiplayerRoom>> = TokioMutex::new(None);
 
     let remove_from_current_room = || async {
         if let Some(room) = multiplayer_room.lock().await.take() {
             log::debug!("Removed {player_id:?} from room {:?}", room.name);
-            let player = room.players.write().await.remove(&player_id);
+            let player = room.players.write().unwrap().remove(&player_id);
 
             if player.is_some() {
-                room.broadcast(player_id, &Response::PlayerLeftRoom(player_id)).await;
+                room.broadcast(player_id, Response::PlayerLeftRoom(player_id)).await;
             }
 
             player
@@ -118,7 +136,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
         log::info!("Player Disconnected: {player_id:?}");
     };
 
-    while let Some(msg) = receiver.next().await {
+    while let Some(msg) = wsrx.next().await {
         let msg = match msg {
             Ok(Message::Close(_)) | Err(_) => {
                 disconnect().await;
@@ -149,31 +167,37 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
                 let player = match remove_from_current_room().await {
                     Some(player) => {
                         {
-                            let mut player = player.lock().await;
-                            player.x = x;
-                            player.y = y;
-                            player.z = z;
-                            player.name = player_name.clone();
+                            let mut data = player.data.lock().unwrap();
+                            data.x = x;
+                            data.y = y;
+                            data.z = z;
+                            data.name = player_name.clone();
                         }
                         player
                     },
-                    None => Arc::new(Mutex::new(Player { id: player_id, name: player_name.clone(), x, y, z, sender: sender.take().unwrap() })),
+                    None => Arc::new(Player {
+                        id: player_id,
+                        data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z }),
+                        sender: sender.take().unwrap()
+                    }),
                 };
-                let room = state.lock().await.multiplayer_rooms.entry(room_name)
+                let room = state.lock().unwrap().multiplayer_rooms.entry(room_name)
                     .or_insert_with_key(|key| MultiplayerRoom { players: Default::default(), name: key.clone() })
                     .clone();
 
-                let players: Vec<_> = room.players.read().await.iter().map(|(k, v)| (*k, Arc::clone(v))).collect();
-                for (id, other_player) in players {
-                    let (x, y, z, name) = {
-                        let mut other_player = other_player.lock().await;
-                        other_player.send(&Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z)).await;
-                        (other_player.x, other_player.y, other_player.z, other_player.name.clone())
-                    };
-                    player.lock().await.send(&Response::PlayerJoinedRoom(id, name, x, y, z)).await;
+                {
+                    let players = room.players.read().unwrap();
+                    for (id, other_player) in &*players {
+                        let (x, y, z, name) = {
+                            let data = other_player.data.lock().unwrap();
+                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
+                            (data.x, data.y, data.z, data.name.clone())
+                        };
+                        player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
+                    }
                 }
 
-                room.players.write().await.insert(player_id, player);
+                room.players.write().unwrap().insert(player_id, player);
                 *multiplayer_room.lock().await = Some(room);
             }
             Request::MoveSelf(x, y, z) => {
@@ -186,13 +210,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
                     }
                 };
                 // update player's location
-                let player = room.players.write().await.get(&player_id).cloned();
+                let player = room.players.read().unwrap().get(&player_id).cloned();
                 match player {
                     Some(player) => {
-                        let mut player = player.lock().await;
-                        player.x = x;
-                        player.y = y;
-                        player.z = z;
+                        let mut data = player.data.lock().unwrap();
+                        data.x = x;
+                        data.y = y;
+                        data.z = z;
                     },
                     None => {
                         log::error!("Player {player_id:?} doesn't exist in room {:?}", room.name);
@@ -201,7 +225,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
                 };
 
                 // inform other player's about the new location
-                room.broadcast(player_id, &Response::MoveOther(player_id, x, y, z)).await;
+                room.broadcast(player_id, Response::MoveOther(player_id, x, y, z)).await;
             }
         }
     }
