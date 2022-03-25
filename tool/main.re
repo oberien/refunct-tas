@@ -68,6 +68,10 @@ static BASE_MENU = Ui::new("Menu:", List::of(
         onclick: fn(label: Text) { enter_ui(MULTIPLAYER_MENU); },
     }),
     UiElement::Button(Button {
+        label: Text { text: "Util" },
+        onclick: fn(label: Text) { enter_ui(UTIL_MENU); },
+    }),
+    UiElement::Button(Button {
         label: Text { text: "Settings" },
         onclick: fn(label: Text) { enter_ui(SETTINGS_MENU); },
     }),
@@ -237,6 +241,73 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Button(Button {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui(); },
+    }),
+));
+static UTIL_MENU = Ui::new("Util:", List::of(
+    UiElement::Input(Input {
+        label: Text { text: "Teleport absolute (x,y,z)" },
+        input: "",
+        onclick: fn(input: string) {
+            let xyz = input.split(",");
+            let x = match xyz.get(0) {
+                Option::Some(x) => match x.parse_int() {
+                    Result::Ok(x) => x.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let y = match xyz.get(1) {
+                Option::Some(y) => match y.parse_int() {
+                    Result::Ok(y) => y.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let z = match xyz.get(2) {
+                Option::Some(z) => match z.parse_int() {
+                    Result::Ok(z) => z.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let loc = Location { x: x, y: y, z: z };
+            Tas::set_location(loc);
+        }
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Teleport relative (x,y,z)" },
+        input: "",
+        onclick: fn(input: string) {
+            let xyz = input.split(",");
+            let x = match xyz.get(0) {
+                Option::Some(x) => match x.parse_int() {
+                    Result::Ok(x) => x.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let y = match xyz.get(1) {
+                Option::Some(y) => match y.parse_int() {
+                    Result::Ok(y) => y.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let z = match xyz.get(2) {
+                Option::Some(z) => match z.parse_int() {
+                    Result::Ok(z) => z.to_float(),
+                    Result::Err(e) => return,
+                },
+                Option::None => return,
+            };
+            let loc = Tas::get_location();
+            let loc = Location { x: loc.x + x, y: loc.y + y, z: loc.z + z };
+            Tas::set_location(loc);
+        }
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Back" },
+        onclick: fn(label: Text) { leave_ui() },
     }),
 ));
 static mut UI_SCALE_TEXT = Text { text: f"{SETTINGS.ui_scale}" };
