@@ -9,6 +9,7 @@ static PRACTICE_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
     },
+    tick: fn() {},
     on_new_game: fn() {
         let old_delta = Tas::get_delta();
         Tas::set_delta(Option::Some(1./2.));

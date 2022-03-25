@@ -281,8 +281,14 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
 
 enter_ui(START_MENU);
 
-while true {
-    Tas::wait_for_new_game();
-    let on_new_game = CURRENT_COMPONENT.on_new_game;
-    on_new_game();
+loop {
+    match Tas::step() {
+        Step::Tick => (),
+        Step::NewGame => {
+            let on_new_game = CURRENT_COMPONENT.on_new_game;
+            on_new_game();
+        },
+    }
+    let tick_function = CURRENT_COMPONENT.tick;
+    tick_function();
 }

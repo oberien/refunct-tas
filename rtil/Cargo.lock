@@ -1217,7 +1217,7 @@ dependencies = [
 [[package]]
 name = "rebo"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=7191ba48ac654af59e77eb5ea200a7c24fb1053f#7191ba48ac654af59e77eb5ea200a7c24fb1053f"
+source = "git+https://github.com/oberien/rebo?rev=b93fda9cd3c4d25e1b2d03dfe7e588f2f3651618#b93fda9cd3c4d25e1b2d03dfe7e588f2f3651618"
 dependencies = [
  "bitflags",
  "derive_more",
@@ -1249,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "rebo_derive"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=7191ba48ac654af59e77eb5ea200a7c24fb1053f#7191ba48ac654af59e77eb5ea200a7c24fb1053f"
+source = "git+https://github.com/oberien/rebo?rev=b93fda9cd3c4d25e1b2d03dfe7e588f2f3651618#b93fda9cd3c4d25e1b2d03dfe7e588f2f3651618"
 dependencies = [
  "itertools 0.10.3",
  "proc-macro-error",

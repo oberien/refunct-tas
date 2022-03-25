@@ -1,6 +1,7 @@
+use std::io::ErrorKind;
 use std::thread;
 use std::time::Duration;
-use websocket::{ClientBuilder, Message};
+use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 
 use protocol::Request;
 

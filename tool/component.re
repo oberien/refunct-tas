@@ -1,5 +1,6 @@
 struct Component {
     draw_hud: fn(string) -> string,
+    tick: fn(),
     on_new_game: fn(),
     on_level_change: fn(int),
     on_reset: fn(int),
@@ -8,6 +9,7 @@ struct Component {
 
 static NOOP_COMPONENT = Component {
     draw_hud: fn(text: string) -> string { text },
+    tick: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(level: int) {},
     on_reset: fn(reset: int) {},

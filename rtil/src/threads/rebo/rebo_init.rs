@@ -70,6 +70,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(DrawText)
         .add_external_type(LevelState)
         .add_external_type(Server)
+        .add_external_type(Step)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(draw_hud)
@@ -84,8 +85,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     cfg
 }
 
-pub enum Event {
-    Stopped,
+#[derive(rebo::ExternalType)]
+pub enum Step {
+    Tick,
     NewGame,
 }
 
@@ -125,10 +127,10 @@ fn print(..: _) {
 }
 
 #[rebo::function(raw("Tas::step"))]
-fn step() {
-    step_internal(vm)?;
+fn step() -> Step {
+    step_internal(vm)?
 }
-fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, ExecError<'a, 'i>> {
+fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, ExecError<'a, 'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let old_level_state = LevelState::get();
 
@@ -138,37 +140,33 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
 
     STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
     loop {
+        let mut to_be_returned = None;
+        // check UE-thread
         let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
         match res {
             e @ UeToRebo::Tick | e @ UeToRebo::NewGame => {
                 // call level-state event function
                 let new_level_state = LevelState::get();
                 if old_level_state != new_level_state {
-                    on_level_state_change(vm, old_level_state, new_level_state)?;
+                    on_level_state_change(vm, old_level_state.clone(), new_level_state)?;
                 }
-                return Ok(match e {
-                    UeToRebo::Tick => Event::Stopped,
-                    UeToRebo::NewGame => Event::NewGame,
-                    _ => unreachable!()
-                });
+                match e {
+                    UeToRebo::Tick => to_be_returned = Some(Step::Tick),
+                    UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
+                    _ => unreachable!(),
+                }
             },
             UeToRebo::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
             UeToRebo::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
             UeToRebo::DrawHud => draw_hud(vm)?,
             UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
         }
+
+        // check websocket
         loop {
-            // let mut state = STATE.lock().unwrap();
-            // if state.as_ref().unwrap().websocket.is_none() {
-            //     break;
-            // }
             if STATE.lock().unwrap().as_ref().unwrap().websocket.is_none() {
                 break;
             }
-            // let websocket = state.as_mut().unwrap().websocket.as_mut().unwrap();
-            // websocket.set_nonblocking(true).unwrap();
-            // let res = websocket.recv_message();
-            // websocket.set_nonblocking(false).unwrap();
             STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(true).unwrap();
             let res = STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().recv_message();
             STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(false).unwrap();
@@ -182,13 +180,18 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Event, Ex
                     break
                 },
             };
-            // drop(state);
             match response {
                 Response::PlayerJoinedRoom(id, name, x, y, z) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z})?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
             }
         }
+
+        match to_be_returned {
+            Some(ret) => return Ok(ret),
+            None => (),
+        }
+
         // We aren't actually advancing a frame, but just returning from the
         // key event or drawhud interceptor.
         STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
@@ -328,8 +331,8 @@ fn get_level_state() -> LevelState {
 fn wait_for_new_game() {
     loop {
         match step_internal(vm)? {
-            Event::Stopped => continue,
-            Event::NewGame => break,
+            Step::Tick => continue,
+            Step::NewGame => break,
         }
     }
 }

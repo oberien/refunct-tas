@@ -1,5 +1,6 @@
 static RANDOMIZER_COMPONENT = Component {
     draw_hud: randomizer_draw_hud,
+    tick: fn() {},
     on_new_game: randomizer_new_game_function,
     on_level_change: randomizer_on_level_change_function,
     on_reset: randomizer_on_reset_function,

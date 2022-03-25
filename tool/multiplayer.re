@@ -44,24 +44,20 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
 };
 
 static MULTIPLAYER_COMPONENT = Component {
+    tick: update_players,
     draw_hud: fn(text: string) -> string {
         if !MULTIPLAYER_STATE.connected {
             return text;
         }
 
-        static mut LAST_MILLIS = current_time_millis();
-
-        // only update ~30 times per second (capped at FPS as we are in draw_hud)
-        let current_millis = current_time_millis();
-        if current_millis - LAST_MILLIS > 33 {
-            // update server location
-            let loc = Tas::get_location();
-            Tas::move_on_server(loc);
-            LAST_MILLIS += 33;
+        // draw players
+        for player_id in MULTIPLAYER_STATE.players.keys() {
+            let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
+            draw_player(player.name, player.loc);
+//            for pawn in player.pawns {
+//                draw_player(player.name, Tas::pawn_location(pawn.id));
+//            }
         }
-
-        // draw pawns
-        update_and_render_players();
 
         match MULTIPLAYER_STATE.current_room {
             Option::None => f"{text}\nMultiplayer connected to server",
@@ -158,11 +154,21 @@ fn multiplayer_join_room(room: string) {
     MULTIPLAYER_STATE.current_room = Option::Some(room);
 }
 
-fn update_and_render_players() {
-    let current_time = current_time_millis();
+fn update_players() {
+    static mut LAST_MILLIS = current_time_millis();
+
+    // only update ~30 times per second (capped at FPS as we are in draw_hud)
+    let current_millis = current_time_millis();
+    if current_millis - LAST_MILLIS > 33 {
+        // update server location
+        let loc = Tas::get_location();
+        Tas::move_on_server(loc);
+        LAST_MILLIS += 33;
+    }
+
     for player_id in MULTIPLAYER_STATE.players.keys() {
         let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
-        draw_player(player.name, player.loc);
+
         let mut i = 0;
         while i < player.pawns.len() {
             // keep last pawn if player is alive
@@ -171,17 +177,17 @@ fn update_and_render_players() {
             }
 
             let mut pawn = player.pawns.get(i).unwrap();
-            if pawn.spawned_at_millis + 1000 < current_time {
+            if pawn.spawned_at_millis + 1000 < current_millis {
                 Tas::destroy_pawn(pawn.id);
                 player.pawns.swap_remove(i);
                 continue;
-            } else if !pawn.at_00 && pawn.spawned_at_millis + 125 < current_time {
+            } else if !pawn.at_00 && pawn.spawned_at_millis + 125 < current_millis {
                 pawn.at_00 = true;
-                let loc = Location { x: 0., y: 0., z: -1000. };
+                let x = Rng::gen_int_range(-5000, 5000);
+                let y = Rng::gen_int_range(-5000, 5000);
+                let loc = Location { x: x.to_float(), y: y.to_float(), z: -2000. };
                 Tas::move_pawn(pawn.id, loc);
             }
-
-//            draw_player(player.name, Tas::pawn_location(pawn.id));
 
             i += 1;
         }

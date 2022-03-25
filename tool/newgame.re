@@ -2,6 +2,7 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
     },
+    tick: fn() {},
     on_new_game: fn() {
         teleport_buttons(30);
         teleport_all_platforms();
@@ -16,6 +17,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: All Buttons"
     },
+    tick: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(level: int) {
         if level == 0 {
@@ -31,6 +33,7 @@ static NEW_GAME_NGG_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: NGG"
     },
+    tick: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(level: int) {
         if level == 0 {
