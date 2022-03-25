@@ -186,7 +186,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<Mutex<State>>) {
                     }
                 };
                 // update player's location
-                match room.players.write().await.get(&player_id).cloned() {
+                let player = room.players.write().await.get(&player_id).cloned();
+                match player {
                     Some(player) => {
                         let mut player = player.lock().await;
                         player.x = x;
