@@ -48,6 +48,7 @@ impl Player {
 
 #[tokio::main]
 async fn main() {
+    console_subscriber::init();
     env_logger::init();
 
     let state = Arc::new(Mutex::new(State {
