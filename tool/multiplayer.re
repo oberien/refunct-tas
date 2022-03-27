@@ -215,5 +215,5 @@ fn player_left_multiplayer_room(id: int) {
 fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
     player.loc = loc;
-    player.pawns.push(Pawn::spawn(loc));
+//    player.pawns.push(Pawn::spawn(loc));
 }

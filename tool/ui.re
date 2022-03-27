@@ -24,6 +24,7 @@ struct Input {
     label: Text,
     input: string,
     onclick: fn(string),
+    onchange: fn(string),
 }
 struct Text {
     text: string,
@@ -217,6 +218,8 @@ impl Input {
                 Option::None => (),
             }
         }
+        let onchange = self.onchange;
+        onchange(self.input);
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {

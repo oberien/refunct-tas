@@ -164,7 +164,8 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                     leave_ui();
                 },
             }
-        }
+        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Input(Input {
         label: RANDOMIZER_SET_SEQUENCE_LABEL,
@@ -178,7 +179,8 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
                     leave_ui();
                 },
             }
-        }
+        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Button(Button {
         label: Text { text: "Copy previous Seed to Clipboard" },
@@ -215,7 +217,8 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Name" },
         input: SETTINGS.multiplayer_name,
-        onclick: fn(input: string) {
+        onclick: fn(input: string) {},
+        onchange: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
         },
     }),
@@ -230,6 +233,7 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
             set_current_component(MULTIPLAYER_COMPONENT);
             leave_ui();
         },
+        onchange: fn(input: string) {},
     }),
     UiElement::Button(Button {
         label: Text { text: "Disconnect" },
@@ -272,7 +276,8 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             };
             let loc = Location { x: x, y: y, z: z };
             Tas::set_location(loc);
-        }
+        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Input(Input {
         label: Text { text: "Teleport relative (x,y,z)" },
@@ -303,7 +308,8 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             let loc = Tas::get_location();
             let loc = Location { x: loc.x + x, y: loc.y + y, z: loc.z + z };
             Tas::set_location(loc);
-        }
+        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },
