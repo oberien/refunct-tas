@@ -302,12 +302,7 @@ fn generate_sequence(difficulty: Difficulty) -> List<int> {
 fn randomizer_parse_seed(seed: string) -> Result<int, string> {
     match seed.parse_int() {
         Result::Ok(seed) => Result::Ok(seed),
-        Result::Err(err) => match err {
-            ParseIntError::Empty => Result::Err("empty seed"),
-            ParseIntError::TooLarge => Result::Err("seed too large"),
-            ParseIntError::TooSmall => Result::Err("seed too small"),
-            ParseIntError::InvalidDigit => Result::Err("seed is not a number"),
-        }
+        Result::Err(err) => Result::Err("invalid seed"),
     }
 }
 
