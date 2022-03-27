@@ -1,5 +1,10 @@
+enum Connection {
+    Connected,
+    Error(string),
+    Disconnected,
+}
 struct MultiplayerState {
-    connected: bool,
+    connection: Connection,
     current_room: Option<string>,
     players: Map<int, Player>,
 }
@@ -38,7 +43,7 @@ impl Pawn {
 }
 
 static mut MULTIPLAYER_STATE = MultiplayerState {
-    connected: false,
+    connection: Connection::Disconnected,
     current_room: Option::None,
     players: Map::new(),
 };
@@ -46,22 +51,24 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
 static MULTIPLAYER_COMPONENT = Component {
     tick: update_players,
     draw_hud: fn(text: string) -> string {
-        if !MULTIPLAYER_STATE.connected {
-            return text;
-        }
+        match MULTIPLAYER_STATE.connection {
+            Connection::Disconnected => return text,
+            Connection::Error(err_msg) => return f"{text}\nMultiplayer error: {err_msg}",
+            Connection::Connected => {
+                // draw players
+                for player_id in MULTIPLAYER_STATE.players.keys() {
+                    let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
+                    draw_player(player.name, player.loc);
+//                    for pawn in player.pawns {
+//                        draw_player(player.name, Tas::pawn_location(pawn.id));
+//                    }
+                }
 
-        // draw players
-        for player_id in MULTIPLAYER_STATE.players.keys() {
-            let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
-            draw_player(player.name, player.loc);
-//            for pawn in player.pawns {
-//                draw_player(player.name, Tas::pawn_location(pawn.id));
-//            }
-        }
-
-        match MULTIPLAYER_STATE.current_room {
-            Option::None => f"{text}\nMultiplayer connected to server",
-            Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
+                match MULTIPLAYER_STATE.current_room {
+                    Option::None => f"{text}\nMultiplayer connected to server",
+                    Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
+                }
+            }
         }
     },
     on_new_game: fn() {},
@@ -123,18 +130,18 @@ fn draw_player(name: string, loc: Location) {
 }
 
 fn multiplayer_connect() {
-    if MULTIPLAYER_STATE.connected {
+    if MULTIPLAYER_STATE.connection == Connection::Connected {
         multiplayer_disconnect();
     }
+    MULTIPLAYER_STATE.connection = Connection::Connected;
     Tas::connect_to_server(Server::Remote);
-    MULTIPLAYER_STATE.connected = true;
 }
 fn multiplayer_disconnect() {
-    if !MULTIPLAYER_STATE.connected {
+    if MULTIPLAYER_STATE.connection != Connection::Connected {
         return;
     }
     Tas::disconnect_from_server();
-    MULTIPLAYER_STATE.connected = false;
+    MULTIPLAYER_STATE.connection = Connection::Disconnected;
     MULTIPLAYER_STATE.current_room = Option::None;
     for player_id in MULTIPLAYER_STATE.players.keys() {
         let player = MULTIPLAYER_STATE.players.remove(player_id).unwrap();
@@ -216,4 +223,13 @@ fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
     player.loc = loc;
 //    player.pawns.push(Pawn::spawn(loc));
+}
+fn disconnected(reason: Disconnected) {
+    match reason {
+        Disconnected::Closed => MULTIPLAYER_STATE.connection = Connection::Error("Connection Closed"),
+        Disconnected::ManualDisconnect => (),
+        Disconnected::SendFailed => MULTIPLAYER_STATE.connection = Connection::Error("Send Failed"),
+        Disconnected::ConnectionRefused => MULTIPLAYER_STATE.connection = Connection::Error("Connection Refused"),
+        Disconnected::ReceiveFailed => MULTIPLAYER_STATE.connection = Connection::Error("Receive Failed"),
+    }
 }

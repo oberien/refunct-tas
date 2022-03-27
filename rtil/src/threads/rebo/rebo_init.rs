@@ -71,12 +71,14 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(LevelState)
         .add_external_type(Server)
         .add_external_type(Step)
+        .add_external_type(Disconnected)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(draw_hud)
         .add_required_rebo_function(player_joined_multiplayer_room)
         .add_required_rebo_function(player_left_multiplayer_room)
         .add_required_rebo_function(player_moved)
+        .add_required_rebo_function(disconnected)
         .add_required_rebo_function(on_level_state_change)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
@@ -89,6 +91,15 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
 pub enum Step {
     Tick,
     NewGame,
+}
+
+#[derive(rebo::ExternalType)]
+pub enum Disconnected {
+    Closed,
+    ManualDisconnect,
+    SendFailed,
+    ReceiveFailed,
+    ConnectionRefused,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -174,11 +185,16 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, Exe
                 Ok(OwnedMessage::Text(text)) => serde_json::from_str(&text).unwrap(),
                 Ok(OwnedMessage::Binary(_) | OwnedMessage::Ping(_) | OwnedMessage::Pong(_)) => continue,
                 Err(WebSocketError::IoError(io)) if io.kind() == ErrorKind::WouldBlock => break,
-                Ok(OwnedMessage::Close(_)) | Err(_) => {
-                    // drop(state.as_mut().unwrap().websocket.take());
+                Ok(OwnedMessage::Close(_)) => {
                     drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                    disconnected(vm, Disconnected::Closed)?;
                     break
                 },
+                Err(_) => {
+                    drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                    disconnected(vm, Disconnected::ReceiveFailed)?;
+                    break
+                }
             };
             match response {
                 Response::PlayerJoinedRoom(id, name, x, y, z) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z})?,
@@ -206,6 +222,7 @@ extern "rebo" {
     fn player_joined_multiplayer_room(id: u32, name: String, loc: Location);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location);
+    fn disconnected(reason: Disconnected);
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
 
@@ -440,15 +457,17 @@ fn connect_to_server(server: Server) {
         Ok(client) => client,
         Err(e) => {
             log!("couldn't connect to server: {e:?}");
+            disconnected(vm, Disconnected::ConnectionRefused)?;
             return Ok(Value::Unit)
         }
     };
     log!("connected to server");
     STATE.lock().unwrap().as_mut().unwrap().websocket = Some(client);
 }
-#[rebo::function("Tas::disconnect_from_server")]
+#[rebo::function(raw("Tas::disconnect_from_server"))]
 fn disconnect_from_server() {
     STATE.lock().unwrap().as_mut().unwrap().websocket.take();
+    disconnected(vm, Disconnected::ManualDisconnect)?;
 }
 #[rebo::function(raw("Tas::join_multiplayer_room"))]
 fn join_multiplayer_room(room: String, name: String, loc: Location) {
@@ -465,6 +484,7 @@ fn join_multiplayer_room(room: String, name: String, loc: Location) {
     if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
         log!("error sending join room request: {:?}", e);
         state.websocket.take();
+        disconnected(vm, Disconnected::SendFailed)?;
     }
 }
 #[rebo::function(raw("Tas::move_on_server"))]
@@ -482,6 +502,7 @@ fn move_on_server(loc: Location) {
     if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
         log!("error sending move request: {:?}", e);
         state.websocket.take();
+        disconnected(vm, Disconnected::SendFailed)?;
     }
 }
 #[rebo::function("Tas::set_level")]
