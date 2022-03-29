@@ -211,12 +211,28 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
         onclick: fn(label: Text) { set_current_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
     }),
 ));
+static mut MULTIPLAYER_ROLE = Role::Player;
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Name" },
         input: SETTINGS.multiplayer_name,
         onclick: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
+        },
+    }),
+    UiElement::Chooser(Chooser {
+        label: Text { text: "Role" },
+        options: List::of(
+            Text { text: "Player" },
+            Text { text: "Observer" },
+        ),
+        selected: 0,
+        onchange: fn(index: int) {
+            match index {
+                0 => MULTIPLAYER_ROLE = Role::Player,
+                1 => MULTIPLAYER_ROLE = Role::Observer,
+                _ => panic("unknown multiplayer role index {index}"),
+            }
         },
     }),
     UiElement::Input(Input {
@@ -226,7 +242,7 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
             if input.len_utf8() == 0 {
                 return;
             }
-            multiplayer_join_room(input);
+            multiplayer_join_room(input, MULTIPLAYER_ROLE);
             set_current_component(MULTIPLAYER_COMPONENT);
             leave_ui();
         },

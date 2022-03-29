@@ -1,7 +1,12 @@
 struct MultiplayerState {
     connected: bool,
+    role: Role,
     current_room: Option<string>,
     players: Map<int, Player>,
+}
+enum Role {
+    Player,
+    Observer,
 }
 struct Player {
     name: string,
@@ -39,6 +44,7 @@ impl Pawn {
 
 static mut MULTIPLAYER_STATE = MultiplayerState {
     connected: false,
+    role: Role::Player,
     current_room: Option::None,
     players: Map::new(),
 };
@@ -146,12 +152,20 @@ fn multiplayer_disconnect() {
     }
     MULTIPLAYER_STATE.players = Map::new();
 }
-fn multiplayer_join_room(room: string) {
+fn multiplayer_join_room(room: string, role: Role) {
     multiplayer_disconnect();
     multiplayer_connect();
-    let loc = Tas::get_location();
-    Tas::join_multiplayer_room(room, SETTINGS.multiplayer_name, loc);
+    let loc = match role {
+        Role::Player => Tas::get_location(),
+        Role::Observer => Location { x: 0., y: 0., z: -5000. },
+    };
+    let name = match role {
+        Role::Player => SETTINGS.multiplayer_name,
+        Role::Observer => f"[OBSERVER] {SETTINGS.multiplayer_name}",
+    };
+    Tas::join_multiplayer_room(room, name, loc);
     MULTIPLAYER_STATE.current_room = Option::Some(room);
+    MULTIPLAYER_STATE.role = role;
 }
 
 fn update_players() {
@@ -159,11 +173,17 @@ fn update_players() {
 
     // only update ~30 times per second (capped at FPS as we are in draw_hud)
     let current_millis = current_time_millis();
-    if current_millis - LAST_MILLIS > 33 {
-        // update server location
-        let loc = Tas::get_location();
-        Tas::move_on_server(loc);
-        LAST_MILLIS += 33;
+    match MULTIPLAYER_STATE.role {
+        Role::Player => if current_millis - LAST_MILLIS > 33 {
+            // update server location
+            let loc = Tas::get_location();
+            Tas::move_on_server(loc);
+            LAST_MILLIS += 33;
+        },
+        Role::Observer => {
+            Tas::set_location(Location { x: 0., y: 0., z: 10000. });
+            Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
+        }
     }
 
     for player_id in MULTIPLAYER_STATE.players.keys() {
@@ -183,8 +203,8 @@ fn update_players() {
                 continue;
             } else if !pawn.at_00 && pawn.spawned_at_millis + 125 < current_millis {
                 pawn.at_00 = true;
-                let x = Rng::gen_int_range(-5000, 5000);
-                let y = Rng::gen_int_range(-5000, 5000);
+                let x = Rng::gen_int_range(-20000, 20000);
+                let y = Rng::gen_int_range(10000, 40000);
                 let loc = Location { x: x.to_float(), y: y.to_float(), z: -2000. };
                 Tas::move_pawn(pawn.id, loc);
             }
