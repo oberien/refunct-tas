@@ -5,7 +5,7 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     tick: fn() {},
     on_new_game: fn() {
         teleport_buttons(30);
-        teleport_all_platforms();
+        trigger_all_platforms();
         teleport_all_cubes();
         teleport_exact(30);
     },
