@@ -254,22 +254,22 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(input: string) {
             let xyz = input.split(",");
             let x = match xyz.get(0) {
-                Option::Some(x) => match x.parse_int() {
-                    Result::Ok(x) => x.to_float(),
+                Option::Some(x) => match x.parse_float() {
+                    Result::Ok(x) => x,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
             };
             let y = match xyz.get(1) {
-                Option::Some(y) => match y.parse_int() {
-                    Result::Ok(y) => y.to_float(),
+                Option::Some(y) => match y.parse_float() {
+                    Result::Ok(y) => y,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
             };
             let z = match xyz.get(2) {
-                Option::Some(z) => match z.parse_int() {
-                    Result::Ok(z) => z.to_float(),
+                Option::Some(z) => match z.parse_float() {
+                    Result::Ok(z) => z,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
@@ -280,36 +280,48 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onchange: fn(input: string) {},
     }),
     UiElement::Input(Input {
-        label: Text { text: "Teleport relative (x,y,z)" },
+        label: Text { text: "Spawn Pawn (x,y,z)" },
         input: "",
         onclick: fn(input: string) {
+            static mut UTIL_PAWNS = List::new();
             let xyz = input.split(",");
             let x = match xyz.get(0) {
-                Option::Some(x) => match x.parse_int() {
-                    Result::Ok(x) => x.to_float(),
+                Option::Some(x) => match x.parse_float() {
+                    Result::Ok(x) => x,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
             };
             let y = match xyz.get(1) {
-                Option::Some(y) => match y.parse_int() {
-                    Result::Ok(y) => y.to_float(),
+                Option::Some(y) => match y.parse_float() {
+                    Result::Ok(y) => y,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
             };
             let z = match xyz.get(2) {
-                Option::Some(z) => match z.parse_int() {
-                    Result::Ok(z) => z.to_float(),
+                Option::Some(z) => match z.parse_float() {
+                    Result::Ok(z) => z,
                     Result::Err(e) => return,
                 },
                 Option::None => return,
             };
-            let loc = Tas::get_location();
-            let loc = Location { x: loc.x + x, y: loc.y + y, z: loc.z + z };
-            Tas::set_location(loc);
+            let id = Tas::spawn_pawn(Location { x: 0., y: 0., z: 0. }, Rotation { pitch: 0., yaw: 0., roll: 0. });
+            Tas::move_pawn(id, Location { x: x, y: y, z: z });
+            UTIL_PAWNS.push(id);
         },
         onchange: fn(input: string) {},
+    }),
+    UiElement::Button(Button {
+        label: Text { text: "Delete all pawns" },
+        onclick: fn(label: Text) {
+            loop {
+                match UTIL_PAWNS.swap_remove(0) {
+                    Option::Some(id) => Tas::destroy_pawn(id),
+                    Option::None => break,
+                }
+            }
+        }
     }),
     UiElement::Button(Button {
         label: Text { text: "Back" },
