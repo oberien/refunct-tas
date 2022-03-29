@@ -4,6 +4,8 @@ static RANDOMIZER_COMPONENT = Component {
     on_new_game: randomizer_new_game_function,
     on_level_change: randomizer_on_level_change_function,
     on_reset: randomizer_on_reset_function,
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
 };
 
@@ -205,13 +207,13 @@ fn next_level() {
     }
     RANDOMIZER_STATE.seq_index += 1;
 }
-fn randomizer_on_level_change_function(level: int) {
-    if level <= 0 {
+fn randomizer_on_level_change_function(old: int, new: int) {
+    if new <= 0 {
         return;
     }
     next_level();
 }
-fn randomizer_on_reset_function(reset: int) {
+fn randomizer_on_reset_function(old: int, new: int) {
     RANDOMIZER_STATE.seq_index = 1;
     next_level();
 }

@@ -20,14 +20,16 @@ static PRACTICE_COMPONENT = Component {
         Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
         Tas::set_delta(old_delta);
     },
-    on_level_change: fn(level: int) {
-        if level == 0 {
+    on_level_change: fn(old: int, new: int) {
+        if new == 0 {
             Tas::set_level(CURRENT_PRACTICE.button);
         }
     },
-    on_reset: fn(reset: int) {
+    on_reset: fn(old: int, new: int) {
         Tas::set_level(CURRENT_PRACTICE.button);
     },
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
 };
 

@@ -9,8 +9,10 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
         teleport_all_cubes();
         teleport_exact(30);
     },
-    on_level_change: fn(level: int) {},
-    on_reset: fn(reset: int) {},
+    on_level_change: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
@@ -19,14 +21,16 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     },
     tick: fn() {},
     on_new_game: fn() {},
-    on_level_change: fn(level: int) {
-        if level == 0 {
+    on_level_change: fn(old: int, new: int) {
+        if new == 0 {
             Tas::set_level(29);
         }
     },
-    on_reset: fn(reset: int) {
+    on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
 };
 static NEW_GAME_NGG_COMPONENT = Component {
@@ -35,14 +39,16 @@ static NEW_GAME_NGG_COMPONENT = Component {
     },
     tick: fn() {},
     on_new_game: fn() {},
-    on_level_change: fn(level: int) {
-        if level == 0 {
+    on_level_change: fn(old: int, new: int) {
+        if new == 0 {
             Tas::set_level(1);
         }
     },
-    on_reset: fn(reset: int) {
+    on_reset: fn(old: int, new: int) {
         Tas::set_level(1);
     },
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
 };
 
@@ -99,11 +105,19 @@ fn on_level_state_change(old: LevelState, new: LevelState) {
         || old.resets < new.resets && new.level == 0
     {
         let on_level_change = CURRENT_COMPONENT.on_level_change;
-        on_level_change(new.level);
+        on_level_change(old.level, new.level);
     }
     if old.resets != new.resets {
         let on_reset = CURRENT_COMPONENT.on_reset;
-        on_reset(new.resets);
+        on_reset(old.resets, new.resets);
+    }
+    if old.platforms != new.platforms {
+        let on_platforms_change = CURRENT_COMPONENT.on_platforms_change;
+        on_platforms_change(old.platforms, new.platforms);
+    }
+    if old.buttons != new.buttons {
+        let on_buttons_change = CURRENT_COMPONENT.on_buttons_change;
+        on_buttons_change(old.buttons, new.buttons);
     }
 }
 

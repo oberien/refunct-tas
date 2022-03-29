@@ -72,8 +72,10 @@ static MULTIPLAYER_COMPONENT = Component {
         }
     },
     on_new_game: fn() {},
-    on_level_change: fn(level: int) {},
-    on_reset: fn(reset: int) {},
+    on_level_change: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() { multiplayer_disconnect(); },
 };
 
