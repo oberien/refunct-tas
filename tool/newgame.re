@@ -11,14 +11,14 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
         wait(9);
         Tas::set_delta(delta);
 
-//        trigger_all_platforms();
-//        trigger_all_buttons_up_to(36);
-//        teleport_all_cubes();
+        trigger_all_platforms();
+        trigger_all_buttons_up_to(36);
+        teleport_all_cubes();
         teleport_exact(30);
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
-        Tas::set_level(30);
+        Tas::set_level(0);
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},

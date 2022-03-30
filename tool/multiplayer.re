@@ -198,7 +198,7 @@ fn multiplayer_connect() {
     let level_state = Tas::get_level_state();
     MULTIPLAYER_STATE.current_platforms = level_state.platforms;
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
-    Tas::connect_to_server(Server::Localhost);
+    Tas::connect_to_server(Server::Testing);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
