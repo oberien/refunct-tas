@@ -54,6 +54,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(disconnect_from_server)
         .add_function(join_multiplayer_room)
         .add_function(move_on_server)
+        .add_function(press_platform_on_server)
+        .add_function(press_button_on_server)
         .add_function(set_level)
         .add_function(is_windows)
         .add_function(is_linux)
@@ -78,6 +80,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(player_joined_multiplayer_room)
         .add_required_rebo_function(player_left_multiplayer_room)
         .add_required_rebo_function(player_moved)
+        .add_required_rebo_function(platform_pressed)
+        .add_required_rebo_function(button_pressed)
         .add_required_rebo_function(disconnected)
         .add_required_rebo_function(on_level_state_change)
     ;
@@ -200,6 +204,8 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, Exe
                 Response::PlayerJoinedRoom(id, name, x, y, z) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z})?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
+                Response::PressPlatform(id) => platform_pressed(vm, id)?,
+                Response::PressButton(id) => button_pressed(vm, id)?,
             }
         }
 
@@ -222,6 +228,8 @@ extern "rebo" {
     fn player_joined_multiplayer_room(id: u32, name: String, loc: Location);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location);
+    fn platform_pressed(id: u8);
+    fn button_pressed(id: u8);
     fn disconnected(reason: Disconnected);
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
@@ -444,6 +452,7 @@ fn pawn_location(pawn_id: u32) -> Location {
 enum Server {
     Localhost,
     Remote,
+    Testing,
 }
 
 #[rebo::function(raw("Tas::connect_to_server"))]
@@ -451,6 +460,7 @@ fn connect_to_server(server: Server) {
     let address = match server {
         Server::Localhost => "ws://localhost:8080/ws",
         Server::Remote => "wss://refunct-tas.oberien.de/ws",
+        Server::Testing => "wss://refunct-tas-test.oberien.de/ws",
     };
     let client = ClientBuilder::new(address).unwrap().connect(None);
     let client = match client {
@@ -469,41 +479,38 @@ fn disconnect_from_server() {
     STATE.lock().unwrap().as_mut().unwrap().websocket.take();
     disconnected(vm, Disconnected::ManualDisconnect)?;
 }
-#[rebo::function(raw("Tas::join_multiplayer_room"))]
-fn join_multiplayer_room(room: String, name: String, loc: Location) {
+fn send_to_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, desc: &str, request: Request) -> Result<(), ExecError<'a, 'i>> {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     if state.websocket.is_none() {
-        log!("called join room without active websocket session");
+        log!("called {desc} without active websocket session");
         // TODO: error propagation?
-        return Ok(Value::Unit);
+        return Ok(());
     }
-    let msg = Request::JoinRoom(room, name, loc.x, loc.y, loc.z);
-    let msg = serde_json::to_string(&msg).unwrap();
+    let msg = serde_json::to_string(&request).unwrap();
     let msg = Message::text(msg);
     if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
-        log!("error sending join room request: {:?}", e);
+        log!("error sending {desc} request: {e:?}");
         state.websocket.take();
         disconnected(vm, Disconnected::SendFailed)?;
     }
+    Ok(())
+}
+#[rebo::function(raw("Tas::join_multiplayer_room"))]
+fn join_multiplayer_room(room: String, name: String, loc: Location) {
+    send_to_server(vm, "join room", Request::JoinRoom(room, name, loc.x, loc.y, loc.z))?;
 }
 #[rebo::function(raw("Tas::move_on_server"))]
 fn move_on_server(loc: Location) {
-    let mut state = STATE.lock().unwrap();
-    let state = state.as_mut().unwrap();
-    if state.websocket.is_none() {
-        log!("called move without active websocket session");
-        // TODO: error propagation?
-        return Ok(Value::Unit);
-    }
-    let msg = Request::MoveSelf(loc.x, loc.y, loc.z);
-    let msg = serde_json::to_string(&msg).unwrap();
-    let msg = Message::text(msg);
-    if let Err(e) = state.websocket.as_mut().unwrap().send_message(&msg) {
-        log!("error sending move request: {:?}", e);
-        state.websocket.take();
-        disconnected(vm, Disconnected::SendFailed)?;
-    }
+    send_to_server(vm, "move", Request::MoveSelf(loc.x, loc.y, loc.z))?;
+}
+#[rebo::function(raw("Tas::press_platform_on_server"))]
+fn press_platform_on_server(platform_id: u8) {
+    send_to_server(vm, "press platform", Request::PressPlatform(platform_id))?;
+}
+#[rebo::function(raw("Tas::press_button_on_server"))]
+fn press_button_on_server(button_id: u8) {
+    send_to_server(vm, "press button", Request::PressButton(button_id))?;
 }
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {

@@ -227,6 +227,30 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 // inform other player's about the new location
                 room.broadcast(player_id, Response::MoveOther(player_id, x, y, z)).await;
             }
+            Request::PressPlatform(id) => {
+                let lock = multiplayer_room.lock().await;
+                let room = match lock.as_ref() {
+                    Some(name) => name,
+                    None => {
+                        log::warn!("Player {player_id:?} tried to press platform {id} without being in a room");
+                        continue
+                    }
+                };
+                // inform other player's about the new location
+                room.broadcast(player_id, Response::PressPlatform(id)).await;
+            }
+            Request::PressButton(id) => {
+                let lock = multiplayer_room.lock().await;
+                let room = match lock.as_ref() {
+                    Some(name) => name,
+                    None => {
+                        log::warn!("Player {player_id:?} tried to press button {id} without being in a room");
+                        continue
+                    }
+                };
+                // inform other player's about the new location
+                room.broadcast(player_id, Response::PressButton(id)).await;
+            }
         }
     }
 }

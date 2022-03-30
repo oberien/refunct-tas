@@ -43,36 +43,39 @@ fn teleport_all_cubes() {
     }
     Tas::set_delta(delta);
 }
+fn platform_pawn_spawn_location(platform: Platform) -> Location {
+    let mut x = platform.loc.x;
+    let mut y = platform.loc.y;
+    let z = platform.loc.z + platform.size.z;
+    if x == -3750. && y == -875. && z == 0. {
+        // platform 39 with pipe above the middle
+        y = -1150.;
+    } else if x == 625. && y == 2500. && z == 0. {
+        // platform 96 with offset thick block in it
+        x = 900.;
+    } else if x == -250. && y == 1500. && z == -50. {
+        // platform 99 with other thick block in the middle
+        x = -625.;
+    } else if x == 375. && y == 3875. && z == 375. {
+        // platform 161 with spring in the middle
+        x = 600.;
+    } else if x == -4750. && y == 750. && z == 0. {
+        // platform 210 with other tall block in the middle
+        x = -4550.;
+    } else if x == 2625. && y == -2250. && z == 1250.2 {
+        // platform 248 with last button on top; trigger platform but not button
+        x = 2500.;
+        y = -2375.;
+    }
+    Location { x: x, y: y, z: z + 89.15 }
+}
 fn trigger_all_platforms() {
     let mut pawns = List::new();
     for platform in PLATFORMS {
-        let mut x = platform.loc.x;
-        let mut y = platform.loc.y;
-        let z = platform.loc.z + platform.size.z;
-        if x == -3750. && y == -875. && z == 0. {
-            // platform 39 with pipe above the middle
-            y = -1150.;
-        } else if x == 625. && y == 2500. && z == 0. {
-            // platform 96 with offset thick block in it
-            x = 900.;
-        } else if x == -250. && y == 1500. && z == -50. {
-            // platform 99 with other thick block in the middle
-            x = -625.;
-        } else if x == 375. && y == 3875. && z == 375. {
-            // platform 161 with spring in the middle
-            x = 600.;
-        } else if x == -4750. && y == 750. && z == 0. {
-            // platform 210 with other tall block in the middle
-            x = -4550.;
-        } else if x == 2625. && y == -2250. && z == 1250.2 {
-            // platform 248 with last button on top; trigger platform but not button
-            x = 2500.;
-            y = -2375.;
-        }
         let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
         let id = Tas::spawn_pawn(Location { x: 0., y: 0., z: 5000. }, rot);
+        Tas::move_pawn(id, platform_pawn_spawn_location(platform));
         pawns.push(id);
-        Tas::move_pawn(id, Location { x: x, y: y, z: z + 89.15 });
     }
     let delta = Tas::get_delta();
     Tas::set_delta(Option::Some(1./60.));
@@ -85,7 +88,7 @@ fn trigger_all_platforms() {
 fn teleport_exact(index: int) {
     let delta = Tas::get_delta();
     Tas::set_delta(Option::Some(1./60.));
-    let b = BUTTONS.get(index).unwrap();
+    let b = BUTTONS_TELEPORT.get(index).unwrap();
     match b {
         TpButton::Simple(b) => button(b.loc, b.frames),
         TpButton::Two(first, b) => {
@@ -112,7 +115,7 @@ fn teleport_all_buttons_up_to(up_to: int) {
 
     let mut i = 0;
     while i < up_to {
-        let b = BUTTONS.get(i).unwrap();
+        let b = BUTTONS_TELEPORT.get(i).unwrap();
         match b {
             TpButton::Simple(b) => {
                 Tas::set_location(b.loc);
@@ -481,35 +484,74 @@ struct ButtonLoc {
     frames: int,
 }
 static BUTTONS = List::of(
-    TpButton::Simple(ButtonLoc { loc: Location { x: -1000., y: -1000., z: 732. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -2000., y: 0., z: 857. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 2125., y: -250., z: 1107. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -2725., y: -875., z: 193. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -5000., y: -875., z: 857. }, frames: 6 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -3250., y: -2250., z: 1607. }, frames: 8 }),
-    TpButton::Two(Location { x: -4625., y: -3000., z: 107. }, ButtonLoc { loc: Location { x: -4625., y: -3625., z: 107. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -2750., y: -3750., z: 1607. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -625., y: -3375., z: 1607. }, frames: 8 }),
-    TpButton::Two(Location { x: -25., y: -2375., z: 107. }, ButtonLoc { loc: Location { x: 2000., y: -2375., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 1875., y: 975., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 2375., y: -500., z: 107. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 600., y: 2625., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -875., y: 2500., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -375., y: 1625., z: 732. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -2750., y: 1500., z: 857. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -1875., y: 1125., z: 1107. }, frames: 7 }),
-    TpButton::Two(Location { x: -5125., y: -1750., z: 107. }, ButtonLoc { loc: Location { x: -4250., y: -4000., z: 1607. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 2000., y: -3875., z: 1232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 4250., y: -2125., z: 1107. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 2750., y: -4100., z: 68. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 3000., y: -1000., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 2500., y: 2250., z: 607. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 375., y: 4750., z: 1357. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 4512.5, y: 4625., z: 232. }, frames: 8 }),
-    TpButton::Three(Location { x: 3125., y: 6120., z: 232. }, Location { x: 1375., y: 6500., z: 232. }, ButtonLoc { loc: Location { x: -875., y: 5625., z: 232. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: -1375., y: 3000., z: 982. }, frames: 6 }),
-    TpButton::Two(Location { x: -4875., y: 1750., z: 1357. }, ButtonLoc { loc: Location { x: -5250., y: -250., z: 1357. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 4887.5, y: 2500., z: 607. }, frames: 8 }),
-    TpButton::Simple(ButtonLoc { loc: Location { x: 3750., y: -500., z: 318. }, frames: 7 }),
-    TpButton::Final(Location { x: 2625., y: -2250., z: 1357. }),
+    Location { x: -1000., y: -1000., z: 732. },
+    Location { x: -2000., y: 0., z: 857. },
+    Location { x: 2125., y: -250., z: 1107. },
+    Location { x: -2725., y: -875., z: 193. },
+    Location { x: -5000., y: -875., z: 857. },
+    Location { x: -3250., y: -2250., z: 1607. },
+    Location { x: -4625., y: -3000., z: 107. },
+    Location { x: -4625., y: -3625., z: 107. },
+    Location { x: -2750., y: -3750., z: 1607. },
+    Location { x: -625., y: -3375., z: 1607. },
+    Location { x: -25., y: -2375., z: 107. },
+    Location { x: 2000., y: -2375., z: 232. },
+    Location { x: 1875., y: 975., z: 232. },
+    Location { x: 2375., y: -500., z: 107. },
+    Location { x: 600., y: 2625., z: 232. },
+    Location { x: -875., y: 2500., z: 232. },
+    Location { x: -375., y: 1625., z: 732. },
+    Location { x: -2750., y: 1500., z: 857. },
+    Location { x: -1875., y: 1125., z: 1107. },
+    Location { x: -5125., y: -1750., z: 107. },
+    Location { x: -4250., y: -4000., z: 1607. },
+    Location { x: 2000., y: -3875., z: 1232. },
+    Location { x: 4250., y: -2125., z: 1107. },
+    Location { x: 2750., y: -4100., z: 68. },
+    Location { x: 3000., y: -1000., z: 232. },
+    Location { x: 2500., y: 2250., z: 607. },
+    Location { x: 375., y: 4750., z: 1357. },
+    Location { x: 4512.5, y: 4625., z: 232. },
+    Location { x: 3125., y: 6120., z: 232. },
+    Location { x: 1375., y: 6500., z: 232. },
+    Location { x: -875., y: 5625., z: 232. },
+    Location { x: -1375., y: 3000., z: 982. },
+    Location { x: -4875., y: 1750., z: 1357. },
+    Location { x: -5250., y: -250., z: 1357. },
+    Location { x: 4887.5, y: 2500., z: 607. },
+    Location { x: 3750., y: -500., z: 318. },
+    Location { x: 2625., y: -2250., z: 1357. },
+);
+static BUTTONS_TELEPORT = List::of(
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(0).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(1).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(2).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(3).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(4).unwrap(), frames: 6 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(5).unwrap(), frames: 8 }),
+    TpButton::Two(BUTTONS.get(6).unwrap(), ButtonLoc { loc: BUTTONS.get(7).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(8).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(9).unwrap(), frames: 8 }),
+    TpButton::Two(BUTTONS.get(10).unwrap(), ButtonLoc { loc: BUTTONS.get(11).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(12).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(13).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(14).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(15).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(16).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(17).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(18).unwrap(), frames: 7 }),
+    TpButton::Two(BUTTONS.get(19).unwrap(), ButtonLoc { loc: BUTTONS.get(20).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(21).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(22).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(23).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(24).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(25).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(26).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(27).unwrap(), frames: 8 }),
+    TpButton::Three(BUTTONS.get(28).unwrap(), BUTTONS.get(29).unwrap(), ButtonLoc { loc: BUTTONS.get(30).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(31).unwrap(), frames: 6 }),
+    TpButton::Two(BUTTONS.get(32).unwrap(), ButtonLoc { loc: BUTTONS.get(33).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(34).unwrap(), frames: 8 }),
+    TpButton::Simple(ButtonLoc { loc: BUTTONS.get(35).unwrap(), frames: 7 }),
+    TpButton::Final(BUTTONS.get(36).unwrap()),
 );

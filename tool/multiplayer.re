@@ -7,17 +7,17 @@ struct MultiplayerState {
     connection: Connection,
     current_room: Option<string>,
     players: Map<int, Player>,
+    pawns: List<Pawn>,
+    current_platforms: int,
+    current_buttons: int,
 }
 struct Player {
     name: string,
-    alive: bool,
     loc: Location,
-    pawns: List<Pawn>,
 }
 struct Pawn {
     id: int,
-    spawned_at_millis: int,
-    at_00: bool,
+    spawned_at: int,
 }
 impl Pawn {
     fn spawn(loc: Location) -> Pawn {
@@ -36,8 +36,7 @@ impl Pawn {
         Tas::move_pawn(id, loc);
         Pawn {
             id: id,
-            spawned_at_millis: current_time_millis(),
-            at_00: false,
+            spawned_at: current_time_millis(),
         }
     }
 }
@@ -46,6 +45,9 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     connection: Connection::Disconnected,
     current_room: Option::None,
     players: Map::new(),
+    pawns: List::new(),
+    current_platforms: 0,
+    current_buttons: 0,
 };
 
 static MULTIPLAYER_COMPONENT = Component {
@@ -59,9 +61,9 @@ static MULTIPLAYER_COMPONENT = Component {
                 for player_id in MULTIPLAYER_STATE.players.keys() {
                     let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
                     draw_player(player.name, player.loc);
-//                    for pawn in player.pawns {
-//                        draw_player(player.name, Tas::pawn_location(pawn.id));
-//                    }
+                }
+                for pawn in MULTIPLAYER_STATE.pawns {
+                    draw_player("pawn", Tas::pawn_location(pawn.id));
                 }
 
                 match MULTIPLAYER_STATE.current_room {
@@ -74,8 +76,65 @@ static MULTIPLAYER_COMPONENT = Component {
     on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {
+        if old > new {
+            MULTIPLAYER_STATE.current_platforms = new;
+            return;
+        }
+        if MULTIPLAYER_STATE.current_platforms >= new {
+            return;
+        }
+        MULTIPLAYER_STATE.current_platforms = new;
+
+        let player = Tas::get_location();
+        let mut min_distance = 999999.;
+        let mut platform_num = 0;
+        let mut i = 0;
+        for platform in PLATFORMS {
+            let x1 = platform.loc.x - platform.size.x;
+            let x2 = platform.loc.x + platform.size.x;
+            let dx = float::max(x1 - player.x, 0., player.x - x2);
+            let y1 = platform.loc.y - platform.size.y;
+            let y2 = platform.loc.y + platform.size.y;
+            let dy = float::max(y1 - player.y, 0., player.y - y2);
+            let z = platform.loc.z + platform.size.z + 89.15;
+            let dz = z - player.z;
+            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
+            if distance < min_distance {
+                min_distance = distance;
+                platform_num = i;
+            }
+            i += 1;
+        }
+        Tas::press_platform_on_server(platform_num);
+    },
+    on_buttons_change: fn(old: int, new: int) {
+        if old > new {
+            MULTIPLAYER_STATE.current_buttons = new;
+            return;
+        }
+        if MULTIPLAYER_STATE.current_buttons >= new {
+            return;
+        }
+        MULTIPLAYER_STATE.current_buttons = new;
+
+        let player = Tas::get_location();
+        let mut min_distance = 999999.;
+        let mut button_num = 0;
+        let mut i = 0;
+        for button in BUTTONS {
+            let dx = button.x - player.x;
+            let dy = button.y - player.y;
+            let dz = button.z - player.z;
+            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
+            if distance < min_distance {
+                min_distance = distance;
+                button_num = i;
+            }
+            i += 1;
+        }
+        Tas::press_button_on_server(button_num);
+    },
     on_component_exit: fn() { multiplayer_disconnect(); },
 };
 
@@ -136,6 +195,9 @@ fn multiplayer_connect() {
         multiplayer_disconnect();
     }
     MULTIPLAYER_STATE.connection = Connection::Connected;
+    let level_state = Tas::get_level_state();
+    MULTIPLAYER_STATE.current_platforms = level_state.platforms;
+    MULTIPLAYER_STATE.current_buttons = level_state.buttons;
     Tas::connect_to_server(Server::Remote);
 }
 fn multiplayer_disconnect() {
@@ -147,11 +209,9 @@ fn multiplayer_disconnect() {
     MULTIPLAYER_STATE.current_room = Option::None;
     for player_id in MULTIPLAYER_STATE.players.keys() {
         let player = MULTIPLAYER_STATE.players.remove(player_id).unwrap();
-        for pawn in player.pawns {
-            let loc = Location { x: 0., y: 0., z: -1000. };
-            Tas::move_pawn(pawn.id, loc);
-            Tas::destroy_pawn(pawn.id);
-        }
+    }
+    for pawn in MULTIPLAYER_STATE.pawns {
+        Tas::destroy_pawn(pawn.id);
     }
     MULTIPLAYER_STATE.players = Map::new();
 }
@@ -165,45 +225,26 @@ fn multiplayer_join_room(room: string) {
 
 fn update_players() {
     static mut LAST_MILLIS = current_time_millis();
+    let current_millis = current_time_millis();
 
     // only update ~30 times per second (capped at FPS as we are in draw_hud)
-    let current_millis = current_time_millis();
-    if current_millis - LAST_MILLIS > 33 {
+    if MULTIPLAYER_STATE.connection == Connection::Connected && current_millis - LAST_MILLIS > 33 {
         // update server location
         let loc = Tas::get_location();
         Tas::move_on_server(loc);
         LAST_MILLIS += 33;
     }
 
-    for player_id in MULTIPLAYER_STATE.players.keys() {
-        let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
-
-        let mut i = 0;
-        while i < player.pawns.len() {
-            // keep last pawn if player is alive
-            if i == player.pawns.len() - 1 && player.alive {
-                break;
-            }
-
-            let mut pawn = player.pawns.get(i).unwrap();
-            if pawn.spawned_at_millis + 1000 < current_millis {
-                Tas::destroy_pawn(pawn.id);
-                player.pawns.swap_remove(i);
-                continue;
-            } else if !pawn.at_00 && pawn.spawned_at_millis + 125 < current_millis {
-                pawn.at_00 = true;
-                let x = Rng::gen_int_range(-5000, 5000);
-                let y = Rng::gen_int_range(-5000, 5000);
-                let loc = Location { x: x.to_float(), y: y.to_float(), z: -2000. };
-                Tas::move_pawn(pawn.id, loc);
-            }
-
-            i += 1;
+    let mut i = 0;
+    let pawns = MULTIPLAYER_STATE.pawns;
+    while i < pawns.len() {
+        let pawn = pawns.get(i).unwrap();
+        if pawn.spawned_at + 10000 < current_millis {
+            Tas::destroy_pawn(pawn.id);
+            pawns.swap_remove(i);
+            continue;
         }
-        if player.pawns.len() == 0 {
-            assert(!player.alive);
-            MULTIPLAYER_STATE.players.remove(player_id).unwrap();
-        }
+        i += 1;
     }
 }
 
@@ -211,20 +252,37 @@ fn player_joined_multiplayer_room(id: int, name: string, loc: Location) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
     MULTIPLAYER_STATE.players.insert(id, Player {
         name: name,
-        alive: true,
         loc: loc,
-        pawns: List::of(Pawn::spawn(loc)),
     });
 }
 fn player_left_multiplayer_room(id: int) {
     print(f"player {id} left");
-    let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
-    player.alive = false;
+    MULTIPLAYER_STATE.players.remove(id).unwrap();
 }
 fn player_moved(id: int, loc: Location) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
     player.loc = loc;
-//    player.pawns.push(Pawn::spawn(loc));
+}
+fn platform_pressed(id: int) {
+    let platform = match PLATFORMS.get(id) {
+        Option::Some(platform) => platform,
+        Option::None => {
+            print("Server sent invalid platform number {id}");
+            return
+        },
+    };
+    let loc = platform_pawn_spawn_location(platform);
+    MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
+}
+fn button_pressed(id: int) {
+    let loc = match BUTTONS.get(id) {
+        Option::Some(loc) => loc,
+        Option::None => {
+            print("Server sent invalid button number {id}");
+            return
+        },
+    };
+    MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
 }
 fn disconnected(reason: Disconnected) {
     match reason {

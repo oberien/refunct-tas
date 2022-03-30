@@ -22,6 +22,10 @@ pub enum Request {
     JoinRoom(String, String, f32, f32, f32),
     /// x, y, z
     MoveSelf(f32, f32, f32),
+    /// platform-id
+    PressPlatform(u8),
+    /// button-id
+    PressButton(u8),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -31,4 +35,8 @@ pub enum Response {
     PlayerLeftRoom(PlayerId),
     /// id, x, y, z
     MoveOther(PlayerId, f32, f32, f32),
+    /// platform-id
+    PressPlatform(u8),
+    /// button-id
+    PressButton(u8),
 }

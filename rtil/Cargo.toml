@@ -14,7 +14,7 @@ crossbeam-channel = "0.5.2"
 memoffset = "0.6.5"
 #object = "0.28.3"
 #rebo = { path = "../../rebo/rebo" }
-rebo = { git = "https://github.com/oberien/rebo", rev = "017a85cef950e171f96b9c0bf75397e8f617914d" }
+rebo = { git = "https://github.com/oberien/rebo", rev = "6a4817c7e52f53c15170fd6228fc9b2b2095c143" }
 itertools = "0.10.3"
 clipboard = "0.5.0"
 thiserror = "1.0.30"
