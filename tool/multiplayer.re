@@ -8,6 +8,7 @@ struct MultiplayerState {
     current_room: Option<string>,
     players: Map<int, Player>,
     pawns: List<Pawn>,
+    colored_platforms: Set<int>,
     current_platforms: int,
     current_buttons: int,
 }
@@ -46,6 +47,7 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     current_room: Option::None,
     players: Map::new(),
     pawns: List::new(),
+    colored_platforms: Set::new(),
     current_platforms: 0,
     current_buttons: 0,
 };
@@ -78,7 +80,9 @@ static MULTIPLAYER_COMPONENT = Component {
     on_reset: fn(old: int, new: int) {},
     on_platforms_change: fn(old: int, new: int) {
         if old > new {
+            assert(new == 0);
             MULTIPLAYER_STATE.current_platforms = new;
+            MULTIPLAYER_STATE.colored_platforms = Set::new();
             return;
         }
         if MULTIPLAYER_STATE.current_platforms >= new {
@@ -91,6 +95,10 @@ static MULTIPLAYER_COMPONENT = Component {
         let mut platform_num = 0;
         let mut i = 0;
         for platform in PLATFORMS {
+            if MULTIPLAYER_STATE.colored_platforms.contains(i) {
+                i += 1;
+                continue;
+            }
             let x1 = platform.loc.x - platform.size.x;
             let x2 = platform.loc.x + platform.size.x;
             let dx = float::max(x1 - player.x, 0., player.x - x2);
@@ -107,6 +115,7 @@ static MULTIPLAYER_COMPONENT = Component {
             i += 1;
         }
         Tas::press_platform_on_server(platform_num);
+        MULTIPLAYER_STATE.colored_platforms.insert(platform_num);
     },
     on_buttons_change: fn(old: int, new: int) {
         if old > new {
@@ -197,6 +206,7 @@ fn multiplayer_connect() {
     MULTIPLAYER_STATE.connection = Connection::Connected;
     let level_state = Tas::get_level_state();
     MULTIPLAYER_STATE.current_platforms = level_state.platforms;
+    MULTIPLAYER_STATE.colored_platforms = Set::new();
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
     Tas::connect_to_server(Server::Testing);
 }
@@ -271,9 +281,13 @@ fn platform_pressed(id: int) {
             return
         },
     };
+
     let loc = platform_pawn_spawn_location(platform);
     MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
-    MULTIPLAYER_STATE.current_platforms += 1;
+    if !MULTIPLAYER_STATE.colored_platforms.contains(id) {
+        MULTIPLAYER_STATE.current_platforms += 1;
+    }
+    MULTIPLAYER_STATE.colored_platforms.insert(id);
 }
 fn button_pressed(id: int) {
     let loc = match BUTTONS.get(id) {
