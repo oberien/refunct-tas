@@ -198,7 +198,7 @@ fn multiplayer_connect() {
     let level_state = Tas::get_level_state();
     MULTIPLAYER_STATE.current_platforms = level_state.platforms;
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
-    Tas::connect_to_server(Server::Remote);
+    Tas::connect_to_server(Server::Localhost);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
@@ -273,6 +273,7 @@ fn platform_pressed(id: int) {
     };
     let loc = platform_pawn_spawn_location(platform);
     MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
+    MULTIPLAYER_STATE.current_platforms += 1;
 }
 fn button_pressed(id: int) {
     let loc = match BUTTONS.get(id) {
@@ -283,6 +284,7 @@ fn button_pressed(id: int) {
         },
     };
     MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
+    MULTIPLAYER_STATE.current_buttons += 1;
 }
 fn disconnected(reason: Disconnected) {
     match reason {

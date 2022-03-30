@@ -4,13 +4,22 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     },
     tick: fn() {},
     on_new_game: fn() {
-        teleport_buttons(30);
-        trigger_all_platforms();
-        teleport_all_cubes();
+        Tas::set_level(30);
+        // wait for all platforms to rise
+        let delta = Tas::get_delta();
+        Tas::set_delta(Option::Some(1. / 2.));
+        wait(9);
+        Tas::set_delta(delta);
+
+//        trigger_all_platforms();
+//        trigger_all_buttons_up_to(36);
+//        teleport_all_cubes();
         teleport_exact(30);
     },
     on_level_change: fn(old: int, new: int) {},
-    on_reset: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {
+        Tas::set_level(30);
+    },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
     on_component_exit: fn() {},
@@ -20,12 +29,10 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
         f"{text}\nNew Game Action: All Buttons"
     },
     tick: fn() {},
-    on_new_game: fn() {},
-    on_level_change: fn(old: int, new: int) {
-        if new == 0 {
-            Tas::set_level(29);
-        }
+    on_new_game: fn() {
+        Tas::set_level(29);
     },
+    on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
@@ -38,12 +45,10 @@ static NEW_GAME_NGG_COMPONENT = Component {
         f"{text}\nNew Game Action: NGG"
     },
     tick: fn() {},
-    on_new_game: fn() {},
-    on_level_change: fn(old: int, new: int) {
-        if new == 0 {
-            Tas::set_level(1);
-        }
+    on_new_game: fn() {
+        Tas::set_level(1);
     },
+    on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::set_level(1);
     },
@@ -102,7 +107,7 @@ fn on_level_state_change(old: LevelState, new: LevelState) {
     if old.level != new.level
         // new game but no level change will be triggered because we hit new game
         // when level was still 0
-        || old.resets < new.resets && new.level == 0
+        || old.resets < new.resets && old.level == 0
     {
         let on_level_change = CURRENT_COMPONENT.on_level_change;
         on_level_change(old.level, new.level);

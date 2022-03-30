@@ -47,6 +47,8 @@ fn platform_pawn_spawn_location(platform: Platform) -> Location {
     let mut x = platform.loc.x;
     let mut y = platform.loc.y;
     let z = platform.loc.z + platform.size.z;
+
+    // platforms interfering with platforms
     if x == -3750. && y == -875. && z == 0. {
         // platform 39 with pipe above the middle
         y = -1150.;
@@ -62,11 +64,84 @@ fn platform_pawn_spawn_location(platform: Platform) -> Location {
     } else if x == -4750. && y == 750. && z == 0. {
         // platform 210 with other tall block in the middle
         x = -4550.;
+    }
+    // platforms interfering with buttons
+    if x == -1000. && y == -1000. && z == 625. {
+        // Button 0 interferes with platform 0
+        x = -800.;
+    } else if x == -2000. && y == 0. && z == 750. {
+        // Button 1 interferes with platform 9
+        x = -1800.;
+    } else if x == -2750. && y == -875. && z == 125. {
+        // Button 3 interferes with platform 26
+        x = -2400.;
+    } else if x == -3250. && y == -2250. && z == 1500. {
+        // Button 5 interferes with platform 38
+        x = -3100.;
+    } else if x == -4625. && y == -3000. && z == 0. {
+        // Button 6 interferes with platform 43
+        x = -4300.;
+    } else if x == -2750. && y == -3750. && z == 1500. {
+        // Button 8 interferes with platform 57
+        x = -2950.;
+    } else if x == -2750. && y == 1500. && z == 750. {
+        // Button 17 interferes with platform 101
+        x = -2950.;
+    } else if x == -1875. && y == 1125. && z == 1000. {
+        // Button 18 interferes with platform 105
+        x = -2000.;
+        y = 1250.;
+    } else if x == -5125. && y == -1750. && z == 0. {
+        // Button 19 interferes with platform 109
+        x = -5000.;
+        y = -1625.;
+    } else if x == -4250. && y == -4000. && z == 1500. {
+        // Button 20 interferes with platform 108
+        x = -4450.;
+    } else if x == 2000. && y == -3875. && z == 1125. {
+        // Button 21 interferes with platform 123
+        x = 2200.;
+    } else if x == 4250. && y == -2125. && z == 1000. {
+        // Button 22 interferes with platform 130
+        x = 4450.;
+    } else if x == 2750.128 && y == -4125. && z == 0. {
+        // Button 23 interferes with platform 141
+        y = -4600.;
+    } else if x == 3000. && y == -1000. && z == 125. {
+        // Button 24 interferes with platform 150
+        x = 2800.;
+    } else if x == 2500. && y == 2250. && z == 500. {
+        // Button 25 interferes with platform 153
+        x = 2700.;
+    } else if x == 3125. && y == 6125. && z == 125. {
+        // Button 28 interferes with platform 183
+        x = 3250.;
+        y = 6250.;
+    } else if x == 1375. && y == 6500. && z == 125. {
+        // Button 29 interferes with platform 178
+        x = 1500.;
+        y = 6625.;
+    } else if x == -875. && y == 5625. && z == 125. {
+        // Button 30 interferes with platform 180
+        x = -750.;
+        y = 5750.;
+    } else if x == -4875. && y == 1750. && z == 1250. {
+        // Button 32 interferes with platform 211
+        x = -5000.;
+        y = 1875.;
+    } else if x == -5250. && y == -250. && z == 1250. {
+        // Button 33 interferes with platform 201
+        x = -5375.;
+        y = -125.;
+    } else if x == 4875. && y == 2500. && z == 500. {
+        // Button 34 interferes with platform 217
+        x = 4700.;
     } else if x == 2625. && y == -2250. && z == 1250.2 {
-        // platform 248 with last button on top; trigger platform but not button
+        // Button 36 interferes with platform 247
         x = 2500.;
         y = -2375.;
     }
+
     Location { x: x, y: y, z: z + 89.15 }
 }
 fn trigger_all_platforms() {
@@ -76,6 +151,25 @@ fn trigger_all_platforms() {
         let id = Tas::spawn_pawn(Location { x: 0., y: 0., z: 5000. }, rot);
         Tas::move_pawn(id, platform_pawn_spawn_location(platform));
         pawns.push(id);
+    }
+    let delta = Tas::get_delta();
+    Tas::set_delta(Option::Some(1./60.));
+    wait(5);
+    Tas::set_delta(delta);
+    for id in pawns {
+        Tas::destroy_pawn(id);
+    }
+}
+fn trigger_all_buttons_up_to(up_to: int) {
+    let mut pawns = List::new();
+    let mut i = 0;
+    while i < up_to {
+        let button_loc = BUTTONS.get(i).unwrap();
+        let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
+        let id = Tas::spawn_pawn(Location { x: 0., y: 0., z: 5000. }, rot);
+        Tas::move_pawn(id, button_loc);
+        pawns.push(id);
+        i += 1;
     }
     let delta = Tas::get_delta();
     Tas::set_delta(Option::Some(1./60.));
@@ -140,7 +234,7 @@ fn teleport_all_buttons_up_to(up_to: int) {
                 wait(1);
             },
         }
-        i = i + 1;
+        i += 1;
     }
 }
 fn teleport_buttons(up_to: int) {
@@ -152,7 +246,7 @@ fn teleport_buttons(up_to: int) {
     let mut i = 0;
     while i < up_to {
         teleport_exact(i);
-        i = i + 1;
+        i += 1;
     }
 }
 
