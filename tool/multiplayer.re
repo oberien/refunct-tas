@@ -62,9 +62,9 @@ static MULTIPLAYER_COMPONENT = Component {
                     let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
                     draw_player(player.name, player.loc);
                 }
-                for pawn in MULTIPLAYER_STATE.pawns {
-                    draw_player("pawn", Tas::pawn_location(pawn.id));
-                }
+//                for pawn in MULTIPLAYER_STATE.pawns {
+//                    draw_player("pawn", Tas::pawn_location(pawn.id));
+//                }
 
                 match MULTIPLAYER_STATE.current_room {
                     Option::None => f"{text}\nMultiplayer connected to server",

@@ -370,27 +370,6 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
 
 enter_ui(START_MENU);
 
-//let mut i = 0;
-//for platform in PLATFORMS {
-//    let loc = platform_pawn_spawn_location(platform);
-//    let mut b = 0;
-//    for button in BUTTONS {
-//        let dx = loc.x - button.x;
-//        let dy = loc.y - button.y;
-//        let dz = loc.z - button.z;
-//        let dist = float::sqrt(dx*dx + dy*dy + dz*dz);
-//        if dist < 100. {
-//            print(f"Button {b} interferes with platform {i} ({dist})");
-//            print(f"    {button}");
-//            print(f"    {loc}");
-//            print(f"    {platform.loc}");
-//            print(f"    {platform.loc.z + platform.size.z}");
-//        }
-//        b += 1;
-//    }
-//    i += 1;
-//}
-
 loop {
     match Tas::step() {
         Step::Tick => (),
