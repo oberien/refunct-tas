@@ -49,6 +49,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(spawn_pawn)
         .add_function(destroy_pawn)
         .add_function(move_pawn)
+        .add_function(set_pawn_velocity)
         .add_function(pawn_location)
         .add_function(connect_to_server)
         .add_function(disconnect_from_server)
@@ -439,6 +440,13 @@ fn move_pawn(pawn_id: u32, loc: Location) {
     let state = state.as_mut().unwrap();
     let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
     my_character.set_location(loc.x, loc.y, loc.z);
+}
+#[rebo::function("Tas::set_pawn_velocity")]
+fn set_pawn_velocity(pawn_id: u32, vel: Velocity) {
+    let mut state = STATE.lock().unwrap();
+    let state = state.as_mut().unwrap();
+    let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
+    my_character.set_velocity(vel.x, vel.y, vel.z);
 }
 #[rebo::function("Tas::pawn_location")]
 fn pawn_location(pawn_id: u32) -> Location {

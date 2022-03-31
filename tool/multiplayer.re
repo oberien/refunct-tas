@@ -35,6 +35,7 @@ impl Pawn {
         let loc2 = Location { x: -500., y: -1125., z: 90. };
         let id = Tas::spawn_pawn(loc2, rot);
         Tas::move_pawn(id, loc);
+        Tas::set_pawn_velocity(id, Velocity { x: 0., y: 0., z: -1000000. });
         Pawn {
             id: id,
             spawned_at: current_time_millis(),
