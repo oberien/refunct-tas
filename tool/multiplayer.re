@@ -112,13 +112,10 @@ static MULTIPLAYER_COMPONENT = Component {
             if MULTIPLAYER_STATE.colored_platforms.contains(i) {
                 continue;
             }
-            let cluster_rise_start = match MULTIPLAYER_STATE.risen_clusters.get(platform.cluster) {
-                Option::Some(ts) => ts,
+            let cluster_depth = match cluster_depth(platform.cluster) {
+                Option::Some(depth) => depth,
                 Option::None => continue,
             };
-            let cluster_rise_time = current_time_millis() - cluster_rise_start;
-            let cluster_rise_time = cluster_rise_time.to_float() / 1000.;
-            let cluster_depth = float::max(CLUSTER_DEPTHS.get(platform.cluster).unwrap() - 700. * cluster_rise_time, 0.);
 
             let x1 = platform.loc.x - platform.size.x;
             let x2 = platform.loc.x + platform.size.x;
@@ -170,9 +167,14 @@ static MULTIPLAYER_COMPONENT = Component {
         let mut button_num = 0;
         let mut i = 0;
         for button in BUTTONS {
-            let dx = button.x - player.x;
-            let dy = button.y - player.y;
-            let dz = button.z - player.z;
+            let cluster_depth = match cluster_depth(button.cluster) {
+                Option::Some(depth) => depth,
+                Option::None => continue,
+            };
+
+            let dx = button.loc.x - player.x;
+            let dy = button.loc.y - player.y;
+            let dz = button.loc.z - player.z - cluster_depth;
             let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
             if distance < min_distance {
                 min_distance = distance;
@@ -184,6 +186,17 @@ static MULTIPLAYER_COMPONENT = Component {
     },
     on_component_exit: fn() { multiplayer_disconnect(); },
 };
+
+fn cluster_depth(cluster: int) -> Option<float> {
+    let cluster_rise_start = match MULTIPLAYER_STATE.risen_clusters.get(cluster) {
+        Option::Some(ts) => ts,
+        Option::None => return Option::None,
+    };
+    let cluster_rise_time = current_time_millis() - cluster_rise_start;
+    let cluster_rise_time = cluster_rise_time.to_float() / 1000.;
+    let cluster_depth = float::max(CLUSTER_DEPTHS.get(cluster).unwrap() - 700. * cluster_rise_time, 0.);
+    Option::Some(cluster_depth)
+}
 
 fn draw_player(name: string, loc: Location) {
     let x = loc.x;
@@ -328,14 +341,14 @@ fn platform_pressed(id: int) {
     MULTIPLAYER_STATE.colored_platforms.insert(id);
 }
 fn button_pressed(id: int) {
-    let loc = match BUTTONS.get(id) {
-        Option::Some(loc) => loc,
+    let button = match BUTTONS.get(id) {
+        Option::Some(button) => button,
         Option::None => {
             print("Server sent invalid button number {id}");
             return
         },
     };
-    MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
+    MULTIPLAYER_STATE.pawns.push(Pawn::spawn(button.loc));
     MULTIPLAYER_STATE.current_buttons += 1;
 }
 fn disconnected(reason: Disconnected) {

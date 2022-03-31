@@ -11,12 +11,12 @@ impl Ui {
     }
 }
 enum UiElement {
-    Button(Button),
+    Button(UiButton),
     Input(Input),
     Slider(Slider),
     Chooser(Chooser),
 }
-struct Button {
+struct UiButton {
     label: Text,
     onclick: fn(Text),
 }
@@ -186,7 +186,7 @@ impl UiElement {
     }
 }
 
-impl Button {
+impl UiButton {
     fn onclick(self) {
         let f = self.onclick;
         f(self.label);

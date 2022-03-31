@@ -51,38 +51,38 @@ Resets: {GAME_STATS.total_resets} | Any%: {GAME_STATS.total_runs_completed} | 10
     selected: 0,
 };
 static BASE_MENU = Ui::new("Menu:", List::of(
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Practice" },
         onclick: fn(label: Text) { enter_ui(PRACTICE_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Randomizer" },
         onclick: fn(label: Text) { enter_ui(RANDOMIZER_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "New Game Actions" },
         onclick: fn(label: Text) { enter_ui(NEW_GAME_ACTIONS_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Multiplayer" },
         onclick: fn(label: Text) { enter_ui(MULTIPLAYER_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Util" },
         onclick: fn(label: Text) { enter_ui(UTIL_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Settings" },
         onclick: fn(label: Text) { enter_ui(SETTINGS_MENU); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui() },
     }),
 ));
 static PRACTICE_MENU = Ui::new("Practice:", {
     let mut buttons = List::of(
-        UiElement::Button(Button {
+        UiElement::Button(UiButton {
             label: Text { text: "Nothing" },
             onclick: fn(label: Text) {
                 set_current_component(NOOP_COMPONENT);
@@ -91,7 +91,7 @@ static PRACTICE_MENU = Ui::new("Practice:", {
         }),
     );
     for practice in PRACTICE_POINTS {
-        buttons.push(UiElement::Button(Button {
+        buttons.push(UiElement::Button(UiButton {
             label: Text { text: practice.name },
             onclick: fn(label: Text) {
                 for practice in PRACTICE_POINTS {
@@ -112,7 +112,7 @@ static mut RANDOMIZER_NEW_GAME_NEW_SEED = 0;
 static mut RANDOMIZER_SET_SEED_LABEL = Text { text: "Set Seed" };
 static mut RANDOMIZER_SET_SEQUENCE_LABEL = Text { text: "Set Sequence" };
 static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Disable" },
         onclick: fn(label: Text) {
             set_current_component(NOOP_COMPONENT);
@@ -144,7 +144,7 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
             RANDOMIZER_STATE.new_game_new_seed = convert_new_game_new_seed(RANDOMIZER_NEW_GAME_NEW_SEED);
         },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Random Seed" },
         onclick: fn(label: Text) {
             randomizer_random_seed(randomizer_convert_difficulty(RANDOMIZER_DIFFICULTY));
@@ -182,33 +182,33 @@ static RANDOMIZER_MENU = Ui::new("Randomizer:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Copy previous Seed to Clipboard" },
         onclick: fn(label: Text) { randomizer_copy_prev_seed() },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Copy previous Sequence to Clipboard" },
         onclick: fn(label: Text) { randomizer_copy_prev_sequence() },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui() },
     }),
 ));
 static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Nothing" },
         onclick: fn(label: Text) { set_current_component(NOOP_COMPONENT); leave_ui(); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "100%" },
         onclick: fn(label: Text) { set_current_component(NEW_GAME_100_PERCENT_COMPONENT); leave_ui(); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "All Buttons" },
         onclick: fn(label: Text) { set_current_component(NEW_GAME_ALL_BUTTONS_COMPONENT); leave_ui(); },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "NGG" },
         onclick: fn(label: Text) { set_current_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
     }),
@@ -235,14 +235,14 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Disconnect" },
         onclick: fn(label: Text) {
             set_current_component(NOOP_COMPONENT);
             leave_ui();
         },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui(); },
     }),
@@ -312,7 +312,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Delete all pawns" },
         onclick: fn(label: Text) {
             loop {
@@ -323,7 +323,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             }
         }
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui() },
     }),
@@ -344,25 +344,25 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
             UI_SCALE_TEXT.text = f"{SETTINGS.ui_scale}";
         },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: SHOW_CHARACTER_STATS_BUTTON_TEXT,
         onclick: fn(label: Text) {
             SETTINGS.toggle_show_character_stats();
             SHOW_CHARACTER_STATS_BUTTON_TEXT.text = f"Show Character Stats: {SETTINGS.show_character_stats}";
         },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: SHOW_GAME_STATS_BUTTON_TEXT,
         onclick: fn(label: Text) {
             SETTINGS.toggle_show_game_stats();
             SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
         },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Reset Game Stats" },
         onclick: fn(label: Text) { GAME_STATS.reset() },
     }),
-    UiElement::Button(Button {
+    UiElement::Button(UiButton {
         label: Text { text: "Back" },
         onclick: fn(label: Text) { leave_ui() },
     }),
