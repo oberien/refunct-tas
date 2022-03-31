@@ -11,6 +11,8 @@ struct MultiplayerState {
     colored_platforms: Set<int>,
     current_platforms: int,
     current_buttons: int,
+    /// custer-id -> timestamp
+    risen_clusters: Map<int, int>,
 }
 struct Player {
     name: string,
@@ -51,6 +53,7 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     colored_platforms: Set::new(),
     current_platforms: 0,
     current_buttons: 0,
+    risen_clusters: Map::new(),
 };
 
 static MULTIPLAYER_COMPONENT = Component {
@@ -76,14 +79,23 @@ static MULTIPLAYER_COMPONENT = Component {
             }
         }
     },
-    on_new_game: fn() {},
-    on_level_change: fn(old: int, new: int) {},
+    on_new_game: fn() {
+        MULTIPLAYER_STATE.current_platforms = 0;
+        MULTIPLAYER_STATE.colored_platforms = Set::new();
+        MULTIPLAYER_STATE.risen_clusters = Map::new();
+        MULTIPLAYER_STATE.risen_clusters.insert(0, 0);
+    },
+    on_level_change: fn(old: int, new: int) {
+        if old > new {
+            assert(new == 0);
+            return;
+        }
+        MULTIPLAYER_STATE.risen_clusters.insert(new, current_time_millis());
+    },
     on_reset: fn(old: int, new: int) {},
     on_platforms_change: fn(old: int, new: int) {
         if old > new {
             assert(new == 0);
-            MULTIPLAYER_STATE.current_platforms = new;
-            MULTIPLAYER_STATE.colored_platforms = Set::new();
             return;
         }
         if MULTIPLAYER_STATE.current_platforms >= new {
@@ -94,21 +106,29 @@ static MULTIPLAYER_COMPONENT = Component {
         let player = Tas::get_location();
         let mut min_distance = 999999.;
         let mut platform_num = 0;
-        let mut i = 0;
+        let mut i = -1;
         for platform in PLATFORMS {
+            i += 1;
             if MULTIPLAYER_STATE.colored_platforms.contains(i) {
-                i += 1;
                 continue;
             }
+            let cluster_rise_start = match MULTIPLAYER_STATE.risen_clusters.get(platform.cluster) {
+                Option::Some(ts) => ts,
+                Option::None => continue,
+            };
+            let cluster_rise_time = current_time_millis() - cluster_rise_start;
+            let cluster_rise_time = cluster_rise_time.to_float() / 1000.;
+            let cluster_depth = float::max(CLUSTER_DEPTHS.get(platform.cluster).unwrap() - 700. * cluster_rise_time, 0.);
+
             let x1 = platform.loc.x - platform.size.x;
             let x2 = platform.loc.x + platform.size.x;
             let dx = float::max(x1 - player.x, 0., player.x - x2);
             let y1 = platform.loc.y - platform.size.y;
             let y2 = platform.loc.y + platform.size.y;
             let dy = float::max(y1 - player.y, 0., player.y - y2);
-            let z = platform.loc.z + platform.size.z + 89.15;
+            let z = platform.loc.z + platform.size.z + 89.15 - cluster_depth;
             // ignore platforms below the player to prevent invalid platforms during step-ups
-            if z + 1. < player.z {
+            if z + 5. < player.z {
                 // list of platforms to ignore as they can be triggered from higher up
                 // but don't have any platform you can step-up to from them
                 let excempted_platforms = List::of(
@@ -122,7 +142,6 @@ static MULTIPLAYER_COMPONENT = Component {
                     159, 160, 170, 189,
                 );
                 if !excempted_platforms.contains(i) {
-                    i += 1;
                     continue;
                 }
             }
@@ -132,7 +151,6 @@ static MULTIPLAYER_COMPONENT = Component {
                 min_distance = distance;
                 platform_num = i;
             }
-            i += 1;
         }
         Tas::press_platform_on_server(platform_num);
         MULTIPLAYER_STATE.colored_platforms.insert(platform_num);
