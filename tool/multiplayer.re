@@ -8,8 +8,9 @@ struct MultiplayerState {
     current_room: Option<string>,
     players: Map<int, Player>,
     pawns: List<Pawn>,
-    colored_platforms: Set<int>,
+    pressed_platforms: Set<int>,
     current_platforms: int,
+    pressed_buttons: Set<int>,
     current_buttons: int,
     /// custer-id -> timestamp
     risen_clusters: Map<int, int>,
@@ -39,8 +40,9 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     current_room: Option::None,
     players: Map::new(),
     pawns: List::new(),
-    colored_platforms: Set::new(),
+    pressed_platforms: Set::new(),
     current_platforms: 0,
+    pressed_buttons: Set::new(),
     current_buttons: 0,
     risen_clusters: Map::new(),
 };
@@ -71,7 +73,8 @@ static MULTIPLAYER_COMPONENT = Component {
     on_new_game: fn() {
         MULTIPLAYER_STATE.current_platforms = 0;
         MULTIPLAYER_STATE.current_buttons = 0;
-        MULTIPLAYER_STATE.colored_platforms = Set::new();
+        MULTIPLAYER_STATE.pressed_platforms = Set::new();
+        MULTIPLAYER_STATE.pressed_buttons = Set::new();
         MULTIPLAYER_STATE.risen_clusters = Map::new();
         MULTIPLAYER_STATE.risen_clusters.insert(0, 0);
         for pawn in MULTIPLAYER_STATE.pawns {
@@ -103,7 +106,7 @@ static MULTIPLAYER_COMPONENT = Component {
         let mut i = -1;
         for platform in PLATFORMS {
             i += 1;
-            if MULTIPLAYER_STATE.colored_platforms.contains(i) {
+            if MULTIPLAYER_STATE.pressed_platforms.contains(i) {
                 continue;
             }
             let cluster_depth = match cluster_depth(platform.cluster) {
@@ -144,7 +147,7 @@ static MULTIPLAYER_COMPONENT = Component {
             }
         }
         Tas::press_platform_on_server(platform_num);
-        MULTIPLAYER_STATE.colored_platforms.insert(platform_num);
+        MULTIPLAYER_STATE.pressed_platforms.insert(platform_num);
     },
     on_buttons_change: fn(old: int, new: int) {
         if old > new {
@@ -162,6 +165,9 @@ static MULTIPLAYER_COMPONENT = Component {
         let mut i = -1;
         for button in BUTTONS {
             i += 1;
+            if MULTIPLAYER_STATE.pressed_buttons.contains(i) {
+                continue;
+            }
             let cluster_depth = match cluster_depth(button.cluster) {
                 Option::Some(depth) => depth,
                 Option::None => continue,
@@ -251,7 +257,8 @@ fn multiplayer_connect() {
     MULTIPLAYER_STATE.connection = Connection::Connected;
     let level_state = Tas::get_level_state();
     MULTIPLAYER_STATE.current_platforms = level_state.platforms;
-    MULTIPLAYER_STATE.colored_platforms = Set::new();
+    MULTIPLAYER_STATE.pressed_platforms = Set::new();
+    MULTIPLAYER_STATE.pressed_buttons = Set::new();
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
     Tas::connect_to_server(Server::Testing);
 }
@@ -329,10 +336,10 @@ fn platform_pressed(id: int) {
 
     let loc = platform_pawn_spawn_location(platform);
     MULTIPLAYER_STATE.pawns.push(Pawn::spawn(loc));
-    if !MULTIPLAYER_STATE.colored_platforms.contains(id) {
+    if !MULTIPLAYER_STATE.pressed_platforms.contains(id) {
         MULTIPLAYER_STATE.current_platforms += 1;
     }
-    MULTIPLAYER_STATE.colored_platforms.insert(id);
+    MULTIPLAYER_STATE.pressed_platforms.insert(id);
 }
 fn button_pressed(id: int) {
     let button = match BUTTONS.get(id) {
@@ -343,7 +350,10 @@ fn button_pressed(id: int) {
         },
     };
     MULTIPLAYER_STATE.pawns.push(Pawn::spawn(button.loc));
-    MULTIPLAYER_STATE.current_buttons += 1;
+    if !MULTIPLAYER_STATE.pressed_buttons.contains(id) {
+        MULTIPLAYER_STATE.current_buttons += 1;
+    }
+    MULTIPLAYER_STATE.pressed_buttons.insert(id);
 }
 fn disconnected(reason: Disconnected) {
     match reason {
