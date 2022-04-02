@@ -183,6 +183,7 @@ static MULTIPLAYER_COMPONENT = Component {
             }
         }
         Tas::press_button_on_server(button_num);
+        MULTIPLAYER_STATE.pressed_buttons.insert(button_num);
     },
     on_component_exit: fn() { multiplayer_disconnect(); },
 };
