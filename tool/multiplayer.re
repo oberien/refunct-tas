@@ -25,18 +25,7 @@ struct Pawn {
 impl Pawn {
     fn spawn(loc: Location) -> Pawn {
         let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
-        // UE is a perfect game engine without any flaws or anything like that.
-        // Not in the least.
-        //
-        // That is why button 4 does not activate if you spawn pawns on top of it.
-        // They get stuck in the platform above and don't collide with anything.
-        // However, if you spawn a pawn somewhere completely different, and move it
-        // on top of button 4 literally in the same tick in the same frame as the
-        // very next instruction to the game engine, it still gets stuck, but for
-        // some reason activates the button.
-        let loc2 = Location { x: -500., y: -1125., z: 90. };
-        let id = Tas::spawn_pawn(loc2, rot);
-        Tas::move_pawn(id, loc);
+        let id = Tas::spawn_pawn(loc, rot);
         Tas::set_pawn_velocity(id, Velocity { x: 0., y: 0., z: -1000000. });
         Pawn {
             id: id,
@@ -165,8 +154,9 @@ static MULTIPLAYER_COMPONENT = Component {
         let player = Tas::get_location();
         let mut min_distance = 999999.;
         let mut button_num = 0;
-        let mut i = 0;
+        let mut i = -1;
         for button in BUTTONS {
+            i += 1;
             let cluster_depth = match cluster_depth(button.cluster) {
                 Option::Some(depth) => depth,
                 Option::None => continue,
@@ -180,7 +170,6 @@ static MULTIPLAYER_COMPONENT = Component {
                 min_distance = distance;
                 button_num = i;
             }
-            i += 1;
         }
         Tas::press_button_on_server(button_num);
     },

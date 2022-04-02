@@ -23,6 +23,15 @@ enum ESpawnActorCollisionHandlingMethod {
     AdjustIfPossibleButDontSpawnIfColliding,
     DontSpawnIfColliding,
 }
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
+#[allow(unused)]
+enum ESpawnActorNameMode {
+    RequiredFatal,
+    RequiredErrorAndReturnNull,
+    RequiredReturnNull,
+    Requested,
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -34,23 +43,16 @@ struct FActorSpawnParameters {
     override_level: *const ULevel,
     spawn_collision_handling_override: ESpawnActorCollisionHandlingMethod,
     // bRemoteOwned, bNoFail, bDeferConstruction, bAllowDuringConstructionScript
-    some_flags: u16,
+    bitfield: u8,
+    name_node: ESpawnActorNameMode,
     object_flags: c_int,
 }
-
-impl Default for FActorSpawnParameters {
-    fn default() -> Self {
-        Self {
-            name: FName::NAME_None,
-            template: ptr::null(),
-            owner: ptr::null(),
-            instigator: ptr::null(),
-            override_level: ptr::null(),
-            spawn_collision_handling_override: ESpawnActorCollisionHandlingMethod::AlwaysSpawn,
-            some_flags: 0,
-            object_flags: 0x00000008,
-        }
-    }
+#[allow(unused)]
+impl FActorSpawnParameters {
+    const B_REMOTE_OWNED: u8 = 0b0000_0001;
+    const B_NO_FAIL: u8 = 0b0000_0010;
+    const B_DEFER_CONSTRUCTION: u8 = 0b0000_0100;
+    const B_ALLOW_DURING_CONSTRUCTION_SCRIPT: u8 = 0b0000_1000;
 }
 
 impl APawn {
@@ -112,14 +114,24 @@ impl UWorld {
         unsafe {
             let location = FVector { x, y, z };
             let rotation = FRotator { pitch, yaw, roll };
-            let spawn_parameters = FActorSpawnParameters::default();
+            let spawn_parameters = FActorSpawnParameters {
+                name: FName::NAME_None,
+                template: ptr::null(),
+                owner: ptr::null(),
+                instigator: ptr::null(),
+                override_level: ptr::null(),
+                spawn_collision_handling_override: ESpawnActorCollisionHandlingMethod::AlwaysSpawn,
+                bitfield: FActorSpawnParameters::B_NO_FAIL,
+                name_node: ESpawnActorNameMode::RequiredFatal,
+                object_flags: 0x00000000,
+            };
             let ptr = Self::spawn_actor(
                 AMyCharacter::static_class(), &location, &rotation, &spawn_parameters,
             ) as *mut AMyCharacter;
             assert!(!ptr.is_null(), "UWorld::SpawnActor returned null");
+            APawn::spawn_default_controller(ptr as *const APawn);
+            AActor::set_actor_enable_collision(ptr as *const AActor, true);
             let my_character = AMyCharacter::new(ptr);
-            APawn::spawn_default_controller(my_character.as_ptr() as *const APawn);
-            AActor::set_actor_enable_collision(my_character.as_ptr() as *const AActor, true);
             my_character
         }
     }
