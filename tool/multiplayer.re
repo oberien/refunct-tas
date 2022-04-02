@@ -77,6 +77,7 @@ static MULTIPLAYER_COMPONENT = Component {
         for pawn in MULTIPLAYER_STATE.pawns {
             Tas::destroy_pawn(pawn.id);
         }
+        MULTIPLAYER_STATE.pawns = List::new();
     },
     on_level_change: fn(old: int, new: int) {
         if old > new {
