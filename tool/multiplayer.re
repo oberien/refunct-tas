@@ -261,6 +261,12 @@ fn multiplayer_connect() {
     MULTIPLAYER_STATE.pressed_platforms = Set::new();
     MULTIPLAYER_STATE.pressed_buttons = Set::new();
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
+    MULTIPLAYER_STATE.risen_clusters = Map::new();
+    let mut i = 0;
+    while i <= level_state.level {
+        MULTIPLAYER_STATE.risen_clusters.insert(i, 0);
+        i += 1;
+    }
     Tas::connect_to_server(Server::Remote);
 }
 fn multiplayer_disconnect() {
