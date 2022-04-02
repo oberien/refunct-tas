@@ -70,9 +70,13 @@ static MULTIPLAYER_COMPONENT = Component {
     },
     on_new_game: fn() {
         MULTIPLAYER_STATE.current_platforms = 0;
+        MULTIPLAYER_STATE.current_buttons = 0;
         MULTIPLAYER_STATE.colored_platforms = Set::new();
         MULTIPLAYER_STATE.risen_clusters = Map::new();
         MULTIPLAYER_STATE.risen_clusters.insert(0, 0);
+        for pawn in MULTIPLAYER_STATE.pawns {
+            Tas::destroy_pawn(pawn.id);
+        }
     },
     on_level_change: fn(old: int, new: int) {
         if old > new {
@@ -143,7 +147,7 @@ static MULTIPLAYER_COMPONENT = Component {
     },
     on_buttons_change: fn(old: int, new: int) {
         if old > new {
-            MULTIPLAYER_STATE.current_buttons = new;
+            assert(new == 0);
             return;
         }
         if MULTIPLAYER_STATE.current_buttons >= new {

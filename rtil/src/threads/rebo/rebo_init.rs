@@ -161,11 +161,6 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, Exe
         let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
         match res {
             e @ UeToRebo::Tick | e @ UeToRebo::NewGame => {
-                // call level-state event function
-                let new_level_state = LevelState::get();
-                if old_level_state != new_level_state {
-                    on_level_state_change(vm, old_level_state.clone(), new_level_state)?;
-                }
                 match e {
                     UeToRebo::Tick => to_be_returned = Some(Step::Tick),
                     UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
@@ -211,7 +206,14 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, Exe
         }
 
         match to_be_returned {
-            Some(ret) => return Ok(ret),
+            Some(ret) => {
+                // call level-state event function
+                let new_level_state = LevelState::get();
+                if old_level_state != new_level_state {
+                    on_level_state_change(vm, old_level_state.clone(), new_level_state)?;
+                }
+                return Ok(ret)
+            },
             None => (),
         }
 
