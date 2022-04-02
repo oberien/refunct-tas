@@ -261,7 +261,7 @@ fn multiplayer_connect() {
     MULTIPLAYER_STATE.pressed_platforms = Set::new();
     MULTIPLAYER_STATE.pressed_buttons = Set::new();
     MULTIPLAYER_STATE.current_buttons = level_state.buttons;
-    Tas::connect_to_server(Server::Testing);
+    Tas::connect_to_server(Server::Remote);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
