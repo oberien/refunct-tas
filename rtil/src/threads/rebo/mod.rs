@@ -8,7 +8,7 @@ use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo};
-use crate::native::AMyCharacter;
+use crate::native::{AMyCharacter, UWorld};
 
 mod rebo_init;
 
@@ -79,6 +79,9 @@ fn handle_rx() {
             let state = state.as_mut().unwrap();
             state.delta = None;
             state.websocket.take();
+            for (_id, my_character) in state.pawns.drain() {
+                UWorld::destroy_amycharaccter(my_character);
+            }
             state.pawns.clear();
             state.pawn_id = 0;
             for key in state.pressed_keys.drain() {
