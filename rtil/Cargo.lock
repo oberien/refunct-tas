@@ -311,7 +311,7 @@ dependencies = [
 [[package]]
 name = "diagnostic"
 version = "0.1.0"
-source = "git+https://github.com/oberien/diagnostic?rev=8138820#8138820a5fdd44a2611370331cbe3fd220c02c6c"
+source = "git+https://github.com/oberien/diagnostic?rev=e971eac15f0e8946aa8cee9b4f05e2392b654c00#e971eac15f0e8946aa8cee9b4f05e2392b654c00"
 dependencies = [
  "appendlist",
  "backtrace",
@@ -1217,7 +1217,7 @@ dependencies = [
 [[package]]
 name = "rebo"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=0cee86b37f7692e47a3354ee2424463c373e00e4#0cee86b37f7692e47a3354ee2424463c373e00e4"
+source = "git+https://github.com/oberien/rebo?rev=a84ef173badc899f688b2837c97a389d1ee33f6e#a84ef173badc899f688b2837c97a389d1ee33f6e"
 dependencies = [
  "bitflags",
  "derive_more",
@@ -1249,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "rebo_derive"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=0cee86b37f7692e47a3354ee2424463c373e00e4#0cee86b37f7692e47a3354ee2424463c373e00e4"
+source = "git+https://github.com/oberien/rebo?rev=a84ef173badc899f688b2837c97a389d1ee33f6e#a84ef173badc899f688b2837c97a389d1ee33f6e"
 dependencies = [
  "itertools 0.10.3",
  "proc-macro-error",
