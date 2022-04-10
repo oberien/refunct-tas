@@ -249,7 +249,7 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 ));
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
-        label: Text { text: "Teleport absolute (x,y,z)" },
+        label: Text { text: "Teleport (x,y,z)" },
         input: "",
         onclick: fn(input: string) {
             let xyz = input.split(",");
@@ -278,6 +278,20 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             Tas::set_location(loc);
         },
         onchange: fn(input: string) {},
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Set Roll" },
+        input: "0",
+        onclick: fn(input: string) {},
+        onchange: fn(input: string) {
+            let roll = match input.parse_float() {
+                Result::Ok(roll) => roll,
+                Result::Err(e) => return,
+            };
+            let mut rot = Tas::get_rotation();
+            rot.roll = roll;
+            Tas::set_rotation(rot);
+        },
     }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },
