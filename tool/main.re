@@ -6,6 +6,7 @@ include "teleport.re";
 include "randomizer.re";
 include "newgame.re";
 include "practice.re";
+include "util.re";
 include "multiplayer.re";
 
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
@@ -292,6 +293,19 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             rot.roll = roll;
             Tas::set_rotation(rot);
         },
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Windscreen Wipers (s/wipe)" },
+        input: "2",
+        onclick: fn(input: string) {
+            let seconds_per_wipe = match input.parse_float() {
+                Result::Ok(seconds_per_wipe) => seconds_per_wipe,
+                Result::Err(e) => return,
+            };
+            start_windscreen_wipers(seconds_per_wipe);
+            set_current_component(WINDSCREEN_WIPERS_COMPONENT);
+        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },

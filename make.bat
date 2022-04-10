@@ -21,6 +21,7 @@ copy tool\randomizer.re build\practice-windows
 copy tool\teleport.re build\practice-windows
 copy tool\ui.re build\practice-windows
 copy tool\multiplayer.re build\practice-windows
+copy tool\util.re build\practice-windows
 copy tool\settings.re build\practice-windows
 echo Converting lf to crlf
 call :convert main.re
@@ -32,6 +33,7 @@ call :convert randomizer.re
 call :convert teleport.re
 call :convert ui.re
 call :convert multiplayer.re
+call :convert util.re
 call :convert settings.re
 
 echo Don't forget to create a zip
