@@ -309,7 +309,12 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Frame-Step Mode" },
-        onclick: fn(label: Text) { set_current_component(FRAME_STEP_COMPONENT); }
+        onclick: fn(label: Text) {
+            set_current_component(FRAME_STEP_COMPONENT);
+            leave_ui();
+            leave_ui();
+            Tas::step();
+        }
     }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },
