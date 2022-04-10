@@ -2,7 +2,9 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
     },
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: fn() {
         Tas::set_level(30);
         // wait for all platforms to rise
@@ -22,13 +24,17 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: All Buttons"
     },
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: fn() {
         Tas::set_level(29);
     },
@@ -38,13 +44,17 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 static NEW_GAME_NGG_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: NGG"
     },
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: fn() {
         Tas::set_level(1);
     },
@@ -54,6 +64,8 @@ static NEW_GAME_NGG_COMPONENT = Component {
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 

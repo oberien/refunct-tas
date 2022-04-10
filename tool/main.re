@@ -1,7 +1,7 @@
 include "settings.re";
 include "keys.re";
-include "ui.re";
 include "component.re"
+include "ui.re";
 include "teleport.re";
 include "randomizer.re";
 include "newgame.re";
@@ -307,6 +307,10 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         },
         onchange: fn(input: string) {},
     }),
+    UiElement::Button(UiButton {
+        label: Text { text: "Frame-Step Mode" },
+        onclick: fn(label: Text) { set_current_component(FRAME_STEP_COMPONENT); }
+    }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },
         input: "",
@@ -399,13 +403,19 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
 enter_ui(START_MENU);
 
 loop {
-    match Tas::step() {
+    let tick_fn = CURRENT_COMPONENT.tick_fn;
+    match tick_fn() {
         Step::Tick => (),
         Step::NewGame => {
             let on_new_game = CURRENT_COMPONENT.on_new_game;
             on_new_game();
         },
+        Step::Yield => {
+            let on_yield = CURRENT_COMPONENT.on_yield;
+            on_yield();
+            continue
+        }
     }
-    let tick_function = CURRENT_COMPONENT.tick;
-    tick_function();
+    let on_tick = CURRENT_COMPONENT.on_tick;
+    on_tick();
 }

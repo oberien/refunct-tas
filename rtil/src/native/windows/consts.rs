@@ -13,6 +13,7 @@ pub const GWORLD: usize = 0x1fbf9ec;
 pub const FAPP_DELTATIME: usize = 0x1e28c08;
 pub const UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE: usize = 0xef61e0;
 pub const FSLATEAPPLICATION_TICK: usize = 0x33bc30;
+pub const FPLATFORMMISC_PUMPMESSAGES: usize = 0x1dd7a0;
 pub const FSLATEAPPLICATION_ONKEYDOWN: usize = 0x32c750;
 pub const FSLATEAPPLICATION_ONKEYUP: usize = 0x32c8f0;
 pub const FSLATEAPPLICATION_ONRAWMOUSEMOVE: usize = 0x32d610;

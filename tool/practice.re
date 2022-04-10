@@ -9,7 +9,9 @@ static PRACTICE_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
     },
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: fn() {
         let old_delta = Tas::get_delta();
         Tas::set_delta(Option::Some(1./2.));
@@ -30,6 +32,8 @@ static PRACTICE_COMPONENT = Component {
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 

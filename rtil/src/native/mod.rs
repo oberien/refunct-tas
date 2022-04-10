@@ -30,6 +30,7 @@ mod hud;
 mod uworld;
 mod level_state;
 mod gameinstance;
+mod platform_misc;
 
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -49,6 +50,7 @@ pub use self::memory::FMemory;
 pub use self::hud::AMyHud;
 pub use self::uworld::{APawn, UWorld};
 pub use self::level_state::LevelState;
+pub use self::platform_misc::FPlatformMisc;
 
 pub fn init() {
     #[cfg(windows)] windows::init();

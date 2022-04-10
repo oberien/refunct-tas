@@ -1,22 +1,30 @@
 struct Component {
     draw_hud: fn(string) -> string,
-    tick: fn(),
+    tick_fn: fn() -> Step,
+    on_tick: fn(),
+    on_yield: fn(),
     on_new_game: fn(),
     on_level_change: fn(int, int),
     on_reset: fn(int, int),
     on_platforms_change: fn(int, int),
     on_buttons_change: fn(int, int),
+    on_key_down: fn(KeyCode, bool),
+    on_key_up: fn(KeyCode),
     on_component_exit: fn(),
 }
 
 static NOOP_COMPONENT = Component {
     draw_hud: fn(text: string) -> string { text },
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 

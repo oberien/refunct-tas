@@ -24,6 +24,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         }))
         .add_function(print)
         .add_function(step)
+        .add_function(step_yield)
         .add_function(load_settings)
         .add_function(store_settings)
         .add_function(key_down)
@@ -96,6 +97,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
 pub enum Step {
     Tick,
     NewGame,
+    Yield,
 }
 
 #[derive(rebo::ExternalType)]
@@ -144,9 +146,17 @@ fn print(..: _) {
 
 #[rebo::function(raw("Tas::step"))]
 fn step() -> Step {
-    step_internal(vm)?
+    step_internal(vm, StepKind::Step)?
 }
-fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, ExecError<'a, 'i>> {
+#[rebo::function(raw("Tas::yield"))]
+fn step_yield() -> Step {
+    step_internal(vm, StepKind::Yield)?
+}
+enum StepKind {
+    Step,
+    Yield,
+}
+fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind) -> Result<Step, ExecError<'a, 'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let old_level_state = LevelState::get();
 
@@ -154,19 +164,21 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<Step, Exe
         FApp::set_delta(delta);
     }
 
-    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
+    match step_kind {
+        StepKind::Step => STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap(),
+        StepKind::Yield => STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::PumpMessages).unwrap(),
+    }
     loop {
         let mut to_be_returned = None;
         // check UE-thread
-        let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
+        let res = match step_kind {
+            StepKind::Step => STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap(),
+            StepKind::Yield => STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap(),
+        };
         match res {
-            e @ UeToRebo::Tick | e @ UeToRebo::NewGame => {
-                match e {
-                    UeToRebo::Tick => to_be_returned = Some(Step::Tick),
-                    UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
-                    _ => unreachable!(),
-                }
-            },
+            UeToRebo::Tick => to_be_returned = Some(Step::Tick),
+            UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
+            UeToRebo::PumpedMessages => to_be_returned = Some(Step::Yield),
             UeToRebo::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
             UeToRebo::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
             UeToRebo::DrawHud => draw_hud(vm)?,
@@ -358,9 +370,10 @@ fn get_level_state() -> LevelState {
 #[rebo::function(raw("Tas::wait_for_new_game"))]
 fn wait_for_new_game() {
     loop {
-        match step_internal(vm)? {
+        match step_internal(vm, StepKind::Step)? {
             Step::Tick => continue,
             Step::NewGame => break,
+            Step::Yield => unreachable!("step_internal(StepKind::Step) returned Yield"),
         }
     }
 }

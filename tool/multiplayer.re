@@ -48,7 +48,9 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
 };
 
 static MULTIPLAYER_COMPONENT = Component {
-    tick: update_players,
+    tick_fn: Tas::step,
+    on_tick: update_players,
+    on_yield: fn() {},
     draw_hud: fn(text: string) -> string {
         match MULTIPLAYER_STATE.connection {
             Connection::Disconnected => return text,
@@ -185,6 +187,8 @@ static MULTIPLAYER_COMPONENT = Component {
         Tas::press_button_on_server(button_num);
         MULTIPLAYER_STATE.pressed_buttons.insert(button_num);
     },
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() { multiplayer_disconnect(); },
 };
 

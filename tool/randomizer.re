@@ -1,11 +1,15 @@
 static RANDOMIZER_COMPONENT = Component {
     draw_hud: randomizer_draw_hud,
-    tick: fn() {},
+    tick_fn: Tas::step,
+    on_tick: fn() {},
+    on_yield: fn() {},
     on_new_game: randomizer_new_game_function,
     on_level_change: randomizer_on_level_change_function,
     on_reset: randomizer_on_reset_function,
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
+    on_key_up: fn(key: KeyCode) {},
     on_component_exit: fn() {},
 };
 

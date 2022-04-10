@@ -12,6 +12,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
+    ("?PumpMessages@FWindowsPlatformMisc@@SAX_N@Z", "FPLATFORMMISC_PUMPMESSAGES"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
     ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
     ("?UpdateTimeAndHandleMaxTickRate@UEngine", "UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE"),

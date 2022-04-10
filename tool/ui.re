@@ -80,6 +80,8 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
         Option::Some(ui) => ui.onkey(key, chr),
         Option::None => (),
     }
+    let on_key_down = CURRENT_COMPONENT.on_key_down;
+    on_key_down(key, is_repeat);
 }
 fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     let key = KeyCode::from_large(key_code);
@@ -92,6 +94,8 @@ fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     } else if key.to_small() == KEY_RIGHT_CTRL.to_small() {
         RCTRL_PRESSED = false;
     }
+    let on_key_up = CURRENT_COMPONENT.on_key_up;
+    on_key_up(key);
 }
 fn draw_hud() {
     match UI_STACK.last() {
@@ -120,7 +124,7 @@ impl Ui {
         if key.to_small() == KEY_RETURN.to_small() {
             self.onclick();
         } else if key.to_small() == KEY_DOWN.to_small() {
-            self.selected = if self.selected  == self.elements.len()-1 {
+            self.selected = if self.selected == self.elements.len()-1 {
                 0
             } else {
                 self.selected + 1

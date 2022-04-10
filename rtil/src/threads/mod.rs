@@ -43,6 +43,7 @@ pub enum ReboToStream {
 pub enum ReboToUe {
     Stop,
     AdvanceFrame,
+    PumpMessages,
     // we need to execute events on the main loop, because possible played audio
     // needs to access thread-local storage
     PressKey(i32, u32, bool),
@@ -58,6 +59,7 @@ pub enum ReboToUe {
 #[derive(Debug, PartialEq, Eq)]
 pub enum UeToRebo {
     Tick,
+    PumpedMessages,
     NewGame,
     KeyDown(i32, u32, bool),
     KeyUp(i32, u32, bool),
