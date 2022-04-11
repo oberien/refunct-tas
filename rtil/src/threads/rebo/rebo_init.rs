@@ -78,6 +78,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Disconnected)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
+        .add_required_rebo_function(on_mouse_move)
         .add_required_rebo_function(draw_hud)
         .add_required_rebo_function(player_joined_multiplayer_room)
         .add_required_rebo_function(player_left_multiplayer_room)
@@ -181,6 +182,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
             UeToRebo::PumpedMessages => to_be_returned = Some(Step::Yield),
             UeToRebo::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
             UeToRebo::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
+            UeToRebo::MouseMove(x, y) => on_mouse_move(vm, x, y)?,
             UeToRebo::DrawHud => draw_hud(vm)?,
             UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
         }
@@ -239,6 +241,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
 extern "rebo" {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
+    fn on_mouse_move(x: i32, y: i32);
     fn draw_hud();
     fn player_joined_multiplayer_room(id: u32, name: String, loc: Location);
     fn player_left_multiplayer_room(id: u32);

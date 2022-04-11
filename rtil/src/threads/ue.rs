@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 
 use crate::statics::Static;
 use crate::threads::{UeToRebo, ReboToUe};
-use crate::native::{FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, AMyHud, UWorld, FPlatformMisc};
+use crate::native::{FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, AMyHud, UWorld, FPlatformMisc};
 
 static STATE: Lazy<Static<State>> = Lazy::new(Static::new);
 
@@ -43,6 +43,10 @@ pub fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {
 
 pub fn key_up(key_code: i32, character_code: u32, is_repeat: bool) {
     handle(UeToRebo::KeyUp(key_code, character_code, is_repeat));
+}
+
+pub fn mouse_move(x: i32, y: i32) {
+    handle(UeToRebo::MouseMove(x, y));
 }
 
 pub fn draw_hud() {
@@ -89,7 +93,12 @@ fn handle(event: UeToRebo) {
                 FSlateApplication::release_key(key, code, repeat);
                 hook_fslateapplication_onkeyup();
             },
-            ReboToUe::MoveMouse(x, y) => FSlateApplication::move_mouse(x, y),
+            ReboToUe::MoveMouse(x, y) => {
+                // we don't want to trigger our mouseevent handler for emulated mouse movements
+                unhook_fslateapplication_onrawmousemove();
+                FSlateApplication::move_mouse(x, y);
+                hook_fslateapplication_onrawmousemove();
+            },
             ReboToUe::DrawLine(startx, starty, endx, endy, color, thickness) =>
                 AMyHud::draw_line(startx, starty, endx, endy, color, thickness),
             ReboToUe::DrawText(text, color, x, y, scale, scale_position) =>

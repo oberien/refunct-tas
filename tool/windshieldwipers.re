@@ -47,5 +47,6 @@ static WINDSCREEN_WIPERS_COMPONENT = Component {
     on_buttons_change: fn(old: int, new: int) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
+    on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
 };

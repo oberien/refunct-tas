@@ -44,6 +44,8 @@ pub use self::slateapp::{
     hook_fslateapplication_onkeydown,
     unhook_fslateapplication_onkeyup,
     hook_fslateapplication_onkeyup,
+    unhook_fslateapplication_onrawmousemove,
+    hook_fslateapplication_onrawmousemove,
 };
 pub use self::app::FApp;
 pub use self::memory::FMemory;
@@ -58,6 +60,7 @@ pub fn init() {
     slateapp::hook_fslateapplication_tick();
     slateapp::hook_fslateapplication_onkeydown();
     slateapp::hook_fslateapplication_onkeyup();
+    slateapp::hook_fslateapplication_onrawmousemove();
     newgame::hook_amycharacter_forceduncrouch();
     tick::hook_uengine_updatetimeandhandlemaxtickrate();
     hud::hook_amyhud_drawhud();

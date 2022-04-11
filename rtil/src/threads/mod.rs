@@ -63,6 +63,7 @@ pub enum UeToRebo {
     NewGame,
     KeyDown(i32, u32, bool),
     KeyUp(i32, u32, bool),
+    MouseMove(i32, i32),
     DrawHud,
     AMyCharacterSpawned(AMyCharacter),
 }

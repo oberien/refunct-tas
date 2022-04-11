@@ -65,3 +65,8 @@ fn key_up(_this: usize, key_code: i32, character_code: u32, is_repeat: bool) {
         crate::threads::ue::key_up(key_code, character_code, is_repeat);
     }
 }
+
+#[rtil_derive::hook_before(FSlateApplication::OnRawMouseMove)]
+fn on_raw_mouse_move(_this: usize, x: i32, y: i32) {
+    crate::threads::ue::mouse_move(x, y);
+}

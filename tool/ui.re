@@ -97,6 +97,10 @@ fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     let on_key_up = CURRENT_COMPONENT.on_key_up;
     on_key_up(key);
 }
+fn on_mouse_move(x: int, y: int) {
+    let on_mouse_move = CURRENT_COMPONENT.on_mouse_move;
+    on_mouse_move(x, y);
+}
 fn draw_hud() {
     match UI_STACK.last() {
         Option::Some(ui) => ui.draw(),
