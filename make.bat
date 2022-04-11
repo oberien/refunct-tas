@@ -13,6 +13,7 @@ echo Copying files
 copy rtil\target\i686-pc-windows-msvc\release\rtil.dll build\practice-windows
 copy tool\target\i686-pc-windows-msvc\debug\refunct-tas.exe build\practice-windows
 copy tool\main.re build\practice-windows
+copy tool\prelude.re build\practice-windows
 copy tool\component.re build\practice-windows
 copy tool\keys.re build\practice-windows
 copy tool\newgame.re build\practice-windows
@@ -21,10 +22,12 @@ copy tool\randomizer.re build\practice-windows
 copy tool\teleport.re build\practice-windows
 copy tool\ui.re build\practice-windows
 copy tool\multiplayer.re build\practice-windows
-copy tool\util.re build\practice-windows
+copy tool\tas.re build\practice-windows
+copy tool\windshieldwipers.re build\practice-windows
 copy tool\settings.re build\practice-windows
 echo Converting lf to crlf
 call :convert main.re
+call :convert prelude.re
 call :convert component.re
 call :convert keys.re
 call :convert newgame.re
@@ -33,7 +36,8 @@ call :convert randomizer.re
 call :convert teleport.re
 call :convert ui.re
 call :convert multiplayer.re
-call :convert util.re
+call :convert tas.re
+call :convert windshieldwipers.re
 call :convert settings.re
 
 echo Don't forget to create a zip

@@ -1,12 +1,14 @@
 include "settings.re";
 include "keys.re";
 include "component.re"
+include "prelude.re";
 include "ui.re";
 include "teleport.re";
 include "randomizer.re";
 include "newgame.re";
 include "practice.re";
-include "util.re";
+include "windshieldwipers.re";
+include "tas.re";
 include "multiplayer.re";
 
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
@@ -308,12 +310,11 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onchange: fn(input: string) {},
     }),
     UiElement::Button(UiButton {
-        label: Text { text: "Frame-Step Mode" },
+        label: Text { text: "TAS Mode" },
         onclick: fn(label: Text) {
-            set_current_component(FRAME_STEP_COMPONENT);
+            set_current_component(TAS_COMPONENT);
             leave_ui();
             leave_ui();
-            Tas::step();
         }
     }),
     UiElement::Input(Input {
@@ -409,18 +410,5 @@ enter_ui(START_MENU);
 
 loop {
     let tick_fn = CURRENT_COMPONENT.tick_fn;
-    match tick_fn() {
-        Step::Tick => (),
-        Step::NewGame => {
-            let on_new_game = CURRENT_COMPONENT.on_new_game;
-            on_new_game();
-        },
-        Step::Yield => {
-            let on_yield = CURRENT_COMPONENT.on_yield;
-            on_yield();
-            continue
-        }
-    }
-    let on_tick = CURRENT_COMPONENT.on_tick;
-    on_tick();
+    step_frame(Option::None, tick_fn);
 }
