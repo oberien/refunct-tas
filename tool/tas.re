@@ -52,7 +52,27 @@ static TAS_COMPONENT = Component {
         let text = f"{text}\nTAS: REQUIRES 60 FPS";
         let text = f"{text}\n     t toggle frame-step mode, f advance one frame";
         let text = f"{text}\n     r to record/stop, g to replay inputs, h to replay position";
-        let text = f"{text}\n     Step-Frame: {TAS_STATE.step_frame_mode}    Recording: {TAS_STATE.is_recording}    Replay {TAS_STATE.is_replaying}: {TAS_STATE.replay_index}/{TAS_STATE.recording.len()}";
+        let mut text = f"{text}\n     Step-Frame: {TAS_STATE.step_frame_mode}    Recording: {TAS_STATE.is_recording}    Replay {TAS_STATE.is_replaying}: {TAS_STATE.replay_index}/{TAS_STATE.recording.len()}";
+
+        if TAS_STATE.is_replaying == Replaying::Inputs {
+            text = f"{text}\n\n";
+            for key in TAS_STATE.replay_keys_pressed.values() {
+                let key_string = if KEY_A.to_small() <= key && key <= KEY_Z.to_small() {
+                    string::from_char(key)
+                } else if key == KEY_LEFT_SHIFT.to_small() {
+                    "SHIFT"
+                } else if key == KEY_ESCAPE.to_small() {
+                    "ESC"
+                } else if key == KEY_SPACE.to_small() {
+                    "SPACE"
+                } else {
+                    "?"
+                };
+                text = f"{text} {key_string}";
+            }
+            text = f"{text}\n";
+        }
+
         text
     },
     tick_fn: Tas::yield,
