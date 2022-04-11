@@ -1,27 +1,26 @@
-use std::sync::atomic::Ordering;
-use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicPtr, Ordering};
+use std::os::raw::c_void;
 use crate::native::{FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
-use crate::statics::Static;
 
-static SLATEAPP: Lazy<Static<usize>> = Lazy::new(Static::new);
+static SLATEAPP: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 
 pub struct FSlateApplication;
 
 impl FSlateApplication {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: u32) {
-        let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
+        let fun: extern_fn!(fn(this: *mut c_void, key_code: i32, character_code: u32, is_repeat: u32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::SeqCst)) };
-        fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
+        fun(SLATEAPP.load(Ordering::SeqCst), key_code, character_code, is_repeat)
     }
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: u32) {
-        let fun: extern_fn!(fn(this: usize, key_code: i32, character_code: u32, is_repeat: u32)) =
+        let fun: extern_fn!(fn(this: *mut c_void, key_code: i32, character_code: u32, is_repeat: u32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP.load(Ordering::SeqCst)) };
-        fun(*SLATEAPP.get(), key_code, character_code, is_repeat)
+        fun(SLATEAPP.load(Ordering::SeqCst), key_code, character_code, is_repeat)
     }
     fn on_raw_mouse_move(x: i32, y: i32) {
-        let fun: extern_fn!(fn(this: usize, x: i32, y: i32)) =
+        let fun: extern_fn!(fn(this: *mut c_void, x: i32, y: i32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::SeqCst)) };
-        fun(*SLATEAPP.get(), x, y)
+        fun(SLATEAPP.load(Ordering::SeqCst), x, y)
     }
 
     pub fn press_key(key: i32, code: u32, repeat: bool) {
@@ -38,10 +37,10 @@ impl FSlateApplication {
 }
 
 #[rtil_derive::hook_once(FSlateApplication::Tick)]
-fn save(this: usize) {
-    #[cfg(unix)] { SLATEAPP.set(this); }
+fn save(this: *mut c_void) {
+    #[cfg(unix)] { SLATEAPP.store(this, Ordering::SeqCst); }
     #[cfg(windows)] { SLATEAPP.set(this + 0x3c); }
-    log!("Got FSlateApplication: {:#x}", this);
+    log!("Got FSlateApplication: {:#x}", this as usize);
 }
 
 #[rtil_derive::hook_before(FSlateApplication::OnKeyDown)]
