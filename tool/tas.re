@@ -47,7 +47,7 @@ impl TasState {
         TAS_STATE.replay_keys_pressed.clear();
     }
 
-    fn replay_current_positions(self){
+    fn replay_current_positions(self) {
         let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
         Tas::set_location(frame.location);
         Tas::set_rotation(frame.rotation);
@@ -55,6 +55,24 @@ impl TasState {
         Tas::set_acceleration(frame.acceleration);
     }
 
+    fn replay_current_events(self) {
+        let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
+        for event in frame.events {
+            match event {
+                Event::KeyPressed(code) => {
+                    TAS_STATE.replay_keys_pressed.insert(code);
+                    Tas::key_down(code, code, false);
+                },
+                Event::KeyReleased(code) => {
+                    TAS_STATE.replay_keys_pressed.remove(code);
+                    Tas::key_up(code, code, false);
+                },
+                Event::MouseMoved(x, y) => {
+                    Tas::move_mouse(x, y);
+                },
+            }
+        }
+    }
 }
 
 static TAS_COMPONENT = Component {
@@ -110,21 +128,7 @@ static TAS_COMPONENT = Component {
                 if TAS_STATE.replay_index == 0 {
                     TAS_STATE.replay_current_positions();
                 }
-                for event in frame.events {
-                    match event {
-                        Event::KeyPressed(code) => {
-                            TAS_STATE.replay_keys_pressed.insert(code);
-                            Tas::key_down(code, code, false);
-                        },
-                        Event::KeyReleased(code) => {
-                            TAS_STATE.replay_keys_pressed.remove(code);
-                            Tas::key_up(code, code, false);
-                        },
-                        Event::MouseMoved(x, y) => {
-                            Tas::move_mouse(x, y);
-                        },
-                    }
-                }
+                TAS_STATE.replay_current_events();
                 TAS_STATE.replay_index += 1;
             },
             Replaying::Positions => {
@@ -135,21 +139,7 @@ static TAS_COMPONENT = Component {
             Replaying::PositionsAndInputs => {
                 let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
                 TAS_STATE.replay_current_positions();
-                for event in frame.events {
-                    match event {
-                        Event::KeyPressed(code) => {
-                            TAS_STATE.replay_keys_pressed.insert(code);
-                            Tas::key_down(code, code, false);
-                        },
-                        Event::KeyReleased(code) => {
-                            TAS_STATE.replay_keys_pressed.remove(code);
-                            Tas::key_up(code, code, false);
-                        },
-                        Event::MouseMoved(x, y) => {
-                            Tas::move_mouse(x, y);
-                        },
-                    }
-                }
+                TAS_STATE.replay_current_events();
                 TAS_STATE.replay_index += 1;
             }
         }
@@ -182,14 +172,14 @@ static TAS_COMPONENT = Component {
             }
         } else if key == KEY_H.to_small() {
             if TAS_STATE.is_replaying == Replaying::Positions {
-                TAS_STATE.is_replaying = Replaying::Nothing;
+                TAS_STATE.stop_replaying();
             } else {
                 TAS_STATE.is_replaying = Replaying::Positions;
                 TAS_STATE.replay_index = 0;
             }
         } else if key == KEY_J.to_small() {
             if TAS_STATE.is_replaying == Replaying::PositionsAndInputs {
-                TAS_STATE.is_replaying = Replaying::Nothing;
+                TAS_STATE.stop_replaying();
             } else {
                 TAS_STATE.is_replaying = Replaying::PositionsAndInputs;
                 TAS_STATE.replay_index = 0;
