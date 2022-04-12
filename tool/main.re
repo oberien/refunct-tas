@@ -71,6 +71,10 @@ static BASE_MENU = Ui::new("Menu:", List::of(
         onclick: fn(label: Text) { enter_ui(MULTIPLAYER_MENU); },
     }),
     UiElement::Button(UiButton {
+        label: Text { text: "TAS" },
+        onclick: fn(label: Text) { enter_ui(TAS_MENU); },
+    }),
+    UiElement::Button(UiButton {
         label: Text { text: "Util" },
         onclick: fn(label: Text) { enter_ui(UTIL_MENU); },
     }),
@@ -250,6 +254,30 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
         onclick: fn(label: Text) { leave_ui(); },
     }),
 ));
+
+static TAS_MENU = Ui::new("TAS:", List::of(
+    UiElement::Button(UiButton {
+        label: Text { text: "Back" },
+        onclick: fn(label: Text) { leave_ui() },
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Recording name" },
+        input: "",
+        onclick: fn(input: string) {
+
+        },
+        onchange: fn(input: string) {},
+    }),
+    UiElement::Button(UiButton {
+        label: Text { text: "TAS Mode" },
+        onclick: fn(label: Text) {
+            set_current_component(TAS_COMPONENT);
+            leave_ui();
+            leave_ui();
+        }
+    }),
+));
+
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Teleport (x,y,z)" },
@@ -308,14 +336,6 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             set_current_component(WINDSCREEN_WIPERS_COMPONENT);
         },
         onchange: fn(input: string) {},
-    }),
-    UiElement::Button(UiButton {
-        label: Text { text: "TAS Mode" },
-        onclick: fn(label: Text) {
-            set_current_component(TAS_COMPONENT);
-            leave_ui();
-            leave_ui();
-        }
     }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },
@@ -407,6 +427,8 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
 ));
 
 enter_ui(START_MENU);
+
+print(current_time_millis());
 
 loop {
     let tick_fn = CURRENT_COMPONENT.tick_fn;
