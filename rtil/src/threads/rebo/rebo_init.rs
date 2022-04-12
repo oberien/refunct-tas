@@ -11,6 +11,7 @@ use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
+use serde::{Serialize, Deserialize};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -27,6 +28,10 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(step_yield)
         .add_function(load_settings)
         .add_function(store_settings)
+        .add_function(list_recordings)
+        .add_function(save_recording)
+        .add_function(load_recording)
+        .add_function(remove_recording)
         .add_function(key_down)
         .add_function(key_up)
         .add_function(move_mouse)
@@ -76,6 +81,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Server)
         .add_external_type(Step)
         .add_external_type(Disconnected)
+        .add_external_type(RecordFrame)
+        .add_external_type(InputEvent)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(on_mouse_move)
@@ -252,28 +259,89 @@ extern "rebo" {
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
 
-fn settings_file_path() -> PathBuf {
+fn config_path() -> PathBuf {
     let cfg_dir = dirs::config_dir().unwrap()
         .join("refunct-tas");
     if !cfg_dir.is_dir() {
         std::fs::create_dir(&cfg_dir).unwrap();
     }
-    cfg_dir.join("settings.json")
+    cfg_dir
+}
+fn data_path() -> PathBuf {
+    let cfg_dir = dirs::data_dir().unwrap()
+        .join("refunct-tas");
+    if !cfg_dir.is_dir() {
+        std::fs::create_dir(&cfg_dir).unwrap();
+    }
+    cfg_dir
 }
 
 #[rebo::function("Tas::load_settings")]
 fn load_settings() -> Option<Map<String, String>> {
-    let path = settings_file_path();
+    let path = config_path().join("settings.json");
     let file = File::open(path).ok()?;
     let map: HashMap<String, String> = serde_json::from_reader(file).unwrap();
     Some(Map::new(map))
 }
 #[rebo::function("Tas::store_settings")]
 fn store_settings(settings: Map<String, String>) {
-    let path = settings_file_path();
+    let path = config_path().join("settings.json");
     let file = File::create(path).unwrap();
     let map = settings.clone_btreemap();
     serde_json::to_writer_pretty(file, &map).unwrap();
+}
+
+#[derive(rebo::ExternalType, Serialize, Deserialize)]
+struct RecordFrame {
+    delta: f64,
+    events: Vec<InputEvent>,
+    location: Location,
+    rotation: Rotation,
+    velocity: Velocity,
+    acceleration: Acceleration,
+}
+#[derive(rebo::ExternalType, Serialize, Deserialize)]
+enum InputEvent {
+    KeyPressed(i32),
+    KeyReleased(i32),
+    MouseMoved(i32, i32),
+}
+fn recording_path() -> PathBuf {
+    let appdata_path = data_path();
+    let recording_path = appdata_path.join("recordings/");
+    if !recording_path.is_dir() {
+        std::fs::create_dir(&recording_path).unwrap();
+    }
+    recording_path
+}
+#[rebo::function("Tas::list_recordings")]
+fn list_recordings() -> Vec<String> {
+    let path = recording_path();
+    std::fs::read_dir(path).unwrap().flatten()
+        .map(|entry| {
+            assert!(entry.file_type().unwrap().is_file());
+            entry.file_name().into_string().unwrap()
+        }).collect()
+}
+#[rebo::function("Tas::save_recording")]
+fn save_recording(filename: String, recording: Vec<RecordFrame>) {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = recording_path().join(filename);
+    let file = File::create(path).unwrap();
+    serde_json::to_writer_pretty(file, &recording).unwrap();
+}
+#[rebo::function("Tas::load_recording")]
+fn load_recording(filename: String) -> Vec<RecordFrame> {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = recording_path().join(filename);
+    let file = File::open(path).unwrap();
+    serde_json::from_reader(file).unwrap()
+}
+#[rebo::function("Tas::remove_recording")]
+fn remove_recording(filename: String) -> bool {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = recording_path().join(filename);
+    std::fs::remove_file(path).is_ok()
 }
 
 #[rebo::function("Tas::key_down")]
@@ -306,7 +374,7 @@ fn get_delta() -> Option<f64> {
 fn set_delta(delta: Option<f64>) {
     STATE.lock().unwrap().as_mut().unwrap().delta = delta;
 }
-#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+#[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Location {
     x: f32,
     y: f32,
@@ -321,7 +389,7 @@ fn get_location() -> Location {
 fn set_location(loc: Location) {
     AMyCharacter::get_player().set_location(loc.x, loc.y, loc.z);
 }
-#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+#[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Rotation {
     pitch: f32,
     yaw: f32,
@@ -336,7 +404,7 @@ fn get_rotation() -> Rotation {
 fn set_rotation(rot: Rotation) {
     AMyCharacter::get_player().set_rotation(rot.pitch, rot.yaw, rot.roll);
 }
-#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+#[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Velocity {
     x: f32,
     y: f32,
@@ -351,7 +419,7 @@ fn get_velocity() -> Velocity {
 fn set_velocity(vel: Velocity) {
     AMyCharacter::get_player().set_velocity(vel.x, vel.y, vel.z);
 }
-#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+#[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Acceleration {
     x: f32,
     y: f32,

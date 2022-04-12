@@ -12,15 +12,16 @@ backtrace = "0.3.64"
 rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.5.2"
 memoffset = "0.6.5"
-#object = "0.28.3"
 #rebo = { path = "../../rebo/rebo" }
-rebo = { git = "https://github.com/oberien/rebo", rev = "bbdecb963e20c13ffefb1ee3aec84d776b75130a" }
+rebo = { git = "https://github.com/oberien/rebo", rev = "f2919983c16001ecc2d7ee42d5a04ddfdf2c70c0" }
 itertools = "0.10.3"
 clipboard = "0.5.0"
 thiserror = "1.0.30"
+serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"
 websocket = "0.26.3"
 dirs = "4.0.0"
+sanitize-filename = "0.3.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.119"
