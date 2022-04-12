@@ -46,6 +46,15 @@ impl TasState {
         }
         TAS_STATE.replay_keys_pressed.clear();
     }
+
+    fn replay_current_positions(self){
+        let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
+        Tas::set_location(frame.location);
+        Tas::set_rotation(frame.rotation);
+        Tas::set_velocity(frame.velocity);
+        Tas::set_acceleration(frame.acceleration);
+    }
+
 }
 
 static TAS_COMPONENT = Component {
@@ -99,10 +108,7 @@ static TAS_COMPONENT = Component {
             Replaying::Inputs => {
                 let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
                 if TAS_STATE.replay_index == 0 {
-                    Tas::set_location(frame.location);
-                    Tas::set_rotation(frame.rotation);
-                    Tas::set_velocity(frame.velocity);
-                    Tas::set_acceleration(frame.acceleration);
+                    TAS_STATE.replay_current_positions();
                 }
                 for event in frame.events {
                     match event {
@@ -123,18 +129,12 @@ static TAS_COMPONENT = Component {
             },
             Replaying::Positions => {
                 let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
-                Tas::set_location(frame.location);
-                Tas::set_rotation(frame.rotation);
-                Tas::set_velocity(frame.velocity);
-                Tas::set_acceleration(frame.acceleration);
+                TAS_STATE.replay_current_positions();
                 TAS_STATE.replay_index += 1;
             },
             Replaying::PositionsAndInputs => {
                 let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
-                Tas::set_location(frame.location);
-                Tas::set_rotation(frame.rotation);
-                Tas::set_velocity(frame.velocity);
-                Tas::set_acceleration(frame.acceleration);
+                TAS_STATE.replay_current_positions();
                 for event in frame.events {
                     match event {
                         Event::KeyPressed(code) => {
