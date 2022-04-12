@@ -39,7 +39,14 @@ impl FSlateApplication {
 #[rtil_derive::hook_once(FSlateApplication::Tick)]
 fn save(this: *mut c_void) {
     #[cfg(unix)] { SLATEAPP.store(this, Ordering::SeqCst); }
-    #[cfg(windows)] { SLATEAPP.set(this + 0x3c); }
+    #[cfg(windows)] {
+        let this_addr = this as usize;
+        // don't ask why this offset is needed, it's there since Feb 2017
+        // introduced in 882dc51a5345deb50f3166a4ce4855133c993fb8
+        // and it works, so don't touch it
+        let this_fixed_addr = this_addr + 0x3c;
+        SLATEAPP.store(this_fixed_addr as *mut _, Ordering::SeqCst);
+    }
     log!("Got FSlateApplication: {:#x}", this as usize);
 }
 
