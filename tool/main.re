@@ -71,10 +71,6 @@ static BASE_MENU = Ui::new("Menu:", List::of(
         onclick: fn(label: Text) { enter_ui(MULTIPLAYER_MENU); },
     }),
     UiElement::Button(UiButton {
-        label: Text { text: "TAS" },
-        onclick: fn(label: Text) { enter_ui(TAS_MENU); },
-    }),
-    UiElement::Button(UiButton {
         label: Text { text: "Util" },
         onclick: fn(label: Text) { enter_ui(UTIL_MENU); },
     }),
@@ -256,10 +252,9 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 ));
 
 static TAS_MENU = Ui::new("TAS:", List::of(
-    UiElement::Button(UiButton {
-        label: Text { text: "Back" },
-        onclick: fn(label: Text) { leave_ui() },
-    }),
+));
+
+static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Save Recording" },
         input: "",
@@ -288,9 +283,6 @@ static TAS_MENU = Ui::new("TAS:", List::of(
             leave_ui();
         }
     }),
-));
-
-static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Teleport (x,y,z)" },
         input: "",
