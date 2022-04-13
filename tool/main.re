@@ -251,9 +251,6 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     }),
 ));
 
-static TAS_MENU = Ui::new("TAS:", List::of(
-));
-
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Save Recording" },
