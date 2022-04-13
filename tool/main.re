@@ -251,7 +251,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         label: Text { text: "Save Recording" },
         input: "",
         onclick: fn(input: string) {
-            Tas::save_recording(input, TAS_STATE.recording);
+            tas_save_recording(input);
         },
         onchange: fn(input: string) {},
     }),
@@ -259,7 +259,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         label: Text { text: "Load Recording" },
         input: "",
         onclick: fn(input: string) {
-            TAS_STATE.recording = Tas::load_recording(input);
+            tas_load_recording(input);
         },
         onchange: fn(input: string) {},
     }),

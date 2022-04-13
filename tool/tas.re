@@ -26,6 +26,14 @@ enum Replaying {
     PositionsAndInputs,
 }
 
+fn tas_save_recording(name: string) {
+    Tas::save_recording(name, TAS_STATE.recording);
+}
+
+fn tas_load_recording(name: string) {
+    TAS_STATE.recording = Tas::load_recording(name);
+}
+
 impl TasState {
     fn stop_replaying(self) {
         TAS_STATE.is_replaying = Replaying::Nothing;
