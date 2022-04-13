@@ -263,10 +263,9 @@ static TAS_MENU = Ui::new("TAS:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Recording name" },
         input: "",
-        onclick: fn(input: string) {
-
+        onclick: fn(input: string) {},
+        onchange: fn(input: string) {
         },
-        onchange: fn(input: string) {},
     }),
     UiElement::Button(UiButton {
         label: Text { text: "TAS Mode" },

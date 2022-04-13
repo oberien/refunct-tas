@@ -152,6 +152,9 @@ static TAS_COMPONENT = Component {
             if TAS_STATE.is_recording {
                 TAS_STATE.recording = List::new();
             }
+            else if !TAS_STATE.is_recording {
+                
+            }
         } else if key == KEY_G.to_small() {
             if TAS_STATE.is_replaying == Replaying::Inputs {
                 TAS_STATE.stop_replaying();
