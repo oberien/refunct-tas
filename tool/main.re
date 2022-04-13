@@ -261,10 +261,23 @@ static TAS_MENU = Ui::new("TAS:", List::of(
         onclick: fn(label: Text) { leave_ui() },
     }),
     UiElement::Input(Input {
-        label: Text { text: "Recording name" },
+        label: Text { text: "Save Recording" },
         input: "",
-        onclick: fn(input: string) {},
+        onclick: fn(input: string) {
+            Tas::save_recording(input, TAS_STATE.recording);
+        },
         onchange: fn(input: string) {
+            set_current_component(NOOP_COMPONENT);
+        },
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Load Recording" },
+        input: "",
+        onclick: fn(input: string) {
+            TAS_STATE.recording = Tas::load_recording(input);
+        },
+        onchange: fn(input: string) {
+            set_current_component(NOOP_COMPONENT);
         },
     }),
     UiElement::Button(UiButton {
@@ -426,8 +439,6 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
 ));
 
 enter_ui(START_MENU);
-
-print(current_time_millis());
 
 loop {
     let tick_fn = CURRENT_COMPONENT.tick_fn;
