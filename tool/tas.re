@@ -15,21 +15,9 @@ struct TasState {
     is_recording: bool,
     is_replaying: Replaying,
     recording: List<RecordFrame>,
-    events: List<Event>,
+    events: List<InputEvent>,
     replay_index: int,
     replay_keys_pressed: Set<int>,
-}
-struct RecordFrame {
-    events: List<Event>,
-    location: Location,
-    rotation: Rotation,
-    velocity: Velocity,
-    acceleration: Acceleration,
-}
-enum Event {
-    KeyPressed(int),
-    KeyReleased(int),
-    MouseMoved(int, int),
 }
 enum Replaying {
     Nothing,
@@ -59,15 +47,15 @@ impl TasState {
         let frame = TAS_STATE.recording.get(TAS_STATE.replay_index).unwrap();
         for event in frame.events {
             match event {
-                Event::KeyPressed(code) => {
+                InputEvent::KeyPressed(code) => {
                     TAS_STATE.replay_keys_pressed.insert(code);
                     Tas::key_down(code, code, false);
                 },
-                Event::KeyReleased(code) => {
+                InputEvent::KeyReleased(code) => {
                     TAS_STATE.replay_keys_pressed.remove(code);
                     Tas::key_up(code, code, false);
                 },
-                Event::MouseMoved(x, y) => {
+                InputEvent::MouseMoved(x, y) => {
                     Tas::move_mouse(x, y);
                 },
             }
@@ -108,6 +96,7 @@ static TAS_COMPONENT = Component {
         // recording
         if TAS_STATE.is_recording {
             TAS_STATE.recording.push(RecordFrame {
+                delta: 1./60.,
                 events: TAS_STATE.events,
                 location: Tas::get_location(),
                 rotation: Tas::get_rotation(),
@@ -191,7 +180,7 @@ static TAS_COMPONENT = Component {
                 step_frame(Option::Some(1./60.), Tas::step);
             }
         } else if !is_repeat {
-            TAS_STATE.events.push(Event::KeyPressed(key_code.large_value));
+            TAS_STATE.events.push(InputEvent::KeyPressed(key_code.large_value));
         }
     },
     on_key_up: fn(key_code: KeyCode) {
@@ -202,11 +191,11 @@ static TAS_COMPONENT = Component {
         } else if key == KEY_T.to_small() || key == KEY_R.to_small() || key == KEY_G.to_small() || key == KEY_H.to_small() || key == KEY_J.to_small() {
             // pass
         } else {
-            TAS_STATE.events.push(Event::KeyReleased(key_code.large_value));
+            TAS_STATE.events.push(InputEvent::KeyReleased(key_code.large_value));
         }
     },
     on_mouse_move: fn(x: int, y: int) {
-        TAS_STATE.events.push(Event::MouseMoved(x, y));
+        TAS_STATE.events.push(InputEvent::MouseMoved(x, y));
     },
     on_component_exit: fn() {},
 };
