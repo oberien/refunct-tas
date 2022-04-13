@@ -15,11 +15,6 @@ static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
     name: START_MENU_TEXT,
     elements: List::new(),
-    on_key_down: Option::Some(fn(key: KeyCode) {
-        if key == KEY_M {
-            enter_ui(BASE_MENU);
-        }
-    }),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
         let draw_hud = CURRENT_COMPONENT.draw_hud;
@@ -258,9 +253,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(input: string) {
             Tas::save_recording(input, TAS_STATE.recording);
         },
-        onchange: fn(input: string) {
-            set_current_component(NOOP_COMPONENT);
-        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Input(Input {
         label: Text { text: "Load Recording" },
@@ -268,9 +261,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(input: string) {
             TAS_STATE.recording = Tas::load_recording(input);
         },
-        onchange: fn(input: string) {
-            set_current_component(NOOP_COMPONENT);
-        },
+        onchange: fn(input: string) {},
     }),
     UiElement::Button(UiButton {
         label: Text { text: "TAS Mode" },

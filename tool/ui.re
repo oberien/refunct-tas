@@ -1,13 +1,12 @@
 struct Ui {
     name: Text,
     elements: List<UiElement>,
-    on_key_down: Option<fn(KeyCode)>,
     on_draw: Option<fn()>,
     selected: int,
 }
 impl Ui {
     fn new(name: string, elements: List<UiElement>) -> Ui {
-        Ui { name: Text { text: name }, elements: elements, on_key_down: Option::None, on_draw: Option::None, selected: 0 }
+        Ui { name: Text { text: name }, elements: elements, on_draw: Option::None, selected: 0 }
     }
 }
 enum UiElement {
@@ -76,12 +75,18 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
     } else if key.to_small() == KEY_RIGHT_CTRL.to_small() {
         RCTRL_PRESSED = true;
     }
+    if key.to_small() == KEY_M.to_small() {
+        enter_ui(BASE_MENU);
+    }
     match UI_STACK.last() {
         Option::Some(ui) => ui.onkey(key, chr),
         Option::None => (),
     }
-    let on_key_down = CURRENT_COMPONENT.on_key_down;
-    on_key_down(key, is_repeat);
+    // don't trigger key events while in the menu
+    if UI_STACK.len() == 1 {
+        let on_key_down = CURRENT_COMPONENT.on_key_down;
+        on_key_down(key, is_repeat);
+    }
 }
 fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     let key = KeyCode::from_large(key_code);
@@ -94,8 +99,11 @@ fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     } else if key.to_small() == KEY_RIGHT_CTRL.to_small() {
         RCTRL_PRESSED = false;
     }
-    let on_key_up = CURRENT_COMPONENT.on_key_up;
-    on_key_up(key);
+    // don't trigger key events while in the menu
+    if UI_STACK.len() == 1 {
+        let on_key_up = CURRENT_COMPONENT.on_key_up;
+        on_key_up(key);
+    }
 }
 fn on_mouse_move(x: int, y: int) {
     let on_mouse_move = CURRENT_COMPONENT.on_mouse_move;
@@ -119,12 +127,6 @@ impl Ui {
         }
     }
     fn onkey(mut self, key: KeyCode, chr: Option<string>) {
-        let f = self.on_key_down;
-        match f {
-            Option::Some(f) => f(key),
-            Option::None => (),
-        }
-
         if key.to_small() == KEY_RETURN.to_small() {
             self.onclick();
         } else if key.to_small() == KEY_DOWN.to_small() {
