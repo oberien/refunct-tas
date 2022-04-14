@@ -28,7 +28,8 @@ pub enum StreamToListener {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum StreamToRebo {
-    Start(String),
+    // filenmae, code
+    Start(String, String),
     Stop,
     WorkingDir(String),
 }

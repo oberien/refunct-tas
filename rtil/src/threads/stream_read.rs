@@ -38,10 +38,12 @@ impl StreamRead {
     fn handle_cmd(&mut self) -> Result<()> {
         match self.con.read_u8()? {
             0 => {
+                log!("Reading filename");
+                let filename = self.read_string()?;
                 log!("Reading code");
                 let code = self.read_string()?;
                 log!("Got code");
-                self.stream_rebo_tx.send(StreamToRebo::Start(code)).unwrap();
+                self.stream_rebo_tx.send(StreamToRebo::Start(filename, code)).unwrap();
             }
             1 => {
                 log!("Got stop");

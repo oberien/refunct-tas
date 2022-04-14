@@ -26,7 +26,7 @@ $(TOOL): $(BUILDDIR)
 
 .PHONY: $(LIB) # always execute cargo
 $(LIB): $(BUILDDIR)
-	cd rtil && rustup run nightly cargo build --release
+	cd rtil && cargo +nightly build --release
 	cp rtil/target/release/librtil.so $(LIB)
 
 $(BUILDDIR):

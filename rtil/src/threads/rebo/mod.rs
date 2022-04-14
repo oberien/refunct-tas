@@ -58,7 +58,7 @@ fn handle_rx() {
             log!("Set working dir");
             STATE.lock().unwrap().as_mut().unwrap().working_dir = Some(dir);
         }
-        StreamToRebo::Start(s) => {
+        StreamToRebo::Start(filename, code) => {
             log!("Starting rebo...");
             log!("Cleaning ue_rebo_rx...");
             let mut count = 0;
@@ -71,7 +71,7 @@ fn handle_rx() {
             let rebo_stream_tx = STATE.lock().unwrap().as_ref().unwrap().rebo_stream_tx.clone();
             let config = rebo_init::create_config(rebo_stream_tx);
             log!("Executing rebo code.");
-            rebo::run_with_config("file.re".to_string(), s, config);
+            rebo::run_with_config(filename, code, config);
             log!("Rebo execution done. Starting cleanup...");
 
             // reset STATE
