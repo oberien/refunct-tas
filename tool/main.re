@@ -15,11 +15,6 @@ static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
     name: START_MENU_TEXT,
     elements: List::new(),
-    on_key_down: Option::Some(fn(key: KeyCode) {
-        if key == KEY_M {
-            enter_ui(BASE_MENU);
-        }
-    }),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
         let draw_hud = CURRENT_COMPONENT.draw_hud;
@@ -250,7 +245,32 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
         onclick: fn(label: Text) { leave_ui(); },
     }),
 ));
+
 static UTIL_MENU = Ui::new("Util:", List::of(
+    UiElement::Input(Input {
+        label: Text { text: "Save Recording" },
+        input: "",
+        onclick: fn(input: string) {
+            tas_save_recording(input);
+        },
+        onchange: fn(input: string) {},
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Load Recording" },
+        input: "",
+        onclick: fn(input: string) {
+            tas_load_recording(input);
+        },
+        onchange: fn(input: string) {},
+    }),
+    UiElement::Button(UiButton {
+        label: Text { text: "TAS Mode" },
+        onclick: fn(label: Text) {
+            set_current_component(TAS_COMPONENT);
+            leave_ui();
+            leave_ui();
+        }
+    }),
     UiElement::Input(Input {
         label: Text { text: "Teleport (x,y,z)" },
         input: "",
@@ -308,14 +328,6 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             set_current_component(WINDSCREEN_WIPERS_COMPONENT);
         },
         onchange: fn(input: string) {},
-    }),
-    UiElement::Button(UiButton {
-        label: Text { text: "TAS Mode" },
-        onclick: fn(label: Text) {
-            set_current_component(TAS_COMPONENT);
-            leave_ui();
-            leave_ui();
-        }
     }),
     UiElement::Input(Input {
         label: Text { text: "Spawn Pawn (x,y,z)" },
