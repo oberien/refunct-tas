@@ -24,8 +24,8 @@ impl Tas {
     pub fn execute<P: AsRef<Path>>(&mut self, path: P) {
         let path = path.as_ref();
         let mut file = File::open(path).expect(&format!("Couldn't open TAS file {:?}", path));
-        let mut s = String::new();
-        file.read_to_string(&mut s).unwrap();
+        let mut code = String::new();
+        file.read_to_string(&mut code).unwrap();
 
         println!("Setting Environment");
         let current_dir = env::current_dir().unwrap();
@@ -41,8 +41,10 @@ impl Tas {
 
         println!("Sending code");
         self.con.write_u8(0).unwrap();
-        self.con.write_u32::<LittleEndian>(s.len() as u32).unwrap();
-        self.con.write_all(s.as_bytes()).unwrap();
+        self.con.write_u32::<LittleEndian>(code.len() as u32).unwrap();
+        self.con.write_all(path.display().to_string().as_bytes()).unwrap();
+        self.con.write_u32::<LittleEndian>(code.len() as u32).unwrap();
+        self.con.write_all(code.as_bytes()).unwrap();
         println!("Tas Execution started");
 
         loop {

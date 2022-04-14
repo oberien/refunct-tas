@@ -127,7 +127,7 @@ fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(),
                     log!("Got WorkingDir, but can't set it during execution");
                     panic!()
                 }
-                StreamToRebo::Start(_) => {
+                StreamToRebo::Start(_, _) => {
                     log!("Got StreamToRebo::Start but rebo is already running");
                     panic!()
                 }

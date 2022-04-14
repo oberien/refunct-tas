@@ -19,7 +19,7 @@ Strings are u32-length-prefixed and UTF-8 encoded.
 
 Tool to Rtil:
 
-* `0`: Rebo Code as String
+* `0`: Rebo Filename as String, Code (file content) as String
 * `1`: Stop execution of Rebo and reset game values
 * `3`: Current absolute working directory path of the tool as String.
        This is used to resolve `includes` from.
