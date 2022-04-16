@@ -40,9 +40,10 @@ impl Tas {
         self.con.write_all(current_dir.as_bytes()).unwrap();
 
         println!("Sending code");
+        let path = path.display().to_string();
         self.con.write_u8(0).unwrap();
-        self.con.write_u32::<LittleEndian>(code.len() as u32).unwrap();
-        self.con.write_all(path.display().to_string().as_bytes()).unwrap();
+        self.con.write_u32::<LittleEndian>(path.len() as u32).unwrap();
+        self.con.write_all(path.as_bytes()).unwrap();
         self.con.write_u32::<LittleEndian>(code.len() as u32).unwrap();
         self.con.write_all(code.as_bytes()).unwrap();
         println!("Tas Execution started");
