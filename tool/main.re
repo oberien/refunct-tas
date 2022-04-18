@@ -250,9 +250,8 @@ static mut SAVE_RECORDING_LABEL = Text { text: "Save Recording" };
 static mut LOAD_RECORDING_LABEL = Text { text: "Load Recording" };
 static mut LIST_RECORDINGS_LABEL = Text { text: "List Recordings" };
 static mut DELETE_RECORDING_LABEL = Text { text: "Delete Recording" };
-static mut CURRENTLY_LOADED_RECORDING = "";
 
-fn MAIN_LIST_RECORDINGS() {
+fn main_list_recordings() {
     let recordings_list = Tas::list_recordings();
     LIST_RECORDINGS_LABEL.text = f"List Recordings ({recordings_list})";
 }
@@ -263,13 +262,12 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         input: "",
         onclick: fn(input: string) {
             if input.len_utf8() == 0 {
-                let msg = f"You cannot enter an empty recording name.";
-                SAVE_RECORDING_LABEL.text = f"Save Recording ({msg})";
+                SAVE_RECORDING_LABEL.text = f"Save Recording (Error: empty name)";
                 return;
             }
             SAVE_RECORDING_LABEL.text = f"Save Recording";
             tas_save_recording(input);
-            MAIN_LIST_RECORDINGS();
+            main_list_recordings();
         },
         onchange: fn(input: string) {},
     }),
@@ -278,21 +276,18 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         input: "",
         onclick: fn(input: string) {
             if input.len_utf8() == 0 {
-                let msg = f"You cannot enter an empty recording name.";
-                LOAD_RECORDING_LABEL.text = f"Load Recording ({msg})";
+                LOAD_RECORDING_LABEL.text = f"Load Recording (Error: empty name)";
                 return;
             }
             let recordings_list = Tas::list_recordings();
             if recordings_list.contains(input) {
                 LOAD_RECORDING_LABEL.text = f"Load Recording";
                 tas_load_recording(input);
-                CURRENTLY_LOADED_RECORDING = input;
                 LIST_RECORDINGS_LABEL.text = f"List Recordings";
                 enter_ui(RECORDING_OPTIONS_MENU);
             }
             else {
-                let msg = f"Tried to load recording {input}, but failed. Reason: No such file or directory.";
-                LOAD_RECORDING_LABEL.text = f"Load Recording ({msg})";
+                LOAD_RECORDING_LABEL.text = f"Load Recording (Error: no such recording)";
             }
         },
         onchange: fn(input: string) {},
@@ -300,7 +295,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Button(UiButton {
         label: LIST_RECORDINGS_LABEL,
         onclick: fn(label: Text) { 
-            MAIN_LIST_RECORDINGS();
+            main_list_recordings();
         },
     }),
     UiElement::Button(UiButton {
@@ -423,7 +418,7 @@ static RECORDING_OPTIONS_MENU = Ui::new("Recording Options:", List::of(
     UiElement::Button(UiButton {
         label: LIST_RECORDINGS_LABEL,
         onclick: fn(label: Text) { 
-            MAIN_LIST_RECORDINGS();
+            main_list_recordings();
         },
     }),
     UiElement::Input(Input {
@@ -439,14 +434,12 @@ static RECORDING_OPTIONS_MENU = Ui::new("Recording Options:", List::of(
             if recordings_list.contains(input) {
                 DELETE_RECORDING_LABEL.text = f"Delete Recording";
                 Tas::remove_recording(input);
-                MAIN_LIST_RECORDINGS();
-            }
-            else {
-                let msg = f"Tried to delete recording {input}, but failed. Reason: No such file or directory.";
-                DELETE_RECORDING_LABEL.text = f"Delete Recording ({msg})";
+                main_list_recordings();
+            } else {
+                DELETE_RECORDING_LABEL.text = f"Delete Recording (Error: no such recording)";
             }
         },
-        onchange: fn(mut input: string) {},
+        onchange: fn(input: string) {},
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Back" },
