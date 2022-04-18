@@ -426,8 +426,7 @@ static RECORDING_OPTIONS_MENU = Ui::new("Recording Options:", List::of(
         input: "",
         onclick: fn(mut input: string) {
             if input.len_utf8() == 0 {
-                let msg = f"You cannot enter an empty recording name";
-                DELETE_RECORDING_LABEL.text = f"Delete Recording ({msg})";
+                DELETE_RECORDING_LABEL.text = f"Delete Recording (Error: empty name)";
                 return;
             }
             let recordings_list = Tas::list_recordings();
