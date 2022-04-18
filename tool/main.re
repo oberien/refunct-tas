@@ -255,7 +255,6 @@ static mut CURRENTLY_LOADED_RECORDING = "";
 fn MAIN_LIST_RECORDINGS() {
     let recordings_list = Tas::list_recordings();
     LIST_RECORDINGS_LABEL.text = f"List Recordings ({recordings_list})";
-    print(recordings_list);
 }
 
 static UTIL_MENU = Ui::new("Util:", List::of(
@@ -287,9 +286,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             if recordings_list.contains(input) {
                 LOAD_RECORDING_LABEL.text = f"Load Recording";
                 tas_load_recording(input);
-                print(f"Loaded {input}.");
                 CURRENTLY_LOADED_RECORDING = input;
-                print(f"Currently loaded recording: {CURRENTLY_LOADED_RECORDING}");
                 LIST_RECORDINGS_LABEL.text = f"List Recordings";
                 enter_ui(RECORDING_OPTIONS_MENU);
             }
