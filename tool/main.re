@@ -266,7 +266,6 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
@@ -341,6 +340,48 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                         leave_ui();
                         leave_ui();
                         leave_ui();
+                    },
+                }));
+            }
+            recordings.push(UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }));
+
+            let recording_options_menu = Ui::new("Recording Options:", recordings);
+            enter_ui(recording_options_menu);
+        }
+    }),
+    UiElement::Button(UiButton {
+        label: Text { text: "Delete Recording" },
+        onclick: fn(label: Text) {
+            RECORDING_NAME_LABEL.text = f"Recording name";
+            let recordings_list = Tas::list_recordings();
+            let mut recordings = List::new();
+            recordings.push(UiElement::Input(Input {
+                label: RECORDING_NAME_LABEL,
+                input: "",
+                onclick: fn(input: string) {
+                    let recordings_list = Tas::list_recordings();
+                    if input.len_utf8() == 0 {
+                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                        return;
+                    }
+                    if recordings_list.contains(input) {
+                        RECORDING_NAME_LABEL.text = f"Recording name";
+                        Tas::remove_recording(input);
+                    } else {
+                        RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
+                    }
+                },
+                onchange: fn(input: string) {}
+            }));
+            for recording in recordings_list {
+                recordings.push(UiElement::Button(UiButton {
+                    label: Text { text: recording },
+                    onclick: fn(label: Text) {
+                        Tas::remove_recording(label.text); // The list can only update when you re-enter the menu
+                        RECORDING_NAME_LABEL.text = f"Recording name (Deleted {label.text})";
                     },
                 }));
             }
