@@ -14,7 +14,10 @@ use winapi::um::winnt::{PROCESS_ALL_ACCESS, MEM_RESERVE, MEM_COMMIT, PAGE_READWR
 pub fn inject() {
     unsafe {
         let rtil = ::std::env::var("RTIL").unwrap_or("./rtil.dll".to_string());
-        let path = Path::new(&rtil);
+        let mut path = Path::new(&rtil);
+        if !path.is_file() {
+            path = Path::new("../rtil/target/i686-pc-windows-msvc/release/rtil.dll");
+        }
         let absolute = path.canonicalize().unwrap();
         let s = absolute.to_str().unwrap();
         println!("Trying to inject {}", s);
