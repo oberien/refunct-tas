@@ -285,19 +285,29 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(label: Text) {
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
+            recordings.push(UiElement::Input(Input {
+                label: Text { text: "Recording name" },
+                input: "",
+                onclick: fn(input: string) {
+                    tas_load_recording(input);
+                    set_current_component(TAS_COMPONENT);
+                    leave_ui();
+                    leave_ui();
+                    leave_ui();
+                },
+                onchange: fn(input: string) {}
+            }));
             for recording in recordings_list {
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
                     onclick: fn(label: Text) {
                         tas_load_recording(label.text);
-                        print(f"Loaded {label.text}.");
                         set_current_component(TAS_COMPONENT);
                         leave_ui();
                         leave_ui();
                         leave_ui();
                     },
                 }));
-                print("done.");
             }
             recordings.push(UiElement::Button(UiButton {
                 label: Text { text: "Back" },
