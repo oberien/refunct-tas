@@ -248,7 +248,7 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 ));
 
 static mut SAVE_RECORDING_LABEL = Text { text: "Save Recording" };
-static mut LOAD_RECORDING_LABEL = Text { text: "Load Recording" };
+static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
 static mut LIST_RECORDINGS_LABEL = Text { text: "List Recordings" };
 static mut DELETE_RECORDING_LABEL = Text { text: "Delete Recording" };
 
@@ -286,14 +286,23 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
             recordings.push(UiElement::Input(Input {
-                label: Text { text: "Recording name" },
+                label: RECORDING_NAME_LABEL,
                 input: "",
                 onclick: fn(input: string) {
-                    tas_load_recording(input);
-                    set_current_component(TAS_COMPONENT);
-                    leave_ui();
-                    leave_ui();
-                    leave_ui();
+                    let recordings_list = Tas::list_recordings();
+                    if input.len_utf8() == 0 {
+                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                        return;
+                    }
+                    if recordings_list.contains(input) {
+                        tas_load_recording(input);
+                        set_current_component(TAS_COMPONENT);
+                        leave_ui();
+                        leave_ui();
+                        leave_ui();
+                    } else {
+                        RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
+                    }
                 },
                 onchange: fn(input: string) {}
             }));
