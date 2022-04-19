@@ -3,7 +3,6 @@ struct Settings {
     show_character_stats: bool,
     show_game_stats: bool,
     multiplayer_name: string,
-    recording_player_name: string,
 }
 
 static mut SETTINGS = Settings::load();
@@ -33,16 +32,11 @@ impl Settings {
              Option::Some(name) => name,
              Option::None => "Player",
         };
-        let recording_player_name = match map.get("recording_player_name") {
-            Option::Some(name) => name,
-            Option::None => "Player",
-       };
         Settings {
             ui_scale: ui_scale,
             show_character_stats: show_character_stats,
             show_game_stats: show_game_stats,
             multiplayer_name: multiplayer_name,
-            recording_player_name: recording_player_name,
         }
     }
 
@@ -52,7 +46,6 @@ impl Settings {
         map.insert("show_character_stats", f"{self.show_character_stats}");
         map.insert("show_game_stats", f"{self.show_game_stats}");
         map.insert("multiplayer_name", f"{self.multiplayer_name}");
-        map.insert("recording_player_name", f"{self.recording_player_name}");
         Tas::store_settings(map);
     }
 
@@ -76,10 +69,6 @@ impl Settings {
     }
     fn set_multiplayer_name(mut self, name: string) {
         self.multiplayer_name = name;
-        self.store();
-    }
-    fn set_recording_player_name(mut self, name: string) {
-        self.recording_player_name = name;
         self.store();
     }
 }
