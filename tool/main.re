@@ -266,24 +266,11 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-//    UiElement::Input(Input {
-//        label: SAVE_RECORDING_LABEL,
-//        input: "",
-//        onclick: fn(input: string) {
-//            if input.len_utf8() == 0 {
-//                SAVE_RECORDING_LABEL.text = f"Save Recording (Error: empty name)";
-//                return;
-//            }
-//            SAVE_RECORDING_LABEL.text = f"Save Recording";
-//            tas_save_recording(input);
-//            main_list_recordings();
-//        },
-//        onchange: fn(input: string) {},
-//    }),
 
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
+            RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
             recordings.push(UiElement::Input(Input {
@@ -320,6 +307,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
         onclick: fn(label: Text) {
+            RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
             recordings.push(UiElement::Input(Input {
