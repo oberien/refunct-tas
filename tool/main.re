@@ -266,19 +266,56 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         },
         onchange: fn(input: string) {},
     }),
-    UiElement::Input(Input {
-        label: SAVE_RECORDING_LABEL,
-        input: "",
-        onclick: fn(input: string) {
-            if input.len_utf8() == 0 {
-                SAVE_RECORDING_LABEL.text = f"Save Recording (Error: empty name)";
-                return;
+//    UiElement::Input(Input {
+//        label: SAVE_RECORDING_LABEL,
+//        input: "",
+//        onclick: fn(input: string) {
+//            if input.len_utf8() == 0 {
+//                SAVE_RECORDING_LABEL.text = f"Save Recording (Error: empty name)";
+//                return;
+//            }
+//            SAVE_RECORDING_LABEL.text = f"Save Recording";
+//            tas_save_recording(input);
+//            main_list_recordings();
+//        },
+//        onchange: fn(input: string) {},
+//    }),
+
+    UiElement::Button(UiButton {
+        label: Text { text: "Save Recording" },
+        onclick: fn(label: Text) {
+            let recordings_list = Tas::list_recordings();
+            let mut recordings = List::new();
+            recordings.push(UiElement::Input(Input {
+                label: RECORDING_NAME_LABEL,
+                input: "",
+                onclick: fn(input: string) {
+                    let recordings_list = Tas::list_recordings();
+                    if input.len_utf8() == 0 {
+                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                        return;
+                    }
+                    RECORDING_NAME_LABEL.text = f"Recording name";
+                    tas_save_recording(input);
+                },
+                onchange: fn(input: string) {}
+            }));
+            for recording in recordings_list {
+                recordings.push(UiElement::Button(UiButton {
+                    label: Text { text: recording },
+                    onclick: fn(label: Text) {
+                        tas_save_recording(label.text);
+                    },
+                }));
             }
-            SAVE_RECORDING_LABEL.text = f"Save Recording";
-            tas_save_recording(input);
-            main_list_recordings();
-        },
-        onchange: fn(input: string) {},
+            recordings.push(UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }));
+
+            let recording_options_menu = Ui::new("Recording Options:", recordings);
+            enter_ui(recording_options_menu);
+        }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
@@ -295,6 +332,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                         return;
                     }
                     if recordings_list.contains(input) {
+                        RECORDING_NAME_LABEL.text = f"Recording name";
                         tas_load_recording(input);
                         set_current_component(TAS_COMPONENT);
                         leave_ui();
