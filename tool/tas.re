@@ -14,7 +14,7 @@ struct TasState {
     step_frame_mode: bool,
     is_recording: bool,
     is_replaying: Replaying,
-    recording: List<RecordFrame>,
+    recording: List<RecordingFrame>,
     events: List<InputEvent>,
     replay_index: int,
     replay_keys_pressed: Set<int>,
@@ -103,7 +103,7 @@ static TAS_COMPONENT = Component {
     on_tick: fn() {
         // recording
         if TAS_STATE.is_recording {
-            TAS_STATE.recording.push(RecordFrame {
+            TAS_STATE.recording.push(RecordingFrame {
                 delta: 1./60.,
                 events: TAS_STATE.events,
                 location: Tas::get_location(),

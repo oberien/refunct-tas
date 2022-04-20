@@ -81,7 +81,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Server)
         .add_external_type(Step)
         .add_external_type(Disconnected)
-        .add_external_type(RecordFrame)
+        .add_external_type(RecordingFrame)
         .add_external_type(InputEvent)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
@@ -290,9 +290,17 @@ fn store_settings(settings: Map<String, String>) {
     let map = settings.clone_btreemap();
     serde_json::to_writer_pretty(file, &map).unwrap();
 }
-
 #[derive(rebo::ExternalType, Serialize, Deserialize)]
-struct RecordFrame {
+struct Recording {
+    player_name: String,
+    rec_start_timestamp: u64,
+    rec_end_timestamp: u64,
+    rec_save_timestamp: u64,
+    rec_filename_saved: String,
+    frame: Vec<RecordingFrame>,
+}
+#[derive(rebo::ExternalType, Serialize, Deserialize)]
+struct RecordingFrame {
     delta: f64,
     events: Vec<InputEvent>,
     location: Location,
@@ -324,14 +332,14 @@ fn list_recordings() -> Vec<String> {
         }).collect()
 }
 #[rebo::function("Tas::save_recording")]
-fn save_recording(filename: String, recording: Vec<RecordFrame>) {
+fn save_recording(filename: String, recording: Vec<RecordingFrame>) {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
     serde_json::to_writer_pretty(file, &recording).unwrap();
 }
 #[rebo::function("Tas::load_recording")]
-fn load_recording(filename: String) -> Vec<RecordFrame> {
+fn load_recording(filename: String) -> Vec<RecordingFrame> {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let file = File::open(path).unwrap();
