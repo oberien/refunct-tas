@@ -247,14 +247,12 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     }),
 ));
 
-static mut SAVE_RECORDING_LABEL = Text { text: "Save Recording" };
 static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
-static mut LIST_RECORDINGS_LABEL = Text { text: "List Recordings" };
-static mut DELETE_RECORDING_LABEL = Text { text: "Delete Recording" };
 
-fn main_list_recordings() {
-    let recordings_list = Tas::list_recordings();
-    LIST_RECORDINGS_LABEL.text = f"List Recordings ({recordings_list})";
+fn triple_leave_ui() {
+    leave_ui();
+    leave_ui();
+    leave_ui();
 }
 
 static UTIL_MENU = Ui::new("Util:", List::of(
@@ -272,6 +270,10 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
+            recordings.push(UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }));
             recordings.push(UiElement::Input(Input {
                 label: RECORDING_NAME_LABEL,
                 input: "",
@@ -283,6 +285,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                     }
                     RECORDING_NAME_LABEL.text = f"Recording name";
                     tas_save_recording(input);
+                    leave_ui();
                 },
                 onchange: fn(input: string) {}
             }));
@@ -291,16 +294,11 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                     label: Text { text: recording },
                     onclick: fn(label: Text) {
                         tas_save_recording(label.text);
+                        leave_ui();
                     },
                 }));
             }
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-
-            let recording_options_menu = Ui::new("Recording Options:", recordings);
-            enter_ui(recording_options_menu);
+            enter_ui(Ui::new("Recording Options:", recordings));
         }
     }),
     UiElement::Button(UiButton {
@@ -309,6 +307,10 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
+            recordings.push(UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }));
             recordings.push(UiElement::Input(Input {
                 label: RECORDING_NAME_LABEL,
                 input: "",
@@ -322,9 +324,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                         RECORDING_NAME_LABEL.text = f"Recording name";
                         tas_load_recording(input);
                         set_current_component(TAS_COMPONENT);
-                        leave_ui();
-                        leave_ui();
-                        leave_ui();
+                        triple_leave_ui();
                     } else {
                         RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
                     }
@@ -337,19 +337,11 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                     onclick: fn(label: Text) {
                         tas_load_recording(label.text);
                         set_current_component(TAS_COMPONENT);
-                        leave_ui();
-                        leave_ui();
-                        leave_ui();
+                        triple_leave_ui();
                     },
                 }));
             }
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-
-            let recording_options_menu = Ui::new("Recording Options:", recordings);
-            enter_ui(recording_options_menu);
+            enter_ui(Ui::new("Recording Options:", recordings));
         }
     }),
     UiElement::Button(UiButton {
@@ -358,6 +350,10 @@ static UTIL_MENU = Ui::new("Util:", List::of(
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
             let mut recordings = List::new();
+            recordings.push(UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }));
             recordings.push(UiElement::Input(Input {
                 label: RECORDING_NAME_LABEL,
                 input: "",
@@ -385,13 +381,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                     },
                 }));
             }
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-
-            let recording_options_menu = Ui::new("Recording Options:", recordings);
-            enter_ui(recording_options_menu);
+            enter_ui(Ui::new("Recording Options:", recordings));
         }
     }),
     UiElement::Button(UiButton {
