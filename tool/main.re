@@ -269,26 +269,27 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(label: Text) {
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
-            let mut recordings = List::new();
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-            recordings.push(UiElement::Input(Input {
-                label: RECORDING_NAME_LABEL,
-                input: "",
-                onclick: fn(input: string) {
-                    let recordings_list = Tas::list_recordings();
-                    if input.len_utf8() == 0 {
-                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                        return;
-                    }
-                    RECORDING_NAME_LABEL.text = f"Recording name";
-                    tas_save_recording(input);
-                    leave_ui();
-                },
-                onchange: fn(input: string) {}
-            }));
+            let mut recordings = List::of(
+                UiElement::Button(UiButton {
+                    label: Text { text: "Back" },
+                    onclick: fn(label: Text) { leave_ui() },
+                }),
+                UiElement::Input(Input {
+                    label: RECORDING_NAME_LABEL,
+                    input: "",
+                    onclick: fn(input: string) {
+                        let recordings_list = Tas::list_recordings();
+                        if input.len_utf8() == 0 {
+                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                            return;
+                        }
+                        RECORDING_NAME_LABEL.text = f"Recording name";
+                        tas_save_recording(input);
+                        leave_ui();
+                    },
+                    onchange: fn(input: string) {}
+                }),
+            );
             for recording in recordings_list {
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
@@ -306,31 +307,32 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(label: Text) {
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
-            let mut recordings = List::new();
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-            recordings.push(UiElement::Input(Input {
-                label: RECORDING_NAME_LABEL,
-                input: "",
-                onclick: fn(input: string) {
-                    let recordings_list = Tas::list_recordings();
-                    if input.len_utf8() == 0 {
-                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                        return;
-                    }
-                    if recordings_list.contains(input) {
-                        RECORDING_NAME_LABEL.text = f"Recording name";
-                        tas_load_recording(input);
-                        set_current_component(TAS_COMPONENT);
-                        triple_leave_ui();
-                    } else {
-                        RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
-                    }
-                },
-                onchange: fn(input: string) {}
-            }));
+            let mut recordings = List::of(
+                UiElement::Button(UiButton {
+                    label: Text { text: "Back" },
+                    onclick: fn(label: Text) { leave_ui() },
+                }),
+                UiElement::Input(Input {
+                    label: RECORDING_NAME_LABEL,
+                    input: "",
+                    onclick: fn(input: string) {
+                        let recordings_list = Tas::list_recordings();
+                        if input.len_utf8() == 0 {
+                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                            return;
+                        }
+                        if recordings_list.contains(input) {
+                            RECORDING_NAME_LABEL.text = f"Recording name";
+                            tas_load_recording(input);
+                            set_current_component(TAS_COMPONENT);
+                            triple_leave_ui();
+                        } else {
+                            RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
+                        }
+                    },
+                    onchange: fn(input: string) {}
+                }),
+            );
             for recording in recordings_list {
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
@@ -349,29 +351,30 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(label: Text) {
             RECORDING_NAME_LABEL.text = f"Recording name";
             let recordings_list = Tas::list_recordings();
-            let mut recordings = List::new();
-            recordings.push(UiElement::Button(UiButton {
-                label: Text { text: "Back" },
-                onclick: fn(label: Text) { leave_ui() },
-            }));
-            recordings.push(UiElement::Input(Input {
-                label: RECORDING_NAME_LABEL,
-                input: "",
-                onclick: fn(input: string) {
-                    let recordings_list = Tas::list_recordings();
-                    if input.len_utf8() == 0 {
-                        RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                        return;
-                    }
-                    if recordings_list.contains(input) {
-                        RECORDING_NAME_LABEL.text = f"Recording name";
-                        Tas::remove_recording(input);
-                    } else {
-                        RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
-                    }
-                },
-                onchange: fn(input: string) {}
-            }));
+            let mut recordings = List::of(
+                UiElement::Button(UiButton {
+                    label: Text { text: "Back" },
+                    onclick: fn(label: Text) { leave_ui() },
+                }),
+                UiElement::Input(Input {
+                    label: RECORDING_NAME_LABEL,
+                    input: "",
+                    onclick: fn(input: string) {
+                        let recordings_list = Tas::list_recordings();
+                        if input.len_utf8() == 0 {
+                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                            return;
+                        }
+                        if recordings_list.contains(input) {
+                            RECORDING_NAME_LABEL.text = f"Recording name";
+                            Tas::load_recording(input);
+                        } else {
+                            RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
+                        }
+                    },
+                    onchange: fn(input: string) {}
+                }),
+            );
             for recording in recordings_list {
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
