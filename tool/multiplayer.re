@@ -3,6 +3,12 @@ enum Connection {
     Error(string),
     Disconnected,
 }
+enum NewGameState {
+    NoonePressed,
+    AnotherPlayerPressed,
+    YouPressed,
+    StartingAt(int),
+}
 struct MultiplayerState {
     connection: Connection,
     current_room: Option<string>,
@@ -14,6 +20,7 @@ struct MultiplayerState {
     current_buttons: int,
     /// custer-id -> timestamp
     risen_clusters: Map<int, int>,
+    new_game_state: NewGameState,
 }
 struct Player {
     name: string,
@@ -45,12 +52,27 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     pressed_buttons: Set::new(),
     current_buttons: 0,
     risen_clusters: Map::new(),
+    new_game_state: NewGameState::NoonePressed,
 };
 
-static MULTIPLAYER_COMPONENT = Component {
+static mut MULTIPLAYER_COMPONENT = Component {
     tick_fn: Tas::step,
     on_tick: update_players,
-    on_yield: fn() {},
+    on_yield: fn() {
+        match MULTIPLAYER_STATE.new_game_state {
+            NewGameState::NoonePressed => MULTIPLAYER_COMPONENT.tick_fn = Tas::step,
+            NewGameState::AnotherPlayerPressed => (),
+            NewGameState::YouPressed => (),
+            NewGameState::StartingAt(ts) => {
+                let time = current_time_millis();
+                if time >= ts {
+                    print(f"starting synchronized new game at {time} (expected {ts})");
+                    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
+                    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
+                }
+            },
+        }
+    },
     draw_hud: fn(text: string) -> string {
         match MULTIPLAYER_STATE.connection {
             Connection::Disconnected => return text,
@@ -65,9 +87,15 @@ static MULTIPLAYER_COMPONENT = Component {
 //                    draw_player("pawn", Tas::pawn_location(pawn.id));
 //                }
 
-                match MULTIPLAYER_STATE.current_room {
+                let text = match MULTIPLAYER_STATE.current_room {
                     Option::None => f"{text}\nMultiplayer connected to server",
                     Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
+                };
+                match MULTIPLAYER_STATE.new_game_state {
+                    NewGameState::NoonePressed => text,
+                    NewGameState::AnotherPlayerPressed => f"{text}\n\nOTHER PLAYERS ARE WAITING FOR YOU TO PRESS NEW GAME\n",
+                    NewGameState::YouPressed => text,
+                    NewGameState::StartingAt(_ts) => text,
                 }
             }
         }
@@ -83,6 +111,9 @@ static MULTIPLAYER_COMPONENT = Component {
             Tas::destroy_pawn(pawn.id);
         }
         MULTIPLAYER_STATE.pawns = List::new();
+        MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
+        MULTIPLAYER_COMPONENT.tick_fn = Tas::yield;
+        Tas::new_game_pressed();
     },
     on_level_change: fn(old: int, new: int) {
         if old > new {
@@ -272,7 +303,7 @@ fn multiplayer_connect() {
         MULTIPLAYER_STATE.risen_clusters.insert(i, 0);
         i += 1;
     }
-    Tas::connect_to_server(Server::Remote);
+    Tas::connect_to_server(Server::Testing);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
@@ -338,6 +369,9 @@ fn player_moved(id: int, loc: Location) {
     player.loc = loc;
 }
 fn platform_pressed(id: int) {
+    if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
+        return;
+    }
     let platform = match PLATFORMS.get(id) {
         Option::Some(platform) => platform,
         Option::None => {
@@ -354,6 +388,9 @@ fn platform_pressed(id: int) {
     MULTIPLAYER_STATE.pressed_platforms.insert(id);
 }
 fn button_pressed(id: int) {
+    if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
+        return;
+    }
     let button = match BUTTONS.get(id) {
         Option::Some(button) => button,
         Option::None => {
@@ -367,6 +404,25 @@ fn button_pressed(id: int) {
     }
     MULTIPLAYER_STATE.pressed_buttons.insert(id);
 }
+fn player_pressed_new_game(id: int) {
+    print(f"player {id} pressed New Game");
+    if MULTIPLAYER_STATE.connection != Connection::Connected {
+        return;
+    }
+    match MULTIPLAYER_STATE.new_game_state {
+        NewGameState::NoonePressed => MULTIPLAYER_STATE.new_game_state = NewGameState::AnotherPlayerPressed,
+        NewGameState::AnotherPlayerPressed => (),
+        NewGameState::YouPressed => (),
+        NewGameState::StartingAt(_ts) => (),
+    }
+}
+fn start_new_game_at(timestamp: int) {
+    print(f"start synchronized new game at {timestamp} (current local timestamp: {current_time_millis()})");
+    if MULTIPLAYER_STATE.connection != Connection::Connected {
+        return;
+    }
+    MULTIPLAYER_STATE.new_game_state = NewGameState::StartingAt(timestamp);
+}
 fn disconnected(reason: Disconnected) {
     match reason {
         Disconnected::Closed => MULTIPLAYER_STATE.connection = Connection::Error("Connection Closed"),
@@ -375,4 +431,6 @@ fn disconnected(reason: Disconnected) {
         Disconnected::ConnectionRefused => MULTIPLAYER_STATE.connection = Connection::Error("Connection Refused"),
         Disconnected::ReceiveFailed => MULTIPLAYER_STATE.connection = Connection::Error("Receive Failed"),
     }
+    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
+    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
 }

@@ -63,6 +63,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(move_on_server)
         .add_function(press_platform_on_server)
         .add_function(press_button_on_server)
+        .add_function(new_game_pressed)
         .add_function(set_level)
         .add_function(is_windows)
         .add_function(is_linux)
@@ -92,6 +93,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(player_moved)
         .add_required_rebo_function(platform_pressed)
         .add_required_rebo_function(button_pressed)
+        .add_required_rebo_function(player_pressed_new_game)
+        .add_required_rebo_function(start_new_game_at)
         .add_required_rebo_function(disconnected)
         .add_required_rebo_function(on_level_state_change)
     ;
@@ -223,6 +226,8 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
                 Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
                 Response::PressPlatform(id) => platform_pressed(vm, id)?,
                 Response::PressButton(id) => button_pressed(vm, id)?,
+                Response::NewGamePressed(id) => player_pressed_new_game(vm, id.id())?,
+                Response::StartNewGameAt(timestamp) => start_new_game_at(vm, timestamp)?,
             }
         }
 
@@ -255,6 +260,8 @@ extern "rebo" {
     fn player_moved(id: u32, loc: Location);
     fn platform_pressed(id: u8);
     fn button_pressed(id: u8);
+    fn player_pressed_new_game(id: u32);
+    fn start_new_game_at(timestamp: u64);
     fn disconnected(reason: Disconnected);
     fn on_level_state_change(old: LevelState, new: LevelState);
 }
@@ -605,6 +612,10 @@ fn press_platform_on_server(platform_id: u8) {
 #[rebo::function(raw("Tas::press_button_on_server"))]
 fn press_button_on_server(button_id: u8) {
     send_to_server(vm, "press button", Request::PressButton(button_id))?;
+}
+#[rebo::function(raw("Tas::new_game_pressed"))]
+fn new_game_pressed() {
+    send_to_server(vm, "new game pressed", Request::NewGamePressed)?;
 }
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {

@@ -7,6 +7,7 @@ use axum::Router;
 use axum::routing::get;
 use futures::{SinkExt, StreamExt};
 use std::sync::{Mutex as StdMutex, RwLock as StdRwLock};
+use std::time::{Duration, SystemTime};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{self, Sender};
 use protocol::{PlayerId, Request, Response};
@@ -22,13 +23,26 @@ struct MultiplayerRoom {
 }
 
 impl MultiplayerRoom {
-    async fn broadcast(&self, sender: PlayerId, message: Response) {
+    async fn broadcast(&self, sender: Option<PlayerId>, message: Response) {
         let players = self.players.read().unwrap();
         for (id, player) in players.iter() {
-            if *id == sender {
+            if Some(*id) == sender {
                 continue;
             }
             player.send(message.clone());
+        }
+    }
+    /// check if all players pressed "New Game"
+    async fn check_new_game(&self) {
+        let players: Vec<_> = self.players.read().unwrap().values().cloned().collect();
+        if players.iter().all(|p| *p.is_waiting_for_new_game.lock().unwrap()) {
+            for player in players.iter() {
+                *player.is_waiting_for_new_game.lock().unwrap() = false;
+            }
+            let time = SystemTime::now();
+            let in_one_second = time + Duration::from_secs(1);
+            let timestamp = in_one_second.duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+            self.broadcast(None, Response::StartNewGameAt(timestamp)).await;
         }
     }
 }
@@ -37,6 +51,7 @@ struct Player {
     id: PlayerId,
     data: StdMutex<PlayerData>,
     sender: Sender<Response>,
+    is_waiting_for_new_game: StdMutex<bool>,
 }
 struct PlayerData {
     name: String,
@@ -83,7 +98,8 @@ async fn hello_world(state: Arc<StdMutex<State>>) -> Html<String> {
         res += &format!("<li>{} ({}):<ul>", room.name, players.len());
         for player in players.values() {
             let data = player.data.lock().unwrap();
-            res += &format!("<li>{}({}): {} {} {}", data.name, player.id.id(), data.x, data.y, data.z);
+            let is_waiting_for_new_game = *player.is_waiting_for_new_game.lock().unwrap();
+            res += &format!("<li>{}({}): waiting: {}, location: x={} y={} z={}", data.name, player.id.id(), is_waiting_for_new_game, data.x, data.y, data.z);
         }
         res += "</ul></li>";
     }
@@ -123,8 +139,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
             let player = room.players.write().unwrap().remove(&player_id);
 
             if player.is_some() {
-                room.broadcast(player_id, Response::PlayerLeftRoom(player_id)).await;
+                room.broadcast(Some(player_id), Response::PlayerLeftRoom(player_id)).await;
             }
+            room.check_new_game().await;
 
             player
         } else {
@@ -177,6 +194,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                     },
                     None => Arc::new(Player {
                         id: player_id,
+                        is_waiting_for_new_game: StdMutex::new(false),
                         data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z }),
                         sender: sender.take().unwrap()
                     }),
@@ -188,12 +206,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 {
                     let players = room.players.read().unwrap();
                     for (id, other_player) in &*players {
-                        let (x, y, z, name) = {
+                        let (x, y, z, is_waiting_for_new_game, name) = {
                             let data = other_player.data.lock().unwrap();
                             other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
-                            (data.x, data.y, data.z, data.name.clone())
+                            (data.x, data.y, data.z, *player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
                         };
                         player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
+                        if is_waiting_for_new_game {
+                            player.send(Response::NewGamePressed(*id));
+                        }
                     }
                 }
 
@@ -219,13 +240,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         data.z = z;
                     },
                     None => {
-                        log::error!("Player {player_id:?} doesn't exist in room {:?}", room.name);
+                        log::error!("Player {player_id:?} tried to update its location without being in room {:?}", room.name);
                         continue
                     }
                 };
 
-                // inform other player's about the new location
-                room.broadcast(player_id, Response::MoveOther(player_id, x, y, z)).await;
+                room.broadcast(Some(player_id), Response::MoveOther(player_id, x, y, z)).await;
             }
             Request::PressPlatform(id) => {
                 let lock = multiplayer_room.lock().await;
@@ -236,8 +256,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         continue
                     }
                 };
-                // inform other player's about the new location
-                room.broadcast(player_id, Response::PressPlatform(id)).await;
+                room.broadcast(Some(player_id), Response::PressPlatform(id)).await;
             }
             Request::PressButton(id) => {
                 let lock = multiplayer_room.lock().await;
@@ -248,8 +267,31 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         continue
                     }
                 };
-                // inform other player's about the new location
-                room.broadcast(player_id, Response::PressButton(id)).await;
+                room.broadcast(Some(player_id), Response::PressButton(id)).await;
+            }
+            Request::NewGamePressed => {
+                log::info!("Player {player_id:?} pressed New Game");
+                let lock = multiplayer_room.lock().await;
+                let room = match lock.as_ref() {
+                    Some(name) => name,
+                    None => {
+                        log::warn!("Player {player_id:?} tried to press new game while not in a room");
+                        continue
+                    }
+                };
+                let player = room.players.read().unwrap().get(&player_id).cloned();
+                match player {
+                    Some(player) => {
+                        *player.is_waiting_for_new_game.lock().unwrap() = true;
+                    },
+                    None => {
+                        log::error!("Player {player_id:?} pressed new game but isn't in room {:?}", room.name);
+                        continue
+                    }
+                };
+
+                room.broadcast(Some(player_id), Response::NewGamePressed(player_id)).await;
+                room.check_new_game().await;
             }
         }
     }

@@ -26,6 +26,7 @@ pub enum Request {
     PressPlatform(u8),
     /// button-id
     PressButton(u8),
+    NewGamePressed,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -39,4 +40,7 @@ pub enum Response {
     PressPlatform(u8),
     /// button-id
     PressButton(u8),
+    NewGamePressed(PlayerId),
+    /// unix timestamp
+    StartNewGameAt(u64),
 }
