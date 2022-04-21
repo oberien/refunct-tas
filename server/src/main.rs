@@ -99,7 +99,7 @@ async fn hello_world(state: Arc<StdMutex<State>>) -> Html<String> {
         for player in players.values() {
             let data = player.data.lock().unwrap();
             let is_waiting_for_new_game = *player.is_waiting_for_new_game.lock().unwrap();
-            res += &format!("<li>{}({}): waiting: {}, location: x={} y={} z={}", data.name, player.id.id(), is_waiting_for_new_game, data.x, data.y, data.z);
+            res += &format!("<li>{}({}): is_waiting_for_new_game: {}, location: x={} y={} z={}", data.name, player.id.id(), is_waiting_for_new_game, data.x, data.y, data.z);
         }
         res += "</ul></li>";
     }
@@ -209,7 +209,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         let (x, y, z, is_waiting_for_new_game, name) = {
                             let data = other_player.data.lock().unwrap();
                             other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
-                            (data.x, data.y, data.z, *player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
+                            (data.x, data.y, data.z, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
                         };
                         player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
                         if is_waiting_for_new_game {
