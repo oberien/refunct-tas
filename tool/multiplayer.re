@@ -318,6 +318,7 @@ fn multiplayer_disconnect() {
     for pawn in MULTIPLAYER_STATE.pawns {
         Tas::destroy_pawn(pawn.id);
     }
+    MULTIPLAYER_STATE.pawns.clear();
     MULTIPLAYER_STATE.players = Map::new();
 }
 fn multiplayer_join_room(room: string) {
@@ -424,13 +425,14 @@ fn start_new_game_at(timestamp: int) {
     MULTIPLAYER_STATE.new_game_state = NewGameState::StartingAt(timestamp);
 }
 fn disconnected(reason: Disconnected) {
+    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
+    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
     match reason {
         Disconnected::Closed => MULTIPLAYER_STATE.connection = Connection::Error("Connection Closed"),
-        Disconnected::ManualDisconnect => (),
+        Disconnected::ManualDisconnect => return,
         Disconnected::SendFailed => MULTIPLAYER_STATE.connection = Connection::Error("Send Failed"),
         Disconnected::ConnectionRefused => MULTIPLAYER_STATE.connection = Connection::Error("Connection Refused"),
         Disconnected::ReceiveFailed => MULTIPLAYER_STATE.connection = Connection::Error("Receive Failed"),
     }
-    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
-    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
+    multiplayer_disconnect();
 }
