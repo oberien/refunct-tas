@@ -13,7 +13,7 @@ rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.5.2"
 memoffset = "0.6.5"
 #rebo = { path = "../../rebo/rebo" }
-rebo = { git = "https://github.com/oberien/rebo", rev = "2aac78111988cc4e2285e296d866274907656197" }
+rebo = { git = "https://github.com/oberien/rebo", rev = "b9f5ea5ce7184c48a9135b6cd3b6f08e7379bc6a" }
 itertools = "0.10.3"
 clipboard = "0.5.0"
 thiserror = "1.0.30"
