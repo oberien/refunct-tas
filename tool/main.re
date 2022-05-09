@@ -11,12 +11,15 @@ include "windshieldwipers.re";
 include "tas.re";
 include "multiplayer.re";
 
+static mut PLAYER_NAME = SETTINGS.multiplayer_name;
+
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
     name: START_MENU_TEXT,
     elements: List::new(),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
+        PLAYER_NAME = SETTINGS.multiplayer_name;
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
         if SETTINGS.show_character_stats {
@@ -78,6 +81,7 @@ static BASE_MENU = Ui::new("Menu:", List::of(
         onclick: fn(label: Text) { leave_ui() },
     }),
 ));
+
 static PRACTICE_MENU = Ui::new("Practice:", {
     let mut buttons = List::of(
         UiElement::Button(UiButton {
@@ -214,7 +218,7 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Name" },
-        input: SETTINGS.multiplayer_name,
+        input: PLAYER_NAME,
         onclick: fn(input: string) {},
         onchange: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
@@ -246,22 +250,99 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     }),
 ));
 
+static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
+
+enum ReplayMenu {
+    Save,
+    Load,
+    Delete,
+}
+
+fn enter_replay_menu(op: ReplayMenu) {
+    let recordings_list = Tas::list_recordings();
+    let do_operation = fn(input: string) {
+        match op {
+            ReplayMenu::Save => {
+                tas_save_recording(input);
+                leave_ui();
+            },
+            ReplayMenu::Load => {
+                if !recordings_list.contains(input) {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                    return;
+                }
+                tas_load_recording(input);
+                set_current_component(TAS_COMPONENT);
+                leave_ui();
+                leave_ui();
+                leave_ui();
+            },
+            ReplayMenu::Delete => {
+                if !recordings_list.contains(input) {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                    return;
+                }
+                Tas::remove_recording(input);
+                leave_ui();
+            },
+        }
+    };
+    RECORDING_NAME_LABEL.text = f"Recording name";
+    let mut recordings = List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+        UiElement::Input(Input {
+            label: RECORDING_NAME_LABEL,
+            input: "",
+            onclick: fn(input: string) {
+                if input.len_utf8() == 0 {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                    return;
+                }
+                do_operation(input);
+            },
+            onchange: fn(input: string) {}
+        }),
+    );
+    for recording in recordings_list {
+        recordings.push(UiElement::Button(UiButton {
+            label: Text { text: recording },
+            onclick: fn(label: Text) {
+                do_operation(label.text);
+            },
+        }));
+    }
+    enter_ui(Ui::new("Recording Options:", recordings));
+}
+
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
-        label: Text { text: "Save Recording" },
-        input: "",
+        label: Text { text: "Player Name" },
+        input: PLAYER_NAME,
         onclick: fn(input: string) {
-            tas_save_recording(input);
+            SETTINGS.set_multiplayer_name(input);
         },
         onchange: fn(input: string) {},
     }),
-    UiElement::Input(Input {
+    UiElement::Button(UiButton {
+        label: Text { text: "Save Recording" },
+        onclick: fn(label: Text) {
+            enter_replay_menu(ReplayMenu::Save);
+        }
+    }),
+    UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
-        input: "",
-        onclick: fn(input: string) {
-            tas_load_recording(input);
-        },
-        onchange: fn(input: string) {},
+        onclick: fn(label: Text) {
+            enter_replay_menu(ReplayMenu::Load);
+        }
+    }),
+    UiElement::Button(UiButton {
+        label: Text { text: "Delete Recording" },
+        onclick: fn(label: Text) {
+            enter_replay_menu(ReplayMenu::Delete);
+        }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "TAS Mode" },
@@ -378,6 +459,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
         onclick: fn(label: Text) { leave_ui() },
     }),
 ));
+
 static mut UI_SCALE_TEXT = Text { text: f"{SETTINGS.ui_scale}" };
 static mut SHOW_CHARACTER_STATS_BUTTON_TEXT = Text { text: f"Show Character Stats: {SETTINGS.show_character_stats}" };
 static mut SHOW_GAME_STATS_BUTTON_TEXT = Text { text: f"Show Game Stats: {SETTINGS.show_game_stats}" };
@@ -407,6 +489,15 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
             SETTINGS.toggle_show_game_stats();
             SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
         },
+    }),
+    UiElement::Input(Input {
+        label: Text { text: "Player Name" },
+        input: PLAYER_NAME,
+        onclick: fn(input: string) {
+            PLAYER_NAME = input;
+            SETTINGS.set_multiplayer_name(input);
+        },
+        onchange: fn(input: string) { PLAYER_NAME = input; },
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Reset Game Stats" },

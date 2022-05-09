@@ -29,7 +29,7 @@ impl Settings {
              Option::None => false,
         };
         let multiplayer_name = match map.get("multiplayer_name") {
-             Option::Some(name) => name,
+             Option::Some(multiplayer_name) => multiplayer_name,
              Option::None => "Player",
         };
         Settings {
@@ -68,6 +68,7 @@ impl Settings {
         self.store();
     }
     fn set_multiplayer_name(mut self, name: string) {
+        SETTINGS.multiplayer_name = name;
         self.multiplayer_name = name;
         self.store();
     }
