@@ -252,12 +252,6 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 
 static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
 
-fn triple_leave_ui() {
-    leave_ui();
-    leave_ui();
-    leave_ui();
-}
-
 fn recording_operations(operation: string) {
     RECORDING_NAME_LABEL.text = f"Recording name";
     let recordings_list = Tas::list_recordings();
@@ -297,6 +291,24 @@ fn recording_operations(operation: string) {
     );
 }
 
+fn handle_operation(op: string, input: string) {
+    RECORDING_NAME_LABEL.text = f"Recording name";
+    match op {
+        "save" => {
+            tas_save_recording(input);
+            leave_ui();
+        },
+        "load" => {
+            tas_load_recording(input);
+            leave_ui();
+            leave_ui();
+            leave_ui();
+        },
+        _ => panic(f"unreachable: got op {op}"),
+    }
+    set_current_component(TAS_COMPONENT);
+}
+
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Player Name" },
@@ -325,9 +337,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                             RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
                             return;
                         }
-                        RECORDING_NAME_LABEL.text = f"Recording name";
-                        tas_save_recording(input);
-                        leave_ui();
+                        handle_operation("save", input);
                     },
                     onchange: fn(input: string) {}
                 }),
@@ -336,9 +346,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
                     onclick: fn(label: Text) {
-                        print("Save");
-                        tas_save_recording(label.text);
-                        leave_ui();
+                        handle_operation("save", label.text);
                     },
                 }));
             }
@@ -365,10 +373,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                             return;
                         }
                         if recordings_list.contains(input) {
-                            RECORDING_NAME_LABEL.text = f"Recording name";
-                            tas_load_recording(input);
-                            set_current_component(TAS_COMPONENT);
-                            triple_leave_ui();
+                            handle_operation("load", input);
                         } else {
                             RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
                         }
@@ -380,9 +385,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
                     onclick: fn(label: Text) {
-                        tas_load_recording(label.text);
-                        set_current_component(TAS_COMPONENT);
-                        triple_leave_ui();
+                        handle_operation("load", label.text);
                     },
                 }));
             }
