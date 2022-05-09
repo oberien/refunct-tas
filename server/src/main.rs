@@ -40,8 +40,8 @@ impl MultiplayerRoom {
                 *player.is_waiting_for_new_game.lock().unwrap() = false;
             }
             let time = SystemTime::now();
-            let in_one_second = time + Duration::from_secs(1);
-            let timestamp = in_one_second.duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+            let when_to_start = time + Duration::from_millis(2500);
+            let timestamp = when_to_start.duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
             self.broadcast(None, Response::StartNewGameAt(timestamp)).await;
         }
     }

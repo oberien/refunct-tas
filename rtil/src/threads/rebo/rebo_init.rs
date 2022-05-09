@@ -214,7 +214,10 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
                 Response::PressPlatform(id) => platform_pressed(vm, id)?,
                 Response::PressButton(id) => button_pressed(vm, id)?,
                 Response::NewGamePressed(id) => player_pressed_new_game(vm, id.id())?,
-                Response::StartNewGameAt(timestamp) => start_new_game_at(vm, (timestamp as i64 + STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64) as u64)?,
+                Response::StartNewGameAt(timestamp) => {
+                    let local_time_offset = STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64;
+                    start_new_game_at(vm, (timestamp as i64 + local_time_offset) as u64)?
+                },
             }
         }
 
@@ -591,7 +594,9 @@ fn connect_to_server(server: Server) {
         deltas.push(delta as i32);
         std::thread::sleep(Duration::from_millis(500));
     };
-    log!("local time offset between us and server: {delta}");
+    let msg = format!("local time offset between us and server: {delta}");
+    log!("{}", msg);
+    STATE.lock().unwrap().as_ref().unwrap().rebo_stream_tx.send(ReboToStream::Print(msg)).unwrap();
 
     STATE.lock().unwrap().as_mut().unwrap().local_time_offset = delta;
 }
