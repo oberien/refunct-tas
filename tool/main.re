@@ -258,10 +258,36 @@ enum ReplayButtonOp {
     Delete,
 }
 
-fn handle_operation(op: ReplayButtonOp) {
+fn handle_replay_op(op: ReplayButtonOp) {
     set_current_component(TAS_COMPONENT);
-    RECORDING_NAME_LABEL.text = f"Recording name";
     let recordings_list = Tas::list_recordings();
+    let do_operation = fn(input: string) {
+        match op {
+            ReplayButtonOp::Save => {
+                tas_save_recording(input);
+                leave_ui();
+            },
+            ReplayButtonOp::Load => {
+                if recordings_list.contains(input) {
+                    tas_load_recording(input);
+                    leave_ui();
+                    leave_ui();
+                    leave_ui();
+                } else {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                }
+            },
+            ReplayButtonOp::Delete => {
+                if recordings_list.contains(input) {
+                    Tas::remove_recording(input);
+                    leave_ui();
+                } else {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                }
+            },
+        }
+    };
+    RECORDING_NAME_LABEL.text = f"Recording name";
     let mut recordings = List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Back" },
@@ -276,23 +302,7 @@ fn handle_operation(op: ReplayButtonOp) {
                     RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
                     return;
                 }
-                match op {
-                    ReplayButtonOp::Save => {
-                        tas_save_recording(input);
-                        leave_ui();
-                    },
-                    ReplayButtonOp::Load => {
-                        tas_load_recording(input);
-                        leave_ui();
-                        leave_ui();
-                        leave_ui();
-                    },
-                    ReplayButtonOp::Delete => {
-                        Tas::remove_recording(input);
-                        leave_ui();
-                    },
-                    _ => panic(f"unreachable: got ReplayButtonOp {op}"),
-                }
+                do_operation(input);
             },
             onchange: fn(input: string) {}
         }),
@@ -301,25 +311,7 @@ fn handle_operation(op: ReplayButtonOp) {
         recordings.push(UiElement::Button(UiButton {
             label: Text { text: recording },
             onclick: fn(label: Text) {
-                match op {
-                    ReplayButtonOp::Save => {
-                        tas_save_recording(label.text);
-                        leave_ui();
-                    },
-                    ReplayButtonOp::Load => {
-                        tas_load_recording(label.text);
-                        set_current_component(TAS_COMPONENT);
-                        leave_ui();
-                        leave_ui();
-                        leave_ui();
-
-                    },
-                    ReplayButtonOp::Delete => {
-                        Tas::remove_recording(label.text);
-                        leave_ui();
-                    },
-                    _ => panic(f"unreachable: got op {op}"),
-                }
+                do_operation(label.text);
             },
         }));
     }
@@ -338,54 +330,19 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
-            handle_operation(ReplayButtonOp::Save);
+            handle_replay_op(ReplayButtonOp::Save);
         }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
         onclick: fn(label: Text) {
-            handle_operation(ReplayButtonOp::Load);
+            handle_replay_op(ReplayButtonOp::Load);
         }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Delete Recording" },
         onclick: fn(label: Text) {
-            RECORDING_NAME_LABEL.text = f"Recording name";
-            let recordings_list = Tas::list_recordings();
-            let mut recordings = List::of(
-                UiElement::Button(UiButton {
-                    label: Text { text: "Back" },
-                    onclick: fn(label: Text) { leave_ui() },
-                }),
-                UiElement::Input(Input {
-                    label: RECORDING_NAME_LABEL,
-                    input: "",
-                    onclick: fn(input: string) {
-                        let recordings_list = Tas::list_recordings();
-                        if input.len_utf8() == 0 {
-                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                            return;
-                        }
-                        if recordings_list.contains(input) {
-                            RECORDING_NAME_LABEL.text = f"Recording name";
-                            Tas::remove_recording(input);
-                        } else {
-                            RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
-                        }
-                    },
-                    onchange: fn(input: string) {}
-                }),
-            );
-            for recording in recordings_list {
-                recordings.push(UiElement::Button(UiButton {
-                    label: Text { text: recording },
-                    onclick: fn(label: Text) {
-                        Tas::remove_recording(label.text); // The list can only update when you re-enter the menu
-                        RECORDING_NAME_LABEL.text = f"Recording name (Deleted {label.text})";
-                    },
-                }));
-            }
-            enter_ui(Ui::new("Recording Options:", recordings));
+            handle_replay_op(ReplayButtonOp::Delete);
         }
     }),
     UiElement::Button(UiButton {
