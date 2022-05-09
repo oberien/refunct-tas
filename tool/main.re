@@ -252,38 +252,38 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 
 static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
 
-enum ReplayButtonOp {
+enum ReplayMenu {
     Save,
     Load,
     Delete,
 }
 
-fn handle_replay_op(op: ReplayButtonOp) {
-    set_current_component(TAS_COMPONENT);
+fn enter_replay_menu(op: ReplayMenu) {
     let recordings_list = Tas::list_recordings();
     let do_operation = fn(input: string) {
         match op {
-            ReplayButtonOp::Save => {
+            ReplayMenu::Save => {
                 tas_save_recording(input);
                 leave_ui();
             },
-            ReplayButtonOp::Load => {
-                if recordings_list.contains(input) {
-                    tas_load_recording(input);
-                    leave_ui();
-                    leave_ui();
-                    leave_ui();
-                } else {
+            ReplayMenu::Load => {
+                if !recordings_list.contains(input) {
                     RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                    return;
                 }
+                tas_load_recording(input);
+                set_current_component(TAS_COMPONENT);
+                leave_ui();
+                leave_ui();
+                leave_ui();
             },
-            ReplayButtonOp::Delete => {
-                if recordings_list.contains(input) {
-                    Tas::remove_recording(input);
-                    leave_ui();
-                } else {
+            ReplayMenu::Delete => {
+                if !recordings_list.contains(input) {
                     RECORDING_NAME_LABEL.text = f"Recording name (Error: no such file)";
+                    return;
                 }
+                Tas::remove_recording(input);
+                leave_ui();
             },
         }
     };
@@ -297,7 +297,6 @@ fn handle_replay_op(op: ReplayButtonOp) {
             label: RECORDING_NAME_LABEL,
             input: "",
             onclick: fn(input: string) {
-                let recordings_list = Tas::list_recordings();
                 if input.len_utf8() == 0 {
                     RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
                     return;
@@ -330,19 +329,19 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
-            handle_replay_op(ReplayButtonOp::Save);
+            enter_replay_menu(ReplayMenu::Save);
         }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
         onclick: fn(label: Text) {
-            handle_replay_op(ReplayButtonOp::Load);
+            enter_replay_menu(ReplayMenu::Load);
         }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Delete Recording" },
         onclick: fn(label: Text) {
-            handle_replay_op(ReplayButtonOp::Delete);
+            enter_replay_menu(ReplayMenu::Delete);
         }
     }),
     UiElement::Button(UiButton {
