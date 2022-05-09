@@ -23,6 +23,7 @@ struct State {
     working_dir: Option<String>,
     pressed_keys: HashSet<i32>,
     websocket: Option<Client<Box<dyn NetworkStream + Send>>>,
+    local_time_offset: i32,
     pawns: HashMap<u32, AMyCharacter>,
     pawn_id: u32,
 }
@@ -40,6 +41,7 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
             working_dir: None,
             pressed_keys: HashSet::new(),
             websocket: None,
+            local_time_offset: 0,
             pawns: HashMap::new(),
             pawn_id: 0,
         });

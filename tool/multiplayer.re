@@ -433,6 +433,7 @@ fn disconnected(reason: Disconnected) {
         Disconnected::SendFailed => MULTIPLAYER_STATE.connection = Connection::Error("Send Failed"),
         Disconnected::ConnectionRefused => MULTIPLAYER_STATE.connection = Connection::Error("Connection Refused"),
         Disconnected::ReceiveFailed => MULTIPLAYER_STATE.connection = Connection::Error("Receive Failed"),
+        Disconnected::LocalTimeOffsetTooManyTries => MULTIPLAYER_STATE.connection = Connection::Error("Connection too unstable; couldn't get local time offset"),
     }
     multiplayer_disconnect();
 }

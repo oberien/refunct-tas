@@ -127,6 +127,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
         }
     });
 
+    let local_sender = sender.clone();
     let mut sender = Some(sender);
 
     let player_id = PlayerId::next();
@@ -178,6 +179,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
         };
 
         match request {
+            Request::GetServerTime => {
+                let _ = local_sender.send(Response::ServerTime(SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64)).await;
+            },
             Request::JoinRoom(room_name, player_name, x, y, z) => {
                 log::info!("Player {player_id:?} ({player_name}) joins room {room_name:?}");
 

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::ErrorKind;
 use std::path::PathBuf;
+use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
@@ -118,6 +119,7 @@ pub enum Disconnected {
     SendFailed,
     ReceiveFailed,
     ConnectionRefused,
+    LocalTimeOffsetTooManyTries,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -199,35 +201,20 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
 
         // check websocket
         loop {
-            if STATE.lock().unwrap().as_ref().unwrap().websocket.is_none() {
-                break;
-            }
-            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(true).unwrap();
-            let res = STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().recv_message();
-            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(false).unwrap();
-            let response = match res {
-                Ok(OwnedMessage::Text(text)) => serde_json::from_str(&text).unwrap(),
-                Ok(OwnedMessage::Binary(_) | OwnedMessage::Ping(_) | OwnedMessage::Pong(_)) => continue,
-                Err(WebSocketError::IoError(io)) if io.kind() == ErrorKind::WouldBlock => break,
-                Ok(OwnedMessage::Close(_)) => {
-                    drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
-                    disconnected(vm, Disconnected::Closed)?;
-                    break
-                },
-                Err(_) => {
-                    drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
-                    disconnected(vm, Disconnected::ReceiveFailed)?;
-                    break
-                }
+            let response = match receive_from_server(vm, true) {
+                Ok(response) => response,
+                Err(ReceiveError::ExecError(err)) => return Err(err),
+                Err(ReceiveError::Error) => break,
             };
             match response {
+                Response::ServerTime(_) => unreachable!("got Response::ServerTime in step-function"),
                 Response::PlayerJoinedRoom(id, name, x, y, z) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z})?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z) => player_moved(vm, id.id(), Location { x, y, z })?,
                 Response::PressPlatform(id) => platform_pressed(vm, id)?,
                 Response::PressButton(id) => button_pressed(vm, id)?,
                 Response::NewGamePressed(id) => player_pressed_new_game(vm, id.id())?,
-                Response::StartNewGameAt(timestamp) => start_new_game_at(vm, timestamp)?,
+                Response::StartNewGameAt(timestamp) => start_new_game_at(vm, (timestamp as i64 + STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64) as u64)?,
             }
         }
 
@@ -572,8 +559,41 @@ fn connect_to_server(server: Server) {
             return Ok(Value::Unit)
         }
     };
-    log!("connected to server");
+    log!("connected to server, figuring out time delta");
     STATE.lock().unwrap().as_mut().unwrap().websocket = Some(client);
+
+    // time delta calculation
+    let mut deltas: Vec<i32> = vec![0];
+    let delta = loop {
+        deltas.sort();
+        let median = deltas[deltas.len() / 2];
+        let matches = deltas.iter().copied().filter(|&m| (m - median).abs() < 100).count();
+        if deltas.len() > 5 && matches as f64 / deltas.len() as f64 > 0.8 {
+            break median;
+        }
+        if deltas.len() > 20 {
+            log!("connection too unstable to get local time offset: {deltas:?}");
+            disconnected(vm, Disconnected::LocalTimeOffsetTooManyTries)?;
+            return Ok(Value::Unit);
+        }
+
+        let before = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+        send_to_server(vm, "timesync", Request::GetServerTime)?;
+        let remote_time = match receive_from_server(vm, false) {
+            Err(ReceiveError::Error) => return Ok(Value::Unit),
+            Err(ReceiveError::ExecError(err)) => return Err(err),
+            Ok(Response::ServerTime(time)) => time,
+            Ok(response) => unreachable!("got non-ServerTime during deltatime calculation: {response:?}"),
+        };
+        let after = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+        let local_time = ((before + after) / 2) as u64;
+        let delta = local_time as i64 - remote_time as i64;
+        deltas.push(delta as i32);
+        std::thread::sleep(Duration::from_millis(500));
+    };
+    log!("local time offset between us and server: {delta}");
+
+    STATE.lock().unwrap().as_mut().unwrap().local_time_offset = delta;
 }
 #[rebo::function(raw("Tas::disconnect_from_server"))]
 fn disconnect_from_server() {
@@ -596,6 +616,44 @@ fn send_to_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, desc: &str, reques
         disconnected(vm, Disconnected::SendFailed)?;
     }
     Ok(())
+}
+enum ReceiveError<'a, 'i> {
+    ExecError(ExecError<'a, 'i>),
+    Error,
+}
+impl<'a, 'i> From<ExecError<'a, 'i>> for ReceiveError<'a, 'i> {
+    fn from(e: ExecError<'a, 'i>) -> Self {
+        ReceiveError::ExecError(e)
+    }
+}
+fn receive_from_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, nonblocking: bool) -> Result<Response, ReceiveError<'a, 'i>> {
+    if STATE.lock().unwrap().as_ref().unwrap().websocket.is_none() {
+        return Err(ReceiveError::Error);
+    }
+    loop {
+        if nonblocking {
+            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(true).unwrap();
+        }
+        let res = STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().recv_message();
+        if nonblocking {
+            STATE.lock().unwrap().as_mut().unwrap().websocket.as_mut().unwrap().set_nonblocking(false).unwrap();
+        }
+        return match res {
+            Ok(OwnedMessage::Text(text)) => Ok(serde_json::from_str(&text).unwrap()),
+            Ok(OwnedMessage::Binary(_) | OwnedMessage::Ping(_) | OwnedMessage::Pong(_)) => continue,
+            Err(WebSocketError::IoError(io)) if nonblocking && io.kind() == ErrorKind::WouldBlock => Err(ReceiveError::Error),
+            Ok(OwnedMessage::Close(_)) => {
+                drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                disconnected(vm, Disconnected::Closed)?;
+                Err(ReceiveError::Error)
+            },
+            Err(_) => {
+                drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                disconnected(vm, Disconnected::ReceiveFailed)?;
+                Err(ReceiveError::Error)
+            }
+        };
+    }
 }
 #[rebo::function(raw("Tas::join_multiplayer_room"))]
 fn join_multiplayer_room(room: String, name: String, loc: Location) {

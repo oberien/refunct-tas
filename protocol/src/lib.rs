@@ -18,6 +18,7 @@ impl PlayerId {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Request {
+    GetServerTime,
     /// room-name, player-name, x, y, z
     JoinRoom(String, String, f32, f32, f32),
     /// x, y, z
@@ -31,6 +32,8 @@ pub enum Request {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Response {
+    /// unix timestamp
+    ServerTime(u64),
     /// id, name, x, y, z
     PlayerJoinedRoom(PlayerId, String, f32, f32, f32),
     PlayerLeftRoom(PlayerId),
