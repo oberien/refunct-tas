@@ -11,7 +11,7 @@ include "windshieldwipers.re";
 include "tas.re";
 include "multiplayer.re";
 
-static mut player_name = SETTINGS.multiplayer_name;
+static mut PLAYER_NAME = SETTINGS.multiplayer_name;
 
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
@@ -19,7 +19,7 @@ static START_MENU = Ui {
     elements: List::new(),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
-        player_name = SETTINGS.multiplayer_name;
+        PLAYER_NAME = SETTINGS.multiplayer_name;
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
         if SETTINGS.show_character_stats {
@@ -218,7 +218,7 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Name" },
-        input: player_name,
+        input: PLAYER_NAME,
         onclick: fn(input: string) {},
         onchange: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
@@ -252,7 +252,14 @@ static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
 
 static mut RECORDING_NAME_LABEL = Text { text: "Recording name" };
 
-fn recording_operations(operation: string) {
+enum ReplayButtonOp {
+    Save,
+    Load,
+    Delete,
+}
+
+fn handle_operation(op: ReplayButtonOp) {
+    set_current_component(TAS_COMPONENT);
     RECORDING_NAME_LABEL.text = f"Recording name";
     let recordings_list = Tas::list_recordings();
     let mut recordings = List::of(
@@ -269,50 +276,60 @@ fn recording_operations(operation: string) {
                     RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
                     return;
                 }
-                if recordings_list.contains(input) && operation == "load" {
-                    RECORDING_NAME_LABEL.text = f"Recording name";
-                    set_current_component(TAS_COMPONENT);
-                    leave_ui();
-                    leave_ui();
-                    leave_ui();
-                } else {
-                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
-                }
-                if recordings_list.contains(input) && operation == "delete" {
-                    print("Remove");
-                    Tas::remove_recording(input);
-                } else if recordings_list.contains(input) && operation == "save" {
-                    print("Save");
-                    tas_save_recording(input);
+                match op {
+                    ReplayButtonOp::Save => {
+                        tas_save_recording(input);
+                        leave_ui();
+                    },
+                    ReplayButtonOp::Load => {
+                        tas_load_recording(input);
+                        leave_ui();
+                        leave_ui();
+                        leave_ui();
+                    },
+                    ReplayButtonOp::Delete => {
+                        Tas::remove_recording(input);
+                        leave_ui();
+                    },
+                    _ => panic(f"unreachable: got ReplayButtonOp {op}"),
                 }
             },
             onchange: fn(input: string) {}
         }),
     );
-}
+    for recording in recordings_list {
+        recordings.push(UiElement::Button(UiButton {
+            label: Text { text: recording },
+            onclick: fn(label: Text) {
+                match op {
+                    ReplayButtonOp::Save => {
+                        tas_save_recording(label.text);
+                        leave_ui();
+                    },
+                    ReplayButtonOp::Load => {
+                        tas_load_recording(label.text);
+                        set_current_component(TAS_COMPONENT);
+                        leave_ui();
+                        leave_ui();
+                        leave_ui();
 
-fn handle_operation(op: string, input: string) {
-    RECORDING_NAME_LABEL.text = f"Recording name";
-    match op {
-        "save" => {
-            tas_save_recording(input);
-            leave_ui();
-        },
-        "load" => {
-            tas_load_recording(input);
-            leave_ui();
-            leave_ui();
-            leave_ui();
-        },
-        _ => panic(f"unreachable: got op {op}"),
+                    },
+                    ReplayButtonOp::Delete => {
+                        Tas::remove_recording(label.text);
+                        leave_ui();
+                    },
+                    _ => panic(f"unreachable: got op {op}"),
+                }
+            },
+        }));
     }
-    set_current_component(TAS_COMPONENT);
+    enter_ui(Ui::new("Recording Options:", recordings));
 }
 
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Player Name" },
-        input: player_name,
+        input: PLAYER_NAME,
         onclick: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
         },
@@ -321,75 +338,13 @@ static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
-            RECORDING_NAME_LABEL.text = f"Recording name";
-            let recordings_list = Tas::list_recordings();
-            let mut recordings = List::of(
-                UiElement::Button(UiButton {
-                    label: Text { text: "Back" },
-                    onclick: fn(label: Text) { leave_ui() },
-                }),
-                UiElement::Input(Input {
-                    label: RECORDING_NAME_LABEL,
-                    input: "",
-                    onclick: fn(input: string) {
-                        let recordings_list = Tas::list_recordings();
-                        if input.len_utf8() == 0 {
-                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                            return;
-                        }
-                        handle_operation("save", input);
-                    },
-                    onchange: fn(input: string) {}
-                }),
-            );
-            for recording in recordings_list {
-                recordings.push(UiElement::Button(UiButton {
-                    label: Text { text: recording },
-                    onclick: fn(label: Text) {
-                        handle_operation("save", label.text);
-                    },
-                }));
-            }
-            enter_ui(Ui::new("Recording Options:", recordings));
+            handle_operation(ReplayButtonOp::Save);
         }
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Load Recording" },
         onclick: fn(label: Text) {
-            RECORDING_NAME_LABEL.text = f"Recording name";
-            let recordings_list = Tas::list_recordings();
-            let mut recordings = List::of(
-                UiElement::Button(UiButton {
-                    label: Text { text: "Back" },
-                    onclick: fn(label: Text) { leave_ui() },
-                }),
-                UiElement::Input(Input {
-                    label: RECORDING_NAME_LABEL,
-                    input: "",
-                    onclick: fn(input: string) {
-                        let recordings_list = Tas::list_recordings();
-                        if input.len_utf8() == 0 {
-                            RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
-                            return;
-                        }
-                        if recordings_list.contains(input) {
-                            handle_operation("load", input);
-                        } else {
-                            RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
-                        }
-                    },
-                    onchange: fn(input: string) {}
-                }),
-            );
-            for recording in recordings_list {
-                recordings.push(UiElement::Button(UiButton {
-                    label: Text { text: recording },
-                    onclick: fn(label: Text) {
-                        handle_operation("load", label.text);
-                    },
-                }));
-            }
-            enter_ui(Ui::new("Recording Options:", recordings));
+            handle_operation(ReplayButtonOp::Load);
         }
     }),
     UiElement::Button(UiButton {
@@ -581,12 +536,12 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
     }),
     UiElement::Input(Input {
         label: Text { text: "Player Name" },
-        input: player_name,
+        input: PLAYER_NAME,
         onclick: fn(input: string) {
-            player_name = input;
+            PLAYER_NAME = input;
             SETTINGS.set_multiplayer_name(input);
         },
-        onchange: fn(input: string) { player_name = input; },
+        onchange: fn(input: string) { PLAYER_NAME = input; },
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Reset Game Stats" },
