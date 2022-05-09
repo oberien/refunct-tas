@@ -11,12 +11,15 @@ include "windshieldwipers.re";
 include "tas.re";
 include "multiplayer.re";
 
+static mut player_name = SETTINGS.multiplayer_name;
+
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
     name: START_MENU_TEXT,
     elements: List::new(),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
+        player_name = SETTINGS.multiplayer_name;
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
         if SETTINGS.show_character_stats {
@@ -215,7 +218,7 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Name" },
-        input: SETTINGS.multiplayer_name,
+        input: player_name,
         onclick: fn(input: string) {},
         onchange: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
@@ -255,10 +258,49 @@ fn triple_leave_ui() {
     leave_ui();
 }
 
+fn recording_operations(operation: string) {
+    RECORDING_NAME_LABEL.text = f"Recording name";
+    let recordings_list = Tas::list_recordings();
+    let mut recordings = List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+        UiElement::Input(Input {
+            label: RECORDING_NAME_LABEL,
+            input: "",
+            onclick: fn(input: string) {
+                let recordings_list = Tas::list_recordings();
+                if input.len_utf8() == 0 {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: empty name)";
+                    return;
+                }
+                if recordings_list.contains(input) && operation == "load" {
+                    RECORDING_NAME_LABEL.text = f"Recording name";
+                    set_current_component(TAS_COMPONENT);
+                    leave_ui();
+                    leave_ui();
+                    leave_ui();
+                } else {
+                    RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
+                }
+                if recordings_list.contains(input) && operation == "delete" {
+                    print("Remove");
+                    Tas::remove_recording(input);
+                } else if recordings_list.contains(input) && operation == "save" {
+                    print("Save");
+                    tas_save_recording(input);
+                }
+            },
+            onchange: fn(input: string) {}
+        }),
+    );
+}
+
 static UTIL_MENU = Ui::new("Util:", List::of(
     UiElement::Input(Input {
         label: Text { text: "Player Name" },
-        input: SETTINGS.multiplayer_name,
+        input: player_name,
         onclick: fn(input: string) {
             SETTINGS.set_multiplayer_name(input);
         },
@@ -294,6 +336,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                 recordings.push(UiElement::Button(UiButton {
                     label: Text { text: recording },
                     onclick: fn(label: Text) {
+                        print("Save");
                         tas_save_recording(label.text);
                         leave_ui();
                     },
@@ -367,7 +410,7 @@ static UTIL_MENU = Ui::new("Util:", List::of(
                         }
                         if recordings_list.contains(input) {
                             RECORDING_NAME_LABEL.text = f"Recording name";
-                            Tas::load_recording(input);
+                            Tas::remove_recording(input);
                         } else {
                             RECORDING_NAME_LABEL.text = f"Recording name (Error: no such recording)";
                         }
@@ -535,11 +578,12 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
     }),
     UiElement::Input(Input {
         label: Text { text: "Player Name" },
-        input: SETTINGS.multiplayer_name,
+        input: player_name,
         onclick: fn(input: string) {
+            player_name = input;
             SETTINGS.set_multiplayer_name(input);
         },
-        onchange: fn(input: string) {},
+        onchange: fn(input: string) { player_name = input; },
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Reset Game Stats" },
