@@ -2,9 +2,34 @@ struct Settings {
     ui_scale: float,
     show_character_stats: bool,
     show_game_stats: bool,
-    multiplayer_name: string,
+}
+enum SettingsManuallySet {
+    UiScale,
+    ShowCharacterStats,
+    ShowGameStats,
+}
+impl SettingsManuallySet {
+    fn to_string(self) -> string {
+        match self {
+            SettingsManuallySet::UiScale => SETTINGS_UI_SCALE,
+            SettingsManuallySet::ShowCharacterStats => SETTINGS_SHOW_CHARACTER_STATS,
+            SettingsManuallySet::ShowGameStats => SETTINGS_SHOW_GAME_STATS,
+        }
+    }
+
+    fn access(self, settings: Settings) -> string {
+        match self {
+            SettingsManuallySet::UiScale => f"{settings.ui_scale:?}",
+            SettingsManuallySet::ShowCharacterStats => f"{settings.show_character_stats}",
+            SettingsManuallySet::ShowGameStats => f"{settings.show_game_stats}",
+        }
+    }
 }
 
+static SETTINGS_UI_SCALE = "ui_scale";
+static SETTINGS_SHOW_CHARACTER_STATS = "show_character_stats";
+static SETTINGS_SHOW_GAME_STATS = "show_game_stats";
+static mut SETTINGS_MANUALLY_SET = Set::new();
 static mut SETTINGS = Settings::load();
 
 impl Settings {
@@ -13,6 +38,7 @@ impl Settings {
         let map = settings.unwrap_or(Map::new());
         let ui_scale = match map.get("ui_scale") {
             Option::Some(scale) => {
+                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
                 let list = scale.split("\\.");
                 let num = list.get(0).unwrap().parse_int().unwrap();
                 let decimal = list.get(1).unwrap().parse_int().unwrap();
@@ -20,56 +46,55 @@ impl Settings {
             },
             Option::None => 2.,
         };
-        let show_character_stats = match map.get("show_character_stats") {
-             Option::Some(char_stats) => char_stats == "true",
-             Option::None => false,
+        let show_character_stats = match map.get(SETTINGS_SHOW_CHARACTER_STATS) {
+            Option::Some(char_stats) => {
+                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowCharacterStats);
+                char_stats == "true"
+            },
+            Option::None => false,
         };
         let show_game_stats = match map.get("show_game_stats") {
-             Option::Some(game_stats) => game_stats == "true",
-             Option::None => false,
-        };
-        let multiplayer_name = match map.get("multiplayer_name") {
-             Option::Some(multiplayer_name) => multiplayer_name,
-             Option::None => "Player",
+            Option::Some(game_stats) => {
+                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowGameStats);
+                game_stats == "true"
+            },
+            Option::None => false,
         };
         Settings {
             ui_scale: ui_scale,
             show_character_stats: show_character_stats,
             show_game_stats: show_game_stats,
-            multiplayer_name: multiplayer_name,
         }
     }
 
     fn store(self) {
-        let map = Map::new();
-        map.insert("ui_scale", f"{self.ui_scale:?}");
-        map.insert("show_character_stats", f"{self.show_character_stats}");
-        map.insert("show_game_stats", f"{self.show_game_stats}");
-        map.insert("multiplayer_name", f"{self.multiplayer_name}");
+        let mut map = Map::new();
+        for setting in SETTINGS_MANUALLY_SET.values() {
+            map.insert(setting.to_string(), setting.access(SETTINGS));
+        }
         Tas::store_settings(map);
     }
 
     fn increase_ui_scale(mut self) {
+        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
         self.ui_scale += 0.5;
         self.ui_scale = self.ui_scale.min(10.);
         self.store();
     }
     fn decrease_ui_scale(mut self) {
+        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
         self.ui_scale -= 0.5;
         self.ui_scale = self.ui_scale.max(0.5);
         self.store();
     }
     fn toggle_show_character_stats(mut self) {
+        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowCharacterStats);
         self.show_character_stats = !self.show_character_stats;
         self.store();
     }
     fn toggle_show_game_stats(mut self) {
+        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowGameStats);
         self.show_game_stats = !self.show_game_stats;
-        self.store();
-    }
-    fn set_multiplayer_name(mut self, name: string) {
-        SETTINGS.multiplayer_name = name;
-        self.multiplayer_name = name;
         self.store();
     }
 }

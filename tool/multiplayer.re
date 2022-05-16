@@ -325,7 +325,7 @@ fn multiplayer_join_room(room: string) {
     multiplayer_disconnect();
     multiplayer_connect();
     let loc = Tas::get_location();
-    Tas::join_multiplayer_room(room, SETTINGS.multiplayer_name, loc);
+    Tas::join_multiplayer_room(room, Tas::get_player_name(), loc);
     MULTIPLAYER_STATE.current_room = Option::Some(room);
 }
 

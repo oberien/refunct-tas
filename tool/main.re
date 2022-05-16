@@ -11,15 +11,12 @@ include "windshieldwipers.re";
 include "tas.re";
 include "multiplayer.re";
 
-static mut PLAYER_NAME = SETTINGS.multiplayer_name;
-
 static mut START_MENU_TEXT = Text { text: "Press 'm' for menu." };
 static START_MENU = Ui {
     name: START_MENU_TEXT,
     elements: List::new(),
     on_draw: Option::Some(fn() {
         let mut text = "Press 'm' for menu.";
-        PLAYER_NAME = SETTINGS.multiplayer_name;
         let draw_hud = CURRENT_COMPONENT.draw_hud;
         text = draw_hud(text);
         if SETTINGS.show_character_stats {
@@ -217,14 +214,6 @@ static NEW_GAME_ACTIONS_MENU = Ui::new("New Game Actions:", List::of(
 ));
 static MULTIPLAYER_MENU = Ui::new("Multiplayer:", List::of(
     UiElement::Input(Input {
-        label: Text { text: "Name" },
-        input: PLAYER_NAME,
-        onclick: fn(input: string) {},
-        onchange: fn(input: string) {
-            SETTINGS.set_multiplayer_name(input);
-        },
-    }),
-    UiElement::Input(Input {
         label: Text { text: "Join/Create Room" },
         input: "",
         onclick: fn(input: string) {
@@ -318,14 +307,6 @@ fn enter_replay_menu(op: ReplayMenu) {
 }
 
 static UTIL_MENU = Ui::new("Util:", List::of(
-    UiElement::Input(Input {
-        label: Text { text: "Player Name" },
-        input: PLAYER_NAME,
-        onclick: fn(input: string) {
-            SETTINGS.set_multiplayer_name(input);
-        },
-        onchange: fn(input: string) {},
-    }),
     UiElement::Button(UiButton {
         label: Text { text: "Save Recording" },
         onclick: fn(label: Text) {
@@ -489,15 +470,6 @@ static SETTINGS_MENU = Ui::new("Settings:", List::of(
             SETTINGS.toggle_show_game_stats();
             SHOW_GAME_STATS_BUTTON_TEXT.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
         },
-    }),
-    UiElement::Input(Input {
-        label: Text { text: "Player Name" },
-        input: PLAYER_NAME,
-        onclick: fn(input: string) {
-            PLAYER_NAME = input;
-            SETTINGS.set_multiplayer_name(input);
-        },
-        onchange: fn(input: string) { PLAYER_NAME = input; },
     }),
     UiElement::Button(UiButton {
         label: Text { text: "Reset Game Stats" },

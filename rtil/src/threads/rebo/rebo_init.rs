@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -285,9 +285,10 @@ fn load_settings() -> Option<Map<String, String>> {
 #[rebo::function("Tas::store_settings")]
 fn store_settings(settings: Map<String, String>) {
     let path = config_path().join("settings.json");
-    let file = File::create(path).unwrap();
+    let mut file = File::create(path).unwrap();
     let map = settings.clone_btreemap();
-    serde_json::to_writer_pretty(file, &map).unwrap();
+    serde_json::to_writer_pretty(&mut file, &map).unwrap();
+    writeln!(file).unwrap();
 }
 
 #[derive(rebo::ExternalType, Serialize, Deserialize)]
@@ -604,7 +605,7 @@ fn connect_to_server(server: Server) {
         deltas.push(delta as i32);
         std::thread::sleep(Duration::from_millis(500));
     };
-    let msg = format!("local time offset between us and server: {delta}");
+    let msg = format!("local time offset between us and server: {delta} ms");
     log!("{}", msg);
     STATE.lock().unwrap().as_ref().unwrap().rebo_stream_tx.send(ReboToStream::Print(msg)).unwrap();
 
