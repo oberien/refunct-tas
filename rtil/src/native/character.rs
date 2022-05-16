@@ -1,6 +1,7 @@
+use std::ffi::c_void;
 use std::sync::atomic::Ordering;
 use once_cell::sync::Lazy;
-use crate::native::ue::{FVector, FRotator};
+use crate::native::ue::{FVector, FRotator, FString};
 use crate::native::uworld::UClass;
 use crate::native::AMYCHARACTER_STATICCLASS;
 use crate::statics::Static;
@@ -36,6 +37,9 @@ impl AMyCharacter {
     }
     fn movement_mut(&mut self) -> &mut UCharacterMovementComponent {
         unsafe { &mut *(*self.as_ue()).movement }
+    }
+    fn player_state(&self) -> &APlayerState {
+        unsafe { &*self.controller().player_state }
     }
 
     pub unsafe fn new(ptr: *mut AMyCharacter) -> AMyCharacter {
@@ -78,6 +82,15 @@ impl AMyCharacter {
     pub fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) {
         self.controller_mut().rotation = FRotator { pitch, yaw, roll };
     }
+
+    pub fn get_player_name(&self) -> String {
+        self.player_state().player_name.to_string_lossy()
+    }
+    pub fn get_steamid(&self) -> u64 {
+        let ptr = self.player_state().unique_id.unique_id;
+        assert!(!ptr.is_null());
+        unsafe { (*ptr).steamid }
+    }
 }
 
 #[repr(C)]
@@ -112,9 +125,35 @@ struct UCharacterMovementComponent {
 
 #[repr(C)]
 struct APlayerController {
-    #[cfg(unix)] _pad: [u8; 0x3b8],
-    #[cfg(windows)] _pad: [u8; 0x2d0],
+    #[cfg(unix)] _pad: [u8; 0x3a8],
+    #[cfg(windows)] _pad: [u8; 0x2c8],
+    player_state: *mut APlayerState,
+    _pad2: *mut c_void,
     rotation: FRotator,
+}
+
+#[repr(C)]
+struct APlayerState {
+    #[cfg(unix)] _pad: [u8; 0x390],
+    #[cfg(windows)] _pad: [u8; 0x2bc],
+    player_name: FString,
+    old_name: FString,
+    #[cfg(unix)] _pad2: [u8; 0x30],
+    #[cfg(windows)] _pad2: [u8; 0x20],
+    unique_id: FUniqueNetIdRepl,
+}
+
+struct FUniqueNetIdRepl {
+    _vtable: *const c_void,
+    unique_id: *const FUniqueNetIdSteam,
+}
+
+#[repr(C)]
+struct FUniqueNetIdSteam {
+    _vtable: *const c_void,
+    _self: *const c_void,
+    _shared_ptr: *const c_void,
+    steamid: u64,
 }
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]

@@ -1,5 +1,6 @@
-use std::ptr;
+use std::{ptr, slice};
 use std::mem;
+use std::ops::Index;
 use std::sync::atomic::Ordering;
 
 #[cfg(unix)] use libc::c_void;
@@ -57,6 +58,29 @@ impl<T> TArray<T> {
     }
 }
 
+impl<T> Index<usize> for TArray<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        unsafe {
+            assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
+            assert!(index <= i32::MAX as usize);
+            assert!((index as i32) < self.len);
+            let index = index as isize;
+            assert!(index >= 0);
+            &*self.ptr.offset(index)
+        }
+    }
+}
+
+impl<T> Drop for TArray<T> {
+    fn drop(&mut self) {
+        unsafe {
+            FMemory::free(self.ptr as *mut c_void)
+        }
+    }
+}
+
 #[cfg(unix)]
 pub type TCHAR = u32;
 #[cfg(windows)]
@@ -76,6 +100,30 @@ impl FString {
     pub fn as_ptr(&self) -> *const TCHAR {
         self.0.ptr
     }
+
+    pub fn to_string_lossy(&self) -> String {
+        unsafe {
+            assert!(self.0.len >= 0);
+            assert!(mem::size_of::<isize>() >= mem::size_of::<i32>());
+            if self.0.len == 0 {
+                return String::new();
+            }
+            assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
+            // check zero-termination
+            assert_eq!(self.0[(self.0.len - 1) as usize], 0);
+
+            #[cfg(windows)] {
+                String::from_utf16_lossy(slice::from_raw_parts(self.0.ptr as *const TCHAR, (self.0.len - 1) as usize))
+            }
+            #[cfg(unix)] {
+                assert_eq!(mem::size_of::<TCHAR>(), mem::size_of::<char>());
+                 slice::from_raw_parts(self.0.ptr as *const TCHAR, (self.0.len - 1) as usize)
+                    .iter().copied()
+                    .map(|c| char::from_u32(c).unwrap_or(char::REPLACEMENT_CHARACTER))
+                    .collect()
+            }
+        }
+    }
 }
 
 impl<S: AsRef<str>> From<S> for FString {
@@ -89,14 +137,6 @@ impl<S: AsRef<str>> From<S> for FString {
         arr.push(0 as TCHAR);
 
         FString(arr)
-    }
-}
-
-impl<T> Drop for TArray<T> {
-    fn drop(&mut self) {
-        unsafe {
-            FMemory::free(self.ptr as *mut c_void)
-        }
     }
 }
 

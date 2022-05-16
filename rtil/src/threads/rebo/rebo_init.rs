@@ -43,6 +43,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_location)
         .add_function(get_rotation)
         .add_function(set_rotation)
+        .add_function(get_player_name)
+        .add_function(get_steamid)
         .add_function(get_velocity)
         .add_function(set_velocity)
         .add_function(get_acceleration)
@@ -400,6 +402,14 @@ fn get_rotation() -> Rotation {
 #[rebo::function("Tas::set_rotation")]
 fn set_rotation(rot: Rotation) {
     AMyCharacter::get_player().set_rotation(rot.pitch, rot.yaw, rot.roll);
+}
+#[rebo::function("Tas::get_player_name")]
+fn get_player_name() -> String {
+    AMyCharacter::get_player().get_player_name()
+}
+#[rebo::function("Tas::get_steamid")]
+fn get_steamid() -> u64 {
+    AMyCharacter::get_player().get_steamid()
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Velocity {
