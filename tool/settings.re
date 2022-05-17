@@ -1,3 +1,45 @@
+fn create_settings_menu() -> Ui {
+    let mut ui_scale_text = Text { text: f"{SETTINGS.ui_scale}" };
+    let mut show_character_stats_button_text = Text { text: f"Show Character Stats: {SETTINGS.show_character_stats}" };
+    let mut show_game_stats_button_text = Text { text: f"Show Game Stats: {SETTINGS.show_game_stats}" };
+    Ui::new("Settings:", List::of(
+        UiElement::Slider(Slider {
+            label: Text { text: "UI Scale" },
+            content: ui_scale_text,
+            onleft: fn() {
+                SETTINGS.decrease_ui_scale();
+                ui_scale_text.text = f"{SETTINGS.ui_scale}";
+            },
+            onright: fn() {
+                SETTINGS.increase_ui_scale();
+                ui_scale_text.text = f"{SETTINGS.ui_scale}";
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: show_character_stats_button_text,
+            onclick: fn(label: Text) {
+                SETTINGS.toggle_show_character_stats();
+                show_character_stats_button_text.text = f"Show Character Stats: {SETTINGS.show_character_stats}";
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: show_game_stats_button_text,
+            onclick: fn(label: Text) {
+                SETTINGS.toggle_show_game_stats();
+                show_game_stats_button_text.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Reset Game Stats" },
+            onclick: fn(label: Text) { GAME_STATS.reset() },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+}
+
 struct Settings {
     ui_scale: float,
     show_character_stats: bool,

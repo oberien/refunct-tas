@@ -1,3 +1,31 @@
+fn create_practice_menu() -> Ui {
+    let mut buttons = List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Nothing" },
+            onclick: fn(label: Text) {
+                set_current_component(NOOP_COMPONENT);
+                leave_ui();
+            },
+        }),
+    );
+    for practice in PRACTICE_POINTS {
+        buttons.push(UiElement::Button(UiButton {
+            label: Text { text: practice.name },
+            onclick: fn(label: Text) {
+                for practice in PRACTICE_POINTS {
+                    if practice.name == label.text {
+                        CURRENT_PRACTICE = practice;
+                        set_current_component(PRACTICE_COMPONENT);
+                        break;
+                    }
+                }
+                leave_ui();
+            },
+        }));
+    }
+    Ui::new("Practice:", buttons)
+}
+
 static mut CURRENT_PRACTICE = Practice {
     name: "none",
     cluster: 0,

@@ -1,3 +1,98 @@
+struct Number {
+    number: int,
+}
+
+fn create_randomizer_menu() -> Ui {
+    let mut difficulty = Number { number: 0 };
+    let mut new_game_new_seed = Number { number: 0 };
+    let mut set_seed_label = Text { text: "Set Seed" };
+    let mut set_sequence_label = Text { text: "Set Sequence" };
+    Ui::new("Randomizer:", List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Disable" },
+            onclick: fn(label: Text) {
+                set_current_component(NOOP_COMPONENT);
+                leave_ui();
+            },
+        }),
+        UiElement::Chooser(Chooser {
+            label: Text { text: "Difficulty" },
+            options: List::of(
+                Text { text: "Beginner" },
+                Text { text: "Intermediate" },
+                Text { text: "Advanced" },
+            ),
+            selected: difficulty.number,
+            onchange: fn(index: int) {
+                difficulty.number = index;
+            },
+        }),
+        UiElement::Chooser(Chooser {
+            label: Text { text: "New Seed when starting New Game" },
+            options: List::of(
+                Text { text: "Auto (On for Random Seed / Off for Set Seed)" },
+                Text { text: "On" },
+                Text { text: "Off" },
+            ),
+            selected: new_game_new_seed.number,
+            onchange: fn(index: int) {
+                new_game_new_seed.number = index;
+                RANDOMIZER_STATE.new_game_new_seed = convert_new_game_new_seed(new_game_new_seed.number);
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Random Seed" },
+            onclick: fn(label: Text) {
+                randomizer_random_seed(randomizer_convert_difficulty(difficulty.number));
+                set_current_component(RANDOMIZER_COMPONENT);
+                leave_ui();
+            },
+        }),
+        UiElement::Input(Input {
+            label: set_seed_label,
+            input: "",
+            onclick: fn(input: string) {
+                match randomizer_parse_seed(input) {
+                    Result::Err(msg) => set_seed_label.text = f"Set Seed ({msg})",
+                    Result::Ok(seed) => {
+                        randomizer_set_seed(seed, randomizer_convert_difficulty(difficulty.number));
+                        set_current_component(RANDOMIZER_COMPONENT);
+                        leave_ui();
+                    },
+                }
+            },
+            onchange: fn(input: string) {},
+        }),
+        UiElement::Input(Input {
+            label: set_sequence_label,
+            input: "",
+            onclick: fn(input: string) {
+                match randomizer_parse_sequence(input) {
+                    Result::Err(msg) => set_sequence_label.text = f"Set Sequence ({msg})",
+                    Result::Ok(seq) => {
+                        randomizer_set_sequence(seq);
+                        set_current_component(RANDOMIZER_COMPONENT);
+                        leave_ui();
+                    },
+                }
+            },
+            onchange: fn(input: string) {},
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Copy previous Seed to Clipboard" },
+            onclick: fn(label: Text) { randomizer_copy_prev_seed() },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Copy previous Sequence to Clipboard" },
+            onclick: fn(label: Text) { randomizer_copy_prev_sequence() },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+}
+
 static RANDOMIZER_COMPONENT = Component {
     draw_hud: randomizer_draw_hud,
     tick_fn: Tas::step,

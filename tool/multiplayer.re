@@ -1,3 +1,33 @@
+fn create_multiplayer_menu() -> Ui {
+    Ui::new("Multiplayer:", List::of(
+        UiElement::Input(Input {
+            label: Text { text: "Join/Create Room" },
+            input: "",
+            onclick: fn(input: string) {
+                if input.len_utf8() == 0 {
+                    return;
+                }
+                multiplayer_join_room(input);
+                set_current_component(MULTIPLAYER_COMPONENT);
+                leave_ui();
+            },
+            onchange: fn(input: string) {},
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Disconnect" },
+            onclick: fn(label: Text) {
+                set_current_component(NOOP_COMPONENT);
+                leave_ui();
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui(); },
+        }),
+    ))
+}
+
+
 enum Connection {
     Connected,
     Error(string),

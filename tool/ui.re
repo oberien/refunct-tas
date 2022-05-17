@@ -76,7 +76,7 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
         RCTRL_PRESSED = true;
     }
     if key.to_small() == KEY_M.to_small() {
-        enter_ui(BASE_MENU);
+        enter_ui(create_base_menu());
     }
     match UI_STACK.last() {
         Option::Some(ui) => ui.onkey(key, chr),

@@ -1,3 +1,24 @@
+fn create_new_game_actions_menu() -> Ui {
+    Ui::new("New Game Actions:", List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Nothing" },
+            onclick: fn(label: Text) { set_current_component(NOOP_COMPONENT); leave_ui(); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "100%" },
+            onclick: fn(label: Text) { set_current_component(NEW_GAME_100_PERCENT_COMPONENT); leave_ui(); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "All Buttons" },
+            onclick: fn(label: Text) { set_current_component(NEW_GAME_ALL_BUTTONS_COMPONENT); leave_ui(); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "NGG" },
+            onclick: fn(label: Text) { set_current_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
+        }),
+    ))
+}
+
 static NEW_GAME_100_PERCENT_COMPONENT = Component {
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
