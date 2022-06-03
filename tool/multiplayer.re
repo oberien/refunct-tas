@@ -1,11 +1,21 @@
+static mut JOIN_ROOM_LABEL = Text { text: "Join/Create Room" };
+
 fn create_multiplayer_menu() -> Ui {
     Ui::new("Multiplayer:", List::of(
         UiElement::Input(Input {
-            label: Text { text: "Join/Create Room" },
+            label: JOIN_ROOM_LABEL,
             input: "",
             onclick: fn(input: string) {
                 if input.len_utf8() == 0 {
-                    return;
+                    JOIN_ROOM_LABEL.text = "Join/Create Room (Error: empty room name)";
+                }
+                else if input.len_utf8() > 128 {
+                    JOIN_ROOM_LABEL.text = "Join/Create Room (Error: room name is too long)";
+                }
+                else {
+                    multiplayer_join_room(input);
+                    JOIN_ROOM_LABEL.text = "Join/Create Room";
+                    leave_ui();
                 }
                 multiplayer_join_room(input);
                 add_component(MULTIPLAYER_COMPONENT);
