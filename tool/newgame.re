@@ -71,11 +71,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
-        // make All Buttons work together with e.g. NGG
-        let level_state = Tas::get_level_state();
-        if level_state.level == 29 {
-            Tas::set_level(0);
-        }
+        Tas::set_level(0);
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
