@@ -73,7 +73,7 @@ impl TasState {
 
 static TAS_COMPONENT = Component {
     id: TAS_COMPONENT_ID,
-    conflicts_with: List::of(TAS_COMPONENT_ID),
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, TAS_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         let text = f"{text}\nTAS: REQUIRES 60 FPS";
         let text = f"{text}\n     t toggle frame-step mode, f advance one frame";

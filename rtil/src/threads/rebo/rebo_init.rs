@@ -365,7 +365,11 @@ fn move_mouse(x: i32, y: i32) {
 }
 #[rebo::function("Tas::get_last_frame_delta")]
 fn get_last_frame_delta() -> f64 {
-    FApp::delta()
+    let delta = STATE.lock().unwrap().as_mut().unwrap().delta;
+    match delta {
+        Some(delta) => delta,
+        None => FApp::delta(),
+    }
 }
 #[rebo::function("Tas::get_delta")]
 fn get_delta() -> Option<f64> {
