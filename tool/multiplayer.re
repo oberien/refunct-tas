@@ -70,6 +70,10 @@ impl Pawn {
             spawned_at: current_time_millis(),
         }
     }
+
+    fn destroy(self) {
+        Tas::destroy_pawn(self.id);
+    }
 }
 
 static mut MULTIPLAYER_STATE = MultiplayerState {
@@ -89,6 +93,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
     id: MULTIPLAYER_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID, TAS_COMPONENT_ID, WINDSCREEN_WIPERS_COMPONENT_ID),
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: update_players,
     on_yield: fn() {
         match MULTIPLAYER_STATE.new_game_state {
@@ -140,7 +145,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
         MULTIPLAYER_STATE.risen_clusters = Map::new();
         MULTIPLAYER_STATE.risen_clusters.insert(0, 0);
         for pawn in MULTIPLAYER_STATE.pawns {
-            Tas::destroy_pawn(pawn.id);
+            pawn.destroy();
         }
         MULTIPLAYER_STATE.pawns = List::new();
         MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
@@ -348,7 +353,7 @@ fn multiplayer_disconnect() {
         let player = MULTIPLAYER_STATE.players.remove(player_id).unwrap();
     }
     for pawn in MULTIPLAYER_STATE.pawns {
-        Tas::destroy_pawn(pawn.id);
+        pawn.destroy();
     }
     MULTIPLAYER_STATE.pawns.clear();
     MULTIPLAYER_STATE.players = Map::new();
@@ -378,7 +383,7 @@ fn update_players() {
     while i < pawns.len() {
         let pawn = pawns.get(i).unwrap();
         if pawn.spawned_at + 10000 < current_millis {
-            Tas::destroy_pawn(pawn.id);
+            pawn.destroy();
             pawns.swap_remove(i);
             continue;
         }

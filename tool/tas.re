@@ -102,11 +102,12 @@ static TAS_COMPONENT = Component {
         text
     },
     tick_mode: TickMode::Yield,
+    requested_delta_time: Option::Some(1./60.),
     on_tick: fn() {
         // recording
         if TAS_STATE.is_recording {
             TAS_STATE.recording.push(RecordFrame {
-                delta: 1./60.,
+                delta: Tas::get_last_frame_delta(),
                 events: TAS_STATE.events,
                 location: Tas::get_location(),
                 rotation: Tas::get_rotation(),
@@ -145,7 +146,7 @@ static TAS_COMPONENT = Component {
     },
     on_yield: fn() {
         if !TAS_STATE.step_frame_mode || TAS_STATE.is_f_pressed {
-            step_frame(Option::Some(1./60.), TickMode::DontCare);
+            step_frame(TickMode::DontCare);
         }
     },
     on_new_game: fn() {},
@@ -187,7 +188,7 @@ static TAS_COMPONENT = Component {
             if is_repeat {
                 TAS_STATE.is_f_pressed = true;
             } else {
-                step_frame(Option::Some(1./60.), TickMode::DontCare);
+                step_frame(TickMode::DontCare);
             }
         } else if !is_repeat {
             TAS_STATE.events.push(InputEvent::KeyPressed(key_code.large_value));

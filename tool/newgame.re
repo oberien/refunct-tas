@@ -24,29 +24,54 @@ fn create_new_game_actions_menu() -> Ui {
     ))
 }
 
-static NEW_GAME_100_PERCENT_COMPONENT = Component {
+struct NewGame100PercentState {
+    tick: int,
+    platform_pawns: List<int>,
+    button_pawns: List<int>,
+}
+static mut NEW_GAME_100_PERCENT_STATE = NewGame100PercentState {
+    tick: 100,
+    platform_pawns: List::new(),
+    button_pawns: List::new(),
+};
+static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
     id: NEW_GAME_100_PERCENT_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
     },
     tick_mode: TickMode::DontCare,
-    on_tick: fn() {},
+    requested_delta_time: Option::None,
+    on_tick: fn() {
+        if 0 <= NEW_GAME_100_PERCENT_STATE.tick && NEW_GAME_100_PERCENT_STATE.tick < 9 {
+            // wait for all platforms to rise
+        } else if 9 == NEW_GAME_100_PERCENT_STATE.tick {
+            NEW_GAME_100_PERCENT_STATE.platform_pawns = create_all_platform_pawns();
+            NEW_GAME_100_PERCENT_STATE.button_pawns = create_all_button_pawns_up_to(36);
+            NEW_GAME_100_PERCENT_COMPONENT.requested_delta_time = Option::None;
+        } else if 10 <= NEW_GAME_100_PERCENT_STATE.tick && NEW_GAME_100_PERCENT_STATE.tick < 10 + 18*3 {
+            let tick_in_cubes = NEW_GAME_100_PERCENT_STATE.tick - 10;
+            let cube = tick_in_cubes / 3;
+            let modulo = tick_in_cubes - cube * 3;
+            if modulo == 0 {
+                Tas::set_location(CUBES.get(cube).unwrap());
+            }
+        } else if 10 + 18*3 == NEW_GAME_100_PERCENT_STATE.tick {
+            for pawn in NEW_GAME_100_PERCENT_STATE.platform_pawns {
+                Tas::destroy_pawn(pawn);
+            }
+            for pawn in NEW_GAME_100_PERCENT_STATE.button_pawns {
+                Tas::destroy_pawn(pawn);
+            }
+            Tas::set_location(BUTTONS.get(36).unwrap().loc);
+        }
+        NEW_GAME_100_PERCENT_STATE.tick += 1;
+    },
     on_yield: fn() {},
     on_new_game: fn() {
+        NEW_GAME_100_PERCENT_COMPONENT.requested_delta_time = Option::Some(1. / 2.);
+        NEW_GAME_100_PERCENT_STATE.tick = 0;
         Tas::set_level(30);
-        // wait for all platforms to rise
-        let delta = Tas::get_delta();
-        Tas::set_delta(Option::Some(1. / 2.));
-        // if we are within yield, step into a step instead of a yield
-        Tas::step();
-        wait(9);
-        Tas::set_delta(delta);
-
-        trigger_all_platforms();
-        trigger_all_buttons_up_to(36);
-        teleport_all_cubes();
-        teleport_exact(30);
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
@@ -66,6 +91,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
         f"{text}\nNew Game Action: All Buttons"
     },
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
@@ -89,6 +115,7 @@ static NEW_GAME_NGG_COMPONENT = Component {
         f"{text}\nNew Game Action: NGG"
     },
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {

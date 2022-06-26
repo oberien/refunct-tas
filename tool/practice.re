@@ -41,6 +41,7 @@ static PRACTICE_COMPONENT = Component {
         f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
     },
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {

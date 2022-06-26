@@ -98,6 +98,7 @@ static RANDOMIZER_COMPONENT = Component {
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: randomizer_draw_hud,
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: randomizer_new_game_function,

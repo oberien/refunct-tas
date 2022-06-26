@@ -1,4 +1,15 @@
-fn step_frame(delta: Option<float>, tick_mode: TickMode) {
+fn step_frame(tick_mode: TickMode) {
+    let mut delta = Option::None;
+    for comp in CURRENT_COMPONENTS {
+        match comp.requested_delta_time {
+            Option::None => (),
+            Option::Some(d) => if delta.is_none() {
+                delta = Option::Some(d);
+            } else {
+                delta = Option::Some(delta.unwrap().max(d));
+            }
+        }
+    }
     Tas::set_delta(delta);
     let tick_fn = match tick_mode {
         TickMode::DontCare => Tas::step,

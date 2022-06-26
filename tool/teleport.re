@@ -144,7 +144,7 @@ fn platform_pawn_spawn_location(platform: Platform) -> Location {
 
     Location { x: x, y: y, z: z + 89.15 }
 }
-fn trigger_all_platforms() {
+fn create_all_platform_pawns() -> List<int> {
     let mut pawns = List::new();
     for platform in PLATFORMS {
         let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
@@ -152,15 +152,9 @@ fn trigger_all_platforms() {
         Tas::move_pawn(id, platform_pawn_spawn_location(platform));
         pawns.push(id);
     }
-    let delta = Tas::get_delta();
-    Tas::set_delta(Option::Some(1./60.));
-    wait(5);
-    Tas::set_delta(delta);
-    for id in pawns {
-        Tas::destroy_pawn(id);
-    }
+    pawns
 }
-fn trigger_all_buttons_up_to(up_to: int) {
+fn create_all_button_pawns_up_to(up_to: int) -> List<int> {
     let mut pawns = List::new();
     let mut i = 0;
     while i < up_to {
@@ -171,13 +165,7 @@ fn trigger_all_buttons_up_to(up_to: int) {
         pawns.push(id);
         i += 1;
     }
-    let delta = Tas::get_delta();
-    Tas::set_delta(Option::Some(1./60.));
-    wait(5);
-    Tas::set_delta(delta);
-    for id in pawns {
-        Tas::destroy_pawn(id);
-    }
+    pawns
 }
 fn teleport_exact(index: int) {
     let delta = Tas::get_delta();

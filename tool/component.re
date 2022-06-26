@@ -17,6 +17,8 @@ struct Component {
     conflicts_with: List<int>,
     draw_hud: fn(string) -> string,
     tick_mode: TickMode,
+    // largest delta time wins and is used for the next frame
+    requested_delta_time: Option<float>,
     on_tick: fn(),
     on_yield: fn(),
     on_new_game: fn(),

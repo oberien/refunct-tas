@@ -20,6 +20,7 @@ static WINDSCREEN_WIPERS_COMPONENT = Component {
         f"{text}\nWindscreen Wipers ({WINDSCREEN_WIPERS_STATE.seconds_per_wipe}s/wipe)"
     },
     tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
     on_tick: fn() {
         if WINDSCREEN_WIPERS_STATE.seconds_per_wipe == 0. {
             return;
