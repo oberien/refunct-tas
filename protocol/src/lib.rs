@@ -46,4 +46,5 @@ pub enum Response {
     NewGamePressed(PlayerId),
     /// unix timestamp
     StartNewGameAt(u64),
+    RoomNameTooLong,
 }

@@ -69,6 +69,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
+        .add_function(set_end_partial)
         .add_function(is_windows)
         .add_function(is_linux)
         .add_function(get_clipboard)
@@ -123,6 +124,7 @@ pub enum Disconnected {
     ReceiveFailed,
     ConnectionRefused,
     LocalTimeOffsetTooManyTries,
+    RoomNameTooLong,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -221,6 +223,9 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
                     let local_time_offset = STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64;
                     start_new_game_at(vm, (timestamp as i64 + local_time_offset) as u64)?
                 },
+                Response::RoomNameTooLong => {
+                    disconnected(vm, Disconnected::RoomNameTooLong)?;
+                }
             }
         }
 
@@ -671,6 +676,7 @@ fn receive_from_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, nonblocking: 
             },
             Err(_) => {
                 drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
+                if
                 disconnected(vm, Disconnected::ReceiveFailed)?;
                 Err(ReceiveError::Error)
             }
@@ -704,6 +710,10 @@ fn get_level() -> i32 {
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {
     LevelState::set_level(level);
+}
+#[rebo::function("Tas::set_end_partial")]
+fn set_end_partial(ep: f32) {
+    LevelState::set_end_partial(ep);
 }
 #[rebo::function("Tas::is_windows")]
 fn is_windows() -> bool {
