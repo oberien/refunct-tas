@@ -97,5 +97,5 @@ loop {
             TickMode::Yield => tick_mode = TickMode::Yield,
         }
     }
-    step_frame(tick_mode);
+    step_frame(Option::None, tick_mode);
 }
