@@ -3,7 +3,7 @@ fn create_practice_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "Nothing" },
             onclick: fn(label: Text) {
-                set_current_component(NOOP_COMPONENT);
+                remove_component(PRACTICE_COMPONENT);
                 leave_ui();
             },
         }),
@@ -15,7 +15,7 @@ fn create_practice_menu() -> Ui {
                 for practice in PRACTICE_POINTS {
                     if practice.name == label.text {
                         CURRENT_PRACTICE = practice;
-                        set_current_component(PRACTICE_COMPONENT);
+                        add_component(PRACTICE_COMPONENT);
                         break;
                     }
                 }
@@ -35,10 +35,12 @@ static mut CURRENT_PRACTICE = Practice {
 };
 
 static PRACTICE_COMPONENT = Component {
+    id: PRACTICE_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
     },
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {

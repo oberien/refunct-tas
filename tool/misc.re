@@ -20,7 +20,7 @@ fn create_replay_menu(op: ReplayMenuOp) -> Ui{
                     return;
                 }
                 tas_load_recording(input);
-                set_current_component(TAS_COMPONENT);
+                add_component(TAS_COMPONENT);
                 leave_ui();
                 leave_ui();
                 leave_ui();
@@ -88,7 +88,7 @@ fn create_misc_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "TAS Mode" },
             onclick: fn(label: Text) {
-                set_current_component(TAS_COMPONENT);
+                add_component(TAS_COMPONENT);
                 leave_ui();
                 leave_ui();
             }
@@ -147,9 +147,15 @@ fn create_misc_menu() -> Ui {
                     Result::Err(e) => return,
                 };
                 start_windscreen_wipers(seconds_per_wipe);
-                set_current_component(WINDSCREEN_WIPERS_COMPONENT);
+                add_component(WINDSCREEN_WIPERS_COMPONENT);
             },
             onchange: fn(input: string) {},
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Stop Windscreen Wipers" },
+            onclick: fn(label: Text) {
+                remove_component(WINDSCREEN_WIPERS_COMPONENT);
+            },
         }),
         UiElement::Input(Input {
             label: Text { text: "Spawn Pawn (x,y,z)" },

@@ -8,7 +8,7 @@ fn create_multiplayer_menu() -> Ui {
                     return;
                 }
                 multiplayer_join_room(input);
-                set_current_component(MULTIPLAYER_COMPONENT);
+                add_component(MULTIPLAYER_COMPONENT);
                 leave_ui();
             },
             onchange: fn(input: string) {},
@@ -16,7 +16,7 @@ fn create_multiplayer_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "Disconnect" },
             onclick: fn(label: Text) {
-                set_current_component(NOOP_COMPONENT);
+                remove_component(MULTIPLAYER_COMPONENT);
                 leave_ui();
             },
         }),
@@ -86,11 +86,13 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
 };
 
 static mut MULTIPLAYER_COMPONENT = Component {
-    tick_fn: Tas::step,
+    id: MULTIPLAYER_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID, TAS_COMPONENT_ID, WINDSCREEN_WIPERS_COMPONENT_ID),
+    tick_mode: TickMode::DontCare,
     on_tick: update_players,
     on_yield: fn() {
         match MULTIPLAYER_STATE.new_game_state {
-            NewGameState::NoonePressed => MULTIPLAYER_COMPONENT.tick_fn = Tas::step,
+            NewGameState::NoonePressed => MULTIPLAYER_COMPONENT.tick_mode = TickMode::DontCare,
             NewGameState::AnotherPlayerPressed => (),
             NewGameState::YouPressed => (),
             NewGameState::StartingAt(ts) => {
@@ -98,7 +100,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                 if time >= ts {
                     print(f"starting synchronized new game at {time} (expected {ts})");
                     MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
-                    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
+                    MULTIPLAYER_COMPONENT.tick_mode = TickMode::DontCare;
                 }
             },
         }
@@ -142,7 +144,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
         }
         MULTIPLAYER_STATE.pawns = List::new();
         MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
-        MULTIPLAYER_COMPONENT.tick_fn = Tas::yield;
+        MULTIPLAYER_COMPONENT.tick_mode = TickMode::Yield;
         Tas::new_game_pressed();
     },
     on_level_change: fn(old: int, new: int) {
@@ -456,7 +458,7 @@ fn start_new_game_at(timestamp: int) {
 }
 fn disconnected(reason: Disconnected) {
     MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
-    MULTIPLAYER_COMPONENT.tick_fn = Tas::step;
+    MULTIPLAYER_COMPONENT.tick_mode = TickMode::DontCare;
     match reason {
         Disconnected::Closed => MULTIPLAYER_STATE.connection = Connection::Error("Connection Closed"),
         Disconnected::ManualDisconnect => return,

@@ -2,28 +2,35 @@ fn create_new_game_actions_menu() -> Ui {
     Ui::new("New Game Actions:", List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Nothing" },
-            onclick: fn(label: Text) { set_current_component(NOOP_COMPONENT); leave_ui(); },
+            onclick: fn(label: Text) {
+                remove_component(NEW_GAME_100_PERCENT_COMPONENT);
+                remove_component(NEW_GAME_ALL_BUTTONS_COMPONENT);
+                remove_component(NEW_GAME_NGG_COMPONENT);
+                leave_ui();
+             },
         }),
         UiElement::Button(UiButton {
             label: Text { text: "100%" },
-            onclick: fn(label: Text) { set_current_component(NEW_GAME_100_PERCENT_COMPONENT); leave_ui(); },
+            onclick: fn(label: Text) { add_component(NEW_GAME_100_PERCENT_COMPONENT); leave_ui(); },
         }),
         UiElement::Button(UiButton {
             label: Text { text: "All Buttons" },
-            onclick: fn(label: Text) { set_current_component(NEW_GAME_ALL_BUTTONS_COMPONENT); leave_ui(); },
+            onclick: fn(label: Text) { add_component(NEW_GAME_ALL_BUTTONS_COMPONENT); leave_ui(); },
         }),
         UiElement::Button(UiButton {
             label: Text { text: "NGG" },
-            onclick: fn(label: Text) { set_current_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
+            onclick: fn(label: Text) { add_component(NEW_GAME_NGG_COMPONENT); leave_ui(); },
         }),
     ))
 }
 
 static NEW_GAME_100_PERCENT_COMPONENT = Component {
+    id: NEW_GAME_100_PERCENT_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
     },
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
@@ -51,10 +58,12 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
     on_component_exit: fn() {},
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
+    id: NEW_GAME_ALL_BUTTONS_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: All Buttons"
     },
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
@@ -62,7 +71,11 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
-        Tas::set_level(0);
+        // make All Buttons work together with e.g. NGG
+        let level_state = Tas::get_level_state();
+        if level_state.level == 29 {
+            Tas::set_level(0);
+        }
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
@@ -72,10 +85,12 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     on_component_exit: fn() {},
 };
 static NEW_GAME_NGG_COMPONENT = Component {
+    id: NEW_GAME_NGG_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: NGG"
     },
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
@@ -145,20 +160,28 @@ fn on_level_state_change(old: LevelState, new: LevelState) {
         // when level was still 0
         || old.resets < new.resets && old.level == 0
     {
-        let on_level_change = CURRENT_COMPONENT.on_level_change;
-        on_level_change(old.level, new.level);
+        for comp in CURRENT_COMPONENTS {
+            let on_level_change = comp.on_level_change;
+            on_level_change(old.level, new.level);
+        }
     }
     if old.resets != new.resets {
-        let on_reset = CURRENT_COMPONENT.on_reset;
-        on_reset(old.resets, new.resets);
+        for comp in CURRENT_COMPONENTS {
+            let on_reset = comp.on_reset;
+            on_reset(old.resets, new.resets);
+        }
     }
     if old.platforms != new.platforms {
-        let on_platforms_change = CURRENT_COMPONENT.on_platforms_change;
-        on_platforms_change(old.platforms, new.platforms);
+        for comp in CURRENT_COMPONENTS {
+            let on_platforms_change = comp.on_platforms_change;
+            on_platforms_change(old.platforms, new.platforms);
+        }
     }
     if old.buttons != new.buttons {
-        let on_buttons_change = CURRENT_COMPONENT.on_buttons_change;
-        on_buttons_change(old.buttons, new.buttons);
+        for comp in CURRENT_COMPONENTS {
+            let on_buttons_change = comp.on_buttons_change;
+            on_buttons_change(old.buttons, new.buttons);
+        }
     }
 }
 

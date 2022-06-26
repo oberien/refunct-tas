@@ -1,6 +1,22 @@
+enum TickMode {
+    DontCare,
+    Yield,
+}
+
+static MULTIPLAYER_COMPONENT_ID = 1;
+static NEW_GAME_100_PERCENT_COMPONENT_ID = 2;
+static NEW_GAME_ALL_BUTTONS_COMPONENT_ID = 3;
+static NEW_GAME_NGG_COMPONENT_ID = 4;
+static PRACTICE_COMPONENT_ID = 5;
+static RANDOMIZER_COMPONENT_ID = 6;
+static TAS_COMPONENT_ID = 7;
+static WINDSCREEN_WIPERS_COMPONENT_ID = 8;
+
 struct Component {
+    id: int,
+    conflicts_with: List<int>,
     draw_hud: fn(string) -> string,
-    tick_fn: fn() -> Step,
+    tick_mode: TickMode,
     on_tick: fn(),
     on_yield: fn(),
     on_new_game: fn(),
@@ -14,29 +30,41 @@ struct Component {
     on_component_exit: fn(),
 }
 
-static NOOP_COMPONENT = Component {
-    draw_hud: fn(text: string) -> string { text },
-    tick_fn: Tas::step,
-    on_tick: fn() {},
-    on_yield: fn() {},
-    on_new_game: fn() {},
-    on_level_change: fn(old: int, new: int) {},
-    on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
-    on_key_down: fn(key: KeyCode, is_repeat: bool) {},
-    on_key_up: fn(key: KeyCode) {},
-    on_mouse_move: fn(x: int, y: int) {},
-    on_component_exit: fn() {},
-};
+static mut CURRENT_COMPONENTS = List::new();
 
-static mut CURRENT_COMPONENT = NOOP_COMPONENT;
+fn add_component(component: Component) {
+    let mut i = 0;
+    loop {
+        let comp = match CURRENT_COMPONENTS.get(i) {
+            Option::Some(comp) => comp,
+            Option::None => break,
+        };
 
-fn set_current_component(component: Component) {
-    if component == CURRENT_COMPONENT {
-        return;
+        if component.conflicts_with.contains(comp.id) || comp.conflicts_with.contains(component.id) {
+            let on_component_exit = comp.on_component_exit;
+            on_component_exit();
+            CURRENT_COMPONENTS.swap_remove(i);
+        } else {
+            i += 1;
+        }
     }
-    let on_component_exit = CURRENT_COMPONENT.on_component_exit;
-    on_component_exit();
-    CURRENT_COMPONENT = component;
+    CURRENT_COMPONENTS.push(component);
+    CURRENT_COMPONENTS.sort();
+}
+
+fn remove_component(component: Component) {
+    let mut i = 0;
+    loop {
+        let comp = match CURRENT_COMPONENTS.get(i) {
+            Option::Some(comp) => comp,
+            Option::None => break,
+        };
+        if comp == component {
+            let on_component_exit = comp.on_component_exit;
+            on_component_exit();
+            CURRENT_COMPONENTS.swap_remove(i);
+            return;
+        }
+        i += 1;
+    }
 }

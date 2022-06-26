@@ -72,6 +72,8 @@ impl TasState {
 }
 
 static TAS_COMPONENT = Component {
+    id: TAS_COMPONENT_ID,
+    conflicts_with: List::of(TAS_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         let text = f"{text}\nTAS: REQUIRES 60 FPS";
         let text = f"{text}\n     t toggle frame-step mode, f advance one frame";
@@ -99,7 +101,7 @@ static TAS_COMPONENT = Component {
 
         text
     },
-    tick_fn: Tas::yield,
+    tick_mode: TickMode::Yield,
     on_tick: fn() {
         // recording
         if TAS_STATE.is_recording {
@@ -143,7 +145,7 @@ static TAS_COMPONENT = Component {
     },
     on_yield: fn() {
         if !TAS_STATE.step_frame_mode || TAS_STATE.is_f_pressed {
-            step_frame(Option::Some(1./60.), Tas::step);
+            step_frame(Option::Some(1./60.), TickMode::DontCare);
         }
     },
     on_new_game: fn() {},
@@ -185,7 +187,7 @@ static TAS_COMPONENT = Component {
             if is_repeat {
                 TAS_STATE.is_f_pressed = true;
             } else {
-                step_frame(Option::Some(1./60.), Tas::step);
+                step_frame(Option::Some(1./60.), TickMode::DontCare);
             }
         } else if !is_repeat {
             TAS_STATE.events.push(InputEvent::KeyPressed(key_code.large_value));

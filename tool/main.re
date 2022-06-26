@@ -19,8 +19,10 @@ fn create_start_menu() -> Ui {
         elements: List::new(),
         on_draw: Option::Some(fn() {
             let mut text = "Press 'm' for menu.";
-            let draw_hud = CURRENT_COMPONENT.draw_hud;
-            text = draw_hud(text);
+            for comp in CURRENT_COMPONENTS {
+                let draw_hud = comp.draw_hud;
+                text = draw_hud(text);
+            }
             if SETTINGS.show_character_stats {
                 let loc = Tas::get_location();
                 let vel = Tas::get_velocity();
@@ -88,6 +90,12 @@ fn create_base_menu() -> Ui {
 enter_ui(create_start_menu());
 
 loop {
-    let tick_fn = CURRENT_COMPONENT.tick_fn;
-    step_frame(Option::None, tick_fn);
+    let mut tick_mode = TickMode::DontCare;
+    for comp in CURRENT_COMPONENTS {
+        match comp.tick_mode {
+            TickMode::DontCare => (),
+            TickMode::Yield => tick_mode = TickMode::Yield,
+        }
+    }
+    step_frame(Option::None, tick_mode);
 }

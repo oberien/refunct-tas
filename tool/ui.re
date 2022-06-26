@@ -84,8 +84,10 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
     }
     // don't trigger key events while in the menu
     if UI_STACK.len() == 1 {
-        let on_key_down = CURRENT_COMPONENT.on_key_down;
-        on_key_down(key, is_repeat);
+        for comp in CURRENT_COMPONENTS {
+            let on_key_down = comp.on_key_down;
+            on_key_down(key, is_repeat);
+        }
     }
 }
 fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
@@ -101,13 +103,17 @@ fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     }
     // don't trigger key events while in the menu
     if UI_STACK.len() == 1 {
-        let on_key_up = CURRENT_COMPONENT.on_key_up;
-        on_key_up(key);
+        for comp in CURRENT_COMPONENTS {
+            let on_key_up = comp.on_key_up;
+            on_key_up(key);
+        }
     }
 }
 fn on_mouse_move(x: int, y: int) {
-    let on_mouse_move = CURRENT_COMPONENT.on_mouse_move;
-    on_mouse_move(x, y);
+    for comp in CURRENT_COMPONENTS {
+        let on_mouse_move = comp.on_mouse_move;
+        on_mouse_move(x, y);
+    }
 }
 fn draw_hud() {
     match UI_STACK.last() {
@@ -224,12 +230,14 @@ impl Input {
             self.input = f"{self.input}{Tas::get_clipboard()}";
         } else {
             match chr {
-                Option::Some(s) => self.input = f"{self.input}{s}",
+                Option::Some(s) => {
+                    self.input = f"{self.input}{s}";
+                    let onchange = self.onchange;
+                    onchange(self.input);
+                },
                 Option::None => (),
             }
         }
-        let onchange = self.onchange;
-        onchange(self.input);
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {

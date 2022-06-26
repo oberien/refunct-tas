@@ -1,17 +1,27 @@
-fn step_frame(delta: Option<float>, tick_fn: fn() -> Step) {
+fn step_frame(delta: Option<float>, tick_mode: TickMode) {
     Tas::set_delta(delta);
+    let tick_fn = match tick_mode {
+        TickMode::DontCare => Tas::step,
+        TickMode::Yield => Tas::yield,
+    };
     match tick_fn() {
         Step::Tick => (),
         Step::NewGame => {
-            let on_new_game = CURRENT_COMPONENT.on_new_game;
-            on_new_game();
+            for comp in CURRENT_COMPONENTS {
+                let on_new_game = comp.on_new_game;
+                on_new_game();
+            }
         },
         Step::Yield => {
-            let on_yield = CURRENT_COMPONENT.on_yield;
-            on_yield();
+            for comp in CURRENT_COMPONENTS {
+                let on_yield = comp.on_yield;
+                on_yield();
+            }
             return
         }
     }
-    let on_tick = CURRENT_COMPONENT.on_tick;
-    on_tick();
+    for comp in CURRENT_COMPONENTS {
+        let on_tick = comp.on_tick;
+        on_tick();
+    }
 }

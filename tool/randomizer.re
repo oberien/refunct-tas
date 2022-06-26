@@ -11,7 +11,7 @@ fn create_randomizer_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "Disable" },
             onclick: fn(label: Text) {
-                set_current_component(NOOP_COMPONENT);
+                remove_component(RANDOMIZER_COMPONENT);
                 leave_ui();
             },
         }),
@@ -44,7 +44,7 @@ fn create_randomizer_menu() -> Ui {
             label: Text { text: "Random Seed" },
             onclick: fn(label: Text) {
                 randomizer_random_seed(randomizer_convert_difficulty(difficulty.number));
-                set_current_component(RANDOMIZER_COMPONENT);
+                add_component(RANDOMIZER_COMPONENT);
                 leave_ui();
             },
         }),
@@ -56,7 +56,7 @@ fn create_randomizer_menu() -> Ui {
                     Result::Err(msg) => set_seed_label.text = f"Set Seed ({msg})",
                     Result::Ok(seed) => {
                         randomizer_set_seed(seed, randomizer_convert_difficulty(difficulty.number));
-                        set_current_component(RANDOMIZER_COMPONENT);
+                        add_component(RANDOMIZER_COMPONENT);
                         leave_ui();
                     },
                 }
@@ -71,7 +71,7 @@ fn create_randomizer_menu() -> Ui {
                     Result::Err(msg) => set_sequence_label.text = f"Set Sequence ({msg})",
                     Result::Ok(seq) => {
                         randomizer_set_sequence(seq);
-                        set_current_component(RANDOMIZER_COMPONENT);
+                        add_component(RANDOMIZER_COMPONENT);
                         leave_ui();
                     },
                 }
@@ -94,8 +94,10 @@ fn create_randomizer_menu() -> Ui {
 }
 
 static RANDOMIZER_COMPONENT = Component {
+    id: RANDOMIZER_COMPONENT_ID,
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: randomizer_draw_hud,
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: randomizer_new_game_function,

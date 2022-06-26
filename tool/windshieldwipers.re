@@ -17,10 +17,12 @@ fn start_windscreen_wipers(seconds_per_wipe: float) {
 }
 
 static WINDSCREEN_WIPERS_COMPONENT = Component {
+    id: WINDSCREEN_WIPERS_COMPONENT_ID,
+    conflicts_with: List::of(WINDSCREEN_WIPERS_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nWindscreen Wipers ({WINDSCREEN_WIPERS_STATE.seconds_per_wipe}s/wipe)"
     },
-    tick_fn: Tas::step,
+    tick_mode: TickMode::DontCare,
     on_tick: fn() {
         if WINDSCREEN_WIPERS_STATE.seconds_per_wipe == 0. {
             return;
