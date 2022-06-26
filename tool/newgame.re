@@ -59,7 +59,7 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     id: NEW_GAME_ALL_BUTTONS_COMPONENT_ID,
-    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: All Buttons"
     },
@@ -86,7 +86,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
 };
 static NEW_GAME_NGG_COMPONENT = Component {
     id: NEW_GAME_NGG_COMPONENT_ID,
-    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID),
+    conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         f"{text}\nNew Game Action: NGG"
     },
@@ -94,11 +94,17 @@ static NEW_GAME_NGG_COMPONENT = Component {
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
-        Tas::set_level(1);
+        let level = Tas::get_level();
+        if level < 29 {
+            Tas::set_level(level + 1);
+        }
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
-        Tas::set_level(1);
+        let level = Tas::get_level();
+        if level < 29 {
+            Tas::set_level(level + 1);
+        }
     },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},

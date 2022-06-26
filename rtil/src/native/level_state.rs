@@ -39,6 +39,11 @@ impl LevelState {
         addr as *mut LevelState
     }
 
+    pub fn get_level() -> i32 {
+        unsafe {
+            (*LevelState::get_ptr()).level
+        }
+    }
     pub fn set_level(level: i32) {
         unsafe {
             (*LevelState::get_ptr()).level = level;

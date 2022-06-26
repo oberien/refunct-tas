@@ -67,6 +67,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(press_platform_on_server)
         .add_function(press_button_on_server)
         .add_function(new_game_pressed)
+        .add_function(get_level)
         .add_function(set_level)
         .add_function(is_windows)
         .add_function(is_linux)
@@ -690,6 +691,10 @@ fn press_button_on_server(button_id: u8) {
 #[rebo::function(raw("Tas::new_game_pressed"))]
 fn new_game_pressed() {
     send_to_server(vm, "new game pressed", Request::NewGamePressed)?;
+}
+#[rebo::function("Tas::get_level")]
+fn get_level() -> i32 {
+    LevelState::get_level()
 }
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {
