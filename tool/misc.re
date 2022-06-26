@@ -93,6 +93,14 @@ fn create_misc_menu() -> Ui {
                 leave_ui();
             }
         }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Stop TAS Mode" },
+            onclick: fn(label: Text) {
+                remove_component(TAS_COMPONENT);
+                leave_ui();
+                leave_ui();
+            }
+        }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },
             input: "",
