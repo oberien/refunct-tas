@@ -38,6 +38,8 @@ static NEW_GAME_100_PERCENT_COMPONENT = Component {
         // wait for all platforms to rise
         let delta = Tas::get_delta();
         Tas::set_delta(Option::Some(1. / 2.));
+        // if we are within yield, step into a step instead of a yield
+        Tas::step();
         wait(9);
         Tas::set_delta(delta);
 

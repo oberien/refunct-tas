@@ -80,7 +80,7 @@ static TAS_COMPONENT = Component {
         let text = f"{text}\n     r to record/stop, g to replay inputs, h to replay position, j to replay positions + inputs";
         let mut text = f"{text}\n     Step-Frame: {TAS_STATE.step_frame_mode}    Recording: {TAS_STATE.is_recording}    Replay {TAS_STATE.is_replaying}: {TAS_STATE.replay_index}/{TAS_STATE.recording.len()}";
 
-        if TAS_STATE.is_replaying == Replaying::Inputs || TAS_STATE.is_replaying == Replaying::PositionsAndInputs{
+        if TAS_STATE.is_replaying == Replaying::Inputs || TAS_STATE.is_replaying == Replaying::PositionsAndInputs {
             text = f"{text}\n\n";
             for key in TAS_STATE.replay_keys_pressed.values() {
                 let key_string = if KEY_A.to_small() <= key && key <= KEY_Z.to_small() {
