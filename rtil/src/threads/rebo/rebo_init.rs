@@ -676,7 +676,6 @@ fn receive_from_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, nonblocking: 
             },
             Err(_) => {
                 drop(STATE.lock().unwrap().as_mut().unwrap().websocket.take());
-                if
                 disconnected(vm, Disconnected::ReceiveFailed)?;
                 Err(ReceiveError::Error)
             }
