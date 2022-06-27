@@ -12,11 +12,9 @@ fn create_multiplayer_menu() -> Ui {
                 else {
                     multiplayer_join_room(input);
                     JOIN_ROOM_LABEL.text = "Join/Create Room";
+                    add_component(MULTIPLAYER_COMPONENT);
                     leave_ui();
                 }
-                multiplayer_join_room(input);
-                add_component(MULTIPLAYER_COMPONENT);
-                leave_ui();
             },
             onchange: fn(input: string) {},
         }),
