@@ -335,8 +335,9 @@ fn save_recording(filename: String, recording: Vec<RecordFrame>) {
 fn load_recording(filename: String) -> Vec<RecordFrame> {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
-    let file = File::open(path).unwrap();
-    serde_json::from_reader(file).unwrap()
+    let content = std::fs::read_to_string(path).unwrap();
+    let res = serde_json::from_str(&content).unwrap();
+    res
 }
 #[rebo::function("Tas::remove_recording")]
 fn remove_recording(filename: String) -> bool {
