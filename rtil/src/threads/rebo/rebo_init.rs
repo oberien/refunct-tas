@@ -69,6 +69,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
+        .add_function(set_start_seconds)
+        .add_function(set_start_partial)
+        .add_function(set_end_seconds)
         .add_function(set_end_partial)
         .add_function(is_windows)
         .add_function(is_linux)
@@ -709,6 +712,18 @@ fn get_level() -> i32 {
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {
     LevelState::set_level(level);
+}
+#[rebo::function("Tas::set_start_seconds")]
+fn set_start_seconds(startsecs: f32) {
+    LevelState::set_start_secs(startsecs);
+}
+#[rebo::function("Tas::set_start_partial")]
+fn set_start_partial(sp: f32) {
+    LevelState::set_start_partial(sp);
+}
+#[rebo::function("Tas::set_end_seconds")]
+fn set_end_seconds(es: f32) {
+    LevelState::set_end_seconds(es);
 }
 #[rebo::function("Tas::set_end_partial")]
 fn set_end_partial(ep: f32) {

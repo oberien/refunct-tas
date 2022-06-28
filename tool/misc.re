@@ -6,7 +6,6 @@ enum ReplayMenuOp {
 
 fn create_replay_menu(op: ReplayMenuOp) -> Ui{
     let mut recording_name_label = Text { text: "Recording name" };
-
     let recordings_list = Tas::list_recordings();
     let do_operation = fn(input: string) {
         match op {

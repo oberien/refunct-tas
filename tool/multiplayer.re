@@ -8,13 +8,12 @@ fn create_multiplayer_menu() -> Ui {
             onclick: fn(input: string) {
                 if input.len_utf8() == 0 {
                     JOIN_ROOM_LABEL.text = "Join/Create Room (Error: empty room name)";
+                    return;
                 }
-                else {
-                    multiplayer_join_room(input);
-                    JOIN_ROOM_LABEL.text = "Join/Create Room";
-                    add_component(MULTIPLAYER_COMPONENT);
-                    leave_ui();
-                }
+                multiplayer_join_room(input);
+                JOIN_ROOM_LABEL.text = "Join/Create Room";
+                add_component(MULTIPLAYER_COMPONENT);
+                leave_ui();
             },
             onchange: fn(input: string) {},
         }),
@@ -345,7 +344,7 @@ fn multiplayer_connect() {
         MULTIPLAYER_STATE.risen_clusters.insert(i, 0);
         i += 1;
     }
-    Tas::connect_to_server(Server::Localhost);
+    Tas::connect_to_server(Server::Remote);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
@@ -478,5 +477,6 @@ fn disconnected(reason: Disconnected) {
         Disconnected::LocalTimeOffsetTooManyTries => MULTIPLAYER_STATE.connection = Connection::Error("Connection too unstable; couldn't get local time offset"),
         Disconnected::RoomNameTooLong => MULTIPLAYER_STATE.connection = Connection::Error("Room name too long"),
     }
+    print(f"MPSC: {MULTIPLAYER_STATE.connection}");
     multiplayer_disconnect();
 }

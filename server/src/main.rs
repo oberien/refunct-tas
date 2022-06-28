@@ -184,52 +184,50 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
             },
             Request::JoinRoom(room_name, player_name, x, y, z) => {
                 if room_name.len() > 128 {
-                    log::error!("Room name is greater than 128 chars.");
-                    local_sender.send(Response::RoomNameTooLong).await;
+                    log::warn!("Player {player_id:?} tried to join room {room_name:?}, but room name is greater than 128 chars.");
+                    let _ = local_sender.send(Response::RoomNameTooLong).await;
+                    continue
                 }
-                else {
-                    log::info!("Player {player_id:?} ({player_name}) joins room {room_name:?}");
+                log::info!("Player {player_id:?} ({player_name}) joins room {room_name:?}");
 
-                    let player = match remove_from_current_room().await {
-                        Some(player) => {
-                            {
-                                let mut data = player.data.lock().unwrap();
-                                data.x = x;
-                                data.y = y;
-                                data.z = z;
-                                data.name = player_name.clone();
-                            }
-                            player
-                        },
-                        None => Arc::new(Player {
-                            id: player_id,
-                            is_waiting_for_new_game: StdMutex::new(false),
-                            data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z }),
-                            sender: sender.take().unwrap()
-                        }),
-                    };
-                    let room = state.lock().unwrap().multiplayer_rooms.entry(room_name)
-                        .or_insert_with_key(|key| MultiplayerRoom { players: Default::default(), name: key.clone() })
-                        .clone();
+                let player = match remove_from_current_room().await {
+                    Some(player) => {
+                        {
+                            let mut data = player.data.lock().unwrap();
+                            data.x = x;
+                            data.y = y;
+                            data.z = z;
+                            data.name = player_name.clone();
+                        }
+                        player
+                    },
+                    None => Arc::new(Player {
+                        id: player_id,
+                        is_waiting_for_new_game: StdMutex::new(false),
+                        data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z }),
+                        sender: sender.take().unwrap()
+                    }),
+                };
+                let room = state.lock().unwrap().multiplayer_rooms.entry(room_name)
+                    .or_insert_with_key(|key| MultiplayerRoom { players: Default::default(), name: key.clone() })
+                    .clone();
 
-                    {
-                        let players = room.players.read().unwrap();
-                        for (id, other_player) in &*players {
-                            let (x, y, z, is_waiting_for_new_game, name) = {
-                                let data = other_player.data.lock().unwrap();
-                                other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
-                                (data.x, data.y, data.z, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
-                            };
-                            player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
-                            if is_waiting_for_new_game {
-                                player.send(Response::NewGamePressed(*id));
-                            }
+                {
+                    let players = room.players.read().unwrap();
+                    for (id, other_player) in &*players {
+                        let (x, y, z, is_waiting_for_new_game, name) = {
+                            let data = other_player.data.lock().unwrap();
+                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
+                            (data.x, data.y, data.z, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
+                        };
+                        player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
+                        if is_waiting_for_new_game {
+                            player.send(Response::NewGamePressed(*id));
                         }
                     }
-
-                    room.players.write().unwrap().insert(player_id, player);
-                    *multiplayer_room.lock().await = Some(room);
                 }
+                room.players.write().unwrap().insert(player_id, player);
+                *multiplayer_room.lock().await = Some(room);
             },
             Request::MoveSelf(x, y, z) => {
                 let lock = multiplayer_room.lock().await;
