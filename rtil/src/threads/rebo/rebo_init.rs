@@ -719,7 +719,7 @@ fn set_start_seconds(start_seconds: i32) {
 }
 #[rebo::function("Tas::set_start_partial_seconds")]
 fn set_start_partial_seconds(start_partial_seconds: f32) {
-    LevelState::set_start_partial(start_partial_seconds);
+    LevelState::set_start_partial_seconds(start_partial_seconds);
 }
 #[rebo::function("Tas::set_end_seconds")]
 fn set_end_seconds(end_seconds: i32) {
@@ -727,7 +727,7 @@ fn set_end_seconds(end_seconds: i32) {
 }
 #[rebo::function("Tas::set_end_partial_seconds")]
 fn set_end_partial_seconds(end_partial_seconds: f32) {
-    LevelState::set_end_partial(end_partial_seconds);
+    LevelState::set_end_partial_seconds(end_partial_seconds);
 }
 #[rebo::function("Tas::is_windows")]
 fn is_windows() -> bool {
