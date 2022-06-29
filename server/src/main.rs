@@ -229,7 +229,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
 
                 room.players.write().unwrap().insert(player_id, player);
                 *multiplayer_room.lock().await = Some(room);
-            },
+            }
             Request::MoveSelf(x, y, z) => {
                 let lock = multiplayer_room.lock().await;
                 let room = match lock.as_ref() {
