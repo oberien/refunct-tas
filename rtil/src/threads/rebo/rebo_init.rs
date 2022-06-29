@@ -714,7 +714,7 @@ fn set_level(level: i32) {
     LevelState::set_level(level);
 }
 #[rebo::function("Tas::set_start_seconds")]
-fn set_start_seconds(startsecs: f32) {
+fn set_start_seconds(startsecs: i32) {
     LevelState::set_start_secs(startsecs);
 }
 #[rebo::function("Tas::set_start_partial")]
@@ -722,8 +722,8 @@ fn set_start_partial(sp: f32) {
     LevelState::set_start_partial(sp);
 }
 #[rebo::function("Tas::set_end_seconds")]
-fn set_end_seconds(es: f32) {
-    LevelState::set_end_seconds(es);
+fn set_end_seconds(es: i32) {
+    LevelState::set_end_secs(es);
 }
 #[rebo::function("Tas::set_end_partial")]
 fn set_end_partial(ep: f32) {
