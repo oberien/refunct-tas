@@ -226,6 +226,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         }
                     }
                 }
+
                 room.players.write().unwrap().insert(player_id, player);
                 *multiplayer_room.lock().await = Some(room);
             },
