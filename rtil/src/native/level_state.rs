@@ -68,9 +68,9 @@ impl LevelState {
         }
     }
 
-    pub fn set_end_partial(end_partial: f32) {
+    pub fn set_end_partial_seconds(end_partial_seconds: f32) {
         unsafe {
-            (*LevelState::get_ptr()).end_partial_seconds = end_partial;
+            (*LevelState::get_ptr()).end_partial_seconds = end_partial_seconds;
         }
     }
 
