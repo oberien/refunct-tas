@@ -477,6 +477,5 @@ fn disconnected(reason: Disconnected) {
         Disconnected::LocalTimeOffsetTooManyTries => MULTIPLAYER_STATE.connection = Connection::Error("Connection too unstable; couldn't get local time offset"),
         Disconnected::RoomNameTooLong => MULTIPLAYER_STATE.connection = Connection::Error("Room name too long"),
     }
-    print(f"MPSC: {MULTIPLAYER_STATE.connection}");
     multiplayer_disconnect();
 }

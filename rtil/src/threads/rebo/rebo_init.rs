@@ -714,20 +714,20 @@ fn set_level(level: i32) {
     LevelState::set_level(level);
 }
 #[rebo::function("Tas::set_start_seconds")]
-fn set_start_seconds(startsecs: i32) {
-    LevelState::set_start_secs(startsecs);
+fn set_start_seconds(start_seconds: i32) {
+    LevelState::set_start_seconds(start_seconds);
 }
 #[rebo::function("Tas::set_start_partial")]
-fn set_start_partial(sp: f32) {
-    LevelState::set_start_partial(sp);
+fn set_start_partial(start_partial: f32) {
+    LevelState::set_start_partial(start_partial);
 }
 #[rebo::function("Tas::set_end_seconds")]
-fn set_end_seconds(es: i32) {
-    LevelState::set_end_secs(es);
+fn set_end_seconds(end_seconds: i32) {
+    LevelState::set_end_seconds(end_seconds);
 }
 #[rebo::function("Tas::set_end_partial")]
-fn set_end_partial(ep: f32) {
-    LevelState::set_end_partial(ep);
+fn set_end_partial(end_partial: f32) {
+    LevelState::set_end_partial(end_partial);
 }
 #[rebo::function("Tas::is_windows")]
 fn is_windows() -> bool {
