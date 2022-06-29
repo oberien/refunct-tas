@@ -49,6 +49,31 @@ impl LevelState {
             (*LevelState::get_ptr()).level = level;
         }
     }
+
+    pub fn set_start_seconds(start_seconds: i32) {
+        unsafe {
+            (*LevelState::get_ptr()).start_seconds = start_seconds;
+        }
+    }
+
+    pub fn set_start_partial_seconds(start_partial_seconds: f32) {
+        unsafe {
+            (*LevelState::get_ptr()).start_partial_seconds = start_partial_seconds;
+        }
+    }
+
+    pub fn set_end_seconds(end_seconds: i32) {
+        unsafe {
+            (*LevelState::get_ptr()).end_seconds = end_seconds;
+        }
+    }
+
+    pub fn set_end_partial_seconds(end_partial_seconds: f32) {
+        unsafe {
+            (*LevelState::get_ptr()).end_partial_seconds = end_partial_seconds;
+        }
+    }
+
 }
 
 // fn level_state_address() -> usize {

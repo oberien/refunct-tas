@@ -1,13 +1,17 @@
+static mut JOIN_ROOM_LABEL = Text { text: "Join/Create Room" };
+
 fn create_multiplayer_menu() -> Ui {
     Ui::new("Multiplayer:", List::of(
         UiElement::Input(Input {
-            label: Text { text: "Join/Create Room" },
+            label: JOIN_ROOM_LABEL,
             input: "",
             onclick: fn(input: string) {
                 if input.len_utf8() == 0 {
+                    JOIN_ROOM_LABEL.text = "Join/Create Room (Error: empty room name)";
                     return;
                 }
                 multiplayer_join_room(input);
+                JOIN_ROOM_LABEL.text = "Join/Create Room";
                 add_component(MULTIPLAYER_COMPONENT);
                 leave_ui();
             },
@@ -471,6 +475,7 @@ fn disconnected(reason: Disconnected) {
         Disconnected::ConnectionRefused => MULTIPLAYER_STATE.connection = Connection::Error("Connection Refused"),
         Disconnected::ReceiveFailed => MULTIPLAYER_STATE.connection = Connection::Error("Receive Failed"),
         Disconnected::LocalTimeOffsetTooManyTries => MULTIPLAYER_STATE.connection = Connection::Error("Connection too unstable; couldn't get local time offset"),
+        Disconnected::RoomNameTooLong => MULTIPLAYER_STATE.connection = Connection::Error("Room name too long"),
     }
     multiplayer_disconnect();
 }

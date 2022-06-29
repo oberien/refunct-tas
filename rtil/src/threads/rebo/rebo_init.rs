@@ -69,6 +69,10 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
+        .add_function(set_start_seconds)
+        .add_function(set_start_partial_seconds)
+        .add_function(set_end_seconds)
+        .add_function(set_end_partial_seconds)
         .add_function(is_windows)
         .add_function(is_linux)
         .add_function(get_clipboard)
@@ -123,6 +127,7 @@ pub enum Disconnected {
     ReceiveFailed,
     ConnectionRefused,
     LocalTimeOffsetTooManyTries,
+    RoomNameTooLong,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -221,6 +226,9 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
                     let local_time_offset = STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64;
                     start_new_game_at(vm, (timestamp as i64 + local_time_offset) as u64)?
                 },
+                Response::RoomNameTooLong => {
+                    disconnected(vm, Disconnected::RoomNameTooLong)?;
+                }
             }
         }
 
@@ -704,6 +712,22 @@ fn get_level() -> i32 {
 #[rebo::function("Tas::set_level")]
 fn set_level(level: i32) {
     LevelState::set_level(level);
+}
+#[rebo::function("Tas::set_start_seconds")]
+fn set_start_seconds(start_seconds: i32) {
+    LevelState::set_start_seconds(start_seconds);
+}
+#[rebo::function("Tas::set_start_partial_seconds")]
+fn set_start_partial_seconds(start_partial_seconds: f32) {
+    LevelState::set_start_partial_seconds(start_partial_seconds);
+}
+#[rebo::function("Tas::set_end_seconds")]
+fn set_end_seconds(end_seconds: i32) {
+    LevelState::set_end_seconds(end_seconds);
+}
+#[rebo::function("Tas::set_end_partial_seconds")]
+fn set_end_partial_seconds(end_partial_seconds: f32) {
+    LevelState::set_end_partial_seconds(end_partial_seconds);
 }
 #[rebo::function("Tas::is_windows")]
 fn is_windows() -> bool {

@@ -183,6 +183,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 let _ = local_sender.send(Response::ServerTime(SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64)).await;
             },
             Request::JoinRoom(room_name, player_name, x, y, z) => {
+                if room_name.len() > 128 {
+                    log::warn!("Player {player_id:?} ({player_name}) tried to join room {room_name:?}, but room name is greater than 128 chars.");
+                    let _ = local_sender.send(Response::RoomNameTooLong).await;
+                    continue
+                }
                 log::info!("Player {player_id:?} ({player_name}) joins room {room_name:?}");
 
                 let player = match remove_from_current_room().await {
