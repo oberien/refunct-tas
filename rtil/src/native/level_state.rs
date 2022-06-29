@@ -56,9 +56,9 @@ impl LevelState {
         }
     }
 
-    pub fn set_start_partial(start_partial: f32) {
+    pub fn set_start_partial_seconds(start_partial_seconds: f32) {
         unsafe {
-            (*LevelState::get_ptr()).start_partial_seconds = start_partial;
+            (*LevelState::get_ptr()).start_partial_seconds = start_partial_seconds;
         }
     }
 
