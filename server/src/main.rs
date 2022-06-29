@@ -184,7 +184,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
             },
             Request::JoinRoom(room_name, player_name, x, y, z) => {
                 if room_name.len() > 128 {
-                    log::warn!("Player {player_id:?} tried to join room {room_name:?}, but room name is greater than 128 chars.");
+                    log::warn!("Player {player_id:?} ({player_name}) tried to join room {room_name:?}, but room name is greater than 128 chars.");
                     let _ = local_sender.send(Response::RoomNameTooLong).await;
                     continue
                 }
