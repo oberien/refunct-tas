@@ -7,6 +7,8 @@ static mut TAS_STATE = TasState {
     events: List::new(),
     replay_index: 0,
     replay_keys_pressed: Set::new(),
+    recording_start_timestamp: 0,
+    recording_end_timestamp: 0,
 };
 
 struct TasState {
@@ -14,10 +16,12 @@ struct TasState {
     step_frame_mode: bool,
     is_recording: bool,
     is_replaying: Replaying,
-    recording: List<RecordFrame>,
+    recording: List<RecordingFrame>,
     events: List<InputEvent>,
     replay_index: int,
     replay_keys_pressed: Set<int>,
+    recording_start_timestamp: int,
+    recording_end_timestamp: int,
 }
 enum Replaying {
     Nothing,
@@ -27,7 +31,7 @@ enum Replaying {
 }
 
 fn tas_save_recording(name: string) {
-    Tas::save_recording(name, TAS_STATE.recording);
+    Tas::save_recording(name, TAS_STATE.recording, TAS_STATE.recording_start_timestamp, TAS_STATE.recording_end_timestamp, current_time_millis());
 }
 
 fn tas_load_recording(name: string) {
@@ -106,7 +110,7 @@ static TAS_COMPONENT = Component {
     on_tick: fn() {
         // recording
         if TAS_STATE.is_recording {
-            TAS_STATE.recording.push(RecordFrame {
+            TAS_STATE.recording.push(RecordingFrame {
                 delta: Tas::get_last_frame_delta(),
                 events: TAS_STATE.events,
                 location: Tas::get_location(),
@@ -161,7 +165,12 @@ static TAS_COMPONENT = Component {
         } else if key == KEY_R.to_small() {
             TAS_STATE.is_recording = !TAS_STATE.is_recording;
             if TAS_STATE.is_recording {
+                TAS_STATE.recording_start_timestamp = current_time_millis();
+                print(f"Set start timestamp of {TAS_STATE.recording_start_timestamp}");
                 TAS_STATE.recording = List::new();
+            } else {
+                TAS_STATE.recording_end_timestamp = current_time_millis();
+                print(f"Set end timestamp of {TAS_STATE.recording_end_timestamp}");
             }
         } else if key == KEY_G.to_small() {
             if TAS_STATE.is_replaying == Replaying::Inputs {

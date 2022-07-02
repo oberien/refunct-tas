@@ -90,7 +90,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Server)
         .add_external_type(Step)
         .add_external_type(Disconnected)
-        .add_external_type(RecordFrame)
+        .add_external_type(Recording)
+        .add_external_type(RecordingFrame)
         .add_external_type(InputEvent)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
@@ -301,7 +302,17 @@ fn store_settings(settings: Map<String, String>) {
 }
 
 #[derive(rebo::ExternalType, Serialize, Deserialize)]
-struct RecordFrame {
+struct Recording {
+    player_name: String,
+    player_steam_id: u64,
+    rec_start_timestamp: u64,
+    rec_end_timestamp: u64,
+    rec_save_timestamp: u64,
+    rec_filename_saved: String,
+    frame: Vec<RecordingFrame>,
+}
+#[derive(rebo::ExternalType, Serialize, Deserialize)]
+struct RecordingFrame {
     delta: f64,
     events: Vec<InputEvent>,
     location: Location,
@@ -333,19 +344,33 @@ fn list_recordings() -> Vec<String> {
         }).collect()
 }
 #[rebo::function("Tas::save_recording")]
-fn save_recording(filename: String, recording: Vec<RecordFrame>) {
+fn save_recording(filename: String, recording: Vec<RecordingFrame>, start_timestamp: u64, end_timestamp: u64, save_timestamp: u64) {
+    let rec = Recording {
+        player_name: AMyCharacter::get_player().get_player_name().to_string(),
+        player_steam_id: AMyCharacter::get_player().get_steamid(),
+        rec_start_timestamp: start_timestamp,
+        rec_end_timestamp: end_timestamp,
+        rec_save_timestamp: save_timestamp,
+        rec_filename_saved: filename.clone(),
+        frame: recording,
+    };
+    let rec_steamid = rec.player_steam_id.to_string();
+    let act_steamid = AMyCharacter::get_player().get_steamid();
+    log!("{}", "Recording SteamID is {rec_steamid}");
+    log!("TheActual SteamID is {act_steamid}");
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
-    serde_json::to_writer_pretty(file, &recording).unwrap();
+    serde_json::to_writer_pretty(file, &rec).unwrap();
 }
 #[rebo::function("Tas::load_recording")]
-fn load_recording(filename: String) -> Vec<RecordFrame> {
+fn load_recording(filename: String) -> Vec<RecordingFrame> {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let content = std::fs::read_to_string(path).unwrap();
-    let res = serde_json::from_str(&content).unwrap();
-    res
+    let recording: Recording = serde_json::from_str(&content).unwrap();
+    let frames = recording.frame;
+    frames
 }
 #[rebo::function("Tas::remove_recording")]
 fn remove_recording(filename: String) -> bool {
