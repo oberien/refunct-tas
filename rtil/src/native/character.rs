@@ -89,7 +89,8 @@ impl AMyCharacter {
     pub fn get_steamid(&self) -> u64 {
         let ptr = self.player_state().unique_id.unique_id;
         assert!(!ptr.is_null());
-        unsafe { (*ptr).steamid }
+        let steamid = unsafe { (*ptr).steamid };
+        u64::from_ne_bytes(steamid)
     }
 }
 
@@ -153,7 +154,9 @@ struct FUniqueNetIdSteam {
     _vtable: *const c_void,
     _self: *const c_void,
     _shared_ptr: *const c_void,
-    steamid: u64,
+    // "In particular, on x86 u64 and f64 are only aligned to 32 bits."
+    // EXCEPT THEY AREN'T, RUST, THEY FUCKING AREN'T (on i686-pc-windows-msvc)
+    steamid: [u8; 8],
 }
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]

@@ -346,7 +346,7 @@ fn list_recordings() -> Vec<String> {
 #[rebo::function("Tas::save_recording")]
 fn save_recording(filename: String, recording: Vec<RecordingFrame>, start_timestamp: u64, end_timestamp: u64, save_timestamp: u64) {
     let rec = Recording {
-        player_name: AMyCharacter::get_player().get_player_name().to_string(),
+        player_name: AMyCharacter::get_player().get_player_name(),
         player_steam_id: AMyCharacter::get_player().get_steamid(),
         rec_start_timestamp: start_timestamp,
         rec_end_timestamp: end_timestamp,
