@@ -37,6 +37,7 @@ pub extern "C" fn initialize() {
             let name = thread.name().unwrap_or("<unnamed>");
             log!("thread '{}' panicked at '{}'\nBacktrace: {:?}", name, msg, backtrace::Backtrace::new());
         }));
+        env_logger::init();
         log!("initialize");
         let exe = ::std::env::current_exe().unwrap();
         log!("got exe: {:?}", exe);
