@@ -31,6 +31,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
     ("?SetActorEnableCollision@AActor@@QAEX_N@Z", "AACTOR_SETACTORENABLECOLLISION"),
+    ("?GetAccurateRealTime@UGameplayStatics@@SAXPBVUObject@@AAHAAM@Z", "UGAMEPLAYSTATICS_GETACCURATEREALTIME"),
 ];
 
 fn get_linux_level_pointer_path() -> String {
