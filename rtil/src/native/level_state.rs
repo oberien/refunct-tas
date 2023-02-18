@@ -50,21 +50,9 @@ impl LevelState {
         }
     }
 
-    pub fn get_start_seconds() -> i32 {
-        unsafe {
-            (*LevelState::get_ptr()).start_seconds
-        }
-    }
-
     pub fn set_start_seconds(start_seconds: i32) {
         unsafe {
             (*LevelState::get_ptr()).start_seconds = start_seconds;
-        }
-    }
-
-    pub fn get_start_partial_seconds() -> f32 {
-        unsafe {
-            (*LevelState::get_ptr()).start_partial_seconds
         }
     }
 
@@ -74,21 +62,9 @@ impl LevelState {
         }
     }
 
-    pub fn get_end_seconds() -> i32 {
-        unsafe {
-            (*LevelState::get_ptr()).end_seconds
-        }
-    }
-
     pub fn set_end_seconds(end_seconds: i32) {
         unsafe {
             (*LevelState::get_ptr()).end_seconds = end_seconds;
-        }
-    }
-
-    pub fn get_end_partial_seconds() -> f32 {
-        unsafe {
-            (*LevelState::get_ptr()).end_partial_seconds
         }
     }
 

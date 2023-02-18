@@ -69,13 +69,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
-        .add_function(get_start_seconds)
         .add_function(set_start_seconds)
-        .add_function(get_start_partial_seconds)
         .add_function(set_start_partial_seconds)
-        .add_function(get_end_seconds)
         .add_function(set_end_seconds)
-        .add_function(get_end_partial_seconds)
         .add_function(set_end_partial_seconds)
         .add_function(get_accurate_real_time)
         .add_function(is_windows)
@@ -718,33 +714,17 @@ fn get_level() -> i32 {
 fn set_level(level: i32) {
     LevelState::set_level(level);
 }
-#[rebo::function("Tas::get_start_seconds")]
-fn get_start_seconds() -> i32 {
-    LevelState::get_start_seconds()
-}
 #[rebo::function("Tas::set_start_seconds")]
 fn set_start_seconds(start_seconds: i32) {
     LevelState::set_start_seconds(start_seconds);
-}
-#[rebo::function("Tas::get_start_partial_seconds")]
-fn get_start_partial_seconds() -> f32 {
-    LevelState::get_start_partial_seconds()
 }
 #[rebo::function("Tas::set_start_partial_seconds")]
 fn set_start_partial_seconds(start_partial_seconds: f32) {
     LevelState::set_start_partial_seconds(start_partial_seconds);
 }
-#[rebo::function("Tas::get_end_seconds")]
-fn get_end_seconds() -> i32 {
-    LevelState::get_end_seconds()
-}
 #[rebo::function("Tas::set_end_seconds")]
 fn set_end_seconds(end_seconds: i32) {
     LevelState::set_end_seconds(end_seconds);
-}
-#[rebo::function("Tas::get_end_partial_seconds")]
-fn get_end_partial_seconds() -> f32 {
-    LevelState::get_end_partial_seconds()
 }
 #[rebo::function("Tas::set_end_partial_seconds")]
 fn set_end_partial_seconds(end_partial_seconds: f32) {

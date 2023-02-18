@@ -68,6 +68,14 @@ fn create_replay_menu(op: ReplayMenuOp) -> Ui{
 fn create_misc_menu() -> Ui {
     Ui::new("Misc:", List::of(
         UiElement::Button(UiButton {
+            label: Text { text: "Speedrun" },
+            onclick: fn(label: Text) {
+                add_component(SPEEDRUN_COMPONENT);
+                leave_ui();
+                leave_ui();
+            }
+        }),
+        UiElement::Button(UiButton {
             label: Text { text: "Save Recording" },
             onclick: fn(label: Text) {
                 enter_ui(create_replay_menu(ReplayMenuOp::Save));
