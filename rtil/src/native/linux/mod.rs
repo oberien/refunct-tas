@@ -100,6 +100,7 @@ find! {
     AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",
     APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
     AACTOR_SETACTORENABLECOLLISION, "^AActor::SetActorEnableCollision(bool)",
+    UGAMEPLAYSTATICS_GETACCURATEREALTIME, "^UGameplayStatics::GetAccurateRealTime(UObject const*, int&, float&)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

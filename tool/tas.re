@@ -7,6 +7,8 @@ static mut TAS_STATE = TasState {
     events: List::new(),
     replay_index: 0,
     replay_keys_pressed: Set::new(),
+    start_time: 0.,
+    end_time: 0.,
 };
 
 struct TasState {
@@ -18,6 +20,9 @@ struct TasState {
     events: List<InputEvent>,
     replay_index: int,
     replay_keys_pressed: Set<int>,
+    start_time: float,
+    end_time: float,
+
 }
 enum Replaying {
     Nothing,
@@ -104,6 +109,15 @@ static TAS_COMPONENT = Component {
     tick_mode: TickMode::Yield,
     requested_delta_time: Option::Some(1./60.),
     on_tick: fn() {
+        let mut foo = Tas::get_accurate_real_time();
+        let mut baz = Tas::get_start_seconds();
+        let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+        let mut rar = Tas::get_end_seconds();
+        let mut xyz = (rar.to_float() + Tas::get_end_partial_seconds());
+        print(f"on_tick            (GART): {foo}");
+        print(f"on_tick            (GSS ): {bar}");
+        print(f"on_tick            (GES ): {xyz}");
+        
         // recording
         if TAS_STATE.is_recording {
             TAS_STATE.recording.push(RecordFrame {
@@ -149,11 +163,65 @@ static TAS_COMPONENT = Component {
             step_frame(TickMode::DontCare);
         }
     },
-    on_new_game: fn() {},
-    on_level_change: fn(old: int, new: int) {},
-    on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_new_game: fn() {
+        let mut foo = Tas::get_accurate_real_time();
+        let mut baz = Tas::get_start_seconds();
+        let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+        print(f"on_new_game         (GART): {foo}");
+        print(f"on_new_game         (GSS ): {bar}");
+    },
+    on_level_change: fn(old: int, new: int) {
+        if new == 31 {
+            let mut foo = Tas::get_accurate_real_time();
+            let mut baz = Tas::get_start_seconds();
+            let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+            let mut rar = Tas::get_end_seconds();
+            let mut xyz = (rar.to_float() + Tas::get_end_partial_seconds());
+            let mut ree = xyz - bar;
+            let mut raa = Tas::get_accurate_real_time() - bar;
+            print(f"on_level_change     (GART): {foo}");
+            print(f"on_level_change     (GSS ): {bar}");
+            print(f"on_level_change     (GES ): {xyz}");
+            print(f"end time            (time): {ree}");
+            print(f"end time 2          (time): {raa}");
+        } else {
+            let mut foo = Tas::get_accurate_real_time();
+            let mut baz = Tas::get_start_seconds();
+            let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+            let mut rar = Tas::get_end_seconds();
+            let mut xyz = (rar.to_float() + Tas::get_end_partial_seconds());
+            print(f"on_level_change     (GART): {foo}");
+            print(f"on_level_change     (GSS ): {bar}");
+            print(f"on_level_change     (GES ): {xyz}");
+        }
+    },
+    on_reset: fn(old: int, new: int) {
+        let mut foo = Tas::get_accurate_real_time();
+        let mut baz = Tas::get_start_seconds();
+        let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+        print(f"on_reset            (GART): {foo}");
+        print(f"on_reset            (GSS ): {bar}");
+    },
+    on_platforms_change: fn(old: int, new: int) {
+        let mut foo = Tas::get_accurate_real_time();
+        let mut baz = Tas::get_start_seconds();
+        let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+        let mut rar = Tas::get_end_seconds();
+        let mut xyz = (rar.to_float() + Tas::get_end_partial_seconds());
+        print(f"on_buttons_change   (GART): {foo}");
+        print(f"on_buttons_change   (GSS ): {bar}");
+        print(f"on_buttons_change   (GES ): {xyz}");
+    },
+    on_buttons_change: fn(old: int, new: int) {
+        let mut foo = Tas::get_accurate_real_time();
+        let mut baz = Tas::get_start_seconds();
+        let mut bar = (baz.to_float() + Tas::get_start_partial_seconds());
+        let mut rar = Tas::get_end_seconds();
+        let mut xyz = (rar.to_float() + Tas::get_end_partial_seconds());
+        print(f"on_buttons_change   (GART): {foo}");
+        print(f"on_buttons_change   (GSS ): {bar}");
+        print(f"on_buttons_change   (GES ): {xyz}");
+    },
     on_key_down: fn(key_code: KeyCode, is_repeat: bool) {
         let key = key_code.to_small();
         if key == KEY_T.to_small() {

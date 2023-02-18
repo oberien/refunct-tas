@@ -5,13 +5,15 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
-use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter};
+use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
 use crate::native::gameinstance::UMyGameInstance;
 
 pub enum AActor {}
 pub enum APawn {}
+pub enum UGameplayStatics {}
 pub(in crate::native) type ULevel = c_void;
 pub(in crate::native) type UClass = c_void;
+pub(in crate::native) type UObject = c_void;
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -67,6 +69,19 @@ impl AActor {
         let fun: extern_fn!(fn(this: *const AActor, enable: u32))
             = unsafe { ::std::mem::transmute(AACTOR_SETACTORENABLECOLLISION.load(Ordering::SeqCst)) };
         fun(this, enable as u32)
+    }
+}
+
+impl UGameplayStatics {
+    pub fn get_accurate_real_time() -> f64 {
+        // The seconds and partial_seconds params here are out-params. This is because in C++, you can only return a single value.
+        let fun: extern_fn!(fn(object: *const c_void, seconds: *mut i32, partial_seconds: *mut f32))
+            = unsafe { ::std::mem::transmute(UGAMEPLAYSTATICS_GETACCURATEREALTIME.load(Ordering::SeqCst)) };
+        let mut my_character = AMyCharacter::get_player();
+        let mut rt_seconds: i32 = 0;
+        let mut rt_partial_seconds: f32 = 0.;
+        fun(&my_character as *const _ as *const _, &mut rt_seconds as *mut i32 as *mut i32, &mut rt_partial_seconds as *mut f32 as *mut f32);
+        return rt_seconds as f64 + rt_partial_seconds as f64;
     }
 }
 
