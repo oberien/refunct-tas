@@ -41,7 +41,7 @@ static TIMER_COMPONENT = Component {
         match new {
             0 => TIMER_STATE.start_timer(),
             31 => TIMER_STATE.is_timer_active = false,
-            _ => print(f"{TIMER_STATE.cur_time.to_int()/60}:{TIMER_STATE.cur_time.to_int() % 60:02}.{(float::floor(TIMER_STATE.cur_time - TIMER_STATE.cur_time.to_int().to_float(), 2)) * 100.:02.0}"),
+            _ => print(f"NEW: {new} | OLD: {old}"),
         }
     },
     on_reset: fn(old: int, new: int) {},
