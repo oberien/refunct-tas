@@ -50,7 +50,7 @@ pub use self::slateapp::{
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::AMyHud;
-pub use self::uworld::{APawn, UWorld};
+pub use self::uworld::{APawn, UWorld, UGameplayStatics};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
 

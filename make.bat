@@ -26,6 +26,7 @@ copy tool\tas.re build\practice-windows
 copy tool\windshieldwipers.re build\practice-windows
 copy tool\settings.re build\practice-windows
 copy tool\misc.re build\practice-windows
+copy tool\timer.re build\practice-windows
 echo Converting lf to crlf
 call :convert main.re
 call :convert prelude.re
@@ -41,6 +42,7 @@ call :convert tas.re
 call :convert windshieldwipers.re
 call :convert settings.re
 call :convert misc.re
+call :convert timer.re
 
 echo Don't forget to create a zip
 exit /b 0

@@ -10,6 +10,7 @@ include "newgame.re";
 include "practice.re";
 include "windshieldwipers.re";
 include "tas.re";
+include "timer.re";
 include "multiplayer.re";
 
 fn create_start_menu() -> Ui {

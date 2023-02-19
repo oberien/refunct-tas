@@ -11,6 +11,7 @@ static RANDOMIZER_COMPONENT_ID = 5;
 static TAS_COMPONENT_ID = 6;
 static WINDSCREEN_WIPERS_COMPONENT_ID = 7;
 static NEW_GAME_NGG_COMPONENT_ID = 8;
+static TIMER_COMPONENT_ID = 9;
 
 struct Component {
     id: int,

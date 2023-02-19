@@ -8,7 +8,7 @@ use clipboard::{ClipboardProvider, ClipboardContext};
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -73,6 +73,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_start_partial_seconds)
         .add_function(set_end_seconds)
         .add_function(set_end_partial_seconds)
+        .add_function(get_accurate_real_time)
         .add_function(is_windows)
         .add_function(is_linux)
         .add_function(get_clipboard)
@@ -728,6 +729,10 @@ fn set_end_seconds(end_seconds: i32) {
 #[rebo::function("Tas::set_end_partial_seconds")]
 fn set_end_partial_seconds(end_partial_seconds: f32) {
     LevelState::set_end_partial_seconds(end_partial_seconds);
+}
+#[rebo::function("Tas::get_accurate_real_time")]
+fn get_accurate_real_time() -> f64 {
+    return UGameplayStatics::get_accurate_real_time();
 }
 #[rebo::function("Tas::is_windows")]
 fn is_windows() -> bool {

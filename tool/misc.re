@@ -68,6 +68,22 @@ fn create_replay_menu(op: ReplayMenuOp) -> Ui{
 fn create_misc_menu() -> Ui {
     Ui::new("Misc:", List::of(
         UiElement::Button(UiButton {
+            label: Text { text: "Enable Timer" },
+            onclick: fn(label: Text) {
+                add_component(TIMER_COMPONENT);
+                leave_ui();
+                leave_ui();
+            }
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Disable Timer" },
+            onclick: fn(label: Text) {
+                remove_component(TIMER_COMPONENT);
+                leave_ui();
+                leave_ui();
+            }
+        }),
+        UiElement::Button(UiButton {
             label: Text { text: "Save Recording" },
             onclick: fn(label: Text) {
                 enter_ui(create_replay_menu(ReplayMenuOp::Save));
