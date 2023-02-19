@@ -13,6 +13,10 @@ impl TimerState {
         let ls = Tas::get_level_state();
         ls.start_seconds.to_float() + ls.start_partial_seconds
     }
+    fn get_end_time(self) -> float {
+        let ls = Tas::get_level_state();
+        ls.end_seconds.to_float() + ls.end_partial_seconds
+    }
     fn start_timer(self) {
         TIMER_STATE.cur_time = 0.;
         TIMER_STATE.is_timer_active = true;
@@ -24,7 +28,7 @@ static TIMER_COMPONENT = Component {
     conflicts_with: List::of(TIMER_COMPONENT_ID),
     draw_hud: fn(text: string) -> string {
         let mut foo = TIMER_STATE.cur_time;
-        let mut time = f"{foo.to_int()/60}:{foo.to_int() % 60:02}.{(float::floor(foo - foo.to_int().to_float(), 2)) * 100.:02.0}";
+        let mut time = f"{foo.to_int()/60}:{foo.to_int() % 60:02}.{float::to_int(foo * 100.) % 100:02}";
         let mut text = f"{time}\n{text}";
         text
     },
@@ -36,12 +40,16 @@ static TIMER_COMPONENT = Component {
         }
     },
     on_yield: fn() {},
-    on_new_game: fn() {},
+    on_new_game: fn() {
+        TIMER_STATE.start_timer();
+    },
     on_level_change: fn(old: int, new: int) {
         match new {
-            0 => TIMER_STATE.start_timer(),
-            31 => TIMER_STATE.is_timer_active = false,
-            _ => print(f"NEW: {new} | OLD: {old}"),
+            31 => {
+                TIMER_STATE.is_timer_active = false;
+                TIMER_STATE.cur_time = TIMER_STATE.get_end_time() - TIMER_STATE.get_start_time();
+            },
+            _ => {},
         }
     },
     on_reset: fn(old: int, new: int) {},
