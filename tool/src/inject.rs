@@ -53,7 +53,9 @@ pub fn inject() {
 }
 
 fn pidof() -> u32 {
-    let output = Command::new("wmic")
+    println!("Wbem path exists: {}", Path::new("C:\\WINDOWS\\System32\\Wbem").exists());
+    println!("WMIC exec exists: {}", Path::new("C:\\WINDOWS\\System32\\Wbem\\wmic.exe").exists());
+    let output = Command::new("C:\\WINDOWS\\System32\\Wbem\\wmic.exe")
         .args(&["process", "where", "Name='Refunct-Win32-Shipping.exe'", "get", "ProcessId"])
         .output()
         .expect("Cannot get pid of Refunct");
