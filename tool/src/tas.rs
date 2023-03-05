@@ -3,6 +3,14 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::fs::File;
 use std::env;
+use std::{thread, time};
+use discord_rich_presence::{
+    activity::{self, Activity},
+    DiscordIpc, DiscordIpcClient,
+};
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+use std::time::Duration;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
@@ -47,6 +55,71 @@ impl Tas {
         self.con.write_u32::<LittleEndian>(code.len() as u32).unwrap();
         self.con.write_all(code.as_bytes()).unwrap();
         println!("Tas Execution started");
+        let mut client = DiscordIpcClient::new(&"985548868659867698").expect("failed to create client");
+        println!("Created client.");
+        let activity = Activity::new();
+        println!("New activity.");
+
+        client
+            .connect()
+            .expect("failed to connect to Discord, please try again or relaunch Discord app");
+        println!("Client connected.");
+
+        let mut client = DiscordIpcClient::new(&"985548868659867698").expect("failed to create client");
+        println!("Created client.");
+        let activity = Activity::new();
+        println!("New activity.");
+
+        client
+            .connect()
+            .expect("failed to connect to Discord, please try again or relaunch Discord app");
+        println!("Client connected.");
+
+        let mut activity: Activity = activity.details(&"BING");
+        println!("Activity details set.");
+        activity = activity.state(&"YIPPEE!");
+        println!("Activity state set.");
+        let mut assets = activity::Assets::new();
+        println!("New assets.");
+        assets = assets.large_image(&"drp_refunct");
+        println!("Assets large image set.");
+        assets = assets.large_text(&"BAZ");
+        println!("Assets large text set.");
+        activity = activity.assets(assets);
+        println!("Assets set.");
+
+        let time_unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        println!("Timestamp set.");
+
+        activity = activity.timestamps(activity::Timestamps::new().start(time_unix));
+        client.set_activity(activity).expect("client set activity");
+
+        let mut activity: Activity = activity.details(&"BING");
+        println!("Activity details set.");
+        activity = activity.state(&"YIPPEE!");
+        println!("Activity state set.");
+        let mut assets = activity::Assets::new();
+        println!("New assets.");
+        assets = assets.large_image(&"drp_refunct");
+        println!("Assets large image set.");
+        assets = assets.large_text(&"BAZ");
+        println!("Assets large text set.");
+        activity = activity.assets(assets);
+        println!("Assets set.");
+
+        let time_unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        println!("Timestamp set.");
+
+        activity = activity.timestamps(activity::Timestamps::new().start(time_unix));
+        client.set_activity(activity).expect("client set activity");
+
+        // Works perfectly but can't currently get things like current level etc.
 
         loop {
             match self.con.read_u8().unwrap() {

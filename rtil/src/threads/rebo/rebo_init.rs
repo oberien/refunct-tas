@@ -2,6 +2,13 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
+use std::{env, thread, time};
+use discord_rich_presence::{
+    activity::{self, Activity},
+    DiscordIpc, DiscordIpcClient,
+};
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -78,6 +85,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(is_linux)
         .add_function(get_clipboard)
         .add_function(set_clipboard)
+        .add_function(create_rpc)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -758,4 +766,35 @@ fn set_clipboard(content: String) {
         };
         let _ = ctx.set_contents(content);
     })();
+}
+#[rebo::function("Tas::create_rpc")]
+fn create_rpc(state: String, details: String) {
+    let mut client = DiscordIpcClient::new(&"985548868659867698").expect("failed to create client");
+    log!("Created client.");
+    let mut activity = Activity::new();
+    log!("New activity.");
+    activity = activity.details(&details);
+    log!("Activity details set.");
+    activity = activity.state(&state);
+    log!("Activity state set.");
+    let mut assets = activity::Assets::new();
+    log!("New assets.");
+    assets = assets.large_image(&"drp_refunct");
+    log!("Assets large image set.");
+    assets = assets.large_text(&"BAZ");
+    log!("Assets large text set.");
+    activity = activity.assets(assets);
+    log!("Assets set.");
+
+    let time_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    activity = activity.timestamps(activity::Timestamps::new().start(time_unix));
+    log!("Timestamp set.");
+    client.set_activity(activity).expect("client set activity");
+    log!("Activity set.");
+
+    // Compiles and runs, but doesn't actually set presence when called.
 }
