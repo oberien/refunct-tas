@@ -75,7 +75,7 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
     } else if key.to_small() == KEY_RIGHT_CTRL.to_small() {
         RCTRL_PRESSED = true;
     }
-    if key.to_small() == KEY_M.to_small() && !TAS_STATE.step_frame_mode {
+    if key.to_small() == KEY_M.to_small() && !TAS_STATE.step_frame_mode && UI_STACK.len() == 1 {
         enter_ui(create_base_menu());
     }
     match UI_STACK.last() {
