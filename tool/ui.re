@@ -228,7 +228,7 @@ impl Input {
             self.input = self.input.slice(0, -1);
         } else if key.to_small() == KEY_V.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
             self.input = f"{self.input}{Tas::get_clipboard()}";
-        } else if key.to_small() == KEY_D.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED){
+        } else if key.to_small() == KEY_D.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
             self.input = "";
         } else {
             match chr {
