@@ -117,6 +117,13 @@ fn create_misc_menu() -> Ui {
                 leave_ui();
             }
         }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Movement" },
+            onclick: fn(label: Text) {
+                add_component(MOVEMENT_COMPONENT);
+                enter_ui(create_movement_menu());
+            }
+        }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },
             input: "",

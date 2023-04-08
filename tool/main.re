@@ -12,6 +12,7 @@ include "windshieldwipers.re";
 include "tas.re";
 include "timer.re";
 include "multiplayer.re";
+include "movement.re";
 
 fn create_start_menu() -> Ui {
     let mut start_menu_text = Text { text: "Press 'm' for menu." };

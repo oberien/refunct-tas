@@ -91,6 +91,19 @@ impl AMyCharacter {
         assert!(!ptr.is_null());
         unsafe { (*ptr).steamid }
     }
+
+    pub fn movement_mode(&mut self) -> u8 {
+        self.movement_mut().movement_mode
+    }
+    pub fn set_movement_mode(&mut self, value: u8) {
+        self.movement_mut().movement_mode = value;
+    }
+    pub fn forward_backward_fly_speed(&mut self) -> f32 {
+        self.movement_mut().max_fly_speed
+    }
+    pub fn set_forward_backward_fly_speed(&mut self, value: f32) {
+        self.movement_mut().max_fly_speed = value;
+    }
 }
 
 #[repr(C)]
@@ -118,8 +131,12 @@ struct UCharacterMovementComponent {
     #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
     velocity: FVector,
-    #[cfg(unix)] _pad2: [u8; 0x160],
-    #[cfg(windows)] _pad2: [u8; 0x14c],
+    #[cfg(windows)] _pad2: [u8; 0x7c],
+    movement_mode: u8,
+    #[cfg(windows)] _pad3: [u8; 0x31],
+    max_fly_speed: f32,
+    #[cfg(unix)] _pad4: [u8; 0x160],
+    #[cfg(windows)] _pad4: [u8; 0x98],
     acceleration: FVector,
 }
 
@@ -159,9 +176,12 @@ struct FUniqueNetIdSteam {
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
 fn save(this: usize) {
     CHARACTER.set(this);
-    let my_character = AMyCharacter::get_player();
+    let mut my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
     log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &mut my_character.movement_mut().movement_mode as *const u8 as usize);
+    log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &mut my_character.movement_mut().acceleration as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &mut my_character.movement_mut().max_fly_speed as *const _ as usize);
 }
