@@ -1,22 +1,25 @@
+enum FlyState {
+    None,
+    Up,
+    Down,
+}
+
 static mut FLYING_UP_DOWN_VELOCITY_LABEL = Text { text: "Up/Down Flying Velocity" };
 static mut FLYING_FORWARD_BACKWARD_VELOCITY_LABEL = Text { text: "Forward/Backward Flying Velocity" };
 
 static mut MOVEMENT_STATE = MovementState {
-    is_flying_down: false,
-    is_flying_up: false,
     enable_fly: false,
     fly_down_up_velocity: 300.,
+    fly_state: FlyState::None,
 };
 
 struct MovementState {
-    is_flying_down: bool,
-    is_flying_up: bool,
     enable_fly: bool,
     fly_down_up_velocity: float,
+    fly_state: FlyState,
 }
 
 fn create_movement_menu() -> Ui {
-    let mut movement_mode = Number { number: 1 };
     Ui::new("Movement:", List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Enable Flying" },
@@ -34,29 +37,11 @@ fn create_movement_menu() -> Ui {
                 Tas::set_movement_mode(1);
             },
         }),
-        UiElement::Chooser(Chooser {
-            label: Text { text: "Movement Mode" },
-            options: List::of(
-                Text { text: "None" },
-                Text { text: "Walking" },
-                Text { text: "Navwalking" },
-                Text { text: "Falling" },
-                Text { text: "Swimming" },
-                Text { text: "Flying" },
-            ),
-            selected: movement_mode.number,
-            onchange: fn(index: int) { movement_mode.number = index; },
-        }),
-        UiElement::Button(UiButton {
-            label: Text { text: "Set Movement Mode" },
-            onclick: fn(label: Text) { Tas::set_movement_mode(movement_mode.number); },
-        }),
         UiElement::Input(Input {
             label: FLYING_UP_DOWN_VELOCITY_LABEL,
-            input: "300",
+            input: f"{MOVEMENT_STATE.fly_down_up_velocity}",
             onclick: fn(input: string) {
-                let val = input.parse_float();
-                match val {
+                match input.parse_float() {
                     Result::Ok(val) => { MOVEMENT_STATE.fly_down_up_velocity = val; },
                     Result::Err(e) => { FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity [error: invalid input]"; },
                 }
@@ -65,11 +50,10 @@ fn create_movement_menu() -> Ui {
         }),
         UiElement::Input(Input {
             label: FLYING_FORWARD_BACKWARD_VELOCITY_LABEL,
-            input: "600",
+            input: f"{Tas::get_max_fly_speed()}",
             onclick: fn(input: string) {
-                let val = input.parse_float();
-                match val {
-                    Result::Ok(val) => { Tas::set_forward_backward_fly_speed(val); },
+                match input.parse_float() {
+                    Result::Ok(val) => { Tas::set_max_fly_speed(val); },
                     Result::Err(e) => { FLYING_FORWARD_BACKWARD_VELOCITY_LABEL.text = "Forward/Backward Flying Velocity [error: invalid input]"; },
                 }
             },
@@ -91,21 +75,19 @@ static MOVEMENT_COMPONENT = Component {
     on_tick: fn() {
         if MOVEMENT_STATE.enable_fly {
             Tas::set_movement_mode(5);
-            if MOVEMENT_STATE.is_flying_up && !MOVEMENT_STATE.is_flying_down {
-                if Tas::get_movement_mode() == 5 {
-                    let vel = Tas::get_velocity();
-                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: MOVEMENT_STATE.fly_down_up_velocity });
-                }
-            } else if !MOVEMENT_STATE.is_flying_up && MOVEMENT_STATE.is_flying_down {
-                if Tas::get_movement_mode() == 5 {
-                    let vel = Tas::get_velocity();
-                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: (MOVEMENT_STATE.fly_down_up_velocity * -1.) });
-                }
-            } else if !MOVEMENT_STATE.is_flying_up && !MOVEMENT_STATE.is_flying_down {
-                if Tas::get_movement_mode() == 5 {
+            match MOVEMENT_STATE.fly_state {
+                FlyState::None => {
                     let vel = Tas::get_velocity();
                     Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: 0. });
-                }
+                },
+                FlyState::Up => {
+                    let vel = Tas::get_velocity();
+                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: MOVEMENT_STATE.fly_down_up_velocity });
+                },
+                FlyState::Down => {
+                    let vel = Tas::get_velocity();
+                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: (MOVEMENT_STATE.fly_down_up_velocity * -1.) });
+                },
             }
         }
     },
@@ -118,20 +100,18 @@ static MOVEMENT_COMPONENT = Component {
     on_key_down: fn(key_code: KeyCode, is_repeat: bool) {
         let key = key_code.to_small();
         if key == KEY_LEFT_SHIFT.to_small() {
-            MOVEMENT_STATE.is_flying_up = false;
-            MOVEMENT_STATE.is_flying_down = true;
+            MOVEMENT_STATE.fly_state = FlyState::Down;
         } else if key == KEY_SPACE.to_small() {
-            MOVEMENT_STATE.is_flying_down = false;
-            MOVEMENT_STATE.is_flying_up = true;
+            MOVEMENT_STATE.fly_state = FlyState::Up;
         }
     },
     on_key_up: fn(key_code: KeyCode) {
         let key = key_code.to_small();
         if key == KEY_LEFT_SHIFT.to_small() {
-            MOVEMENT_STATE.is_flying_down = false;
+            MOVEMENT_STATE.fly_state = FlyState::None;
         } else if key == KEY_SPACE.to_small() {
-            MOVEMENT_STATE.is_flying_up = false;
-        }
+            MOVEMENT_STATE.fly_state = FlyState::None;
+        } 
     },
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},

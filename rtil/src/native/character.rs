@@ -98,10 +98,10 @@ impl AMyCharacter {
     pub fn set_movement_mode(&mut self, value: u8) {
         self.movement_mut().movement_mode = value;
     }
-    pub fn forward_backward_fly_speed(&mut self) -> f32 {
+    pub fn max_fly_speed(&mut self) -> f32 {
         self.movement_mut().max_fly_speed
     }
-    pub fn set_forward_backward_fly_speed(&mut self, value: f32) {
+    pub fn set_max_fly_speed(&mut self, value: f32) {
         self.movement_mut().max_fly_speed = value;
     }
 }
@@ -178,12 +178,12 @@ struct FUniqueNetIdSteam {
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
 fn save(this: usize) {
     CHARACTER.set(this);
-    let mut my_character = AMyCharacter::get_player();
+    let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
     log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
-    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &mut my_character.movement_mut().movement_mode as *const u8 as usize);
-    log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &mut my_character.movement_mut().acceleration as *const _ as usize);
-    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &mut my_character.movement_mut().max_fly_speed as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const u8 as usize);
+    log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &my_character.movement().acceleration as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &my_character.movement().max_fly_speed as *const _ as usize);
 }

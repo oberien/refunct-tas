@@ -51,8 +51,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_acceleration)
         .add_function(get_movement_mode)
         .add_function(set_movement_mode)
-        .add_function(get_forward_backward_fly_speed)
-        .add_function(set_forward_backward_fly_speed)
+        .add_function(get_max_fly_speed)
+        .add_function(set_max_fly_speed)
         .add_function(get_level_state)
         .add_function(wait_for_new_game)
         .add_function(draw_line)
@@ -469,13 +469,13 @@ fn get_movement_mode() -> u8 {
 fn set_movement_mode(mode: u8) {
     AMyCharacter::get_player().set_movement_mode(mode);
 }
-#[rebo::function("Tas::get_forward_backward_fly_speed")]
-fn get_forward_backward_fly_speed() -> f32 {
-    AMyCharacter::get_player().forward_backward_fly_speed()
+#[rebo::function("Tas::get_max_fly_speed")]
+fn get_max_fly_speed() -> f32 {
+    AMyCharacter::get_player().max_fly_speed()
 }
-#[rebo::function("Tas::set_forward_backward_fly_speed")]
-fn set_forward_backward_fly_speed(speed: f32) {
-    AMyCharacter::get_player().set_forward_backward_fly_speed(speed);
+#[rebo::function("Tas::set_max_fly_speed")]
+fn set_max_fly_speed(speed: f32) {
+    AMyCharacter::get_player().set_max_fly_speed(speed);
 }
 #[rebo::function("Tas::get_level_state")]
 fn get_level_state() -> LevelState {

@@ -124,6 +124,23 @@ fn create_misc_menu() -> Ui {
                 enter_ui(create_movement_menu());
             }
         }),
+        UiElement::Chooser(Chooser {
+            label: Text { text: "Movement Mode" },
+            options: List::of(
+                Text { text: "None" },
+                Text { text: "Walking" },
+                Text { text: "Navwalking" },
+                Text { text: "Falling" },
+                Text { text: "Swimming" },
+                Text { text: "Flying" },
+            ),
+            selected: Tas::get_movement_mode(),
+            onchange: fn(index: int) { 
+                Tas::set_movement_mode(index);
+                print(f"Movement Mode [mms]: {index}");
+                print(f"Movement Mode [mms]: {Tas::get_movement_mode()}");
+            },
+        }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },
             input: "",
