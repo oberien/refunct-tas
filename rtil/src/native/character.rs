@@ -91,6 +91,19 @@ impl AMyCharacter {
         assert!(!ptr.is_null());
         unsafe { (*ptr).steamid }
     }
+
+    pub fn movement_mode(&self) -> u8 {
+        self.movement().movement_mode
+    }
+    pub fn set_movement_mode(&mut self, value: u8) {
+        self.movement_mut().movement_mode = value;
+    }
+    pub fn max_fly_speed(&self) -> f32 {
+        self.movement().max_fly_speed
+    }
+    pub fn set_max_fly_speed(&mut self, value: f32) {
+        self.movement_mut().max_fly_speed = value;
+    }
 }
 
 #[repr(C)]
@@ -118,8 +131,14 @@ struct UCharacterMovementComponent {
     #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
     velocity: FVector,
-    #[cfg(unix)] _pad2: [u8; 0x160],
-    #[cfg(windows)] _pad2: [u8; 0x14c],
+    #[cfg(unix)] _pad2: [u8; 0x90],
+    #[cfg(windows)] _pad2: [u8; 0x7c],
+    movement_mode: u8,
+    #[cfg(unix)] _pad3: [u8; 0x2c],
+    #[cfg(windows)] _pad3: [u8; 0x31],
+    max_fly_speed: f32,
+    #[cfg(unix)] _pad4: [u8; 0x9c],
+    #[cfg(windows)] _pad4: [u8; 0x98],
     acceleration: FVector,
 }
 
@@ -164,4 +183,7 @@ fn save(this: usize) {
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
     log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const _ as usize);
+    log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &my_character.movement().acceleration as *const _ as usize);
+    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &my_character.movement().max_fly_speed as *const _ as usize);
 }

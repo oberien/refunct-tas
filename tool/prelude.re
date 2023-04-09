@@ -36,3 +36,4 @@ fn step_frame(tick_mode: TickMode) {
         on_tick();
     }
 }
+

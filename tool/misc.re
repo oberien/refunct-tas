@@ -117,6 +117,26 @@ fn create_misc_menu() -> Ui {
                 leave_ui();
             }
         }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Movement" },
+            onclick: fn(label: Text) {
+                add_component(MOVEMENT_COMPONENT);
+                enter_ui(create_movement_menu());
+            }
+        }),
+        UiElement::Chooser(Chooser {
+            label: Text { text: "Movement Mode" },
+            options: List::of(
+                Text { text: "None" },
+                Text { text: "Walking" },
+                Text { text: "Navwalking" },
+                Text { text: "Falling" },
+                Text { text: "Swimming" },
+                Text { text: "Flying" },
+            ),
+            selected: Tas::get_movement_mode(),
+            onchange: fn(index: int) { Tas::set_movement_mode(index); },
+        }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },
             input: "",
