@@ -92,14 +92,14 @@ impl AMyCharacter {
         unsafe { (*ptr).steamid }
     }
 
-    pub fn movement_mode(&mut self) -> u8 {
-        self.movement_mut().movement_mode
+    pub fn movement_mode(&self) -> u8 {
+        self.movement().movement_mode
     }
     pub fn set_movement_mode(&mut self, value: u8) {
         self.movement_mut().movement_mode = value;
     }
-    pub fn max_fly_speed(&mut self) -> f32 {
-        self.movement_mut().max_fly_speed
+    pub fn max_fly_speed(&self) -> f32 {
+        self.movement().max_fly_speed
     }
     pub fn set_max_fly_speed(&mut self, value: f32) {
         self.movement_mut().max_fly_speed = value;
