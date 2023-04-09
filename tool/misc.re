@@ -135,11 +135,7 @@ fn create_misc_menu() -> Ui {
                 Text { text: "Flying" },
             ),
             selected: Tas::get_movement_mode(),
-            onchange: fn(index: int) { 
-                Tas::set_movement_mode(index);
-                print(f"Movement Mode [mms]: {index}");
-                print(f"Movement Mode [mms]: {Tas::get_movement_mode()}");
-            },
+            onchange: fn(index: int) { Tas::set_movement_mode(index); },
         }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },

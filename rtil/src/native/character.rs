@@ -183,7 +183,7 @@ fn save(this: usize) {
     log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
     log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
     log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
-    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const u8 as usize);
+    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const _ as usize);
     log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &my_character.movement().acceleration as *const _ as usize);
     log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &my_character.movement().max_fly_speed as *const _ as usize);
 }

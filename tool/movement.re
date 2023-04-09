@@ -42,7 +42,10 @@ fn create_movement_menu() -> Ui {
             input: f"{MOVEMENT_STATE.fly_down_up_velocity}",
             onclick: fn(input: string) {
                 match input.parse_float() {
-                    Result::Ok(val) => { MOVEMENT_STATE.fly_down_up_velocity = val; },
+                    Result::Ok(val) => {
+                        MOVEMENT_STATE.fly_down_up_velocity = val;
+                        FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity"
+                    },
                     Result::Err(e) => { FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity [error: invalid input]"; },
                 }
             },
@@ -53,7 +56,10 @@ fn create_movement_menu() -> Ui {
             input: f"{Tas::get_max_fly_speed()}",
             onclick: fn(input: string) {
                 match input.parse_float() {
-                    Result::Ok(val) => { Tas::set_max_fly_speed(val); },
+                    Result::Ok(val) => {
+                        Tas::set_max_fly_speed(val);
+                        FLYING_FORWARD_BACKWARD_VELOCITY_LABEL.text = "Forward/Backward Flying Velocity";
+                    },
                     Result::Err(e) => { FLYING_FORWARD_BACKWARD_VELOCITY_LABEL.text = "Forward/Backward Flying Velocity [error: invalid input]"; },
                 }
             },
@@ -107,9 +113,9 @@ static MOVEMENT_COMPONENT = Component {
     },
     on_key_up: fn(key_code: KeyCode) {
         let key = key_code.to_small();
-        if key == KEY_LEFT_SHIFT.to_small() {
+        if key == KEY_LEFT_SHIFT.to_small() && MOVEMENT_STATE.fly_state == FlyState::Down {
             MOVEMENT_STATE.fly_state = FlyState::None;
-        } else if key == KEY_SPACE.to_small() {
+        } else if key == KEY_SPACE.to_small() && MOVEMENT_STATE.fly_state == FlyState::Up {
             MOVEMENT_STATE.fly_state = FlyState::None;
         } 
     },
