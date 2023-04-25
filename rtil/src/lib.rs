@@ -1,5 +1,4 @@
 #![feature(naked_functions)]
-#![feature(asm_sym)]
 #![feature(abi_thiscall)]
 
 #[cfg(all(target_os = "linux", not(target_pointer_width = "64")))]

@@ -26,8 +26,10 @@ struct Attrs {
     hook_function_name: Ident,
     /// name of function unhooking the original function
     unhook_function_name: Ident,
-    /// name of the internal interceptor called by the hook, which calls the function_to_call
+    /// name of the internal interceptor called by the hook, which calls the trampoline
     interceptor_name: Ident,
+    /// name of the trampoline function called by the hook, calling function_to_call
+    trampoline_name: Ident,
 }
 
 impl Parse for Attrs {
@@ -50,6 +52,7 @@ impl Parse for Attrs {
             hook_function_name: ident(format!("hook_{}_{}", class_lower, function_lower)),
             unhook_function_name: ident(format!("unhook_{}_{}", class_lower, function_lower)),
             interceptor_name: ident(format!("intercept_{}_{}", class_lower, function_lower)),
+            trampoline_name: ident(format!("trampoline_{}_{}", class_lower, function_lower)),
         })
     }
 }
@@ -60,11 +63,13 @@ pub fn hook_once(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let function_to_call = &input.sig.ident;
     let item = generate_item(&input);
+    let trampoline = generate_trampoline(&attrs, function_to_call);
     let hook_unhook = generate_hook_unhook(&attrs, true);
-    let hook_once = generate_hook_once(&attrs, function_to_call);
+    let hook_once = generate_hook_once(&attrs);
 
     (quote! {
         #item
+        #trampoline
         #hook_once
         #hook_unhook
     }).into()
@@ -76,11 +81,13 @@ pub fn hook_before(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let function_to_call = &input.sig.ident;
     let item = generate_item(&input);
+    let trampoline = generate_trampoline(&attrs, function_to_call);
     let hook_unhook = generate_hook_unhook(&attrs, false);
-    let hook_before = generate_hook_before(&attrs, function_to_call);
+    let hook_before = generate_hook_before(&attrs);
 
     (quote! {
         #item
+        #trampoline
         #hook_before
         #hook_unhook
     }).into()
@@ -122,44 +129,66 @@ fn generate_item(input: &ItemFn) -> TokenStream2 {
     }
 }
 
-fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
+fn generate_trampoline(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
+    let trampoline_name = &attrs.trampoline_name;
+
+    quote! {
+        #[cfg(unix)]
+        unsafe extern "C" fn #trampoline_name(args: &mut crate::native::Args) {
+            #function_to_call(args)
+        }
+
+        #[cfg(windows)]
+        unsafe extern "thiscall" fn #trampoline_name(args_addr: *mut crate::native::Args) {
+            #function_to_call(args)
+        }
+    }
+}
+
+fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
     let original_function_address = &attrs.original_function_address;
     let unhook_function_name = &attrs.unhook_function_name;
     let interceptor_name = &attrs.interceptor_name;
+    let trampoline_name = &attrs.trampoline_name;
 
     quote! {
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
             std::arch::asm!(
-                // push arguments
+                // save registers and arguments
                 #PUSHALL_LINUX,
+                // setup `Args` argument
+                "mov rdi, rsp",
                 #ALIGNSTACK_PRE_LINUX,
-                // call function_to_call
-                concat!("call {", stringify!(#function_to_call), "}"),
+                // call trampoline
+                concat!("call {", stringify!(#trampoline_name), "}"),
                 // restore original function
                 concat!("call {", stringify!(#unhook_function_name), "}"),
                 #ALIGNSTACK_POST_LINUX,
-                // restore register
+                // restore registers
                 #POPALL_LINUX,
                 // jump to original function
                 concat!("mov rax, [rip+{", stringify!(#original_function_address), "}]"),
                 "jmp rax",
 
-                #function_to_call = sym #function_to_call,
+                #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 options(noreturn),
             )
         }
 
-        // only allows inspection of first argument (this*)
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             std::arch::asm!(
+                // save registers (ecx = first argument = this*)
                 #PUSHALL_WINDOWS,
-                concat!("call {", stringify!(#function_to_call), "}"),
+                // setup `Args` argument
+                "mov ecx, esp",
+                // call trampoline
+                concat!("call {", stringify!(#trampoline_name), "}"),
                 // unhook original function
                 concat!("call {", stringify!(#unhook_function_name), "}"),
                 // restore registers
@@ -168,7 +197,7 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
                 concat!("mov eax, [{", stringify!(#original_function_address), "}]"),
                 "jmp eax",
 
-                #function_to_call = sym #function_to_call,
+                #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 options(noreturn),
@@ -177,24 +206,29 @@ fn generate_hook_once(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
     }
 }
 
-fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 {
+fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
     let original_function_address = &attrs.original_function_address;
     let hook_function_name = &attrs.hook_function_name;
     let unhook_function_name = &attrs.unhook_function_name;
     let interceptor_name = &attrs.interceptor_name;
+    let trampoline_name = &attrs.trampoline_name;
 
     quote! {
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
             std::arch::asm!(
+                // save registers and arguments
                 #PUSHALL_LINUX,
+                // setup `Args` argument
+                "mov rdi, rsp",
                 #ALIGNSTACK_PRE_LINUX,
                 // call function_to_call
-                concat!("call {", stringify!(#function_to_call), "}"),
+                concat!("call {", stringify!(#trampoline_name), "}"),
                 // restore original function
                 concat!("call {", stringify!(#unhook_function_name), "}"),
                 #ALIGNSTACK_POST_LINUX,
+                // restore registers
                 #POPALL_LINUX,
 
                 // call original function
@@ -211,12 +245,12 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
                 concat!("call {", stringify!(#hook_function_name), "}"),
                 #ALIGNSTACK_POST_LINUX,
 
-                // restore rax
+                // restore rax = return value of the original function
                 "pop rax",
                 // return to original caller
                 "ret",
 
-                #function_to_call = sym #function_to_call,
+                #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
@@ -255,9 +289,27 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             std::arch::asm!(
-                // We need to duplicate the arguments and delete the return address for ours to
-                // be located correctly when using `call`.
-                // Stack Layout:
+                // save registers (ecx = first argument = this*)
+                #PUSHALL_WINDOWS,
+                // setup `Args` argument
+                "mov ecx, esp",
+                // call trampoline
+                concat!("call {", stringify!(#trampoline_name), "}"),
+                // unhook original function
+                concat!("call {", stringify!(#unhook_function_name), "}"),
+                // restore registers
+                #POPALL_WINDOWS,
+
+                // We need to call the original function, store its return value, and hook it again.
+                // However, thiscall-ABI is callee-cleanup, so the callee pops the arguments below
+                // the return address from the stack.
+                // As we don't know how many arguments there are, we can't prevent the cleanup.
+                // What we can do, is to copy the stack including 0x60 bytes of arguments past
+                // the return address (i.e don't support functions taking more / larger arguments),
+                // call the function on this copied stack, find out how much cleanup is needed,
+                // and do the cleanup ourselves after hooking the function again.
+                //
+                // After duplication of the stack, we'll have the following stack layout:
                 // esp    xmm7    10         \
                 // +10    xmm6    10          |
                 // +20    xmm5    10          |
@@ -276,6 +328,9 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
                 // +9c    ret      4         /
                 // +a0    args
                 //        caller stack frame
+                //
+                // Before calling, we need to delete the original return address, as our "call"
+                // instruction will put our return address there instead.
                 // We assume that there aren't more than 0x100-0xa0 = 0x60 bytes of arguments.
 
                 // save all registers
@@ -286,55 +341,31 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
                 "lea esi, [esp + 0x100]",
                 "mov edi, esp",
                 "rep movsb",
+                // from now on we only work on the copied stack
                 // restore copied registers
                 #POPALL_WINDOWS,
                 // remove old return address, which will be replaced by our `call`
                 "pop eax",
                 // save current stack pointer in non-volatile register to find out
-                // how many arguments are cleared, which we use to adjust the stack back
-                "mov ebx, esp",
-
-
-                // call function_to_call
-                concat!("call {", stringify!(#function_to_call), "}"),
-                // get consumed stack (negative value)
-                "sub ebx, esp",
-
-                // restore original function
-                concat!("call {", stringify!(#unhook_function_name), "}"),
-                // restore stack
-                "add esp, 0x60",
-                "add esp, ebx",
-
-
-                // copy stack again and do the same with the original function
-                "sub esp, 0x100",
-                "mov ecx, 0x100",
-                "lea esi, [esp + 0x100]",
-                "mov edi, esp",
-                "rep movsb",
-                // restore registers
-                #POPALL_WINDOWS,
-                // pop return address
-                "pop eax",
-                // save stack pointer
+                // how many arguments are cleared, which we use to adjust the stack later
                 "mov ebx, esp",
                 // call original function
                 concat!("mov eax, [{", stringify!(#original_function_address), "}]"),
                 "call eax",
-
                 // get consumed stack (negative value)
                 "sub ebx, esp",
                 // restore stack
                 "add esp, 0x60",
                 "add esp, ebx",
+                // we have now removed the copied stack and are back to working on the original stack
 
                 // save eax (return value of original function) to pushed registers
                 "mov [esp + 0x98], eax",
                 // save consumed stack to ecx in the pushed registers, so we can consume as much
                 // after popping the registers before returning
                 "mov [esp + 0x90], ebx",
-                // move original return address to correct position after arg-consumption
+                // overwrite the last argument with the original return address to make
+                // arg-consumption easier
                 "mov eax, [esp + 0x9c]",
                 "lea edx, [esp + 0x9c]",
                 "sub edx, ebx",
@@ -352,7 +383,7 @@ fn generate_hook_before(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2
                 // return to original caller
                 "ret",
 
-                #function_to_call = sym #function_to_call,
+                #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
@@ -367,8 +398,19 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
     let hook_function_name = &attrs.hook_function_name;
     let unhook_function_name = &attrs.unhook_function_name;
     let interceptor_name = &attrs.interceptor_name;
+    let trampoline_name = &attrs.trampoline_name;
 
     quote! {
+        // the trampolines here are just there to ensure the rust function has no arguments
+        #[cfg(unix)]
+        unsafe extern "C" fn #trampoline_name() {
+            #function_to_call()
+        }
+        #[cfg(windows)]
+        unsafe extern "thiscall" fn #trampoline_name() {
+            #function_to_call()
+        }
+
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
@@ -392,8 +434,8 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 #ALIGNSTACK_PRE_LINUX,
                 // hook method again
                 concat!("call {", stringify!(#hook_function_name), "}"),
-                // call function_to_call
-                concat!("call {", stringify!(#function_to_call), "}"),
+                // call trampoline
+                concat!("call {", stringify!(#trampoline_name), "}"),
                 #ALIGNSTACK_POST_LINUX,
 
                 // restore rax
@@ -405,7 +447,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
-                #function_to_call = sym #function_to_call,
+                #trampoline_name = sym #trampoline_name,
                 options(noreturn),
             )
         }
@@ -532,12 +574,14 @@ fn generate_hook_unhook(attrs: &Attrs, log: bool) -> TokenStream2 {
 
 const PUSHALL_LINUX: &str = r#"
     push rax
-    push rbx
+    push r11
+    push r10
+    push r9
+    push r8
     push rcx
     push rdx
     push rsi
     push rdi
-    push rbp
     sub rsp, 0x80
     movdqu [rsp+0x70], xmm0
     movdqu [rsp+0x60], xmm1
@@ -558,12 +602,14 @@ const POPALL_LINUX: &str = r#"
     movdqu xmm1, [rsp+0x60]
     movdqu xmm0, [rsp+0x70]
     add rsp, 0x80
-    pop rbp
     pop rdi
     pop rsi
     pop rdx
     pop rcx
-    pop rbx
+    pop r8
+    pop r9
+    pop r10
+    pop r11
     pop rax
 "#;
 const ALIGNSTACK_PRE_LINUX: &str = r#"

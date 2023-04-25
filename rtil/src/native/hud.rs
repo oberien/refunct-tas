@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT, AHUD_GETTEXTSIZE};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args};
 use crate::threads::ue;
 use crate::statics::Static;
 
@@ -60,7 +60,8 @@ impl AMyHud {
 }
 
 #[rtil_derive::hook_before(AMyHUD::DrawHUD)]
-fn draw_hud(this: usize) {
+fn draw_hud(args: &mut Args) {
+    let this = unsafe { args.nth_integer_arg(0) };
     if AMYHUD.is_none() {
         AMYHUD.set(this);
         log!("Got AMyHUD: {:#x}", this);

@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use once_cell::sync::Lazy;
 use crate::native::ue::{FVector, FRotator, FString};
 use crate::native::uworld::UClass;
-use crate::native::AMYCHARACTER_STATICCLASS;
+use crate::native::{AMYCHARACTER_STATICCLASS, Args};
 use crate::statics::Static;
 
 static CHARACTER: Lazy<Static<usize>> = Lazy::new(Static::new);
@@ -176,7 +176,8 @@ struct FUniqueNetIdSteam {
 }
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
-fn save(this: usize) {
+fn save(args: &mut Args) {
+    let this = unsafe { args.nth_integer_arg(0) };
     CHARACTER.set(this);
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:#x}", this);
