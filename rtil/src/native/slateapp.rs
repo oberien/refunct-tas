@@ -55,7 +55,7 @@ fn save(args: &mut Args) {
 fn key_down(args: &mut Args) {
     let key_code = unsafe { args.nth_integer_arg(1) } as i32;
     let character_code = unsafe { args.nth_integer_arg(2) } as u32;
-    let is_repeat = unsafe { args.nth_integer_arg(3) } != 0;
+    let is_repeat = (unsafe { args.nth_integer_arg(3) } & 0xff) != 0;
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
         crate::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
@@ -69,7 +69,7 @@ fn key_down(args: &mut Args) {
 fn key_up(args: &mut Args) {
     let key_code = unsafe { args.nth_integer_arg(1) } as i32;
     let character_code = unsafe { args.nth_integer_arg(2) } as u32;
-    let is_repeat = unsafe { args.nth_integer_arg(3) } != 0;
+    let is_repeat = (unsafe { args.nth_integer_arg(3) } & 0xff) != 0;
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
         crate::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
