@@ -139,7 +139,7 @@ fn generate_trampoline(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         }
 
         #[cfg(windows)]
-        unsafe extern "thiscall" fn #trampoline_name(args_addr: *mut crate::native::Args) {
+        unsafe extern "thiscall" fn #trampoline_name(args: &mut crate::native::Args) {
             #function_to_call(args)
         }
     }
