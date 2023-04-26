@@ -8,7 +8,7 @@ use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo};
-use crate::native::{AMyCharacter, UWorld};
+use crate::native::{AMyCharacter, REBO_DOESNT_START_SEMAPHORE, UWorld};
 
 mod rebo_init;
 
@@ -32,6 +32,10 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
            rebo_ue_tx: Sender<ReboToUe>, ue_rebo_rx: Receiver<UeToRebo>) {
     log!("starting rebo thread");
     thread::spawn(move || {
+        log!("rebo thread waiting until all this* have been acquired");
+        REBO_DOESNT_START_SEMAPHORE.acquire();
+        log!("rebo thread continuing as all this* have been acquired");
+
         *STATE.lock().unwrap() = Some(State {
             delta: None,
             stream_rebo_rx,

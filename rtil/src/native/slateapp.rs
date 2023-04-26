@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::os::raw::c_void;
-use crate::native::{Args, FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE};
+use crate::native::{Args, FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE, REBO_DOESNT_START_SEMAPHORE};
 
 static SLATEAPP: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 
@@ -49,6 +49,7 @@ fn save(args: &mut Args) {
         SLATEAPP.store(this_fixed_addr as *mut _, Ordering::SeqCst);
     }
     log!("Got FSlateApplication: {:#x}", this as usize);
+    REBO_DOESNT_START_SEMAPHORE.release();
 }
 
 #[rtil_derive::hook_before(FSlateApplication::OnKeyDown)]

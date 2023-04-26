@@ -16,6 +16,7 @@ mod error;
 #[macro_use] mod statics;
 mod native;
 mod threads;
+mod semaphore;
 
 #[cfg(unix)] pub use crate::native::INITIALIZE_CTOR;
 #[cfg(windows)] pub use native::DllMain;

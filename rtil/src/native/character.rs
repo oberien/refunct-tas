@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use once_cell::sync::Lazy;
 use crate::native::ue::{FVector, FRotator, FString};
 use crate::native::uworld::UClass;
-use crate::native::{AMYCHARACTER_STATICCLASS, Args};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE};
 use crate::statics::Static;
 
 static CHARACTER: Lazy<Static<usize>> = Lazy::new(Static::new);
@@ -187,4 +187,5 @@ fn save(args: &mut Args) {
     log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const _ as usize);
     log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &my_character.movement().acceleration as *const _ as usize);
     log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &my_character.movement().max_fly_speed as *const _ as usize);
+    REBO_DOESNT_START_SEMAPHORE.release();
 }
