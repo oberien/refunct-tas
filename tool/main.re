@@ -100,4 +100,5 @@ loop {
         }
     }
     step_frame(tick_mode);
+    Tas::show_hud();
 }
