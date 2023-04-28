@@ -1,26 +1,37 @@
 use std::sync::atomic::{AtomicPtr, Ordering};
-use std::os::raw::c_void;
 use crate::native::{Args, FSLATEAPPLICATION_ONKEYDOWN, FSLATEAPPLICATION_ONKEYUP, FSLATEAPPLICATION_ONRAWMOUSEMOVE, REBO_DOESNT_START_SEMAPHORE};
 
-static SLATEAPP: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+static SLATEAPP: AtomicPtr<FSlateApplication> = AtomicPtr::new(std::ptr::null_mut());
 
-pub struct FSlateApplication;
+pub enum FSlateApplication {}
+
+macro_rules! get_fslateapplication {
+    ($fnname:literal) => {{
+        let slateapp = SLATEAPP.load(Ordering::SeqCst);
+        if slateapp.is_null() {
+            let msg = concat!("called FSlateApplication::", $fnname, " while FSlateApplication-pointer wasn't initialized yet");
+            log!("{}", msg);
+            panic!("{}", msg);
+        }
+        slateapp
+    }}
+}
 
 impl FSlateApplication {
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: u32) {
-        let fun: extern_fn!(fn(this: *mut c_void, key_code: i32, character_code: u32, is_repeat: u32)) =
+        let fun: extern_fn!(fn(this: *mut FSlateApplication, key_code: i32, character_code: u32, is_repeat: u32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::SeqCst)) };
-        fun(SLATEAPP.load(Ordering::SeqCst), key_code, character_code, is_repeat)
+        fun(get_fslateapplication!("on_key_down"), key_code, character_code, is_repeat)
     }
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: u32) {
-        let fun: extern_fn!(fn(this: *mut c_void, key_code: i32, character_code: u32, is_repeat: u32)) =
+        let fun: extern_fn!(fn(this: *mut FSlateApplication, key_code: i32, character_code: u32, is_repeat: u32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONKEYUP.load(Ordering::SeqCst)) };
-        fun(SLATEAPP.load(Ordering::SeqCst), key_code, character_code, is_repeat)
+        fun(get_fslateapplication!("on_key_up"), key_code, character_code, is_repeat)
     }
     fn on_raw_mouse_move(x: i32, y: i32) {
-        let fun: extern_fn!(fn(this: *mut c_void, x: i32, y: i32)) =
+        let fun: extern_fn!(fn(this: *mut FSlateApplication, x: i32, y: i32)) =
             unsafe { ::std::mem::transmute(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::SeqCst)) };
-        fun(SLATEAPP.load(Ordering::SeqCst), x, y)
+        fun(get_fslateapplication!("on_raw_mouse_move"), x, y)
     }
 
     pub fn press_key(key: i32, code: u32, repeat: bool) {
@@ -38,7 +49,7 @@ impl FSlateApplication {
 
 #[rtil_derive::hook_once(FSlateApplication::Tick)]
 fn save(args: &mut Args) {
-    let this: *mut c_void = unsafe { args.nth_integer_arg(0) } as *mut c_void;
+    let this: *mut FSlateApplication = unsafe { args.nth_integer_arg(0) } as *mut FSlateApplication;
     #[cfg(unix)] { SLATEAPP.store(this, Ordering::SeqCst); }
     #[cfg(windows)] {
         let this_addr = this as usize;

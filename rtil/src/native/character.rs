@@ -1,15 +1,18 @@
 use std::ffi::c_void;
-use std::sync::atomic::Ordering;
-use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString};
 use crate::native::uworld::UClass;
 use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE};
-use crate::statics::Static;
 
-static CHARACTER: Lazy<Static<usize>> = Lazy::new(Static::new);
+static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct AMyCharacter(usize);
+pub struct AMyCharacter(*mut AMyCharacterUE);
+
+// WARNING: somewhat unsound as some functions on AMyCharacter can only be called from
+// UE's update-loop thread. However, currently there's no way to ensure that it's constructed
+// from that thread, so there's also no reason not to allow it to be sent between threads
+unsafe impl Send for AMyCharacter {}
 
 impl AMyCharacter {
     pub(in crate::native) fn static_class() -> *const UClass {
@@ -17,97 +20,91 @@ impl AMyCharacter {
             = unsafe { ::std::mem::transmute(AMYCHARACTER_STATICCLASS.load(Ordering::SeqCst)) };
         fun()
     }
-    fn as_ue(&self) -> *mut AMyCharacterUE {
-        self.0 as *mut AMyCharacterUE
+    fn root_component(&self) -> *mut USceneComponent {
+        unsafe { (*self.0).root_component }
     }
-    fn root_component(&self) -> &USceneComponent {
-        unsafe { &*(*self.as_ue()).root_component }
+    fn controller(&self) -> *mut APlayerController {
+        unsafe { (*self.0).controller }
     }
-    fn root_component_mut(&mut self) -> &mut USceneComponent {
-        unsafe { &mut *(*self.as_ue()).root_component }
+    fn movement(&self) -> *mut UCharacterMovementComponent {
+        unsafe { (*self.0).movement }
     }
-    fn controller(&self) -> &APlayerController {
-        unsafe { &*(*self.as_ue()).controller }
-    }
-    fn controller_mut(&mut self) -> &mut APlayerController {
-        unsafe { &mut *(*self.as_ue()).controller }
-    }
-    fn movement(&self) -> &UCharacterMovementComponent {
-        unsafe { &*(*self.as_ue()).movement }
-    }
-    fn movement_mut(&mut self) -> &mut UCharacterMovementComponent {
-        unsafe { &mut *(*self.as_ue()).movement }
-    }
-    fn player_state(&self) -> &APlayerState {
-        unsafe { &*self.controller().player_state }
+    fn player_state(&self) -> *mut APlayerState {
+        unsafe { (*self.controller()).player_state }
     }
 
-    pub unsafe fn new(ptr: *mut AMyCharacter) -> AMyCharacter {
-        AMyCharacter(ptr as usize)
+    pub unsafe fn new(ptr: *mut AMyCharacterUE) -> AMyCharacter {
+        AMyCharacter(ptr)
     }
 
-    pub fn as_ptr(&self) -> *mut AMyCharacter {
-        self.0 as *mut AMyCharacter
+    pub fn as_ptr(&self) -> *mut AMyCharacterUE {
+        self.0
     }
 
     pub fn get_player() -> AMyCharacter {
-        AMyCharacter(*CHARACTER.get())
+        let current_player = CURRENT_PLAYER.load(Ordering::SeqCst);
+        if current_player.is_null() {
+            let msg = concat!("called AMyCharacter::get_player while current player's AMyCharacter-pointer wasn't initialized yet");
+            log!("{}", msg);
+            panic!("{}", msg);
+        }
+        AMyCharacter(current_player)
     }
 
     pub fn location(&self) -> (f32, f32, f32) {
-        let FVector { x, y, z } = self.root_component().location;
+        let FVector { x, y, z } = unsafe { (*self.root_component()).location };
         (x, y, z)
     }
     pub fn set_location(&mut self, x: f32, y: f32, z: f32) {
-        self.root_component_mut().location = FVector { x, y, z };
+        unsafe { (*self.root_component()).location = FVector { x, y, z } };
     }
     pub fn velocity(&self) -> (f32, f32, f32) {
-        let FVector { x, y, z } = self.movement().velocity;
+        let FVector { x, y, z } = unsafe { (*self.movement()).velocity };
         (x, y, z)
     }
     pub fn set_velocity(&mut self, x: f32, y: f32, z: f32) {
-        self.movement_mut().velocity = FVector { x, y, z };
+        unsafe { (*self.movement()).velocity = FVector { x, y, z } };
     }
     pub fn acceleration(&self) -> (f32, f32, f32) {
-        let FVector { x, y, z } = self.movement().acceleration;
+        let FVector { x, y, z } = unsafe { (*self.movement()).acceleration };
         (x, y, z)
     }
     pub fn set_acceleration(&mut self, x: f32, y: f32, z: f32) {
-        self.movement_mut().acceleration = FVector { x, y, z };
+        unsafe { (*self.movement()).acceleration = FVector { x, y, z } };
     }
     pub fn rotation(&self) -> (f32, f32, f32) {
-        let FRotator { pitch, yaw, roll } = self.controller().rotation;
+        let FRotator { pitch, yaw, roll } = unsafe { (*self.controller()).rotation };
         (pitch, yaw, roll)
     }
     pub fn set_rotation(&mut self, pitch: f32, yaw: f32, roll: f32) {
-        self.controller_mut().rotation = FRotator { pitch, yaw, roll };
+        unsafe { (*self.controller()).rotation = FRotator { pitch, yaw, roll } };
     }
 
     pub fn get_player_name(&self) -> String {
-        self.player_state().player_name.to_string_lossy()
+        unsafe { (*self.player_state()).player_name.to_string_lossy() }
     }
     pub fn get_steamid(&self) -> u64 {
-        let ptr = self.player_state().unique_id.unique_id;
+        let ptr = unsafe { (*self.player_state()).unique_id.unique_id };
         assert!(!ptr.is_null());
         unsafe { (*ptr).steamid }
     }
 
     pub fn movement_mode(&self) -> u8 {
-        self.movement().movement_mode
+        unsafe { (*self.movement()).movement_mode }
     }
     pub fn set_movement_mode(&mut self, value: u8) {
-        self.movement_mut().movement_mode = value;
+        unsafe { (*self.movement()).movement_mode = value };
     }
     pub fn max_fly_speed(&self) -> f32 {
-        self.movement().max_fly_speed
+        unsafe { (*self.movement()).max_fly_speed }
     }
     pub fn set_max_fly_speed(&mut self, value: f32) {
-        self.movement_mut().max_fly_speed = value;
+        unsafe { (*self.movement()).max_fly_speed = value };
     }
 }
 
 #[repr(C)]
-struct AMyCharacterUE {
+pub struct AMyCharacterUE {
     #[cfg(unix)] _pad: [u8; 0x168],
     #[cfg(windows)] _pad: [u8; 0x11c],
     root_component: *mut USceneComponent,
@@ -177,15 +174,15 @@ struct FUniqueNetIdSteam {
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
 fn save(args: &mut Args) {
-    let this = unsafe { args.nth_integer_arg(0) };
-    CHARACTER.set(this);
+    let this = unsafe { args.nth_integer_arg(0) } as *mut AMyCharacterUE;
+    CURRENT_PLAYER.store(this, Ordering::SeqCst);
     let my_character = AMyCharacter::get_player();
-    log!("Got AMyCharacter: {:#x}", this);
-    log!("Got AMyCharacter::RootComponent: {:#x}", my_character.root_component() as *const _ as usize);
-    log!("Got AMyCharacter::Controller: {:#x}", my_character.controller() as *const _ as usize);
-    log!("Got AMyCharacter::Movement: {:#x}", my_character.movement() as *const _ as usize);
-    log!("Got AMyCharacter::Movement::MovementMode: {:#x}", &my_character.movement().movement_mode as *const _ as usize);
-    log!("Got AMyCharacter::Movement::Acceleration: {:#x}", &my_character.movement().acceleration as *const _ as usize);
-    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:#x}", &my_character.movement().max_fly_speed as *const _ as usize);
+    log!("Got AMyCharacter: {:p}", this);
+    log!("Got AMyCharacter::RootComponent: {:p}", my_character.root_component());
+    log!("Got AMyCharacter::Controller: {:p}", my_character.controller());
+    log!("Got AMyCharacter::Movement: {:p}", my_character.movement());
+    log!("Got AMyCharacter::Movement::MovementMode: {:p}", unsafe { &(*my_character.movement()).movement_mode });
+    log!("Got AMyCharacter::Movement::Acceleration: {:p}", unsafe { &(*my_character.movement()).acceleration });
+    log!("Got AMyCharacter::Movement::MaxFlySpeed : {:p}", unsafe { &(*my_character.movement()).max_fly_speed });
     REBO_DOESNT_START_SEMAPHORE.release();
 }

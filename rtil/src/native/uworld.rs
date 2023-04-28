@@ -6,6 +6,7 @@ use std::sync::atomic::Ordering;
 
 use crate::native::ue::{FName, FVector, FRotator};
 use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
+use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
 
 pub enum AActor {}
@@ -141,7 +142,7 @@ impl UWorld {
             };
             let ptr = Self::spawn_actor(
                 AMyCharacter::static_class(), &location, &rotation, &spawn_parameters,
-            ) as *mut AMyCharacter;
+            ) as *mut AMyCharacterUE;
             assert!(!ptr.is_null(), "UWorld::SpawnActor returned null");
             APawn::spawn_default_controller(ptr as *const APawn);
             AActor::set_actor_enable_collision(ptr as *const AActor, true);
