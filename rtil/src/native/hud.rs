@@ -17,7 +17,8 @@ static AMYHUD: Lazy<Static<usize>> = Lazy::new(Static::new);
 #[repr(C)]
 pub struct AMyHud {
     #[cfg(windows)] _pad: [u8; 0x2b8],
-    pub b_showhud: u8,
+    // bLostFocusPaused, bShowHUD, bShowDebugInfo, bShowHitBoxDebugInfo, bShowOverlays, bEnableDebugTextShadow
+    pub bitfield: u8,
 }
 
 impl AMyHud {
@@ -64,7 +65,7 @@ impl AMyHud {
     }
 
     pub fn show_hud() {
-        unsafe { (*(*AMYHUD.get() as *mut AMyHud)).b_showhud.set_bit(1, true); }
+        unsafe { (*(*AMYHUD.get() as *mut AMyHud)).bitfield.set_bit(1, true); }
     }
 }
 
