@@ -82,6 +82,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(is_linux)
         .add_function(get_clipboard)
         .add_function(set_clipboard)
+        .add_function(show_hud)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -778,4 +779,8 @@ fn set_clipboard(content: String) {
         };
         let _ = ctx.set_contents(content);
     })();
+}
+#[rebo::function("Tas::show_hud")]
+fn show_hud() {
+    AMyHud::show_hud();
 }

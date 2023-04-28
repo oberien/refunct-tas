@@ -1,6 +1,7 @@
 use std::mem;
 use std::ptr;
 use std::sync::atomic::Ordering;
+use bit_field::BitField;
 
 #[cfg(unix)] use libc::c_void;
 use once_cell::sync::Lazy;
@@ -13,7 +14,11 @@ use crate::statics::Static;
 
 static AMYHUD: Lazy<Static<usize>> = Lazy::new(Static::new);
 
-pub struct AMyHud;
+#[repr(C)]
+pub struct AMyHud {
+    #[cfg(windows)] _pad: [u8; 0x2b8],
+    pub b_showhud: u8,
+}
 
 impl AMyHud {
     pub fn draw_line<C: Into<FLinearColor>>(startx: f32, starty: f32, endx: f32, endy: f32, color: C, thickness: f32) {
@@ -56,6 +61,10 @@ impl AMyHud {
             fun(*AMYHUD.get(), &s as *const FString, &mut width, &mut height, ptr::null(), scale);
             (width, height)
         }
+    }
+
+    pub fn show_hud() {
+        unsafe { (*(*AMYHUD.get() as *mut AMyHud)).b_showhud.set_bit(1, true); }
     }
 }
 
