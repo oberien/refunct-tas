@@ -1,5 +1,4 @@
 include "settings.re";
-include "misc.re";
 include "keys.re";
 include "component.re"
 include "prelude.re";
@@ -11,8 +10,10 @@ include "practice.re";
 include "windshieldwipers.re";
 include "tas.re";
 include "timer.re";
+include "minimap.re";
 include "multiplayer.re";
 include "movement.re";
+include "misc.re";
 
 fn create_start_menu() -> Ui {
     let mut start_menu_text = Text { text: "Press 'm' for menu." };
@@ -22,8 +23,8 @@ fn create_start_menu() -> Ui {
         on_draw: Option::Some(fn() {
             let mut text = "Press 'm' for menu.";
             for comp in CURRENT_COMPONENTS {
-                let draw_hud = comp.draw_hud;
-                text = draw_hud(text);
+                let draw_hud_text = comp.draw_hud_text;
+                text = draw_hud_text(text);
             }
             if SETTINGS.show_character_stats {
                 let loc = Tas::get_location();
@@ -99,6 +100,6 @@ loop {
             TickMode::Yield => tick_mode = TickMode::Yield,
         }
     }
-    step_frame(tick_mode);
     Tas::show_hud();
+    step_frame(tick_mode);
 }

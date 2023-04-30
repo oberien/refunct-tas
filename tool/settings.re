@@ -44,98 +44,68 @@ struct Settings {
     ui_scale: float,
     show_character_stats: bool,
     show_game_stats: bool,
+    minimap_enabled: bool,
+    minimap_size: float,
+    minimap_alpha: float,
 }
-enum SettingsManuallySet {
-    UiScale,
-    ShowCharacterStats,
-    ShowGameStats,
-}
-impl SettingsManuallySet {
-    fn to_string(self) -> string {
-        match self {
-            SettingsManuallySet::UiScale => SETTINGS_UI_SCALE,
-            SettingsManuallySet::ShowCharacterStats => SETTINGS_SHOW_CHARACTER_STATS,
-            SettingsManuallySet::ShowGameStats => SETTINGS_SHOW_GAME_STATS,
-        }
-    }
-
-    fn access(self, settings: Settings) -> string {
-        match self {
-            SettingsManuallySet::UiScale => f"{settings.ui_scale:?}",
-            SettingsManuallySet::ShowCharacterStats => f"{settings.show_character_stats}",
-            SettingsManuallySet::ShowGameStats => f"{settings.show_game_stats}",
-        }
-    }
-}
-
-static SETTINGS_UI_SCALE = "ui_scale";
-static SETTINGS_SHOW_CHARACTER_STATS = "show_character_stats";
-static SETTINGS_SHOW_GAME_STATS = "show_game_stats";
-static mut SETTINGS_MANUALLY_SET = Set::new();
 static mut SETTINGS = Settings::load();
 
 impl Settings {
     fn load() -> Settings {
         let settings = Tas::load_settings();
         let map = settings.unwrap_or(Map::new());
-        let ui_scale = match map.get("ui_scale") {
-            Option::Some(scale) => {
-                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
-                let list = scale.split("\\.");
-                let num = list.get(0).unwrap().parse_int().unwrap();
-                let decimal = list.get(1).unwrap().parse_int().unwrap();
-                num.to_float() + decimal.to_float() / 10.
-            },
-            Option::None => 2.,
+        let get_float = fn(key: string, default: float) -> float {
+            match map.get(key) {
+                Option::Some(val) => val.parse_float().unwrap(),
+//                let list = scale.split("\\.");
+//                let num = list.get(0).unwrap().parse_int().unwrap();
+//                let decimal = list.get(1).unwrap().parse_int().unwrap();
+//                num.to_float() + decimal.to_float() / 10.
+                Option::None => default,
+            }
         };
-        let show_character_stats = match map.get(SETTINGS_SHOW_CHARACTER_STATS) {
-            Option::Some(char_stats) => {
-                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowCharacterStats);
-                char_stats == "true"
-            },
-            Option::None => false,
-        };
-        let show_game_stats = match map.get("show_game_stats") {
-            Option::Some(game_stats) => {
-                SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowGameStats);
-                game_stats == "true"
-            },
-            Option::None => false,
+        let get_bool = fn(key: string, default: bool) -> bool {
+            match map.get(key) {
+                Option::Some(val) => val == "true",
+                Option::None => default,
+            }
         };
         Settings {
-            ui_scale: ui_scale,
-            show_character_stats: show_character_stats,
-            show_game_stats: show_game_stats,
+            ui_scale: get_float("ui_scale", 2.),
+            show_character_stats: get_bool("show_character_stats", false),
+            show_game_stats: get_bool("show_game_stats", false),
+            minimap_enabled: get_bool("minimap_enabled", true),
+            minimap_size: get_float("minimap_size", 0.35),
+            minimap_alpha: get_float("minimap_alpha", 0.4),
         }
     }
 
     fn store(self) {
         let mut map = Map::new();
-        for setting in SETTINGS_MANUALLY_SET.values() {
-            map.insert(setting.to_string(), setting.access(SETTINGS));
-        }
+        map.insert("ui_scale", f"{SETTINGS.ui_scale}");
+        map.insert("show_character_stats", f"{SETTINGS.show_character_stats}");
+        map.insert("show_game_stats", f"{SETTINGS.show_game_stats}");
+        map.insert("minimap_enabled", f"{SETTINGS.minimap_enabled}");
+        map.insert("minimap_size", f"{SETTINGS.minimap_size}");
+        map.insert("minimap_alpha", f"{SETTINGS.minimap_alpha}");
         Tas::store_settings(map);
     }
 
     fn increase_ui_scale(mut self) {
-        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
         self.ui_scale += 0.5;
         self.ui_scale = self.ui_scale.min(10.);
         self.store();
     }
     fn decrease_ui_scale(mut self) {
-        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::UiScale);
         self.ui_scale -= 0.5;
         self.ui_scale = self.ui_scale.max(0.5);
         self.store();
     }
     fn toggle_show_character_stats(mut self) {
-        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowCharacterStats);
         self.show_character_stats = !self.show_character_stats;
         self.store();
     }
     fn toggle_show_game_stats(mut self) {
-        SETTINGS_MANUALLY_SET.insert(SettingsManuallySet::ShowGameStats);
         self.show_game_stats = !self.show_game_stats;
         self.store();
     }

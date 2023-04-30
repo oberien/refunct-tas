@@ -75,7 +75,8 @@ fn create_movement_menu() -> Ui {
 static MOVEMENT_COMPONENT = Component {
     id: MOVEMENT_COMPONENT_ID,
     conflicts_with: List::of(MOVEMENT_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string { text },
+    draw_hud_text: fn(text: string) -> string { text },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {

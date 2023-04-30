@@ -16,9 +16,10 @@ fn start_windscreen_wipers(seconds_per_wipe: float) {
 static WINDSCREEN_WIPERS_COMPONENT = Component {
     id: WINDSCREEN_WIPERS_COMPONENT_ID,
     conflicts_with: List::of(WINDSCREEN_WIPERS_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         f"{text}\nWindscreen Wipers ({WINDSCREEN_WIPERS_STATE.seconds_per_wipe}s/wipe)"
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {

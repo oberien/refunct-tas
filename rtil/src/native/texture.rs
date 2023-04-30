@@ -1,12 +1,12 @@
 use std::{mem, ptr};
 use std::ffi::c_void;
 use std::sync::atomic::Ordering;
-use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
-use crate::native::linux::GUOBJECTARRAY;
+use image::RgbaImage;
+use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE, GUOBJECTARRAY};
 use crate::native::ue::TArray;
 
 pub struct UTexture2D(*mut UTexture2DUE);
-pub enum UTexture2DUE {}
+pub(in crate::native) enum UTexture2DUE {}
 
 struct UObjectBase {
     _vtable: *const (),
@@ -18,8 +18,6 @@ struct UObjectBase {
 unsafe impl Send for UTexture2D {}
 
 impl UTexture2D {
-    pub const MINIMAP: &'static [u8] = include_bytes!("../../minimap.png");
-
     fn create_transient(width: i32, height: i32, format: EPixelFormat) -> *mut UTexture2DUE {
         let fun: extern "C" fn(
             in_size_x: i32, in_size_y: i32, in_format: EPixelFormat
@@ -34,7 +32,7 @@ impl UTexture2D {
         fun(self.0)
     }
 
-    fn update_resource(&self) {
+    fn update_resource(&mut self) {
         let fun: extern_fn!(fn(
             this: *mut UTexture2DUE
         )) = unsafe { mem::transmute(UTEXTURE2D_UPDATERESOURCE.load(Ordering::SeqCst)) };
@@ -48,37 +46,31 @@ impl UTexture2D {
         unsafe { (**self.get_running_platform_data()).size_y }
     }
 
-    pub fn as_ptr(&self) -> *mut UTexture2DUE {
+    pub(in crate::native) fn as_ptr(&self) -> *mut UTexture2DUE {
         self.0
     }
 
-    pub fn load_image(encoded: &[u8], alpha: u8) -> UTexture2D {
-        let mut image = image::load_from_memory(encoded).unwrap().to_rgba8();
-        for pixel in image.pixels_mut() {
-            pixel.0[3] = alpha;
-        }
-        let width = image.width().try_into().unwrap();
-        let height = image.height().try_into().unwrap();
-        let texture = UTexture2D::create_transient(width, height, EPixelFormat::R8G8B8A8);
-        let texture = UTexture2D(texture);
-        let platform_data = texture.get_running_platform_data();
+    pub fn set_image(&mut self, image: &RgbaImage) {
+        assert_eq!(self.width() as u32, image.width());
+        assert_eq!(self.height() as u32, image.height());
         unsafe {
+            let platform_data = self.get_running_platform_data();
             let mip_map = (**platform_data).mips[0];
             let bulk_data = ptr::addr_of_mut!((*mip_map).bulk_data) as *mut FByteBulkData;
             let ptr = FByteBulkData::lock(bulk_data, EBulkDataLockFlags::LockReadWrite);
             ptr::copy_nonoverlapping(image.as_raw().as_ptr(), ptr, image.as_raw().len());
             FByteBulkData::unlock(bulk_data);
-            log!("texture: {:p}", texture.0);
-            log!("platform_data*: {:p}", platform_data);
-            log!("platform_data: {:p}", *platform_data);
-            log!("mips: {:p}", &(**platform_data).mips);
-            log!("mips[0]: {:p}", &(**platform_data).mips[0]);
-            log!("mip_map: {:p}", mip_map);
-            log!("bulk_data: {:p}", bulk_data);
-            log!("data: {:p}", ptr);
-            log!("internal_index: {}", (*(texture.0 as *mut UObjectBase)).internal_index);
         }
-        texture.update_resource();
+        self.update_resource();
+    }
+
+    pub fn create(image: &RgbaImage) -> UTexture2D {
+        let width = image.width().try_into().unwrap();
+        let height = image.height().try_into().unwrap();
+        let texture = UTexture2D::create_transient(width, height, EPixelFormat::R8G8B8A8);
+        log!("texture: {:p}", texture);
+        let mut texture = UTexture2D(texture);
+        texture.set_image(image);
         // mark texture as root-object to not be cleaned by the GC
         texture.mark_as_root_object(true);
         texture

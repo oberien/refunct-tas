@@ -96,7 +96,8 @@ fn create_randomizer_menu() -> Ui {
 static RANDOMIZER_COMPONENT = Component {
     id: RANDOMIZER_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
-    draw_hud: randomizer_draw_hud,
+    draw_hud_text: randomizer_draw_hud,
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {},

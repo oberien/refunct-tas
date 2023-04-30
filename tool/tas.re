@@ -74,7 +74,7 @@ impl TasState {
 static TAS_COMPONENT = Component {
     id: TAS_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, TAS_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         let text = f"{text}\nTAS: REQUIRES 60 FPS";
         let text = f"{text}\n     t toggle frame-step mode, f advance one frame";
         let text = f"{text}\n     r to record/stop, g to replay inputs, h to replay position, j to replay positions + inputs";
@@ -101,6 +101,7 @@ static TAS_COMPONENT = Component {
 
         text
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::Yield,
     requested_delta_time: Option::Some(1./60.),
     on_tick: fn() {

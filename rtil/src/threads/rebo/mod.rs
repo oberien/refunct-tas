@@ -3,12 +3,13 @@ use std::collections::{HashSet, HashMap};
 use std::sync::Mutex;
 
 use crossbeam_channel::{Sender, Receiver};
+use image::RgbaImage;
 use once_cell::sync::Lazy;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream, ReboToUe, UeToRebo};
-use crate::native::{AMyCharacter, REBO_DOESNT_START_SEMAPHORE, UWorld};
+use crate::native::{AMyCharacter, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UWorld};
 
 mod rebo_init;
 
@@ -26,6 +27,11 @@ struct State {
     local_time_offset: i32,
     pawns: HashMap<u32, AMyCharacter>,
     pawn_id: u32,
+    minimap_texture: UTexture2D,
+    minimap_image: RgbaImage,
+    player_minimap_image: RgbaImage,
+    // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
+    player_minimap_textures: HashMap<u32, UTexture2D>,
 }
 
 pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>,
@@ -35,6 +41,15 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
         log!("rebo thread waiting until all this* have been acquired");
         REBO_DOESNT_START_SEMAPHORE.acquire();
         log!("rebo thread continuing as all this* have been acquired");
+
+        const MINIMAP: &'static [u8] = include_bytes!("../../../minimap.png");
+        const PLAYER_MINIMAP: &'static [u8] = include_bytes!("../../../player_minimap.png");
+
+        let mut minimap_image = image::load_from_memory(MINIMAP).unwrap().to_rgba8();
+        for pixel in minimap_image.pixels_mut() {
+            pixel.0[3] = 100;
+        }
+        let player_minimap_image = image::load_from_memory(PLAYER_MINIMAP).unwrap().to_rgba8();
 
         *STATE.lock().unwrap() = Some(State {
             delta: None,
@@ -48,6 +63,10 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
             local_time_offset: 0,
             pawns: HashMap::new(),
             pawn_id: 0,
+            minimap_texture: UTexture2D::create(&minimap_image),
+            minimap_image,
+            player_minimap_image,
+            player_minimap_textures: HashMap::new(),
         });
 
         loop {

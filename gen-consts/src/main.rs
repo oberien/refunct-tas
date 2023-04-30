@@ -26,7 +26,8 @@ const NAMES: &[(&str, &str)] = &[
     ("?DrawTextureSimple@AHUD@@QAEXPAVUTexture@@MMM_N@Z", "AHUD_DRAWTEXTURESIMPLE"),
     ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
     ("?GetTextSize@AHUD@@QBEXABVFString@@AAM1PAVUFont@@M@Z", "AHUD_GETTEXTSIZE"),
-    ("GWorld", "GWORLD"),
+    ("=GWorld", "GWORLD"),
+    ("=GUObjectArray", "GUOBJECTARRAY"),
     ("?SpawnActor@UWorld@@QAEPAVAActor@@PAVUClass@@PBUFVector@@PBUFRotator@@ABUFActorSpawnParameters@@@Z", "UWORLD_SPAWNACTOR"),
     ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "UWORLD_DESTROYACTOR"),
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
@@ -100,7 +101,8 @@ fn main() {
         let section = pe.sections.get((offset.section as usize).wrapping_sub(1));
         println!("{:<#10x} {}", section.map(|s| s.virtual_address + offset.offset).unwrap_or(0), name);
         for &(start, _) in NAMES {
-            if name.starts_with(start) {
+            let exact_match = start.starts_with("=");
+            if (exact_match && name == &start[1..]) || (!exact_match && name.starts_with(start)) {
                 match section {
                     Some(section) => consts.push((name.clone(), section.virtual_address + offset.offset)),
                     None => eprintln!("Error getting section")
@@ -116,7 +118,7 @@ fn main() {
     let mut s = String::new();
     for (name, addr) in consts {
         let name = NAMES.iter()
-            .filter(|&&(start, _)| name.starts_with(start))
+            .filter(|&&(start, _)| name.starts_with(start) || (start.starts_with("=") && name.starts_with(&start[1..])))
             .map(|&(_, name)| name)
             .next().unwrap();
         s += &format!("pub const {}: usize = {:#x};\n", name, addr)

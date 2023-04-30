@@ -116,6 +116,10 @@ fn on_mouse_move(x: int, y: int) {
     }
 }
 fn draw_hud() {
+    for component in CURRENT_COMPONENTS {
+        let draw_hud_always = component.draw_hud_always;
+        draw_hud_always();
+    }
     match UI_STACK.last() {
         Option::Some(ui) => ui.draw(),
         Option::None => (),

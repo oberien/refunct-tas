@@ -57,6 +57,7 @@ struct MultiplayerState {
     new_game_state: NewGameState,
 }
 struct Player {
+    id: int,
     name: string,
     loc: Location,
 }
@@ -114,20 +115,11 @@ static mut MULTIPLAYER_COMPONENT = Component {
             },
         }
     },
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         match MULTIPLAYER_STATE.connection {
             Connection::Disconnected => return text,
             Connection::Error(err_msg) => return f"{text}\nMultiplayer error: {err_msg}",
             Connection::Connected => {
-                // draw players
-                for player_id in MULTIPLAYER_STATE.players.keys() {
-                    let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
-                    draw_player(player.name, player.loc);
-                }
-//                for pawn in MULTIPLAYER_STATE.pawns {
-//                    draw_player("pawn", Tas::pawn_location(pawn.id));
-//                }
-
                 let text = match MULTIPLAYER_STATE.current_room {
                     Option::None => f"{text}\nMultiplayer connected to server",
                     Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
@@ -138,6 +130,22 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     NewGameState::YouPressed => text,
                     NewGameState::StartingAt(_ts) => text,
                 }
+            }
+        }
+    },
+    draw_hud_always: fn() {
+        match MULTIPLAYER_STATE.connection {
+            Connection::Disconnected => (),
+            Connection::Error(err_msg) => (),
+            Connection::Connected => {
+                for player_id in MULTIPLAYER_STATE.players.keys() {
+                    let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
+                    draw_player(player.name, player.loc);
+                    minimap_draw_player(player.id, player.loc, Rotation { pitch: 0., yaw: 0., roll: 0. }, COLOR_BLACK);
+                }
+//                for pawn in MULTIPLAYER_STATE.pawns {
+//                    draw_player("pawn", Tas::pawn_location(pawn.id));
+//                }
             }
         }
     },
@@ -398,6 +406,7 @@ fn update_players() {
 fn player_joined_multiplayer_room(id: int, name: string, loc: Location) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
     MULTIPLAYER_STATE.players.insert(id, Player {
+        id: id,
         name: name,
         loc: loc,
     });

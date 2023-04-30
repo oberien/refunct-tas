@@ -37,9 +37,10 @@ static mut NEW_GAME_100_PERCENT_STATE = NewGame100PercentState {
 static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
     id: NEW_GAME_100_PERCENT_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         f"{text}\nNew Game Action: 100%"
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {
@@ -87,9 +88,10 @@ static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     id: NEW_GAME_ALL_BUTTONS_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_ALL_BUTTONS_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         f"{text}\nNew Game Action: All Buttons"
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {},
@@ -111,9 +113,10 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
 static NEW_GAME_NGG_COMPONENT = Component {
     id: NEW_GAME_NGG_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, NEW_GAME_NGG_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         f"{text}\nNew Game Action: NGG"
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {},

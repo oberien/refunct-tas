@@ -4,7 +4,8 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct PlayerId(u32);
 
-static PLAYER_ID_SERIAL: AtomicU32 = AtomicU32::new(0);
+// first 1000 ids are for anyone's internal hackery use
+static PLAYER_ID_SERIAL: AtomicU32 = AtomicU32::new(1000);
 
 impl PlayerId {
     pub fn next() -> PlayerId {

@@ -37,9 +37,10 @@ static mut CURRENT_PRACTICE = Practice {
 static PRACTICE_COMPONENT = Component {
     id: PRACTICE_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         f"{text}\nPracticing: {CURRENT_PRACTICE.name}"
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {},

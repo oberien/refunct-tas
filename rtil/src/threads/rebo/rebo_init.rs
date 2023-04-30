@@ -5,10 +5,12 @@ use std::path::PathBuf;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
+use image::Rgba;
+use imageproc::geometric_transformations::Interpolation;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -57,7 +59,13 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(wait_for_new_game)
         .add_function(draw_line)
         .add_function(draw_text)
+        .add_function(draw_minimap)
+        .add_function(set_minimap_alpha)
+        .add_function(draw_player_minimap)
+        .add_function(player_minimap_size)
+        .add_function(minimap_size)
         .add_function(project)
+        .add_function(get_viewport_size)
         .add_function(get_text_size)
         .add_function(spawn_pawn)
         .add_function(destroy_pawn)
@@ -92,6 +100,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Line)
         .add_external_type(Color)
         .add_external_type(DrawText)
+        .add_external_type(Size)
         .add_external_type(LevelState)
         .add_external_type(Server)
         .add_external_type(Step)
@@ -525,6 +534,71 @@ struct DrawText {
 fn draw_text(text: DrawText) {
     STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::DrawText(text.text, (text.color.red, text.color.green, text.color.blue, text.color.alpha), text.x, text.y, text.scale, text.scale_position)).unwrap();
 }
+#[rebo::function("Tas::draw_minimap")]
+fn draw_minimap(x: f32, y: f32, scale: f32, scale_position: bool) {
+    AMyHud::draw_texture_simple(&STATE.lock().unwrap().as_ref().unwrap().minimap_texture, x, y, scale, scale_position);
+}
+#[rebo::function("Tas::set_minimap_alpha")]
+fn set_minimap_alpha(alpha: f32) {
+    let mut lock = STATE.lock().unwrap();
+    let state = lock.as_mut().unwrap();
+    let mut image = state.minimap_image.clone();
+    for pixel in image.pixels_mut() {
+        pixel.0[3] = (255.0 * alpha).round() as u8;
+    }
+    state.minimap_texture.set_image(&image);
+}
+#[derive(Debug, Clone, Copy, rebo::ExternalType)]
+struct Size {
+    width: i32,
+    height: i32,
+}
+#[rebo::function("Tas::minimap_size")]
+fn minimap_size() -> Size {
+    let lock = STATE.lock().unwrap();
+    let minimap = &lock.as_ref().unwrap().minimap_texture;
+    Size {
+        width: minimap.width(),
+        height: minimap.height(),
+    }
+}
+#[rebo::function("Tas::draw_player_minimap")]
+fn draw_player_minimap(player_id: u32, x: f32, y: f32, rotation_degrees: f32, scale: f32, color: Color) {
+    let mut lock = STATE.lock().unwrap();
+    let state = lock.as_mut().unwrap();
+    let rotation_radians = rotation_degrees.to_radians();
+    let mut rotated = imageproc::geometric_transformations::rotate_about_center(
+        &state.player_minimap_image,
+        rotation_radians,
+        Interpolation::Nearest,
+        Rgba([0, 0, 0, 0]),
+    );
+    for pixel in rotated.pixels_mut() {
+        if *pixel == Rgba([0, 0, 0, 255]) {
+            *pixel = Rgba([
+                (255.0 * color.red).round() as u8,
+                (255.0 * color.green).round() as u8,
+                (255.0 * color.blue).round() as u8,
+                (255.0 * color.alpha).round() as u8,
+            ]);
+        } else if pixel.0[3] != 0 {
+            pixel.0[3] = (255.0 * color.alpha).round() as u8;
+        }
+    }
+    let texture = &mut state.player_minimap_textures.entry(player_id)
+        .or_insert_with(|| UTexture2D::create(&state.player_minimap_image));
+    texture.set_image(&rotated);
+    AMyHud::draw_texture_simple(texture, x, y, scale, false);
+}
+#[rebo::function("Tas::player_minimap_size")]
+fn player_minimap_size() -> Size {
+    let lock = STATE.lock().unwrap();
+    let image = &lock.as_ref().unwrap().player_minimap_image;
+    Size {
+        width: image.width().try_into().unwrap(),
+        height: image.height().try_into().unwrap(),
+    }
+}
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
 struct Vector {
     x: f32,
@@ -545,6 +619,11 @@ struct TextSize {
 fn get_text_size(text: String, scale: f32) -> TextSize {
     let (width, height) = AMyHud::get_text_size(text, scale);
     TextSize { width, height }
+}
+#[rebo::function("Tas::get_viewport_size")]
+fn get_viewport_size() -> Size {
+    let (width, height) = AMyCharacter::get_player().get_viewport_size();
+    Size { width, height }
 }
 #[rebo::function("Tas::spawn_pawn")]
 fn spawn_pawn(loc: Location, rot: Rotation) -> u32 {

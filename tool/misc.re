@@ -65,22 +65,21 @@ fn create_replay_menu(op: ReplayMenuOp) -> Ui{
     Ui::new("Recording Options:", recordings)
 }
 
+static mut TIMER_LABEL = Text { text: if CURRENT_COMPONENTS.contains(TIMER_COMPONENT) { "Disable Timer" } else { "Enable Timer" } };
+static mut TAS_LABEL = Text { text: if CURRENT_COMPONENTS.contains(TAS_COMPONENT) { "Disable TAS Mode" } else { "Enable TAS Mode" } };
+
 fn create_misc_menu() -> Ui {
     Ui::new("Misc:", List::of(
         UiElement::Button(UiButton {
-            label: Text { text: "Enable Timer" },
+            label: TIMER_LABEL,
             onclick: fn(label: Text) {
-                add_component(TIMER_COMPONENT);
-                leave_ui();
-                leave_ui();
-            }
-        }),
-        UiElement::Button(UiButton {
-            label: Text { text: "Disable Timer" },
-            onclick: fn(label: Text) {
-                remove_component(TIMER_COMPONENT);
-                leave_ui();
-                leave_ui();
+                if CURRENT_COMPONENTS.contains(TIMER_COMPONENT) {
+                    remove_component(TIMER_COMPONENT);
+                    TIMER_LABEL.text = "Enable Timer";
+                } else {
+                    add_component(TIMER_COMPONENT);
+                    TIMER_LABEL.text = "Disable Timer";
+                }
             }
         }),
         UiElement::Button(UiButton {
@@ -102,19 +101,15 @@ fn create_misc_menu() -> Ui {
             }
         }),
         UiElement::Button(UiButton {
-            label: Text { text: "TAS Mode" },
+            label: TAS_LABEL,
             onclick: fn(label: Text) {
-                add_component(TAS_COMPONENT);
-                leave_ui();
-                leave_ui();
-            }
-        }),
-        UiElement::Button(UiButton {
-            label: Text { text: "Stop TAS Mode" },
-            onclick: fn(label: Text) {
-                remove_component(TAS_COMPONENT);
-                leave_ui();
-                leave_ui();
+                if CURRENT_COMPONENTS.contains(TAS_COMPONENT) {
+                    remove_component(TAS_COMPONENT);
+                    TAS_LABEL.text = "Enable TAS Mode";
+                } else {
+                    add_component(TAS_COMPONENT);
+                    TAS_LABEL.text = "Disable TAS Mode";
+                }
             }
         }),
         UiElement::Button(UiButton {
@@ -136,6 +131,12 @@ fn create_misc_menu() -> Ui {
             ),
             selected: Tas::get_movement_mode(),
             onchange: fn(index: int) { Tas::set_movement_mode(index); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Minimap" },
+            onclick: fn(label: Text) {
+                enter_ui(create_minimap_menu());
+            }
         }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },

@@ -13,11 +13,13 @@ static WINDSCREEN_WIPERS_COMPONENT_ID = 7;
 static NEW_GAME_NGG_COMPONENT_ID = 8;
 static TIMER_COMPONENT_ID = 9;
 static MOVEMENT_COMPONENT_ID = 10;
+static MINIMAP_COMPONENT_ID = 11;
 
 struct Component {
     id: int,
     conflicts_with: List<int>,
-    draw_hud: fn(string) -> string,
+    draw_hud_text: fn(string) -> string,
+    draw_hud_always: fn(),
     tick_mode: TickMode,
     // largest delta time wins and is used for the next frame
     requested_delta_time: Option<float>,

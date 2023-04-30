@@ -26,12 +26,13 @@ impl TimerState {
 static TIMER_COMPONENT = Component {
     id: TIMER_COMPONENT_ID,
     conflicts_with: List::of(TIMER_COMPONENT_ID),
-    draw_hud: fn(text: string) -> string {
+    draw_hud_text: fn(text: string) -> string {
         let mut foo = TIMER_STATE.cur_time;
         let mut time = f"{foo.to_int()/60}:{foo.to_int() % 60:02}.{float::to_int(foo * 100.) % 100:02}";
         let mut text = f"{time}\n{text}";
         text
     },
+    draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {
