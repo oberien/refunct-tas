@@ -28,6 +28,7 @@ copy tool\settings.re build\practice-windows
 copy tool\misc.re build\practice-windows
 copy tool\timer.re build\practice-windows
 copy tool\movement.re build\practice-windows
+copy tool\minimap.re build\practice-windows
 echo Converting lf to crlf
 call :convert main.re
 call :convert prelude.re
@@ -45,6 +46,7 @@ call :convert settings.re
 call :convert misc.re
 call :convert timer.re
 call :convert movement.re
+call :convert minimap.re
 
 echo Don't forget to create a zip
 exit /b 0
