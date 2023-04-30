@@ -10,16 +10,17 @@ macro_rules! log {
         writeln!(&mut lock, "").unwrap();
         lock.flush().unwrap();
     }};
-    ($fmt:expr) => {{
+    ($fmt:literal) => {{
         use ::std::io::Write;
         let mut lock = crate::statics::LOGFILE.lock().unwrap();
         writeln!(&mut lock, $fmt).unwrap();
         lock.flush().unwrap();
     }};
-    ($fmt:expr, $($vars:tt)*) => {{
+    ($fmt:literal, $($vars:tt)*) => {{
         use ::std::io::Write;
+        let buffer = format!($fmt, $($vars)*);
         let mut lock = crate::statics::LOGFILE.lock().unwrap();
-        writeln!(&mut lock, $fmt, $($vars)*).unwrap();
+        writeln!(&mut lock, "{}", buffer).unwrap();
         lock.flush().unwrap();
     }};
 }

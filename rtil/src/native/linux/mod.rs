@@ -92,15 +92,23 @@ find! {
     AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
     AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
+    AHUD_DRAWTEXTURESIMPLE, "^AHUD::DrawTextureSimple(UTexture*, float, float, float, bool)",
     AHUD_PROJECT, "^AHUD::Project(FVector)",
     AHUD_GETTEXTSIZE, "^AHUD::GetTextSize(FString const&, float&, float&, UFont*, float)",
     GWORLD, "^GWorld",
+    GUOBJECTARRAY, "^GUObjectArray",
     UWORLD_SPAWNACTOR, "^UWorld::SpawnActor(UClass*, FVector const*, FRotator const*, FActorSpawnParameters const&)",
     UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
     AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",
+    APLAYERCONTROLLER_GETVIEWPORTSIZE, "^APlayerController::GetViewportSize(int&, int&)",
     APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
     AACTOR_SETACTORENABLECOLLISION, "^AActor::SetActorEnableCollision(bool)",
     UGAMEPLAYSTATICS_GETACCURATEREALTIME, "^UGameplayStatics::GetAccurateRealTime(UObject const*, int&, float&)",
+    UTEXTURE2D_CREATETRANSIENT, "^UTexture2D::CreateTransient(int, int, EPixelFormat)",
+    UTEXTURE2D_GETRUNNINGPLATFORMDATA, "^UTexture2D::GetRunningPlatformData()",
+    UTEXTURE2D_UPDATERESOURCE, "^UTexture2D::UpdateResource()",
+    FUNTYPEDBULKDATA_LOCK, "^FUntypedBulkData::Lock(unsigned int)",
+    FUNTYPEDBULKDATA_UNLOCK, "^FUntypedBulkData::Unlock()",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

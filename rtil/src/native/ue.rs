@@ -64,8 +64,8 @@ impl<T> Index<usize> for TArray<T> {
     fn index(&self, index: usize) -> &Self::Output {
         unsafe {
             assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
-            assert!(index <= i32::MAX as usize);
-            assert!((index as i32) < self.len);
+            assert!(index <= i32::MAX as usize, "index must be smaller than i32::MAX");
+            assert!((index as i32) < self.len, "tried to access element {} of len {}", index, self.len);
             let index = index as isize;
             assert!(index >= 0);
             &*self.ptr.offset(index)

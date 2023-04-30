@@ -23,15 +23,22 @@ const NAMES: &[(&str, &str)] = &[
     ("?DrawHUD@AMyHUD@@UAEXXZ", "AMYHUD_DRAWHUD"),
     ("?DrawLine@AHUD@@QAEXMMMMUFLinearColor@@M@Z", "AHUD_DRAWLINE"),
     ("?DrawText@AHUD@@QAEXABVFString@@UFLinearColor@@MMPAVUFont@@M_N@Z", "AHUD_DRAWTEXT"),
+    ("?DrawTextureSimple@AHUD@@QAEXPAVUTexture@@MMM_N@Z", "AHUD_DRAWTEXTURESIMPLE"),
     ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
     ("?GetTextSize@AHUD@@QBEXABVFString@@AAM1PAVUFont@@M@Z", "AHUD_GETTEXTSIZE"),
     ("GWorld", "GWORLD"),
     ("?SpawnActor@UWorld@@QAEPAVAActor@@PAVUClass@@PBUFVector@@PBUFRotator@@ABUFActorSpawnParameters@@@Z", "UWORLD_SPAWNACTOR"),
     ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "UWORLD_DESTROYACTOR"),
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),
+    ("?GetViewportSize@APlayerController@@QBEXAAH0@Z", "APLAYERCONTROLLER_GETVIEWPORTSIZE"),
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
     ("?SetActorEnableCollision@AActor@@QAEX_N@Z", "AACTOR_SETACTORENABLECOLLISION"),
     ("?GetAccurateRealTime@UGameplayStatics@@SAXPBVUObject@@AAHAAM@Z", "UGAMEPLAYSTATICS_GETACCURATEREALTIME"),
+    ("?CreateTransient@UTexture2D@@SAPAV1@HHW4EPixelFormat@@@Z", "UTEXTURE2D_CREATETRANSIENT"),
+    ("?GetRunningPlatformData@UTexture2D@@UAEPAPAUFTexturePlatformData@@XZ", "UTEXTURE2D_GETRUNNINGPLATFORMDATA"),
+    ("?UpdateResourceW@UTexture2D@@UAEXXZ", "UTEXTURE2D_UPDATERESOURCE"),
+    ("?Lock@FUntypedBulkData@@QAEPAXI@Z", "FUNTYPEDBULKDATA_LOCK"),
+    ("?Unlock@FUntypedBulkData@@QBEXXZ", "FUNTYPEDBULKDATA_UNLOCK"),
 ];
 
 fn get_linux_level_pointer_path() -> String {
@@ -90,10 +97,11 @@ fn main() {
             Some(name) => name.to_string(),
             None => { eprintln!("Error getting symbol name"); continue }
         };
-        println!("{}", name);
+        let section = pe.sections.get((offset.section as usize).wrapping_sub(1));
+        println!("{:<#10x} {}", section.map(|s| s.virtual_address + offset.offset).unwrap_or(0), name);
         for &(start, _) in NAMES {
             if name.starts_with(start) {
-                match pe.sections.get((offset.section as usize).wrapping_sub(1)) {
+                match section {
                     Some(section) => consts.push((name.clone(), section.virtual_address + offset.offset)),
                     None => eprintln!("Error getting section")
                 }

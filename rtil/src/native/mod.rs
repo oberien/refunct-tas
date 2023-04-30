@@ -31,6 +31,7 @@ mod uworld;
 mod level_state;
 mod gameinstance;
 mod platform_misc;
+mod texture;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -54,6 +55,7 @@ pub use self::hud::AMyHud;
 pub use self::uworld::{APawn, UWorld, UGameplayStatics};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
+pub use self::texture::{UTexture2D, UTexture2DUE};
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.

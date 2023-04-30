@@ -1,0 +1,297 @@
+use std::{mem, ptr};
+use std::ffi::c_void;
+use std::sync::atomic::Ordering;
+use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
+use crate::native::linux::GUOBJECTARRAY;
+use crate::native::ue::TArray;
+
+pub struct UTexture2D(*mut UTexture2DUE);
+pub enum UTexture2DUE {}
+
+struct UObjectBase {
+    _vtable: *const (),
+    _object_flags: i32,
+    internal_index: i32,
+}
+
+// WARNING: somewhat unsound - see AMyCharacter
+unsafe impl Send for UTexture2D {}
+
+impl UTexture2D {
+    pub const MINIMAP: &'static [u8] = include_bytes!("../../minimap.png");
+
+    fn create_transient(width: i32, height: i32, format: EPixelFormat) -> *mut UTexture2DUE {
+        let fun: extern "C" fn(
+            in_size_x: i32, in_size_y: i32, in_format: EPixelFormat
+        ) -> *mut UTexture2DUE = unsafe { mem::transmute(UTEXTURE2D_CREATETRANSIENT.load(Ordering::SeqCst)) };
+        fun(width, height, format)
+    }
+
+    fn get_running_platform_data(&self) -> *mut *mut FTexturePlatformData {
+        let fun: extern_fn!(fn(
+            this: *mut UTexture2DUE
+        ) -> *mut *mut FTexturePlatformData) = unsafe { mem::transmute(UTEXTURE2D_GETRUNNINGPLATFORMDATA.load(Ordering::SeqCst)) };
+        fun(self.0)
+    }
+
+    fn update_resource(&self) {
+        let fun: extern_fn!(fn(
+            this: *mut UTexture2DUE
+        )) = unsafe { mem::transmute(UTEXTURE2D_UPDATERESOURCE.load(Ordering::SeqCst)) };
+        fun(self.0)
+    }
+
+    pub fn width(&self) -> i32 {
+        unsafe { (**self.get_running_platform_data()).size_x }
+    }
+    pub fn height(&self) -> i32 {
+        unsafe { (**self.get_running_platform_data()).size_y }
+    }
+
+    pub fn as_ptr(&self) -> *mut UTexture2DUE {
+        self.0
+    }
+
+    pub fn load_image(encoded: &[u8], alpha: u8) -> UTexture2D {
+        let mut image = image::load_from_memory(encoded).unwrap().to_rgba8();
+        for pixel in image.pixels_mut() {
+            pixel.0[3] = alpha;
+        }
+        let width = image.width().try_into().unwrap();
+        let height = image.height().try_into().unwrap();
+        let texture = UTexture2D::create_transient(width, height, EPixelFormat::R8G8B8A8);
+        let texture = UTexture2D(texture);
+        let platform_data = texture.get_running_platform_data();
+        unsafe {
+            let mip_map = (**platform_data).mips[0];
+            let bulk_data = ptr::addr_of_mut!((*mip_map).bulk_data) as *mut FByteBulkData;
+            let ptr = FByteBulkData::lock(bulk_data, EBulkDataLockFlags::LockReadWrite);
+            ptr::copy_nonoverlapping(image.as_raw().as_ptr(), ptr, image.as_raw().len());
+            FByteBulkData::unlock(bulk_data);
+            log!("texture: {:p}", texture.0);
+            log!("platform_data*: {:p}", platform_data);
+            log!("platform_data: {:p}", *platform_data);
+            log!("mips: {:p}", &(**platform_data).mips);
+            log!("mips[0]: {:p}", &(**platform_data).mips[0]);
+            log!("mip_map: {:p}", mip_map);
+            log!("bulk_data: {:p}", bulk_data);
+            log!("data: {:p}", ptr);
+            log!("internal_index: {}", (*(texture.0 as *mut UObjectBase)).internal_index);
+        }
+        texture.update_resource();
+        // mark texture as root-object to not be cleaned by the GC
+        texture.mark_as_root_object(true);
+        texture
+    }
+
+    fn mark_as_root_object(&self, val: bool) {
+        unsafe {
+            let internal_index = (*(self.0 as *mut UObjectBase)).internal_index;
+            log!("internal_index: {internal_index}");
+            let guobject_array = GUOBJECTARRAY.load(Ordering::SeqCst) as *mut FUObjectArray;
+            let object_array = ptr::addr_of_mut!((*guobject_array).obj_objects);
+            assert!(internal_index < (*object_array).num_elements, "assert {} < {}", internal_index, (*object_array).num_elements);
+            let item = (*object_array).objects.offset(internal_index.try_into().unwrap());
+            assert_eq!((*item).object as usize, self.0 as usize);
+            log!("flags before: {:032b}", (*item).flags);
+            if val {
+                (*item).flags |= EInternalObjectFlags::RootSet as i32;
+            } else {
+                (*item).flags &= !(EInternalObjectFlags::RootSet as i32);
+            }
+            log!("flags after:  {:032b}", (*item).flags);
+        }
+    }
+}
+
+impl Drop for UTexture2D {
+    fn drop(&mut self) {
+        // mark texture as non-root-object to be cleaned by the GC
+        self.mark_as_root_object(false)
+    }
+}
+
+#[repr(C)]
+struct FTexturePlatformData {
+    size_x: i32,
+    size_y: i32,
+    packed_data: u32,
+    pixel_format: EPixelFormat,
+    mips: TArray<*mut FTexture2DMipMap>,
+}
+#[repr(C)]
+struct FTexture2DMipMap {
+    size_x: i32,
+    size_y: i32,
+    bulk_data: FByteBulkData,
+}
+#[repr(C)]
+struct FByteBulkData {
+    // stub, we only need a pointer to this struct
+}
+impl FByteBulkData {
+    unsafe fn lock(this: *mut FByteBulkData, mode: EBulkDataLockFlags) -> *mut u8 {
+        let fun: extern_fn!(fn(
+            this: *mut FByteBulkData, mode: EBulkDataLockFlags
+        ) -> *mut u8) = unsafe { mem::transmute(FUNTYPEDBULKDATA_LOCK.load(Ordering::SeqCst)) };
+        fun(this, mode)
+    }
+    unsafe fn unlock(this: *mut FByteBulkData) {
+        let fun: extern_fn!(fn(
+            this: *mut FByteBulkData
+        )) = unsafe { mem::transmute(FUNTYPEDBULKDATA_UNLOCK.load(Ordering::SeqCst)) };
+        fun(this)
+    }
+}
+
+// root stuff to mark texture as non-GC-able
+#[repr(C)]
+struct FUObjectArray {
+    obj_first_gc_index: i32,
+    obj_last_non_gc_index: i32,
+    max_objects_not_considered_by_gc: i32,
+    open_for_disregard_for_gc: bool,
+    obj_objects: TUObjectArray,
+    // ...
+}
+// typedef'd from FFixedUObjectArray
+#[repr(C)]
+struct TUObjectArray {
+    objects: *mut FUObjectItem,
+    max_elements: i32,
+    num_elements: i32,
+}
+#[repr(C)]
+struct FUObjectItem {
+    object: *mut c_void,
+    flags: i32,
+    cluster_index: i32,
+    serial_number: i32,
+}
+
+// enums
+
+#[allow(unused)]
+#[repr(i32)]
+enum EBulkDataLockFlags {
+    LockReadOnly = 1,
+    LockReadWrite = 2,
+}
+
+#[allow(unused)]
+#[repr(u32)]
+#[derive(Clone, Copy)]
+pub enum EDerivedDataFlags {
+    None = 0,
+    Required = 1 << 0,
+    Optional = 1 << 1,
+    MemoryMapped = 1 << 2,
+}
+
+#[allow(non_camel_case_types, unused)]
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum EPixelFormat {
+    Unknown               =0,
+    A32B32G32R32F         =1,
+    B8G8R8A8              =2,
+    G8                    =3,
+    G16                   =4,
+    DXT1                  =5,
+    DXT3                  =6,
+    DXT5                  =7,
+    UYVY                  =8,
+    FloatRGB              =9,
+    FloatRGBA             =10,
+    DepthStencil          =11,
+    ShadowDepth           =12,
+    R32_FLOAT             =13,
+    G16R16                =14,
+    G16R16F               =15,
+    G16R16F_FILTER        =16,
+    G32R32F               =17,
+    A2B10G10R10           =18,
+    A16B16G16R16          =19,
+    D24                   =20,
+    R16F                  =21,
+    R16F_FILTER           =22,
+    BC5                   =23,
+    V8U8                  =24,
+    A1                    =25,
+    FloatR11G11B10        =26,
+    A8                    =27,
+    R32_UINT              =28,
+    R32_SINT              =29,
+    PVRTC2                =30,
+    PVRTC4                =31,
+    R16_UINT              =32,
+    R16_SINT              =33,
+    R16G16B16A16_UINT     =34,
+    R16G16B16A16_SINT     =35,
+    R5G6B5_UNORM          =36,
+    R8G8B8A8              =37,
+    A8R8G8B8              =38,
+    BC4                   =39,
+    R8G8                  =40,
+    ATC_RGB               =41,
+    ATC_RGBA_E            =42,
+    ATC_RGBA_I            =43,
+    X24_G8                =44,
+    ETC1                  =45,
+    ETC2_RGB              =46,
+    ETC2_RGBA             =47,
+    R32G32B32A32_UINT     =48,
+    R16G16_UINT           =49,
+    ASTC_4x4              =50,
+    ASTC_6x6              =51,
+    ASTC_8x8              =52,
+    ASTC_10x10            =53,
+    ASTC_12x12            =54,
+    BC6H                  =55,
+    BC7                   =56,
+    R8_UINT               =57,
+    L8                    =58,
+    XGXR8                 =59,
+    R8G8B8A8_UINT         =60,
+    R8G8B8A8_SNORM        =61,
+    R16G16B16A16_UNORM    =62,
+    R16G16B16A16_SNORM    =63,
+    PLATFORM_HDR_0        =64,
+    PLATFORM_HDR_1        =65,
+    PLATFORM_HDR_2        =66,
+    NV12                  =67,
+    R32G32_UINT           =68,
+    ETC2_R11_EAC          =69,
+    ETC2_RG11_EAC         =70,
+    PF_R8                 =71,
+    PF_B5G5R5A1_UNORM     =72,
+    PF_ASTC_4x4_HDR       =73,
+    PF_ASTC_6x6_HDR       =74,
+    PF_ASTC_8x8_HDR       =75,
+    PF_ASTC_10x10_HDR     =76,
+    PF_ASTC_12x12_HDR     =77,
+    PF_G16R16_SNORM       =78,
+    PF_R8G8_UINT          =79,
+    PF_R32G32B32_UINT     =80,
+    PF_R32G32B32_SINT     =81,
+    PF_R32G32B32F         =82,
+    PF_R8_SINT            =83,
+    PF_R64_UINT           =84,
+    PF_R9G9B9EXP5         =85,
+    PF_MAX                =86,
+}
+
+#[allow(unused)]
+#[repr(i32)]
+enum EInternalObjectFlags {
+    None = 0,
+    ReachableInCluster = 1 << 23,
+    ClusterRoot = 1 << 24,
+    Native = 1 << 25,
+    Async = 1 << 26,
+    AsyncLoading = 1 << 27,
+    Unreachable = 1 << 28,
+    PendingKill = 1 << 29,
+    RootSet = 1 << 30,
+    PendingConstruction = 1 << 31,
+}

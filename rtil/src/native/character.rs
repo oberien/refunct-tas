@@ -1,8 +1,10 @@
 use std::ffi::c_void;
+use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString};
 use crate::native::uworld::UClass;
 use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE};
+use crate::native::linux::APLAYERCONTROLLER_GETVIEWPORTSIZE;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
 
@@ -100,6 +102,16 @@ impl AMyCharacter {
     }
     pub fn set_max_fly_speed(&mut self, value: f32) {
         unsafe { (*self.movement()).max_fly_speed = value };
+    }
+
+    pub fn get_viewport_size(&self) -> (i32, i32) {
+        let mut width: i32 = -1;
+        let mut height: i32 = -1;
+        let fun: extern_fn!(fn(
+            this: *mut APlayerController, size_x: &mut i32, size_y: &mut i32
+        )) = unsafe { mem::transmute(APLAYERCONTROLLER_GETVIEWPORTSIZE.load(Ordering::SeqCst)) };
+        fun(self.controller(), &mut width, &mut height);
+        (width, height)
     }
 }
 
