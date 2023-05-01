@@ -58,6 +58,9 @@ struct PlayerData {
     x: f32,
     y: f32,
     z: f32,
+    pitch: f32,
+    yaw: f32,
+    roll: f32,
 }
 impl Player {
     fn send(&self, message: Response) {
@@ -182,7 +185,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
             Request::GetServerTime => {
                 let _ = local_sender.send(Response::ServerTime(SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64)).await;
             },
-            Request::JoinRoom(room_name, player_name, x, y, z) => {
+            Request::JoinRoom(room_name, player_name, x, y, z, pitch, yaw, roll) => {
                 if room_name.len() > 128 {
                     log::warn!("Player {player_id:?} ({player_name}) tried to join room {room_name:?}, but room name is greater than 128 chars.");
                     let _ = local_sender.send(Response::RoomNameTooLong).await;
@@ -197,6 +200,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                             data.x = x;
                             data.y = y;
                             data.z = z;
+                            data.pitch = pitch;
+                            data.yaw = yaw;
+                            data.roll = roll;
                             data.name = player_name.clone();
                         }
                         player
@@ -204,7 +210,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                     None => Arc::new(Player {
                         id: player_id,
                         is_waiting_for_new_game: StdMutex::new(false),
-                        data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z }),
+                        data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z, pitch, yaw, roll }),
                         sender: sender.take().unwrap()
                     }),
                 };
@@ -215,12 +221,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 {
                     let players = room.players.read().unwrap();
                     for (id, other_player) in &*players {
-                        let (x, y, z, is_waiting_for_new_game, name) = {
+                        let (x, y, z, pitch, yaw, roll, is_waiting_for_new_game, name) = {
                             let data = other_player.data.lock().unwrap();
-                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z));
-                            (data.x, data.y, data.z, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
+                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z, pitch, yaw, roll));
+                            (data.x, data.y, data.z, data.pitch, data.yaw, data.roll, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
                         };
-                        player.send(Response::PlayerJoinedRoom(*id, name, x, y, z));
+                        player.send(Response::PlayerJoinedRoom(*id, name, x, y, z, pitch, yaw, roll));
                         if is_waiting_for_new_game {
                             player.send(Response::NewGamePressed(*id));
                         }
@@ -230,7 +236,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 room.players.write().unwrap().insert(player_id, player);
                 *multiplayer_room.lock().await = Some(room);
             }
-            Request::MoveSelf(x, y, z) => {
+            Request::MoveSelf(x, y, z, pitch, yaw, roll) => {
                 let lock = multiplayer_room.lock().await;
                 let room = match lock.as_ref() {
                     Some(name) => name,
@@ -247,6 +253,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                         data.x = x;
                         data.y = y;
                         data.z = z;
+                        data.pitch = pitch;
+                        data.yaw = yaw;
+                        data.roll = roll;
                     },
                     None => {
                         log::error!("Player {player_id:?} tried to update its location without being in room {:?}", room.name);
@@ -254,7 +263,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                     }
                 };
 
-                room.broadcast(Some(player_id), Response::MoveOther(player_id, x, y, z)).await;
+                room.broadcast(Some(player_id), Response::MoveOther(player_id, x, y, z, pitch, yaw, roll)).await;
             }
             Request::PressPlatform(id) => {
                 let lock = multiplayer_room.lock().await;

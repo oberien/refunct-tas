@@ -20,10 +20,10 @@ impl PlayerId {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Request {
     GetServerTime,
-    /// room-name, player-name, x, y, z
-    JoinRoom(String, String, f32, f32, f32),
-    /// x, y, z
-    MoveSelf(f32, f32, f32),
+    /// room-name, player-name, x, y, z, pitch, yaw, roll
+    JoinRoom(String, String, f32, f32, f32, f32, f32, f32),
+    /// x, y, z, pitch, yaw, roll
+    MoveSelf(f32, f32, f32, f32, f32, f32),
     /// platform-id
     PressPlatform(u8),
     /// button-id
@@ -35,11 +35,11 @@ pub enum Request {
 pub enum Response {
     /// unix timestamp
     ServerTime(u64),
-    /// id, name, x, y, z
-    PlayerJoinedRoom(PlayerId, String, f32, f32, f32),
+    /// id, name, x, y, z, pitch, yaw, roll
+    PlayerJoinedRoom(PlayerId, String, f32, f32, f32, f32, f32, f32),
     PlayerLeftRoom(PlayerId),
-    /// id, x, y, z
-    MoveOther(PlayerId, f32, f32, f32),
+    /// id, x, y, z, pitch, yaw, roll
+    MoveOther(PlayerId, f32, f32, f32, f32, f32, f32),
     /// platform-id
     PressPlatform(u8),
     /// button-id

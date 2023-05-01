@@ -60,6 +60,7 @@ struct Player {
     id: int,
     name: string,
     loc: Location,
+    rot: Rotation,
 }
 struct Pawn {
     id: int,
@@ -141,7 +142,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                 for player_id in MULTIPLAYER_STATE.players.keys() {
                     let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
                     draw_player(player.name, player.loc);
-                    minimap_draw_player(player.id, player.loc, Rotation { pitch: 0., yaw: 0., roll: 0. }, COLOR_BLACK);
+                    minimap_draw_player(player.id, player.loc, player.rot, COLOR_BLACK);
                 }
 //                for pawn in MULTIPLAYER_STATE.pawns {
 //                    draw_player("pawn", Tas::pawn_location(pawn.id));
@@ -374,7 +375,8 @@ fn multiplayer_join_room(room: string) {
     multiplayer_disconnect();
     multiplayer_connect();
     let loc = Tas::get_location();
-    Tas::join_multiplayer_room(room, Tas::get_player_name(), loc);
+    let rot = Tas::get_rotation();
+    Tas::join_multiplayer_room(room, Tas::get_player_name(), loc, rot);
     MULTIPLAYER_STATE.current_room = Option::Some(room);
 }
 
@@ -386,7 +388,8 @@ fn update_players() {
     if MULTIPLAYER_STATE.connection == Connection::Connected && current_millis - LAST_MILLIS > 33 {
         // update server location
         let loc = Tas::get_location();
-        Tas::move_on_server(loc);
+        let rot = Tas::get_rotation();
+        Tas::move_on_server(loc, rot);
         LAST_MILLIS += 33;
     }
 
@@ -403,21 +406,23 @@ fn update_players() {
     }
 }
 
-fn player_joined_multiplayer_room(id: int, name: string, loc: Location) {
+fn player_joined_multiplayer_room(id: int, name: string, loc: Location, rot: Rotation) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
     MULTIPLAYER_STATE.players.insert(id, Player {
         id: id,
         name: name,
         loc: loc,
+        rot: rot,
     });
 }
 fn player_left_multiplayer_room(id: int) {
     print(f"player {id} left");
     MULTIPLAYER_STATE.players.remove(id).unwrap();
 }
-fn player_moved(id: int, loc: Location) {
+fn player_moved(id: int, loc: Location, rot: Rotation) {
     let mut player = MULTIPLAYER_STATE.players.get(id).unwrap();
     player.loc = loc;
+    player.rot = rot;
 }
 fn platform_pressed(id: int) {
     if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
