@@ -44,7 +44,10 @@ static MINIMAP_COMPONENT = Component {
     draw_hud_always: fn() {
         Tas::draw_minimap(MINIMAP_STATE.x, MINIMAP_STATE.y, MINIMAP_STATE.scale, false);
         minimap_draw_player(0, Tas::get_location(), Tas::get_rotation(), Color {
-            red: 1., green: 0., blue: 0., alpha: MINIMAP_STATE.alpha
+            red: SETTINGS.player_color_red,
+            green: SETTINGS.player_color_green,
+            blue: SETTINGS.player_color_blue,
+            alpha: 1.,
         });
     },
     tick_mode: TickMode::DontCare,
@@ -62,7 +65,7 @@ static MINIMAP_COMPONENT = Component {
     on_component_exit: fn() {},
 };
 
-fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, color: Color) {
+fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, mut color: Color) {
     if SETTINGS.minimap_enabled {
         let minimap_size = Tas::minimap_size();
         let minimap_scale = MINIMAP_STATE.scale;
@@ -85,6 +88,7 @@ fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, c
         let minimap_y = minimap_y0 - ue_y * ratio_y;
         let hud_x = MINIMAP_STATE.x + minimap_x * minimap_scale - player_minimap_size.width.to_float() * player_minimap_scale / 2.;
         let hud_y = MINIMAP_STATE.y + minimap_y * minimap_scale - player_minimap_size.height.to_float() * player_minimap_scale / 2.;
+        color.alpha = MINIMAP_STATE.alpha;
         Tas::draw_player_minimap(player_id, hud_x, hud_y, rotation.yaw - 90., player_minimap_scale, color)
     }
 }

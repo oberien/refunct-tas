@@ -231,7 +231,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
             };
             match response {
                 Response::ServerTime(_) => unreachable!("got Response::ServerTime in step-function"),
-                Response::PlayerJoinedRoom(id, name, x, y, z, pitch, yaw, roll) => player_joined_multiplayer_room(vm, id.id(), name, Location { x, y, z}, Rotation { pitch, yaw, roll })?,
+                Response::PlayerJoinedRoom(id, name, red, green, blue, x, y, z, pitch, yaw, roll) => player_joined_multiplayer_room(vm, id.id(), name, Color { red, green, blue, alpha: 1. }, Location { x, y, z}, Rotation { pitch, yaw, roll })?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z, pitch, yaw, roll) => player_moved(vm, id.id(), Location { x, y, z }, Rotation { pitch, yaw, roll })?,
                 Response::PressPlatform(id) => platform_pressed(vm, id)?,
@@ -271,7 +271,7 @@ extern "rebo" {
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_mouse_move(x: i32, y: i32);
     fn draw_hud();
-    fn player_joined_multiplayer_room(id: u32, name: String, loc: Location, rot: Rotation);
+    fn player_joined_multiplayer_room(id: u32, name: String, col: Color, loc: Location, rot: Rotation);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location, rot: Rotation);
     fn platform_pressed(id: u8);
@@ -787,8 +787,8 @@ fn receive_from_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, nonblocking: 
     }
 }
 #[rebo::function(raw("Tas::join_multiplayer_room"))]
-fn join_multiplayer_room(room: String, name: String, loc: Location, rot: Rotation) {
-    send_to_server(vm, "join room", Request::JoinRoom(room, name, loc.x, loc.y, loc.z, rot.pitch, rot.yaw, rot.roll))?;
+fn join_multiplayer_room(room: String, name: String, col: Color, loc: Location, rot: Rotation) {
+    send_to_server(vm, "join room", Request::JoinRoom(room, name, col.red, col.green, col.blue, loc.x, loc.y, loc.z, rot.pitch, rot.yaw, rot.roll))?;
 }
 #[rebo::function(raw("Tas::move_on_server"))]
 fn move_on_server(loc: Location, rot: Rotation) {

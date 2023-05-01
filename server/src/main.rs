@@ -55,6 +55,9 @@ struct Player {
 }
 struct PlayerData {
     name: String,
+    red: f32,
+    green: f32,
+    blue: f32,
     x: f32,
     y: f32,
     z: f32,
@@ -185,7 +188,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
             Request::GetServerTime => {
                 let _ = local_sender.send(Response::ServerTime(SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64)).await;
             },
-            Request::JoinRoom(room_name, player_name, x, y, z, pitch, yaw, roll) => {
+            Request::JoinRoom(room_name, player_name, red, green, blue, x, y, z, pitch, yaw, roll) => {
                 if room_name.len() > 128 {
                     log::warn!("Player {player_id:?} ({player_name}) tried to join room {room_name:?}, but room name is greater than 128 chars.");
                     let _ = local_sender.send(Response::RoomNameTooLong).await;
@@ -197,6 +200,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                     Some(player) => {
                         {
                             let mut data = player.data.lock().unwrap();
+                            data.red = red;
+                            data.green = green;
+                            data.blue = blue;
                             data.x = x;
                             data.y = y;
                             data.z = z;
@@ -210,7 +216,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                     None => Arc::new(Player {
                         id: player_id,
                         is_waiting_for_new_game: StdMutex::new(false),
-                        data: StdMutex::new(PlayerData { name: player_name.clone(), x, y, z, pitch, yaw, roll }),
+                        data: StdMutex::new(PlayerData { name: player_name.clone(), red, green, blue, x, y, z, pitch, yaw, roll }),
                         sender: sender.take().unwrap()
                     }),
                 };
@@ -221,12 +227,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<StdMutex<State>>) {
                 {
                     let players = room.players.read().unwrap();
                     for (id, other_player) in &*players {
-                        let (x, y, z, pitch, yaw, roll, is_waiting_for_new_game, name) = {
+                        let (red, green, blue, x, y, z, pitch, yaw, roll, is_waiting_for_new_game, name) = {
                             let data = other_player.data.lock().unwrap();
-                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), x, y, z, pitch, yaw, roll));
-                            (data.x, data.y, data.z, data.pitch, data.yaw, data.roll, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
+                            other_player.send(Response::PlayerJoinedRoom(player_id, player_name.clone(), red, green, blue, x, y, z, pitch, yaw, roll));
+                            (data.red, data.green, data.blue, data.x, data.y, data.z, data.pitch, data.yaw, data.roll, *other_player.is_waiting_for_new_game.lock().unwrap(), data.name.clone())
                         };
-                        player.send(Response::PlayerJoinedRoom(*id, name, x, y, z, pitch, yaw, roll));
+                        player.send(Response::PlayerJoinedRoom(*id, name, red, green, blue, x, y, z, pitch, yaw, roll));
                         if is_waiting_for_new_game {
                             player.send(Response::NewGamePressed(*id));
                         }

@@ -29,6 +29,54 @@ fn create_settings_menu() -> Ui {
                 show_game_stats_button_text.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
             },
         }),
+        UiElement::Input(Input {
+            label: Text { text: "Player Color Red (0.0 - 1.0)" },
+            input: f"{SETTINGS.player_color_red}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(val) => {
+                        if 0.0 <= val && val <= 1.0 {
+                            SETTINGS.player_color_red = val;
+                            SETTINGS.store();
+                        }
+                    },
+                    Result::Err(e) => (),
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: Text { text: "Player Color Green (0.0 - 1.0)" },
+            input: f"{SETTINGS.player_color_green}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(val) => {
+                        if 0.0 <= val && val <= 1.0 {
+                            SETTINGS.player_color_green = val;
+                            SETTINGS.store();
+                        }
+                    },
+                    Result::Err(e) => (),
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: Text { text: "Player Color Blue (0.0 - 1.0)" },
+            input: f"{SETTINGS.player_color_blue}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(val) => {
+                        if 0.0 <= val && val <= 1.0 {
+                            SETTINGS.player_color_blue = val;
+                            SETTINGS.store();
+                        }
+                    },
+                    Result::Err(e) => (),
+                }
+            },
+        }),
         UiElement::Button(UiButton {
             label: Text { text: "Reset Game Stats" },
             onclick: fn(label: Text) { GAME_STATS.reset() },
@@ -47,6 +95,9 @@ struct Settings {
     minimap_enabled: bool,
     minimap_size: float,
     minimap_alpha: float,
+    player_color_red: float,
+    player_color_green: float,
+    player_color_blue: float,
 }
 static mut SETTINGS = Settings::load();
 
@@ -77,6 +128,9 @@ impl Settings {
             minimap_enabled: get_bool("minimap_enabled", true),
             minimap_size: get_float("minimap_size", 0.35),
             minimap_alpha: get_float("minimap_alpha", 0.4),
+            player_color_red: get_float("player_color_red", 0.),
+            player_color_green: get_float("player_color_green", 0.),
+            player_color_blue: get_float("player_color_blue", 0.),
         }
     }
 
@@ -88,6 +142,9 @@ impl Settings {
         map.insert("minimap_enabled", f"{SETTINGS.minimap_enabled}");
         map.insert("minimap_size", f"{SETTINGS.minimap_size}");
         map.insert("minimap_alpha", f"{SETTINGS.minimap_alpha}");
+        map.insert("player_color_red", f"{SETTINGS.player_color_red}");
+        map.insert("player_color_green", f"{SETTINGS.player_color_green}");
+        map.insert("player_color_blue", f"{SETTINGS.player_color_blue}");
         Tas::store_settings(map);
     }
 

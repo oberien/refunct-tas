@@ -59,6 +59,7 @@ struct MultiplayerState {
 struct Player {
     id: int,
     name: string,
+    col: Color,
     loc: Location,
     rot: Rotation,
 }
@@ -141,8 +142,8 @@ static mut MULTIPLAYER_COMPONENT = Component {
             Connection::Connected => {
                 for player_id in MULTIPLAYER_STATE.players.keys() {
                     let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
-                    draw_player(player.name, player.loc);
-                    minimap_draw_player(player.id, player.loc, player.rot, COLOR_BLACK);
+                    draw_player(player.name, player.loc, player.col);
+                    minimap_draw_player(player.id, player.loc, player.rot, player.col);
                 }
 //                for pawn in MULTIPLAYER_STATE.pawns {
 //                    draw_player("pawn", Tas::pawn_location(pawn.id));
@@ -285,7 +286,7 @@ fn cluster_depth(cluster: int) -> Option<float> {
     Option::Some(cluster_depth)
 }
 
-fn draw_player(name: string, loc: Location) {
+fn draw_player(name: string, loc: Location, col: Color) {
     let x = loc.x;
     let y = loc.y;
     let z = loc.z - 100.;
@@ -302,28 +303,28 @@ fn draw_player(name: string, loc: Location) {
 
     let top_middle = Tas::project(Vector { x: loc.x, y: loc.y, z: loc.z+100. });
 
-    fn draw_player_line(start: Vector, end: Vector) {
+    fn draw_player_line(start: Vector, end: Vector, color: Color) {
         if start.z > 0. && end.z > 0. {
             Tas::draw_line(Line {
                 startx: start.x,
                 starty: start.y,
                 endx: end.x,
                 endy: end.y,
-                color: Color { red: 0., green: 0., blue: 0., alpha: 0. },
+                color: color,
                 thickness: 3.,
             });
         }
     }
 
-    draw_player_line(a, b);
-    draw_player_line(b, c);
-    draw_player_line(c, d);
-    draw_player_line(d, a);
+    draw_player_line(a, b, col);
+    draw_player_line(b, c, col);
+    draw_player_line(c, d, col);
+    draw_player_line(d, a, col);
 
-    draw_player_line(e, f);
-    draw_player_line(f, g);
-    draw_player_line(g, h);
-    draw_player_line(h, e);
+    draw_player_line(e, f, col);
+    draw_player_line(f, g, col);
+    draw_player_line(g, h, col);
+    draw_player_line(h, e, col);
     if top_middle.z > 0. {
         let size = Tas::get_text_size(name, SETTINGS.ui_scale);
         Tas::draw_text(DrawText {
@@ -376,7 +377,13 @@ fn multiplayer_join_room(room: string) {
     multiplayer_connect();
     let loc = Tas::get_location();
     let rot = Tas::get_rotation();
-    Tas::join_multiplayer_room(room, Tas::get_player_name(), loc, rot);
+    let col = Color {
+        red: SETTINGS.player_color_red,
+        green: SETTINGS.player_color_green,
+        blue: SETTINGS.player_color_blue,
+        alpha: 1.,
+    };
+    Tas::join_multiplayer_room(room, Tas::get_player_name(), col, loc, rot);
     MULTIPLAYER_STATE.current_room = Option::Some(room);
 }
 
@@ -406,11 +413,12 @@ fn update_players() {
     }
 }
 
-fn player_joined_multiplayer_room(id: int, name: string, loc: Location, rot: Rotation) {
+fn player_joined_multiplayer_room(id: int, name: string, col: Color, loc: Location, rot: Rotation) {
     print(f"player {id} joined at x={loc.x}, y={loc.y}, z={loc.z}");
     MULTIPLAYER_STATE.players.insert(id, Player {
         id: id,
         name: name,
+        col: col,
         loc: loc,
         rot: rot,
     });
