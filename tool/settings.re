@@ -95,6 +95,7 @@ struct Settings {
     minimap_enabled: bool,
     minimap_size: float,
     minimap_alpha: float,
+    minimap_position: string,
     player_color_red: float,
     player_color_green: float,
     player_color_blue: float,
@@ -121,6 +122,12 @@ impl Settings {
                 Option::None => default,
             }
         };
+        let get_string = fn(key: string, default: string) -> string {
+            match map.get(key) {
+                Option::Some(val) => val,
+                Option::None => default,
+            }
+        };
         Settings {
             ui_scale: get_float("ui_scale", 2.),
             show_character_stats: get_bool("show_character_stats", false),
@@ -128,6 +135,7 @@ impl Settings {
             minimap_enabled: get_bool("minimap_enabled", true),
             minimap_size: get_float("minimap_size", 0.35),
             minimap_alpha: get_float("minimap_alpha", 0.4),
+            minimap_position: get_string("minimap_position", "TopRight"),
             player_color_red: get_float("player_color_red", 0.),
             player_color_green: get_float("player_color_green", 0.),
             player_color_blue: get_float("player_color_blue", 0.),
@@ -142,6 +150,7 @@ impl Settings {
         map.insert("minimap_enabled", f"{SETTINGS.minimap_enabled}");
         map.insert("minimap_size", f"{SETTINGS.minimap_size}");
         map.insert("minimap_alpha", f"{SETTINGS.minimap_alpha}");
+        map.insert("minimap_position", f"{SETTINGS.minimap_position}");
         map.insert("player_color_red", f"{SETTINGS.player_color_red}");
         map.insert("player_color_green", f"{SETTINGS.player_color_green}");
         map.insert("player_color_blue", f"{SETTINGS.player_color_blue}");
