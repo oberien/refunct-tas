@@ -37,8 +37,8 @@ impl MinimapState {
         let minimap = Tas::minimap_size();
         let expected_height = size * viewport.height.to_float();
         self.scale = expected_height / minimap.height.to_float();
-        let mut tw = minimap.width.to_float() * self.scale;
-        let mut th = minimap.height.to_float() * self.scale;
+        let tw = minimap.width.to_float() * self.scale;
+        let th = minimap.height.to_float() * self.scale;
         match SETTINGS.minimap_position {
            MinimapPosition::TopLeft => {
                 self.x = 0.;
