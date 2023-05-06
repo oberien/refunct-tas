@@ -15,6 +15,13 @@ if SETTINGS.minimap_enabled {
 }
 Tas::set_minimap_alpha(SETTINGS.minimap_alpha);
 
+enum MinimapPosition {
+    TopLeft,
+    TopRight,
+    BottomRight,
+    BottomLeft,
+}
+
 struct MinimapState {
     size: float,
     x: float,
@@ -33,29 +40,23 @@ impl MinimapState {
         let mut tw = minimap.width.to_float() * self.scale;
         let mut th = minimap.height.to_float() * self.scale;
         match SETTINGS.minimap_position {
-           "TopLeft" => {
-                tw = viewport.width.to_float();
-                th = viewport.height.to_float();
+           MinimapPosition::TopLeft => {
+                self.x = 0.;
+                self.y = 0.;
            },
-           "TopRight" => {
-                tw = minimap.width.to_float() * self.scale;
-                th = viewport.height.to_float();
+           MinimapPosition::TopRight => {
+                self.x = viewport.width.to_float() - tw;
+                self.y = 0.;
            },
-           "BottomRight" => {
-                tw = minimap.width.to_float() * self.scale;
-                th = minimap.height.to_float() * self.scale;
+           MinimapPosition::BottomRight => {
+                self.x = viewport.width.to_float() - tw;
+                self.y = viewport.height.to_float() - th;
            },
-           "BottomLeft" => {
-                tw = viewport.width.to_float();
-                th = minimap.height.to_float() * self.scale;
+           MinimapPosition::BottomLeft => {
+                self.x = 0.;
+                self.y = viewport.height.to_float() - th;
            },
-           _ => {
-                tw = minimap.width.to_float() * self.scale;
-                th = viewport.height.to_float();
-           }
         }
-        self.x = viewport.width.to_float() - tw;
-        self.y = viewport.height.to_float() - th;
     }
 }
 
@@ -120,11 +121,10 @@ static mut MINIMAP_LABEL = Text { text: if SETTINGS.minimap_enabled { "Disable M
 fn create_minimap_menu() -> Ui {
     let mut pos = Number { number: 0 };
     match SETTINGS.minimap_position {
-        "TopLeft" => { pos.number = 0 },
-        "TopRight" => { pos.number = 1 },
-        "BottomLeft" => { pos.number = 2 },
-        "BottomRight" => { pos.number = 3 },
-        _ => { pos.number = 1 },
+        MinimapPosition::TopLeft => { pos.number = 0 },
+        MinimapPosition::TopRight => { pos.number = 1 },
+        MinimapPosition::BottomRight => { pos.number = 2 },
+        MinimapPosition::BottomLeft => { pos.number = 3 },
     }
     Ui::new("Minimap:", List::of(
         UiElement::Button(UiButton {
@@ -179,17 +179,17 @@ fn create_minimap_menu() -> Ui {
             options: List::of(
                 Text { text: "Top Left" },
                 Text { text: "Top Right" },
-                Text { text: "Bottom Left" },
                 Text { text: "Bottom Right" },
+                Text { text: "Bottom Left" },
             ),
             selected: pos.number,
             onchange: fn(index: int) {
                 match index {
-                    0 => { SETTINGS.minimap_position = "TopLeft"; },
-                    1 => { SETTINGS.minimap_position = "TopRight"; },
-                    2 => { SETTINGS.minimap_position = "BottomLeft"; },
-                    3 => { SETTINGS.minimap_position = "BottomRight"; },
-                    _ => { SETTINGS.minimap_position = "TopRight"; }
+                    0 => { SETTINGS.minimap_position = MinimapPosition::TopLeft; },
+                    1 => { SETTINGS.minimap_position = MinimapPosition::TopRight; },
+                    2 => { SETTINGS.minimap_position = MinimapPosition::BottomRight; },
+                    3 => { SETTINGS.minimap_position = MinimapPosition::BottomLeft; },
+                    _ => panic(f"unknown index {index}"),
                 }
                 SETTINGS.store();
                 pos.number = index;
