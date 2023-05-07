@@ -1,6 +1,8 @@
 use std::thread;
 use std::collections::{HashSet, HashMap};
+use std::error::Error;
 use std::sync::Mutex;
+use std::time::Duration;
 
 use crossbeam_channel::{Sender, Receiver};
 use image::{Rgba, RgbaImage};
@@ -16,6 +18,7 @@ mod rebo_init;
 static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
 
 struct State {
+    new_version_string: Option<String>,
     delta: Option<f64>,
     stream_rebo_rx: Receiver<StreamToRebo>,
     rebo_stream_tx: Sender<ReboToStream>,
@@ -38,6 +41,51 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
            rebo_ue_tx: Sender<ReboToUe>, ue_rebo_rx: Receiver<UeToRebo>) {
     log!("starting rebo thread");
     thread::spawn(move || {
+        log!("rebo thread checking for a new release");
+        const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+        let res = ureq::AgentBuilder::new()
+            .redirects(0)
+            .timeout(Duration::from_secs(3))
+            .build()
+            .get("https://github.com/oberien/refunct-tas/releases/latest")
+            .call();
+        let new_version = match res {
+            Ok(response) => {
+                assert_eq!(response.status(), 302);
+                let loc = response.header("Location").unwrap();
+                let pos = loc.rfind("/v").unwrap();
+                let version = &loc[pos+2..];
+                if version != CURRENT_VERSION {
+                    let new_version = format!("New version available: v{CURRENT_VERSION} -> v{version}");
+                    log!("VERSION: {new_version}");
+                    Some(new_version)
+                } else {
+                    log!("VERSION: rtil version v{CURRENT_VERSION} is up to date");
+                    None
+                }
+            },
+            Err(err) => {
+                log!("VERSION: Error checking for new version: err");
+                match err {
+                    ureq::Error::Status(status, _) => {
+                        Some(format!("Error checking for new version: Got status {status}"))
+                    },
+                    ureq::Error::Transport(transport) => {
+                        let kind = transport.kind().to_string();
+                        let message = transport.message().map(|m| format!(": {m}"));
+                        let source = transport.source().map(|s| format!(": {s}"));
+                        let mut res = kind;
+                        if let Some(message) = message {
+                            res += &message;
+                        }
+                        if let Some(source) = source {
+                            res += &source;
+                        }
+                        Some(format!("Error checking for new version: {res}"))
+                    }
+                }
+            }
+        };
         log!("rebo thread waiting until all this* have been acquired");
         REBO_DOESNT_START_SEMAPHORE.acquire();
         log!("rebo thread continuing as all this* have been acquired");
@@ -52,6 +100,7 @@ pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboTo
         let player_minimap_image = image::load_from_memory(PLAYER_MINIMAP).unwrap().to_rgba8();
 
         *STATE.lock().unwrap() = Some(State {
+            new_version_string: new_version.clone(),
             delta: None,
             stream_rebo_rx,
             rebo_stream_tx,

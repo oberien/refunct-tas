@@ -15,6 +15,8 @@ include "multiplayer.re";
 include "movement.re";
 include "misc.re";
 
+static mut NEW_VERSION: Option<string> = Tas::new_version_string();
+
 fn create_start_menu() -> Ui {
     let mut start_menu_text = Text { text: "Press 'm' for menu." };
     Ui {
@@ -22,6 +24,10 @@ fn create_start_menu() -> Ui {
         elements: List::new(),
         on_draw: Option::Some(fn() {
             let mut text = "Press 'm' for menu.";
+            match NEW_VERSION {
+                Option::Some(t) => text = f"{text}\n{t}",
+                Option::None => (),
+            }
             for comp in CURRENT_COMPONENTS {
                 let draw_hud_text = comp.draw_hud_text;
                 text = draw_hud_text(text);

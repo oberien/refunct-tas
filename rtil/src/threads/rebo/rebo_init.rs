@@ -25,6 +25,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
             eprintln!("{}", s);
             rebo_stream_tx.send(ReboToStream::Print(s)).unwrap()
         }))
+        .add_function(new_version_string)
         .add_function(print)
         .add_function(step)
         .add_function(step_yield)
@@ -173,6 +174,11 @@ fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(),
     }
 }
 
+#[rebo::function(raw("Tas::new_version_string"))]
+fn new_version_string() -> Option<String> {
+    STATE.lock().unwrap().as_ref().unwrap().new_version_string.clone()
+}
+
 #[rebo::function(raw("print"))]
 fn print(..: _) {
     let joined = args.as_slice().iter().map(DisplayValue).join(", ");
@@ -207,10 +213,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
     loop {
         let mut to_be_returned = None;
         // check UE-thread
-        let res = match step_kind {
-            StepKind::Step => STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap(),
-            StepKind::Yield => STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap(),
-        };
+        let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
         match res {
             UeToRebo::Tick => to_be_returned = Some(Step::Tick),
             UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
