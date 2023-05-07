@@ -86,6 +86,7 @@ static MINIMAP_COMPONENT = Component {
     on_key_up: fn(key_code: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() { MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size); },
 };
 
 fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, mut color: Color) {
@@ -193,6 +194,7 @@ fn create_minimap_menu() -> Ui {
                 }
                 SETTINGS.store();
                 pos.number = index;
+                MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size);
             },
         }),
         UiElement::Button(UiButton {

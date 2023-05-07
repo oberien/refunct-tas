@@ -126,6 +126,13 @@ fn draw_hud() {
     }
 }
 
+fn on_resolution_change() {
+    for component in CURRENT_COMPONENTS {
+        let on_resolution_change = component.on_resolution_change;
+        on_resolution_change();
+    }
+}
+
 static COLOR_BLACK = Color { red: 0., green: 0., blue: 0., alpha: 1. };
 static COLOR_RED = Color { red: 1., green: 0., blue: 0., alpha: 1. };
 

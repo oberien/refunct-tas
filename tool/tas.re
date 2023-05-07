@@ -210,4 +210,5 @@ static TAS_COMPONENT = Component {
         TAS_STATE.events.push(InputEvent::MouseMoved(x, y));
     },
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };

@@ -53,6 +53,10 @@ pub fn draw_hud() {
     handle(UeToRebo::DrawHud);
 }
 
+pub fn apply_resolution_settings() {
+    handle(UeToRebo::ApplyResolutionSettings);
+}
+
 fn handle(event: UeToRebo) {
     // not yet initialized
     if STATE.is_none() {

@@ -109,6 +109,7 @@ find! {
     UTEXTURE2D_UPDATERESOURCE, "^UTexture2D::UpdateResource()",
     FUNTYPEDBULKDATA_LOCK, "^FUntypedBulkData::Lock(unsigned int)",
     FUNTYPEDBULKDATA_UNLOCK, "^FUntypedBulkData::Unlock()",
+    UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS, "^UGameUserSettings::ApplyResolutionSettings(bool)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

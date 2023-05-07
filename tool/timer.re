@@ -60,4 +60,5 @@ static TIMER_COMPONENT = Component {
     on_key_up: fn(key_code: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };

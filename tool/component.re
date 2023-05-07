@@ -34,6 +34,7 @@ struct Component {
     on_key_up: fn(KeyCode),
     on_mouse_move: fn(int, int),
     on_component_exit: fn(),
+    on_resolution_change: fn(),
 }
 
 static mut CURRENT_COMPONENTS = List::new();

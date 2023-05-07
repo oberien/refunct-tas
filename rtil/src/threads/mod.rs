@@ -67,4 +67,5 @@ pub enum UeToRebo {
     MouseMove(i32, i32),
     DrawHud,
     AMyCharacterSpawned(AMyCharacter),
+    ApplyResolutionSettings,
 }

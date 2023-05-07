@@ -84,6 +84,7 @@ static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };
 static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     id: NEW_GAME_ALL_BUTTONS_COMPONENT_ID,
@@ -109,6 +110,7 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };
 static NEW_GAME_NGG_COMPONENT = Component {
     id: NEW_GAME_NGG_COMPONENT_ID,
@@ -140,6 +142,7 @@ static NEW_GAME_NGG_COMPONENT = Component {
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };
 
 fn on_level_state_change(old: LevelState, new: LevelState) {
