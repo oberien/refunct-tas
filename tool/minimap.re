@@ -75,7 +75,7 @@ static MINIMAP_COMPONENT = Component {
     },
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
-    on_tick: fn() { MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size); },
+    on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
