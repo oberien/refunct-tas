@@ -6,8 +6,8 @@ use bit_field::BitField;
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
-use crate::native::ue::{FLinearColor, FString, FVector};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D};
+use crate::native::ue::{FLinearColor, FString, FVector, FVector2D};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D};
 use crate::native::texture::UTexture2DUE;
 use crate::threads::ue;
 
@@ -59,7 +59,20 @@ impl AMyHud {
                 this: *mut AMyHud, texture: *mut UTexture2DUE, screen_x: f32,
                 screen_y: f32, scale: f32, scale_position: bool))
                 = mem::transmute(AHUD_DRAWTEXTURESIMPLE.load(Ordering::SeqCst));
-            fun(get_amyhud!("draw_text"), texture.as_ptr(), x, y, scale, scale_position)
+            fun(get_amyhud!("draw_texture_simple"), texture.as_ptr(), x, y, scale, scale_position)
+        }
+    }
+    pub fn draw_texture<C: Into<FLinearColor>>(texture: &UTexture2D, x: f32, y: f32, width: f32, height: f32, u: f32, v: f32, uwidth: f32, vheight: f32, tint_color: C, blend_mode: EBlendMode, scale: f32, scale_position: bool, rotation: f32, rot_pivot_x: f32, rot_pivot_y: f32) {
+        unsafe {
+            let fun: extern_fn!(fn(
+                this: *mut AMyHud, texture: *mut UTexture2DUE,
+                screen_x: f32, screen_y: f32, screen_w: f32, screen_h: f32,
+                texture_u: f32, texture_v: f32, texture_uwidth: f32, texture_vheight: f32,
+                tint_color: FLinearColor, blend_mode: EBlendMode, scale: f32, scale_position: bool,
+                rotation: f32, rot_pivot: FVector2D
+            )) = mem::transmute(AHUD_DRAWTEXTURE.load(Ordering::SeqCst));
+            fun(get_amyhud!("draw_texture"), texture.as_ptr(), x, y, width, height, u, v, uwidth, vheight,
+                tint_color.into(), blend_mode, scale, scale_position, rotation, FVector2D { x: rot_pivot_x, y: rot_pivot_y })
         }
     }
 
@@ -101,4 +114,15 @@ fn draw_hud(args: &mut Args) {
         REBO_DOESNT_START_SEMAPHORE.release();
     }
     ue::draw_hud();
+}
+
+#[allow(unused)]
+#[repr(i32)]
+pub enum EBlendMode {
+    Opaque,
+    Masked,
+    Translucent,
+    Additive,
+    Modulate,
+    AlphaComposite,
 }

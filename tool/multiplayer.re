@@ -143,7 +143,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                 for player_id in MULTIPLAYER_STATE.players.keys() {
                     let player = MULTIPLAYER_STATE.players.get(player_id).unwrap();
                     draw_player(player.name, player.loc, player.col);
-                    minimap_draw_player(player.id, player.loc, player.rot, player.col);
+                    minimap_draw_player(player.loc, player.rot, player.col);
                 }
 //                for pawn in MULTIPLAYER_STATE.pawns {
 //                    draw_player("pawn", Tas::pawn_location(pawn.id));

@@ -3,7 +3,7 @@ use std::collections::{HashSet, HashMap};
 use std::sync::Mutex;
 
 use crossbeam_channel::{Sender, Receiver};
-use image::RgbaImage;
+use image::{Rgba, RgbaImage};
 use once_cell::sync::Lazy;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
@@ -31,7 +31,7 @@ struct State {
     minimap_image: RgbaImage,
     player_minimap_image: RgbaImage,
     // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
-    player_minimap_textures: HashMap<u32, UTexture2D>,
+    player_minimap_textures: HashMap<Rgba<u8>, UTexture2D>,
 }
 
 pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>,

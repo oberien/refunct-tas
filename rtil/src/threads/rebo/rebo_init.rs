@@ -6,11 +6,10 @@ use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
-use imageproc::geometric_transformations::Interpolation;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -566,32 +565,32 @@ fn minimap_size() -> Size {
     }
 }
 #[rebo::function("Tas::draw_player_minimap")]
-fn draw_player_minimap(player_id: u32, x: f32, y: f32, rotation_degrees: f32, scale: f32, color: Color) {
+fn draw_player_minimap(x: f32, y: f32, width: f32, height: f32, rotation_degrees: f32, color: Color) {
     let mut lock = STATE.lock().unwrap();
     let state = lock.as_mut().unwrap();
-    let rotation_radians = rotation_degrees.to_radians();
-    let mut rotated = imageproc::geometric_transformations::rotate_about_center(
-        &state.player_minimap_image,
-        rotation_radians,
-        Interpolation::Nearest,
-        Rgba([0, 0, 0, 0]),
+    let color = Rgba([
+        (255.0 * color.red).round() as u8,
+        (255.0 * color.green).round() as u8,
+        (255.0 * color.blue).round() as u8,
+        (255.0 * color.alpha).round() as u8,
+    ]);
+    let texture = &mut state.player_minimap_textures.entry(color)
+        .or_insert_with(|| {
+            let mut image = state.player_minimap_image.clone();
+            for pixel in image.pixels_mut() {
+                if *pixel == Rgba([0, 0, 0, 255]) {
+                    *pixel = color;
+                } else if pixel.0[3] != 0 {
+                    pixel.0[3] = color.0[3];
+                }
+            }
+            UTexture2D::create(&image)
+        });
+    AMyHud::draw_texture(
+        texture, x, y, width, height, 0., 0., 1., 1.,
+        (1., 1., 1.), EBlendMode::Translucent, 1., false,
+        rotation_degrees, 0.5, 0.5
     );
-    for pixel in rotated.pixels_mut() {
-        if *pixel == Rgba([0, 0, 0, 255]) {
-            *pixel = Rgba([
-                (255.0 * color.red).round() as u8,
-                (255.0 * color.green).round() as u8,
-                (255.0 * color.blue).round() as u8,
-                (255.0 * color.alpha).round() as u8,
-            ]);
-        } else if pixel.0[3] != 0 {
-            pixel.0[3] = (255.0 * color.alpha).round() as u8;
-        }
-    }
-    let texture = &mut state.player_minimap_textures.entry(player_id)
-        .or_insert_with(|| UTexture2D::create(&state.player_minimap_image));
-    texture.set_image(&rotated);
-    AMyHud::draw_texture_simple(texture, x, y, scale, false);
 }
 #[rebo::function("Tas::player_minimap_size")]
 fn player_minimap_size() -> Size {

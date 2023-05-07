@@ -66,7 +66,7 @@ static MINIMAP_COMPONENT = Component {
     draw_hud_text: fn(text: string) -> string { text },
     draw_hud_always: fn() {
         Tas::draw_minimap(MINIMAP_STATE.x, MINIMAP_STATE.y, MINIMAP_STATE.scale, false);
-        minimap_draw_player(0, Tas::get_location(), Tas::get_rotation(), Color {
+        minimap_draw_player(Tas::get_location(), Tas::get_rotation(), Color {
             red: SETTINGS.player_color_red,
             green: SETTINGS.player_color_green,
             blue: SETTINGS.player_color_blue,
@@ -89,7 +89,7 @@ static MINIMAP_COMPONENT = Component {
     on_resolution_change: fn() { MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size); },
 };
 
-fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, mut color: Color) {
+fn minimap_draw_player(location: Location, rotation: Rotation, mut color: Color) {
     if SETTINGS.minimap_enabled {
         let minimap_size = Tas::minimap_size();
         let minimap_scale = MINIMAP_STATE.scale;
@@ -110,10 +110,12 @@ fn minimap_draw_player(player_id: int, location: Location, rotation: Rotation, m
         let ue_y = location.y;
         let minimap_x = minimap_x0 - ue_x * ratio_x;
         let minimap_y = minimap_y0 - ue_y * ratio_y;
-        let hud_x = MINIMAP_STATE.x + minimap_x * minimap_scale - player_minimap_size.width.to_float() * player_minimap_scale / 2.;
-        let hud_y = MINIMAP_STATE.y + minimap_y * minimap_scale - player_minimap_size.height.to_float() * player_minimap_scale / 2.;
+        let hud_width = player_minimap_size.width.to_float() * player_minimap_scale;
+        let hud_height = player_minimap_size.height.to_float() * player_minimap_scale;
+        let hud_x = MINIMAP_STATE.x + minimap_x * minimap_scale - hud_width / 2.;
+        let hud_y = MINIMAP_STATE.y + minimap_y * minimap_scale - hud_height / 2.;
         color.alpha = MINIMAP_STATE.alpha;
-        Tas::draw_player_minimap(player_id, hud_x, hud_y, rotation.yaw - 90., player_minimap_scale, color)
+        Tas::draw_player_minimap(hud_x, hud_y, hud_width, hud_height, rotation.yaw - 90., color);
     }
 }
 
