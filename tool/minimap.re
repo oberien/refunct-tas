@@ -17,9 +17,14 @@ Tas::set_minimap_alpha(SETTINGS.minimap_alpha);
 
 enum MinimapPosition {
     TopLeft,
+    TopCenter,
     TopRight,
+    CenterRight,
     BottomRight,
+    BottomCenter,
     BottomLeft,
+    CenterLeft,
+    Center,
 }
 
 struct MinimapState {
@@ -44,17 +49,37 @@ impl MinimapState {
                 self.x = 0.;
                 self.y = 0.;
            },
+           MinimapPosition::TopCenter => {
+                self.x = viewport.width.to_float() / 2. - tw / 2.;
+                self.y = 0.;
+           },
            MinimapPosition::TopRight => {
                 self.x = viewport.width.to_float() - tw;
                 self.y = 0.;
+           },
+           MinimapPosition::CenterRight => {
+                self.x = viewport.width.to_float() - tw;
+                self.y = viewport.height.to_float() / 2. - th / 2.;
            },
            MinimapPosition::BottomRight => {
                 self.x = viewport.width.to_float() - tw;
                 self.y = viewport.height.to_float() - th;
            },
+           MinimapPosition::BottomCenter => {
+                self.x = viewport.width.to_float() / 2. - tw / 2.;
+                self.y = viewport.height.to_float() - th;
+           },
            MinimapPosition::BottomLeft => {
                 self.x = 0.;
                 self.y = viewport.height.to_float() - th;
+           },
+           MinimapPosition::CenterLeft => {
+                self.x = 0.;
+                self.y = viewport.height.to_float() / 2. - th / 2.;
+           },
+           MinimapPosition::Center => {
+                self.x = viewport.width.to_float() / 2. - tw / 2.;
+                self.y = viewport.height.to_float() / 2. - th / 2.;
            },
         }
     }
@@ -125,9 +150,14 @@ fn create_minimap_menu() -> Ui {
     let mut pos = Number { number: 0 };
     match SETTINGS.minimap_position {
         MinimapPosition::TopLeft => { pos.number = 0 },
-        MinimapPosition::TopRight => { pos.number = 1 },
-        MinimapPosition::BottomRight => { pos.number = 2 },
-        MinimapPosition::BottomLeft => { pos.number = 3 },
+        MinimapPosition::TopCenter => { pos.number = 1 },
+        MinimapPosition::TopRight => { pos.number = 2 },
+        MinimapPosition::CenterRight => { pos.number = 3 },
+        MinimapPosition::BottomRight => { pos.number = 4 },
+        MinimapPosition::BottomCenter => { pos.number = 5 },
+        MinimapPosition::BottomLeft => { pos.number = 6 },
+        MinimapPosition::CenterLeft => { pos.number = 7 },
+        MinimapPosition::Center => { pos.number = 8 },
     }
     Ui::new("Minimap:", List::of(
         UiElement::Button(UiButton {
@@ -181,17 +211,27 @@ fn create_minimap_menu() -> Ui {
             label: Text { text: "Position" },
             options: List::of(
                 Text { text: "Top Left" },
+                Text { text: "Top Center" },
                 Text { text: "Top Right" },
+                Text { text: "Center Right" },
                 Text { text: "Bottom Right" },
+                Text { text: "Bottom Center" },
                 Text { text: "Bottom Left" },
+                Text { text: "Center Left" },
+                Text { text: "Center" },
             ),
             selected: pos.number,
             onchange: fn(index: int) {
                 match index {
                     0 => { SETTINGS.minimap_position = MinimapPosition::TopLeft; },
-                    1 => { SETTINGS.minimap_position = MinimapPosition::TopRight; },
-                    2 => { SETTINGS.minimap_position = MinimapPosition::BottomRight; },
-                    3 => { SETTINGS.minimap_position = MinimapPosition::BottomLeft; },
+                    1 => { SETTINGS.minimap_position = MinimapPosition::TopCenter; },
+                    2 => { SETTINGS.minimap_position = MinimapPosition::TopRight; },
+                    3 => { SETTINGS.minimap_position = MinimapPosition::CenterRight; },
+                    4 => { SETTINGS.minimap_position = MinimapPosition::BottomRight; },
+                    5 => { SETTINGS.minimap_position = MinimapPosition::BottomCenter; },
+                    6 => { SETTINGS.minimap_position = MinimapPosition::BottomLeft; },
+                    7 => { SETTINGS.minimap_position = MinimapPosition::CenterLeft; },
+                    8 => { SETTINGS.minimap_position = MinimapPosition::Center; },
                     _ => panic(f"unknown index {index}"),
                 }
                 SETTINGS.store();
