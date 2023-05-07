@@ -99,6 +99,8 @@ struct Settings {
     player_color_red: float,
     player_color_green: float,
     player_color_blue: float,
+    flying_up_down_vel: float,
+    flying_forward_backward_vel: float,
 }
 static mut SETTINGS = Settings::load();
 
@@ -150,6 +152,8 @@ impl Settings {
             player_color_red: get_float("player_color_red", 0.),
             player_color_green: get_float("player_color_green", 0.),
             player_color_blue: get_float("player_color_blue", 0.),
+            flying_up_down_vel: get_float("flying_up_down_vel", 300.),
+            flying_forward_backward_vel: get_float("flying_forward_backward_vel", 600.),
         }
     }
 
@@ -165,6 +169,8 @@ impl Settings {
         map.insert("player_color_red", f"{SETTINGS.player_color_red}");
         map.insert("player_color_green", f"{SETTINGS.player_color_green}");
         map.insert("player_color_blue", f"{SETTINGS.player_color_blue}");
+        map.insert("flying_up_down_vel", f"{SETTINGS.flying_up_down_vel}");
+        map.insert("flying_forward_backward_vel", f"{SETTINGS.flying_forward_backward_vel}");
         Tas::store_settings(map);
     }
 

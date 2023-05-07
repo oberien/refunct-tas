@@ -39,31 +39,34 @@ fn create_movement_menu() -> Ui {
         }),
         UiElement::Input(Input {
             label: FLYING_UP_DOWN_VELOCITY_LABEL,
-            input: f"{MOVEMENT_STATE.fly_down_up_velocity}",
-            onclick: fn(input: string) {
+            input: f"{SETTINGS.flying_up_down_vel}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(val) => {
-                        MOVEMENT_STATE.fly_down_up_velocity = val;
-                        FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity"
+                        SETTINGS.flying_up_down_vel = val;
+                        SETTINGS.store();
+                        FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity";
                     },
                     Result::Err(e) => { FLYING_UP_DOWN_VELOCITY_LABEL.text = "Up/Down Flying Velocity [error: invalid input]"; },
                 }
             },
-            onchange: fn(input: string) {},
         }),
         UiElement::Input(Input {
             label: FLYING_FORWARD_BACKWARD_VELOCITY_LABEL,
-            input: f"{Tas::get_max_fly_speed()}",
-            onclick: fn(input: string) {
+            input: f"{SETTINGS.flying_forward_backward_vel}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(val) => {
                         Tas::set_max_fly_speed(val);
+                        SETTINGS.flying_forward_backward_vel = val;
+                        SETTINGS.store();
                         FLYING_FORWARD_BACKWARD_VELOCITY_LABEL.text = "Forward/Backward Flying Velocity";
                     },
                     Result::Err(e) => { FLYING_FORWARD_BACKWARD_VELOCITY_LABEL.text = "Forward/Backward Flying Velocity [error: invalid input]"; },
                 }
             },
-            onchange: fn(input: string) {},
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Back" },
@@ -89,11 +92,11 @@ static MOVEMENT_COMPONENT = Component {
                 },
                 FlyState::Up => {
                     let vel = Tas::get_velocity();
-                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: MOVEMENT_STATE.fly_down_up_velocity });
+                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: SETTINGS.flying_up_down_vel });
                 },
                 FlyState::Down => {
                     let vel = Tas::get_velocity();
-                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: (MOVEMENT_STATE.fly_down_up_velocity * -1.) });
+                    Tas::set_velocity(Velocity { x: vel.x, y: vel.y, z: (SETTINGS.flying_up_down_vel * -1.) });
                 },
             }
         }
