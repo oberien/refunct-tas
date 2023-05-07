@@ -40,6 +40,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?UpdateResourceW@UTexture2D@@UAEXXZ", "UTEXTURE2D_UPDATERESOURCE"),
     ("?Lock@FUntypedBulkData@@QAEPAXI@Z", "FUNTYPEDBULKDATA_LOCK"),
     ("?Unlock@FUntypedBulkData@@QBEXXZ", "FUNTYPEDBULKDATA_UNLOCK"),
+    ("?ApplyResolutionSettings@UGameUserSettings@@QAEX_N@Z", "UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS"),
 ];
 
 fn get_linux_level_pointer_path() -> String {

@@ -32,6 +32,7 @@ mod level_state;
 mod gameinstance;
 mod platform_misc;
 mod texture;
+mod gameusersettings;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -72,6 +73,7 @@ pub fn init() {
     tick::hook_uengine_updatetimeandhandlemaxtickrate();
     hud::hook_amyhud_drawhud();
     character::hook_amycharacter_tick();
+    gameusersettings::hook_ugameusersettings_applyresolutionsettings();
 }
 
 #[cfg(unix)]

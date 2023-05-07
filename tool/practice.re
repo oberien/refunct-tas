@@ -82,6 +82,7 @@ static PRACTICE_COMPONENT = Component {
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
+    on_resolution_change: fn() {},
 };
 
 struct Practice {
