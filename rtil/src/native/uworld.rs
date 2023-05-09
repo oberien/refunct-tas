@@ -1,5 +1,6 @@
 use std::ptr;
 use std::sync::atomic::Ordering;
+use crate::native::Args;
 
 #[cfg(unix)] use libc::{c_void, c_int};
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
@@ -159,4 +160,9 @@ impl UWorld {
             }
         }
     }
+}
+
+#[rtil_derive::hook_before(UUserWidget::AddToScreen)]
+fn add_to_screen(_args: &mut Args) {
+    crate::threads::ue::add_to_screen();
 }

@@ -74,6 +74,7 @@ pub fn init() {
     hud::hook_amyhud_drawhud();
     character::hook_amycharacter_tick();
     gameusersettings::hook_ugameusersettings_applyresolutionsettings();
+    uworld::hook_uuserwidget_addtoscreen();
 }
 
 #[cfg(unix)]

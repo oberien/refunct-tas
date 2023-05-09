@@ -112,6 +112,11 @@ static MINIMAP_COMPONENT = Component {
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
     on_resolution_change: fn() { MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size); },
+    on_menu_open: fn() {
+        leave_ui();
+        leave_ui();
+        leave_ui();
+    },
 };
 
 fn minimap_draw_player(location: Location, rotation: Rotation, mut color: Color) {
