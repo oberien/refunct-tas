@@ -211,4 +211,5 @@ static TAS_COMPONENT = Component {
     },
     on_component_exit: fn() {},
     on_resolution_change: fn() {},
+    on_menu_open: fn() {},
 };

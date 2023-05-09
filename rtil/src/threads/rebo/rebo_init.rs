@@ -121,6 +121,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(disconnected)
         .add_required_rebo_function(on_level_state_change)
         .add_required_rebo_function(on_resolution_change)
+        .add_required_rebo_function(on_menu_open)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
         cfg = cfg.include_directory(IncludeDirectoryConfig::Path(PathBuf::from(working_dir)));
@@ -223,6 +224,7 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
             UeToRebo::MouseMove(x, y) => on_mouse_move(vm, x, y)?,
             UeToRebo::DrawHud => draw_hud(vm)?,
             UeToRebo::ApplyResolutionSettings => on_resolution_change(vm)?,
+            UeToRebo::AddToScreen => on_menu_open(vm)?,
             UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
         }
 
@@ -285,6 +287,7 @@ extern "rebo" {
     fn disconnected(reason: Disconnected);
     fn on_level_state_change(old: LevelState, new: LevelState);
     fn on_resolution_change();
+    fn on_menu_open();
 }
 
 fn config_path() -> PathBuf {

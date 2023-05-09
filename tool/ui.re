@@ -51,7 +51,9 @@ fn enter_ui(ui: Ui) {
     UI_STACK.push(ui);
 }
 fn leave_ui() {
-    UI_STACK.pop();
+    if UI_STACK.len() > 1 {
+        UI_STACK.pop();
+    }
 }
 
 fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
@@ -131,6 +133,16 @@ fn on_resolution_change() {
         let on_resolution_change = component.on_resolution_change;
         on_resolution_change();
     }
+}
+
+fn on_menu_open() {
+    for component in CURRENT_COMPONENTS {
+        let on_menu_open = component.on_menu_open;
+        on_menu_open();
+    }
+    leave_ui();
+    leave_ui();
+    leave_ui();
 }
 
 static COLOR_BLACK = Color { red: 0., green: 0., blue: 0., alpha: 1. };

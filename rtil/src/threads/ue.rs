@@ -57,6 +57,10 @@ pub fn apply_resolution_settings() {
     handle(UeToRebo::ApplyResolutionSettings);
 }
 
+pub fn add_to_screen() {
+    handle(UeToRebo::AddToScreen);
+}
+
 fn handle(event: UeToRebo) {
     // not yet initialized
     if STATE.is_none() {

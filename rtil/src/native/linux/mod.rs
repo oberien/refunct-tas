@@ -111,6 +111,7 @@ find! {
     FUNTYPEDBULKDATA_LOCK, "^FUntypedBulkData::Lock(unsigned int)",
     FUNTYPEDBULKDATA_UNLOCK, "^FUntypedBulkData::Unlock()",
     UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS, "^UGameUserSettings::ApplyResolutionSettings(bool)",
+    UUSERWIDGET_ADDTOSCREEN, "^UUserWidget::AddToScreen(ULocalPlayer*, int)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {
