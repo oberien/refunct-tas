@@ -140,6 +140,9 @@ fn on_menu_open() {
         let on_menu_open = component.on_menu_open;
         on_menu_open();
     }
+    leave_ui();
+    leave_ui();
+    leave_ui();
 }
 
 static COLOR_BLACK = Color { red: 0., green: 0., blue: 0., alpha: 1. };
