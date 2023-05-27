@@ -9,13 +9,12 @@ use crate::native::ue::{FName, FVector, FRotator};
 use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
 use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
+use crate::native::reflection::{UClass, UObject};
 
 pub enum AActor {}
 pub enum APawn {}
 pub enum UGameplayStatics {}
 pub(in crate::native) type ULevel = c_void;
-pub(in crate::native) type UClass = c_void;
-pub(in crate::native) type UObject = c_void;
 
 #[derive(Debug)]
 #[repr(u8)]

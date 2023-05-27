@@ -7,6 +7,7 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::{FMemory, FNAME_FNAME};
+use crate::native::linux::FNAME_APPENDSTRING;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
@@ -58,6 +59,15 @@ impl<T> TArray<T> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        assert!(self.len >= 0);
+        self.len as usize
+    }
+    pub fn capacity(&self) -> usize {
+        assert!(self.capacity >= 0);
+        self.capacity as usize
+    }
+
     pub fn push(&mut self, t: T) {
         assert!(self.len  < self.capacity);
         unsafe { *self.ptr.offset(self.len as isize) = t };
@@ -77,6 +87,36 @@ impl<T> Index<usize> for TArray<T> {
             assert!(index >= 0);
             &*self.ptr.offset(index)
         }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a TArray<T> {
+    type Item = &'a T;
+    type IntoIter = TArrayIterator<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        TArrayIterator {
+            array: self,
+            index: 0,
+        }
+    }
+}
+
+pub struct TArrayIterator<'a, T> {
+    array: &'a TArray<T>,
+    index: usize,
+}
+
+impl<'a, T> Iterator for TArrayIterator<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.array.len() {
+            return None;
+        }
+        let index = self.index;
+        self.index += 1;
+        Some(&self.array[index])
     }
 }
 
@@ -147,7 +187,7 @@ impl<S: AsRef<str>> From<S> for FString {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct FName {
     #[allow(unused)]
@@ -157,6 +197,20 @@ pub struct FName {
 impl FName {
     #[allow(non_upper_case_globals)]
     pub const NAME_None: FName = FName { number: 0 };
+
+    pub fn append_string(mut self, out: &mut FString) {
+        unsafe {
+            let fun: extern_fn!(fn(this: *mut FName, out: *mut FString))
+                = mem::transmute(FNAME_APPENDSTRING.load(Ordering::SeqCst));
+            fun(&mut self, out);
+        }
+    }
+
+    pub fn to_string_lossy(self) -> String {
+        let mut string = FString::new();
+        self.append_string(&mut string);
+        string.to_string_lossy()
+    }
 }
 
 impl<T: Into<FString>> From<T> for FName {

@@ -78,6 +78,7 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
         RCTRL_PRESSED = true;
     }
     if key.to_small() == KEY_M.to_small() && !TAS_STATE.step_frame_mode && UI_STACK.len() == 1 {
+        Tas::trigger_new_game();
         enter_ui(create_base_menu());
     }
     match UI_STACK.last() {

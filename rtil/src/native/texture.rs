@@ -1,18 +1,12 @@
 use std::{mem, ptr};
-use std::ffi::c_void;
 use std::sync::atomic::Ordering;
 use image::RgbaImage;
-use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE, GUOBJECTARRAY};
+use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, GUOBJECTARRAY, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
+use crate::native::reflection::{EInternalObjectFlags, FUObjectArray, UObject};
 use crate::native::ue::TArray;
 
 pub struct UTexture2D(*mut UTexture2DUE);
 pub(in crate::native) enum UTexture2DUE {}
-
-struct UObjectBase {
-    _vtable: *const (),
-    _object_flags: i32,
-    internal_index: i32,
-}
 
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl Send for UTexture2D {}
@@ -78,7 +72,7 @@ impl UTexture2D {
 
     fn mark_as_root_object(&self, val: bool) {
         unsafe {
-            let internal_index = (*(self.0 as *mut UObjectBase)).internal_index;
+            let internal_index = (*(self.0 as *mut UObject)).internal_index;
             log!("internal_index: {internal_index}");
             let guobject_array = GUOBJECTARRAY.load(Ordering::SeqCst) as *mut FUObjectArray;
             let object_array = ptr::addr_of_mut!((*guobject_array).obj_objects);
@@ -136,31 +130,6 @@ impl FByteBulkData {
     }
 }
 
-// root stuff to mark texture as non-GC-able
-#[repr(C)]
-struct FUObjectArray {
-    obj_first_gc_index: i32,
-    obj_last_non_gc_index: i32,
-    max_objects_not_considered_by_gc: i32,
-    open_for_disregard_for_gc: bool,
-    obj_objects: TUObjectArray,
-    // ...
-}
-// typedef'd from FFixedUObjectArray
-#[repr(C)]
-struct TUObjectArray {
-    objects: *mut FUObjectItem,
-    max_elements: i32,
-    num_elements: i32,
-}
-#[repr(C)]
-struct FUObjectItem {
-    object: *mut c_void,
-    flags: i32,
-    cluster_index: i32,
-    serial_number: i32,
-}
-
 // enums
 
 #[allow(unused)]
@@ -173,7 +142,7 @@ enum EBulkDataLockFlags {
 #[allow(unused)]
 #[repr(u32)]
 #[derive(Clone, Copy)]
-pub enum EDerivedDataFlags {
+enum EDerivedDataFlags {
     None = 0,
     Required = 1 << 0,
     Optional = 1 << 1,
@@ -271,19 +240,4 @@ pub enum EPixelFormat {
     PF_R64_UINT           =84,
     PF_R9G9B9EXP5         =85,
     PF_MAX                =86,
-}
-
-#[allow(unused)]
-#[repr(i32)]
-enum EInternalObjectFlags {
-    None = 0,
-    ReachableInCluster = 1 << 23,
-    ClusterRoot = 1 << 24,
-    Native = 1 << 25,
-    Async = 1 << 26,
-    AsyncLoading = 1 << 27,
-    Unreachable = 1 << 28,
-    PendingKill = 1 << 29,
-    RootSet = 1 << 30,
-    PendingConstruction = 1 << 31,
 }

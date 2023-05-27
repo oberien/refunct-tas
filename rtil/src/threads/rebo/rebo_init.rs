@@ -9,7 +9,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -56,6 +56,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(get_max_fly_speed)
         .add_function(set_max_fly_speed)
         .add_function(get_level_state)
+        .add_function(trigger_new_game)
         .add_function(wait_for_new_game)
         .add_function(draw_line)
         .add_function(draw_text)
@@ -498,6 +499,10 @@ fn set_max_fly_speed(speed: f32) {
 #[rebo::function("Tas::get_level_state")]
 fn get_level_state() -> LevelState {
     LevelState::get()
+}
+#[rebo::function("Tas::trigger_new_game")]
+fn trigger_new_game() {
+    UMyGameInstance::trigger_new_game();
 }
 #[rebo::function(raw("Tas::wait_for_new_game"))]
 fn wait_for_new_game() {
