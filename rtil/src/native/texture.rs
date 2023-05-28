@@ -1,8 +1,8 @@
 use std::{mem, ptr};
 use std::sync::atomic::Ordering;
 use image::RgbaImage;
-use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, GUOBJECTARRAY, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
-use crate::native::reflection::{EInternalObjectFlags, FUObjectArray, UObject};
+use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
+use crate::native::reflection::{GlobalObjectArrayWrapper, ObjectWrapper, UObject};
 use crate::native::ue::TArray;
 
 pub struct UTexture2D(*mut UTexture2DUE);
@@ -12,6 +12,9 @@ pub(in crate::native) enum UTexture2DUE {}
 unsafe impl Send for UTexture2D {}
 
 impl UTexture2D {
+    fn as_object(&self) -> ObjectWrapper {
+        unsafe { ObjectWrapper::new(self.0 as *mut UObject) }
+    }
     fn create_transient(width: i32, height: i32, format: EPixelFormat) -> *mut UTexture2DUE {
         let fun: extern "C" fn(
             in_size_x: i32, in_size_y: i32, in_format: EPixelFormat
@@ -71,22 +74,7 @@ impl UTexture2D {
     }
 
     fn mark_as_root_object(&self, val: bool) {
-        unsafe {
-            let internal_index = (*(self.0 as *mut UObject)).internal_index;
-            log!("internal_index: {internal_index}");
-            let guobject_array = GUOBJECTARRAY.load(Ordering::SeqCst) as *mut FUObjectArray;
-            let object_array = ptr::addr_of_mut!((*guobject_array).obj_objects);
-            assert!(internal_index < (*object_array).num_elements, "assert {} < {}", internal_index, (*object_array).num_elements);
-            let item = (*object_array).objects.offset(internal_index.try_into().unwrap());
-            assert_eq!((*item).object as usize, self.0 as usize);
-            log!("flags before: {:032b}", (*item).flags);
-            if val {
-                (*item).flags |= EInternalObjectFlags::RootSet as i32;
-            } else {
-                (*item).flags &= !(EInternalObjectFlags::RootSet as i32);
-            }
-            log!("flags after:  {:032b}", (*item).flags);
-        }
+        GlobalObjectArrayWrapper::get().object_array().get_object(&self.as_object()).mark_as_root_object(val)
     }
 }
 

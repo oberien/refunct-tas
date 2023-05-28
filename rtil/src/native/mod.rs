@@ -34,6 +34,7 @@ mod platform_misc;
 mod texture;
 mod gameusersettings;
 mod reflection;
+mod level_editor;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -67,6 +68,7 @@ pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
+    level_editor::init();
     slateapp::hook_fslateapplication_tick();
     slateapp::hook_fslateapplication_onkeydown();
     slateapp::hook_fslateapplication_onkeyup();
