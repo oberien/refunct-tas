@@ -13,6 +13,53 @@ pub unsafe trait UeObjectWrapper {
 
     unsafe fn create(ptr: *mut Self::Wrapping) -> Self;
 }
+pub unsafe trait ArrayElement {
+    type ElementType;
+
+    fn check_property_type(prop: PropertyWrapper);
+    unsafe fn create(ptr: *mut Self::ElementType) -> Self;
+}
+unsafe impl<T: UeObjectWrapper> ArrayElement for T {
+    type ElementType = *mut T::Wrapping;
+
+    fn check_property_type(prop: PropertyWrapper) {
+        let element_class = unsafe { ClassWrapper::new((*prop.as_uobjectproperty()).property_class) };
+        assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
+    }
+
+    unsafe fn create(ptr: *mut Self::ElementType) -> Self {
+        T::create(*ptr)
+    }
+}
+macro_rules! impl_array_element_for_primitives {
+    ($($t:ty, $proptype:literal;)*) => {
+        $(
+            unsafe impl<'a> ArrayElement for &'a mut $t {
+                type ElementType = $t;
+
+                fn check_property_type(prop: PropertyWrapper) {
+                    assert_eq!(prop.as_object().class().name(), $proptype);
+                }
+
+                unsafe fn create(ptr: *mut Self::ElementType) -> Self {
+                    &mut *ptr
+                }
+            }
+        )*
+    }
+}
+impl_array_element_for_primitives! {
+    i8, "Int8Property";
+    i16, "Int16Property";
+    i32, "IntProperty";
+    i64, "Int64Property";
+    u8, "ByteProperty";
+    u16, "UInt16Property";
+    u32, "UInt32Property";
+    u64, "UInt64Property";
+    f32, "FloatProperty";
+    f64, "DoubleProperty";
+}
 
 #[repr(C)]
 pub struct UObject {

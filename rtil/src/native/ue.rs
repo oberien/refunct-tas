@@ -1,6 +1,6 @@
 use std::{ptr, slice};
 use std::mem;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use std::sync::atomic::Ordering;
 
 #[cfg(unix)] use libc::c_void;
@@ -73,6 +73,15 @@ impl<T> TArray<T> {
         unsafe { *self.ptr.offset(self.len as isize) = t };
         self.len += 1;
     }
+
+    fn check_index_for_indexing(&self, index: usize) -> isize {
+        assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
+        assert!(index <= i32::MAX as usize, "index must be smaller than i32::MAX");
+        assert!((index as i32) < self.len, "tried to access element {} of len {}", index, self.len);
+        let index = index as isize;
+        assert!(index >= 0);
+        index
+    }
 }
 
 impl<T> Index<usize> for TArray<T> {
@@ -80,12 +89,14 @@ impl<T> Index<usize> for TArray<T> {
 
     fn index(&self, index: usize) -> &Self::Output {
         unsafe {
-            assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
-            assert!(index <= i32::MAX as usize, "index must be smaller than i32::MAX");
-            assert!((index as i32) < self.len, "tried to access element {} of len {}", index, self.len);
-            let index = index as isize;
-            assert!(index >= 0);
-            &*self.ptr.offset(index)
+            &*self.ptr.offset(self.check_index_for_indexing(index))
+        }
+    }
+}
+impl<T> IndexMut<usize> for TArray<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        unsafe {
+            &mut *self.ptr.offset(self.check_index_for_indexing(index))
         }
     }
 }

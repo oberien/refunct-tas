@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 use std::fmt::{Display, Formatter, Pointer};
 use std::marker::PhantomData;
-use std::ops::Index;
+use std::ops::IndexMut;
 use std::ptr;
-use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
+use crate::native::reflection::{AActor, ArrayElement, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::{FName, FString, TArray};
 
 #[derive(Debug, Clone)]
@@ -322,12 +322,12 @@ impl<'a> ObjectWrapper<'a> {
 
 /// Wrapper for a UE-owned array
 #[derive(Debug)]
-pub struct ArrayWrapper<'a, T: UeObjectWrapper> {
-    array: *mut TArray<*mut T::Wrapping>,
-    _marker: PhantomData<&'a mut T::Wrapping>,
+pub struct ArrayWrapper<'a, T: ArrayElement> {
+    array: *mut TArray<T::ElementType>,
+    _marker: PhantomData<&'a mut ()>,
 }
 // get rid of the implied T: Clone in derived Clone impls
-impl<'a, T: UeObjectWrapper> Clone for ArrayWrapper<'a, T> {
+impl<'a, T: ArrayElement> Clone for ArrayWrapper<'a, T> {
     fn clone(&self) -> Self {
         Self {
             array: self.array,
@@ -335,16 +335,16 @@ impl<'a, T: UeObjectWrapper> Clone for ArrayWrapper<'a, T> {
         }
     }
 }
-unsafe impl<'a, T: UeObjectWrapper> UeObjectWrapper for ArrayWrapper<'a, T> {
-    type Wrapping = TArray<*mut T::Wrapping>;
+unsafe impl<'a, T: ArrayElement> UeObjectWrapper for ArrayWrapper<'a, T> {
+    type Wrapping = TArray<T::ElementType>;
     const CLASS_NAME: &'static str = "Array";
 
     unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
         ArrayWrapper::new(ptr)
     }
 }
-impl<'a, T: UeObjectWrapper> ArrayWrapper<'a, T> {
-    pub unsafe fn new(array: *mut TArray<*mut T::Wrapping>) -> ArrayWrapper<'a, T> {
+impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
+    pub unsafe fn new(array: *mut TArray<T::ElementType>) -> ArrayWrapper<'a, T> {
         ArrayWrapper { array, _marker: PhantomData }
     }
     pub fn len(&self) -> usize {
@@ -355,16 +355,16 @@ impl<'a, T: UeObjectWrapper> ArrayWrapper<'a, T> {
     }
     pub fn get(&self, index: usize) -> T {
         unsafe {
-            let ptr = *(*self.array).index(index);
+            let ptr = (*self.array).index_mut(index);
             T::create(ptr)
         }
     }
 }
-pub struct ArrayWrapperIter<'a, T: UeObjectWrapper> {
+pub struct ArrayWrapperIter<'a, T: ArrayElement> {
     array_wrapper: ArrayWrapper<'a, T>,
     index: usize,
 }
-impl<'a, T: UeObjectWrapper> Iterator for ArrayWrapperIter<'a, T> {
+impl<'a, T: ArrayElement> Iterator for ArrayWrapperIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -376,7 +376,7 @@ impl<'a, T: UeObjectWrapper> Iterator for ArrayWrapperIter<'a, T> {
         Some(e)
     }
 }
-impl<'a, 'b, T: UeObjectWrapper> IntoIterator for &'b ArrayWrapper<'a, T> {
+impl<'a, 'b, T: ArrayElement> IntoIterator for &'b ArrayWrapper<'a, T> {
     type Item = T;
     type IntoIter = ArrayWrapperIter<'a, T>;
 

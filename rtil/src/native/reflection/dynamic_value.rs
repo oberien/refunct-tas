@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, UeObjectWrapper, ArrayWrapper, PropertyWrapper};
+use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, ArrayWrapper, PropertyWrapper, ArrayElement};
 use crate::native::ue::{FName, FString, TArray};
 
 #[derive(Debug)]
@@ -119,21 +119,14 @@ impl<'a> DynamicValue<'a> {
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_array<T: UeObjectWrapper>(self) -> ArrayWrapper<'a, T> {
+    pub fn unwrap_array<T: ArrayElement>(self) -> ArrayWrapper<'a, T> {
         let (ptr, inner_prop) = match self {
             DynamicValue::Array(val, inner_prop) => (val, inner_prop),
             _ => panic!("tried to unwrap an incompatible value"),
         };
-        let element_class = unsafe { ClassWrapper::new((*inner_prop.as_uobjectproperty()).property_class) };
-        assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
-        let array = ptr as *mut TArray<*mut T::Wrapping>;
+        T::check_property_type(inner_prop);
+        let array = ptr as *mut TArray<T::ElementType>;
         unsafe { ArrayWrapper::new(array) }
-    }
-    pub unsafe fn unwrap_raw_array<T>(self) -> *mut TArray<T> {
-        match self {
-            DynamicValue::Array(ptr, _) => ptr as *mut TArray<T>,
-            _ => panic!("tried to unwrap an incompatible value"),
-        }
     }
     pub fn unwrap_struct(self) -> ObjectStructFieldWrapper<'a> {
         match self {
