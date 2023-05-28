@@ -14,6 +14,7 @@ include "minimap.re";
 include "multiplayer.re";
 include "movement.re";
 include "misc.re";
+include "leveleditor.re";
 
 static mut NEW_VERSION: Option<string> = Tas::new_version_string();
 
@@ -80,6 +81,10 @@ fn create_base_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "Multiplayer" },
             onclick: fn(label: Text) { enter_ui(create_multiplayer_menu()); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Level Editor" },
+            onclick: fn(label: Text) { enter_ui(create_level_editor_menu()); },
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Misc" },
