@@ -30,8 +30,24 @@ impl<'a> LevelWrapper<'a> {
         self.level.as_object().get_field("FertileLands").unwrap_array()
             .into_iter()
     }
-    pub fn platform(&self, index: usize) -> PlatformWrapper<'a> {
+    pub fn platform(&self, index: usize) -> Option<PlatformWrapper<'a>> {
         let array = self.level.as_object().get_field("FertileLands").unwrap_array();
+        array.get(index)
+    }
+    pub fn cubes(&self) -> impl Iterator<Item = CubeWrapper<'a>> + '_ {
+        self.level.as_object().get_field("Collectibles").unwrap_array()
+            .into_iter()
+    }
+    pub fn cube(&self, index: usize) -> Option<CubeWrapper<'a>> {
+        let array = self.level.as_object().get_field("Collectibles").unwrap_array();
+        array.get(index)
+    }
+    pub fn buttons(&self) -> impl Iterator<Item = ButtonWrapper<'a>> + '_ {
+        self.level.as_object().get_field("Buttons").unwrap_array()
+            .into_iter()
+    }
+    pub fn button(&self, index: usize) -> Option<ButtonWrapper<'a>> {
+        let array = self.level.as_object().get_field("Buttons").unwrap_array();
         array.get(index)
     }
     pub fn speed(&self) -> f32 {
@@ -63,6 +79,48 @@ impl<'a> PlatformWrapper<'a> {
         self.platform.clone()
     }
 }
+#[derive(Debug, Clone)]
+pub struct CubeWrapper<'a> {
+    cube: ActorWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for CubeWrapper<'a> {
+    type Wrapping = AActor;
+    const CLASS_NAME: &'static str = "BP_PowerCore_C";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        CubeWrapper::new(ActorWrapper::new(ptr))
+    }
+}
+impl<'a> CubeWrapper<'a> {
+    pub fn new(cube: ActorWrapper<'a>) -> CubeWrapper<'a> {
+        assert_eq!(cube.as_object().class().name(), "BP_PowerCore_C");
+        CubeWrapper { cube }
+    }
+    pub fn as_actor(&self) -> ActorWrapper<'a> {
+        self.cube.clone()
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ButtonWrapper<'a> {
+    button: ActorWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for ButtonWrapper<'a> {
+    type Wrapping = AActor;
+    const CLASS_NAME: &'static str = "BP_Button_C";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        ButtonWrapper::new(ActorWrapper::new(ptr))
+    }
+}
+impl<'a> ButtonWrapper<'a> {
+    pub fn new(button: ActorWrapper<'a>) -> ButtonWrapper<'a> {
+        assert_eq!(button.as_object().class().name(), "BP_Button_C");
+        ButtonWrapper { button }
+    }
+    pub fn as_actor(&self) -> ActorWrapper<'a> {
+        self.button.clone()
+    }
+}
 
 pub fn init() {
     for item in unsafe { GlobalObjectArrayWrapper::get().object_array().iter_elements() } {
@@ -84,22 +142,12 @@ pub fn init() {
                 }
             }
         }
-        log!("{:?} {:?} ({object:p})", class_name, name);
+        // log!("{:?} {:?} ({object:p})", class_name, name);
         // print_children(1, class);
 
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();
             LEVELS.lock().unwrap().push(level.clone());
-            level.set_speed(f32::INFINITY);
-            let (lx, ly, lz) = level.as_actor().absolute_location();
-            for platform in level.platforms() {
-                log!("bloc: {:?}", platform.as_actor().absolute_location());
-                platform.as_actor().set_relative_location(0. - lx, 0. - ly, 0. - lz);
-                platform.as_actor().set_relative_rotation(0., 0., 0.);
-                log!("aloc: {:?}", platform.as_actor().absolute_location());
-                log!("arot: {:?}", platform.as_actor().absolute_rotation());
-                log!("rrot: {:?}", platform.as_actor().relative_rotation());
-            }
         }
     }
 }

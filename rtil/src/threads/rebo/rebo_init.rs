@@ -9,7 +9,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance, LEVELS};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -92,6 +92,10 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(get_clipboard)
         .add_function(set_clipboard)
         .add_function(show_hud)
+        .add_function(set_platform_position)
+        .add_function(set_cube_position)
+        .add_function(set_button_position)
+        .add_function(set_all_cluster_speeds)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -875,4 +879,38 @@ fn set_clipboard(content: String) {
 #[rebo::function("Tas::show_hud")]
 fn show_hud() {
     AMyHud::show_hud();
+}
+
+#[rebo::function("Tas::set_platform_position")]
+fn set_platform_position(cluster: usize, platform: usize, x: f32, y: f32, z: f32) -> bool {
+    let levels = LEVELS.lock().unwrap();
+    let Some(cluster) = levels.get(cluster) else { return false };
+    let Some(platform) = cluster.platform(platform) else { return false };
+    let (lx, ly, lz) = cluster.as_actor().absolute_location();
+    platform.as_actor().set_relative_location(x - lx, y - ly, z - lz);
+    true
+}
+#[rebo::function("Tas::set_cube_position")]
+fn set_cube_position(cluster: usize, cube: usize, x: f32, y: f32, z: f32) -> bool {
+    let levels = LEVELS.lock().unwrap();
+    let Some(cluster) = levels.get(cluster) else { return false };
+    let Some(cube) = cluster.cube(cube) else { return false };
+    let (lx, ly, lz) = cluster.as_actor().absolute_location();
+    cube.as_actor().set_relative_location(x - lx, y - ly, z - lz);
+    true
+}
+#[rebo::function("Tas::set_button_position")]
+fn set_button_position(cluster: usize, button: usize, x: f32, y: f32, z: f32) -> bool {
+    let levels = LEVELS.lock().unwrap();
+    let Some(cluster) = levels.get(cluster) else { return false };
+    let Some(button) = cluster.button(button) else { return false };
+    let (lx, ly, lz) = cluster.as_actor().absolute_location();
+    button.as_actor().set_relative_location(x - lx, y - ly, z - lz);
+    true
+}
+#[rebo::function("Tas::set_all_cluster_speeds")]
+fn set_all_cluster_speeds(speed: f32) {
+    for cluster in &*LEVELS.lock().unwrap() {
+        cluster.set_speed(speed);
+    }
 }

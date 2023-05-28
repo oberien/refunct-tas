@@ -74,13 +74,25 @@ impl<T> TArray<T> {
         self.len += 1;
     }
 
-    fn check_index_for_indexing(&self, index: usize) -> isize {
+    pub fn get(&self, index: usize) -> Option<&T> {
+        unsafe { Some(&*self.ptr.offset(self.check_index_for_indexing(index).ok()?)) }
+    }
+
+    pub fn get_mut(&self, index: usize) -> Option<&mut T> {
+        unsafe { Some(&mut *self.ptr.offset(self.check_index_for_indexing(index).ok()?)) }
+    }
+
+    fn check_index_for_indexing(&self, index: usize) -> Result<isize, String> {
         assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
-        assert!(index <= i32::MAX as usize, "index must be smaller than i32::MAX");
-        assert!((index as i32) < self.len, "tried to access element {} of len {}", index, self.len);
+        if !(index <= i32::MAX as usize) {
+            return Err("index must be smaller than i32::MAX".to_string());
+        }
+        if !((index as i32) < self.len) {
+            return Err(format!("tried to access element {} of len {}", index, self.len));
+        }
         let index = index as isize;
-        assert!(index >= 0);
-        index
+        assert!(index >= 0, "somehow {index}, which is smaller than i32::MAX, is between isize::MAX and usize::MAX");
+        Ok(index)
     }
 }
 
@@ -88,16 +100,12 @@ impl<T> Index<usize> for TArray<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        unsafe {
-            &*self.ptr.offset(self.check_index_for_indexing(index))
-        }
+        unsafe { &*self.ptr.offset(self.check_index_for_indexing(index).unwrap()) }
     }
 }
 impl<T> IndexMut<usize> for TArray<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        unsafe {
-            &mut *self.ptr.offset(self.check_index_for_indexing(index))
-        }
+        unsafe { &mut *self.ptr.offset(self.check_index_for_indexing(index).unwrap()) }
     }
 }
 

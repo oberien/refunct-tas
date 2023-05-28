@@ -1,7 +1,6 @@
 use std::ffi::c_void;
 use std::fmt::{Display, Formatter, Pointer};
 use std::marker::PhantomData;
-use std::ops::IndexMut;
 use std::ptr;
 use crate::native::reflection::{AActor, ArrayElement, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::{FName, FString, TArray};
@@ -353,11 +352,8 @@ impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
     pub fn capacity(&self) -> usize {
         unsafe { (*self.array).capacity() }
     }
-    pub fn get(&self, index: usize) -> T {
-        unsafe {
-            let ptr = (*self.array).index_mut(index);
-            T::create(ptr)
-        }
+    pub fn get(&self, index: usize) -> Option<T> {
+        unsafe { (*self.array).get_mut(index).map(|ptr| T::create(ptr)) }
     }
 }
 pub struct ArrayWrapperIter<'a, T: ArrayElement> {
@@ -371,7 +367,7 @@ impl<'a, T: ArrayElement> Iterator for ArrayWrapperIter<'a, T> {
         if self.index >= self.array_wrapper.len() {
             return None;
         }
-        let e = self.array_wrapper.get(self.index);
+        let e = self.array_wrapper.get(self.index).unwrap();
         self.index += 1;
         Some(e)
     }
