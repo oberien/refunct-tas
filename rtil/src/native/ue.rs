@@ -35,9 +35,9 @@ pub struct FRotator {
 #[derive(Debug)]
 #[repr(C)]
 pub struct TArray<T> {
-    ptr: *mut T,
-    len: i32,
-    capacity: i32,
+    pub ptr: *mut T,
+    pub len: i32,
+    pub capacity: i32,
 }
 
 impl<T> TArray<T> {

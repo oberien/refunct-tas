@@ -7,6 +7,13 @@ pub use wrappers::*;
 mod guobjectarray;
 pub use guobjectarray::*;
 
+pub unsafe trait UeObjectWrapper {
+    type Wrapping;
+    const CLASS_NAME: &'static str;
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self;
+}
+
 #[repr(C)]
 pub struct UObject {
     // technically its UObject : UObjectBaseUtility : UObjectBase
@@ -20,7 +27,11 @@ pub struct UObject {
     pub name: FName,
     pub _outer_private: *const (),
 }
-
+#[repr(C)]
+pub struct AActor {
+    pub base_uobject: UObject,
+    // ...
+}
 
 #[repr(C)]
 pub struct UField {

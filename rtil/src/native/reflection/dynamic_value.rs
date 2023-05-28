@@ -1,112 +1,107 @@
-use crate::native::reflection::{ClassWrapper, ObjectWrapper, StructWrapper};
+use std::ffi::c_void;
+use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, UeObjectWrapper, ArrayWrapper, PropertyWrapper};
 use crate::native::ue::{FName, FString, TArray};
 
 #[derive(Debug)]
-pub enum DynamicValue {
-    Int8(*mut i8),
-    Int16(*mut i16),
-    Int(*mut i32),
-    Int64(*mut i64),
-    Byte(*mut u8),
-    UInt16(*mut u16),
-    UInt32(*mut u32),
-    UInt64(*mut u64),
-    Float(*mut f32),
-    Double(*mut f64),
-    Bool(bool),
-    Object(ObjectWrapper),
-    Class(ClassWrapper),
-    Interface(ClassWrapper),
+pub enum DynamicValue<'a> {
+    Int8(&'a mut i8),
+    Int16(&'a mut i16),
+    Int(&'a mut i32),
+    Int64(&'a mut i64),
+    Byte(&'a mut u8),
+    UInt16(&'a mut u16),
+    UInt32(&'a mut u32),
+    UInt64(&'a mut u64),
+    Float(&'a mut f32),
+    Double(&'a mut f64),
+    // Bool
+    Object(ObjectWrapper<'a>),
+    Class(ClassWrapper<'a>),
+    Interface(ClassWrapper<'a>),
     Name(FName),
     Str(*mut FString),
-    Array(*mut TArray<*mut ()>),
+    Array(*mut c_void, PropertyWrapper<'a>),
     // Map
     // Set
-    Struct(StructWrapper),
+    Struct(ObjectStructFieldWrapper<'a>),
     // Function
     // Enum
     // Text
 }
-impl DynamicValue {
-    pub fn unwrap_int8(self) -> *mut i8 {
+impl<'a> DynamicValue<'a> {
+    pub fn unwrap_int8(self) -> &'a mut i8 {
         match self {
             DynamicValue::Int8(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_int16(self) -> *mut i16 {
+    pub fn unwrap_int16(self) -> &'a mut i16 {
         match self {
             DynamicValue::Int16(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_int(self) -> *mut i32 {
+    pub fn unwrap_int(self) -> &'a mut i32 {
         match self {
             DynamicValue::Int(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_int64(self) -> *mut i64 {
+    pub fn unwrap_int64(self) -> &'a mut i64 {
         match self {
             DynamicValue::Int64(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_byte(self) -> *mut u8 {
+    pub fn unwrap_byte(self) -> &'a mut u8 {
         match self {
             DynamicValue::Byte(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_uint16(self) -> *mut u16 {
+    pub fn unwrap_uint16(self) -> &'a mut u16 {
         match self {
             DynamicValue::UInt16(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_uint32(self) -> *mut u32 {
+    pub fn unwrap_uint32(self) -> &'a mut u32 {
         match self {
             DynamicValue::UInt32(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_uint64(self) -> *mut u64 {
+    pub fn unwrap_uint64(self) -> &'a mut u64 {
         match self {
             DynamicValue::UInt64(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_float(self) -> *mut f32 {
+    pub fn unwrap_float(self) -> &'a mut f32 {
         match self {
             DynamicValue::Float(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_double(self) -> *mut f64 {
+    pub fn unwrap_double(self) -> &'a mut f64 {
         match self {
             DynamicValue::Double(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_bool(self) -> bool {
-        match self {
-            DynamicValue::Bool(val) => val,
-            _ => panic!("tried to unwrap an incompatible value"),
-        }
-    }
-    pub fn unwrap_object(self) -> ObjectWrapper {
+    pub fn unwrap_object(self) -> ObjectWrapper<'a> {
         match self {
             DynamicValue::Object(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_class(self) -> ClassWrapper {
+    pub fn unwrap_class(self) -> ClassWrapper<'a> {
         match self {
             DynamicValue::Class(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_interface(self) -> ClassWrapper {
+    pub fn unwrap_interface(self) -> ClassWrapper<'a> {
         match self {
             DynamicValue::Interface(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
@@ -124,13 +119,23 @@ impl DynamicValue {
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_array(self) -> *mut TArray<*mut ()> {
+    pub fn unwrap_array<T: UeObjectWrapper>(self) -> ArrayWrapper<'a, T> {
+        let (ptr, inner_prop) = match self {
+            DynamicValue::Array(val, inner_prop) => (val, inner_prop),
+            _ => panic!("tried to unwrap an incompatible value"),
+        };
+        let element_class = unsafe { ClassWrapper::new((*inner_prop.as_uobjectproperty()).property_class) };
+        assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
+        let array = ptr as *mut TArray<*mut T::Wrapping>;
+        unsafe { ArrayWrapper::new(array) }
+    }
+    pub unsafe fn unwrap_raw_array<T>(self) -> *mut TArray<T> {
         match self {
-            DynamicValue::Array(val) => val,
+            DynamicValue::Array(ptr, _) => ptr as *mut TArray<T>,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_struct(self) -> StructWrapper {
+    pub fn unwrap_struct(self) -> ObjectStructFieldWrapper<'a> {
         match self {
             DynamicValue::Struct(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),

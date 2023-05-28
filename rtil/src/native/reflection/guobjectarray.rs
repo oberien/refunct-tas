@@ -1,33 +1,39 @@
+use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
 use crate::native::linux::GUOBJECTARRAY;
 use crate::native::reflection::{ObjectWrapper, UObject};
 
 /// Wraps the global FUObjectArray (symbol GUObjectArray)
-pub struct GlobalObjectArrayWrapper {
-    guobjectarray: *mut FUObjectArray
+#[derive(Debug, Clone)]
+pub struct GlobalObjectArrayWrapper<'a> {
+    guobjectarray: *mut FUObjectArray,
+    _marker: PhantomData<&'a mut FUObjectArray>,
 }
 
-impl GlobalObjectArrayWrapper {
-    pub fn get() -> GlobalObjectArrayWrapper {
+impl<'a> GlobalObjectArrayWrapper<'a> {
+    pub unsafe fn get() -> GlobalObjectArrayWrapper<'a> {
         GlobalObjectArrayWrapper {
             guobjectarray: GUOBJECTARRAY.load(Ordering::SeqCst) as *mut FUObjectArray,
+            _marker: PhantomData,
         }
     }
 
-    pub fn object_array(&self) -> ObjectArrayWrapper {
+    pub fn object_array(&self) -> ObjectArrayWrapper<'a> {
         unsafe { ObjectArrayWrapper::new(ptr::addr_of_mut!((*self.guobjectarray).obj_objects)) }
     }
 }
 
 /// Wraps the actual list containing ObjectItems (TUObjectArray)
-pub struct ObjectArrayWrapper {
+#[derive(Debug, Clone)]
+pub struct ObjectArrayWrapper<'a> {
     array: *mut TUObjectArray,
+    _marker: PhantomData<&'a mut TUObjectArray>,
 }
 
-impl ObjectArrayWrapper {
-    pub unsafe fn new(array: *mut TUObjectArray) -> ObjectArrayWrapper {
-        ObjectArrayWrapper { array }
+impl<'a> ObjectArrayWrapper<'a> {
+    pub unsafe fn new(array: *mut TUObjectArray) -> ObjectArrayWrapper<'a> {
+        ObjectArrayWrapper { array, _marker: PhantomData }
     }
     pub fn max_elements(&self) -> usize {
         unsafe { (*self.array).max_elements.try_into().unwrap() }
@@ -35,13 +41,13 @@ impl ObjectArrayWrapper {
     pub fn num_elements(&self) -> usize {
         unsafe { (*self.array).num_elements.try_into().unwrap() }
     }
-    pub fn iter_elements<'a>(&'a self) -> impl Iterator<Item = ObjectItemWrapper> + 'a {
+    pub fn iter_elements(&'a self) -> impl Iterator<Item = ObjectItemWrapper<'a>> + 'a {
         struct ObjectArrayIterator<'a> {
-            array: &'a ObjectArrayWrapper,
+            array: &'a ObjectArrayWrapper<'a>,
             index: usize,
         }
         impl<'a> Iterator for ObjectArrayIterator<'a> {
-            type Item = ObjectItemWrapper;
+            type Item = ObjectItemWrapper<'a>;
 
             fn next(&mut self) -> Option<Self::Item> {
                 if self.index >= self.array.num_elements() {
@@ -57,12 +63,12 @@ impl ObjectArrayWrapper {
             index: 0,
         }
     }
-    pub fn get_object(&self, obj: &ObjectWrapper) -> ObjectItemWrapper {
+    pub fn get_object(&self, obj: &ObjectWrapper<'a>) -> ObjectItemWrapper<'a> {
         let item = self.get(obj.internal_index());
         assert_eq!(item.object().as_ptr() as usize, obj.as_ptr() as usize);
         item
     }
-    pub fn get(&self, index: usize) -> ObjectItemWrapper {
+    pub fn get(&self, index: usize) -> ObjectItemWrapper<'a> {
         unsafe {
             assert!(index < self.num_elements(), "assert {} < {}", index, self.num_elements());
             let item = (*self.array).objects.offset(index.try_into().unwrap());
@@ -71,19 +77,21 @@ impl ObjectArrayWrapper {
     }
 }
 
-pub struct ObjectItemWrapper {
+#[derive(Debug, Clone)]
+pub struct ObjectItemWrapper<'a> {
     item: *mut FUObjectItem,
+    _marker: PhantomData<&'a mut FUObjectItem>,
 }
 
-impl ObjectItemWrapper {
-    pub unsafe fn new(item: *mut FUObjectItem) -> ObjectItemWrapper {
-        ObjectItemWrapper { item }
+impl<'a> ObjectItemWrapper<'a> {
+    pub unsafe fn new(item: *mut FUObjectItem) -> ObjectItemWrapper<'a> {
+        ObjectItemWrapper { item, _marker: PhantomData }
     }
     pub fn as_ptr(&self) -> *mut FUObjectItem {
         self.item
     }
 
-    pub fn object(&self) -> ObjectWrapper {
+    pub fn object(&self) -> ObjectWrapper<'a> {
         unsafe { ObjectWrapper::new((*self.item).object) }
     }
 
