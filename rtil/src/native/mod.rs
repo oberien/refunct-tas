@@ -34,7 +34,7 @@ mod platform_misc;
 mod texture;
 mod gameusersettings;
 mod reflection;
-mod level_editor;
+mod map_editor;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -61,7 +61,7 @@ pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
 pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
-pub use self::level_editor::LEVELS;
+pub use self::map_editor::LEVELS;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.
@@ -70,7 +70,7 @@ pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
-    level_editor::init();
+    map_editor::init();
     slateapp::hook_fslateapplication_tick();
     slateapp::hook_fslateapplication_onkeydown();
     slateapp::hook_fslateapplication_onkeyup();

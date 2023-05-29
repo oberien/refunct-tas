@@ -1,0 +1,320 @@
+static mut MAP_EDITOR_STATE = MapEditorState {
+    map_name: "",
+    map: Tas::current_map(),
+};
+
+struct MapEditorState {
+    map_name: string,
+    map: RefunctMap,
+}
+
+static MAP_EDITOR_COMPONENT = Component {
+    id: MAP_EDITOR_COMPONENT_ID,
+    conflicts_with: List::of(MAP_EDITOR_COMPONENT_ID),
+    draw_hud_text: fn(text: string) -> string {
+        f"{text}\nMap Editor\n    <TAB> edit an element"
+     },
+    draw_hud_always: fn() {},
+    tick_mode: TickMode::DontCare,
+    requested_delta_time: Option::None,
+    on_tick: fn() {},
+    on_yield: fn() {},
+    on_new_game: fn() {},
+    on_level_change: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
+    on_key_down: fn(key: KeyCode, is_repeat: bool) {
+        if key.to_small() == KEY_TAB.to_small() {
+            enter_ui(create_map_editor_input_ui());
+        }
+    },
+    on_key_up: fn(key: KeyCode) {},
+    on_mouse_move: fn(x: int, y: int) {},
+    on_component_exit: fn() {},
+    on_resolution_change: fn() {},
+    on_menu_open: fn() {},
+};
+
+fn apply_and_reload_map(map: RefunctMap) {
+    Tas::apply_map(map);
+
+    Tas::set_all_cluster_speeds(9999999.);
+    let loc = Tas::get_location();
+    let rot = Tas::get_rotation();
+    Tas::key_down(KEY_ESCAPE.large_value, KEY_ESCAPE.large_value, false);
+    Tas::key_up(KEY_ESCAPE.large_value, KEY_ESCAPE.large_value, false);
+    Tas::step();
+    Tas::key_down(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
+    Tas::key_up(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
+    Tas::step();
+    Tas::key_down(KEY_LEFT.large_value, KEY_LEFT.large_value, false);
+    Tas::key_up(KEY_LEFT.large_value, KEY_LEFT.large_value, false);
+    Tas::step();
+    Tas::key_down(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
+    Tas::key_up(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
+    Tas::step();
+    Tas::step();
+    Tas::set_location(loc);
+    Tas::set_rotation(rot);
+    Tas::set_all_cluster_speeds(700.);
+}
+
+static mut MAP_EDITOR_LABEL = Text { text: if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) { "Stop Map Editor" } else { "Edit Map" } };
+fn create_map_editor_menu() -> Ui {
+    Ui::new("Map Editor", List::of(
+        UiElement::Button(UiButton {
+            label: MAP_EDITOR_LABEL,
+            onclick: fn(label: Text) {
+                if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
+                    remove_component(MAP_EDITOR_COMPONENT);
+                    Tas::apply_map(Tas::original_map());
+                    MAP_EDITOR_LABEL.text = "Edit Map";
+                } else {
+                    enter_ui(create_map_editor_map_selection_ui());
+                }
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+};
+
+fn create_map_editor_map_selection_ui() -> Ui {
+    let map_list = Tas::list_maps();
+    let mut maps = List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+        UiElement::Input(Input {
+            label: Text { text: "Map name" },
+            input: "",
+            onclick: fn(input: string) {
+                if input.len_utf8() == 0 {
+                    return;
+                }
+                MAP_EDITOR_STATE.map_name = input;
+                if map_list.contains(input) {
+                     MAP_EDITOR_STATE.map = Tas::load_map(input);
+                     apply_and_reload_map(MAP_EDITOR_STATE.map);
+                } else {
+                    MAP_EDITOR_STATE.map = Tas::current_map();
+                };
+                MAP_EDITOR_LABEL.text = "Stop Map Editor";
+                add_component(MAP_EDITOR_COMPONENT);
+                leave_ui();
+                leave_ui();
+                leave_ui();
+            },
+            onchange: fn(input: string) {}
+        }),
+    );
+    for map in map_list {
+        maps.push(UiElement::Button(UiButton {
+            label: Text { text: map },
+            onclick: fn(label: Text) {
+                MAP_EDITOR_STATE.map_name = label.text;
+                MAP_EDITOR_STATE.map = Tas::load_map(label.text);
+                Tas::apply_map(MAP_EDITOR_STATE.map);
+                MAP_EDITOR_LABEL.text = "Stop Map Editor";
+                add_component(MAP_EDITOR_COMPONENT);
+                leave_ui();
+                leave_ui();
+                leave_ui();
+            },
+        }));
+    }
+    Ui::new("Map to edit", maps)
+}
+
+static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
+fn create_map_editor_input_ui() -> Ui {
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p<num>, ex: 14pl2 or 2b0 or 4c0)", List::of(
+        UiElement::Input(Input {
+            label: MAP_EDITOR_INPUT_LABEL,
+            input: "",
+            onclick: fn(input: string) {
+                let indexes = input.find_matches("\\d+");
+                MAP_EDITOR_INPUT_LABEL.text = "Input";
+                if indexes.len() != 2 {
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: need 2 numbers)";
+                    return;
+                }
+                let cluster_index = indexes.get(0).unwrap().parse_int().unwrap();
+                let element_index = indexes.get(1).unwrap().parse_int().unwrap();
+
+                let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index) {
+                    Option::Some(cluster) => cluster,
+                    Option::None => {
+                        MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: invalid cluster index)";
+                        return
+                    }
+                };
+                let mut element_type = "";
+                let element_list = if input.contains("pl") {
+                    element_type = "platform";
+                    cluster.platforms
+                } else if input.contains("c") {
+                    element_type = "cube";
+                    cluster.cubes
+                } else if input.contains("b") {
+                    element_type = "button";
+                    cluster.buttons
+                } else {
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b)";
+                    return
+                };
+
+                let element = match element_list.get(element_index) {
+                    Option::Some(element) => element,
+                    Option::None => {
+                        MAP_EDITOR_INPUT_LABEL.text = f"Input (ERROR: invalid {element_type} index)";
+                        return
+                    }
+                };
+
+                leave_ui();
+                enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index));
+            },
+            onchange: fn(input: string) {}
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+}
+
+fn create_map_editor_element_ui(mut element: Element, element_type: string, cluster_index: int, element_index: int) -> Ui {
+    fn submit() {
+        Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
+        leave_ui();
+        apply_and_reload_map(MAP_EDITOR_STATE.map);
+    }
+    static mut MAP_EDITOR_X_LABEL = Text { text: "X" };
+    static mut MAP_EDITOR_Y_LABEL = Text { text: "Y" };
+    static mut MAP_EDITOR_Z_LABEL = Text { text: "Z" };
+    static mut MAP_EDITOR_PITCH_LABEL = Text { text: "Pitch" };
+    static mut MAP_EDITOR_YAW_LABEL = Text { text: "Yaw" };
+    static mut MAP_EDITOR_ROLL_LABEL = Text { text: "Roll" };
+    static mut MAP_EDITOR_XSCALE_LABEL = Text { text: "XScale" };
+    static mut MAP_EDITOR_YSCALE_LABEL = Text { text: "YScale" };
+    static mut MAP_EDITOR_ZSCALE_LABEL = Text { text: "ZScale" };
+    Ui::new(f"Map Editor - Edit cluster {cluster_index} {element_type} {element_index}", List::of(
+        UiElement::Input(Input {
+            label: MAP_EDITOR_X_LABEL,
+            input: f"{element.x}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_X_LABEL.text = "X";
+                match input.parse_float() {
+                    Result::Ok(num) => element.x = num,
+                    Result::Err(e) => MAP_EDITOR_X_LABEL.text = "X (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_Y_LABEL,
+            input: f"{element.y}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_Y_LABEL.text = "Y";
+                match input.parse_float() {
+                    Result::Ok(num) => element.y = num,
+                    Result::Err(e) => MAP_EDITOR_Y_LABEL.text = "Y (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_Z_LABEL,
+            input: f"{element.z}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_Z_LABEL.text = "Z";
+                match input.parse_float() {
+                    Result::Ok(num) => element.z = num,
+                    Result::Err(e) => MAP_EDITOR_Z_LABEL.text = "Z (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_PITCH_LABEL,
+            input: f"{element.pitch}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_PITCH_LABEL.text = "Pitch";
+                match input.parse_float() {
+                    Result::Ok(num) => element.pitch = num,
+                    Result::Err(e) => MAP_EDITOR_PITCH_LABEL.text = "Pitch (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_YAW_LABEL,
+            input: f"{element.yaw}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_YAW_LABEL.text = "Yaw";
+                match input.parse_float() {
+                    Result::Ok(num) => element.yaw = num,
+                    Result::Err(e) => MAP_EDITOR_YAW_LABEL.text = "Yaw (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_ROLL_LABEL,
+            input: f"{element.roll}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_ROLL_LABEL.text = "Roll";
+                match input.parse_float() {
+                    Result::Ok(num) => element.roll = num,
+                    Result::Err(e) => MAP_EDITOR_ROLL_LABEL.text = "Roll (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_XSCALE_LABEL,
+            input: f"{element.xscale}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_XSCALE_LABEL.text = "XScale";
+                match input.parse_float() {
+                    Result::Ok(num) => element.xscale = num,
+                    Result::Err(e) => MAP_EDITOR_XSCALE_LABEL.text = "XScale (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_YSCALE_LABEL,
+            input: f"{element.yscale}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_YSCALE_LABEL.text = "YScale";
+                match input.parse_float() {
+                    Result::Ok(num) => element.yscale = num,
+                    Result::Err(e) => MAP_EDITOR_YSCALE_LABEL.text = "YScale (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_ZSCALE_LABEL,
+            input: f"{element.zscale}",
+            onclick: fn(input: string) { submit() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_ZSCALE_LABEL.text = "ZScale";
+                match input.parse_float() {
+                    Result::Ok(num) => element.zscale = num,
+                    Result::Err(e) => MAP_EDITOR_ZSCALE_LABEL.text = "ZScale (invalid value: {e})",
+                }
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+}

@@ -76,8 +76,8 @@ static TAS_COMPONENT = Component {
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, TAS_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
         let text = f"{text}\nTAS: REQUIRES 60 FPS";
-        let text = f"{text}\n     t toggle frame-step mode, f advance one frame";
-        let text = f"{text}\n     r to record/stop, g to replay inputs, h to replay position, j to replay positions + inputs";
+        let text = f"{text}\n     <t> toggle frame-step mode, <f> advance one frame";
+        let text = f"{text}\n     <r> to record/stop, <g> to replay inputs, <h> to replay position, <j> to replay positions + inputs";
         let mut text = f"{text}\n     Step-Frame: {TAS_STATE.step_frame_mode}    Recording: {TAS_STATE.is_recording}    Replay {TAS_STATE.is_replaying}: {TAS_STATE.replay_index}/{TAS_STATE.recording.len()}";
 
         if TAS_STATE.is_replaying == Replaying::Inputs || TAS_STATE.is_replaying == Replaying::PositionsAndInputs {

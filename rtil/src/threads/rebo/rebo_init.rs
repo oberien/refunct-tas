@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -9,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance, LEVELS};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance, LEVELS, ActorWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -92,10 +93,14 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(get_clipboard)
         .add_function(set_clipboard)
         .add_function(show_hud)
-        .add_function(set_platform_position)
-        .add_function(set_cube_position)
-        .add_function(set_button_position)
         .add_function(set_all_cluster_speeds)
+        .add_function(list_maps)
+        .add_function(load_map)
+        .add_function(save_map)
+        .add_function(remove_map)
+        .add_function(current_map)
+        .add_function(original_map)
+        .add_function(apply_map)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -112,6 +117,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Disconnected)
         .add_external_type(RecordFrame)
         .add_external_type(InputEvent)
+        .add_external_type(RefunctMap)
+        .add_external_type(Cluster)
+        .add_external_type(Element)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(on_mouse_move)
@@ -881,36 +889,125 @@ fn show_hud() {
     AMyHud::show_hud();
 }
 
-#[rebo::function("Tas::set_platform_position")]
-fn set_platform_position(cluster: usize, platform: usize, x: f32, y: f32, z: f32) -> bool {
-    let levels = LEVELS.lock().unwrap();
-    let Some(cluster) = levels.get(cluster) else { return false };
-    let Some(platform) = cluster.platform(platform) else { return false };
-    let (lx, ly, lz) = cluster.as_actor().absolute_location();
-    platform.as_actor().set_relative_location(x - lx, y - ly, z - lz);
-    true
-}
-#[rebo::function("Tas::set_cube_position")]
-fn set_cube_position(cluster: usize, cube: usize, x: f32, y: f32, z: f32) -> bool {
-    let levels = LEVELS.lock().unwrap();
-    let Some(cluster) = levels.get(cluster) else { return false };
-    let Some(cube) = cluster.cube(cube) else { return false };
-    let (lx, ly, lz) = cluster.as_actor().absolute_location();
-    cube.as_actor().set_relative_location(x - lx, y - ly, z - lz);
-    true
-}
-#[rebo::function("Tas::set_button_position")]
-fn set_button_position(cluster: usize, button: usize, x: f32, y: f32, z: f32) -> bool {
-    let levels = LEVELS.lock().unwrap();
-    let Some(cluster) = levels.get(cluster) else { return false };
-    let Some(button) = cluster.button(button) else { return false };
-    let (lx, ly, lz) = cluster.as_actor().absolute_location();
-    button.as_actor().set_relative_location(x - lx, y - ly, z - lz);
-    true
-}
 #[rebo::function("Tas::set_all_cluster_speeds")]
 fn set_all_cluster_speeds(speed: f32) {
     for cluster in &*LEVELS.lock().unwrap() {
         cluster.set_speed(speed);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
+struct RefunctMap {
+    clusters: Vec<Cluster>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
+struct Cluster {
+    platforms: Vec<Element>,
+    cubes: Vec<Element>,
+    buttons: Vec<Element>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
+struct Element {
+    index: usize,
+    x: f32,
+    y: f32,
+    z: f32,
+    pitch: f32,
+    yaw: f32,
+    roll: f32,
+    xscale: f32,
+    yscale: f32,
+    zscale: f32,
+}
+
+fn map_path() -> PathBuf {
+    let appdata_path = data_path();
+    let map_path = appdata_path.join("maps/");
+    if !map_path.is_dir() {
+        std::fs::create_dir(&map_path).unwrap();
+    }
+    map_path
+}
+#[rebo::function("Tas::list_maps")]
+fn list_maps() -> Vec<String> {
+    let path = map_path();
+    std::fs::read_dir(path).unwrap().flatten()
+        .map(|entry| {
+            assert!(entry.file_type().unwrap().is_file());
+            entry.file_name().into_string().unwrap()
+        }).collect()
+}
+#[rebo::function("Tas::load_map")]
+fn load_map(filename: String) -> RefunctMap {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = map_path().join(filename);
+    let content = std::fs::read_to_string(path).unwrap();
+    let res = serde_json::from_str(&content).unwrap();
+    res
+}
+#[rebo::function("Tas::save_map")]
+fn save_map(filename: String, map: RefunctMap) {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = map_path().join(filename);
+    let file = File::create(path).unwrap();
+    serde_json::to_writer_pretty(file, &map).unwrap();
+}
+#[rebo::function("Tas::remove_map")]
+fn remove_map(filename: String) -> bool {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = map_path().join(filename);
+    std::fs::remove_file(path).is_ok()
+}
+
+fn get_current_map() -> RefunctMap {
+    fn aactor_to_element(index: usize, actor: ActorWrapper) -> Element {
+        let (x, y, z) = actor.absolute_location();
+        let (pitch, yaw, roll) = actor.absolute_rotation();
+        let (xscale, yscale, zscale) = actor.absolute_scale();
+        Element { index, x, y, z, pitch, yaw, roll, xscale, yscale, zscale }
+    }
+    let clusters = LEVELS.lock().unwrap().iter()
+        .map(|level| Cluster {
+            platforms: level.platforms().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
+            cubes: level.cubes().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
+            buttons: level.buttons().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
+        }).collect();
+    RefunctMap { clusters }
+}
+
+#[rebo::function("Tas::current_map")]
+fn current_map() -> RefunctMap {
+    get_current_map()
+}
+static ORIGINAL_MAP: Mutex<Option<RefunctMap>> = Mutex::new(None);
+#[rebo::function("Tas::original_map")]
+fn original_map() -> RefunctMap {
+    ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map()).clone()
+}
+#[rebo::function("Tas::apply_map")]
+fn apply_map(map: RefunctMap) {
+    // initialize before we change anything
+    ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
+    let levels = LEVELS.lock().unwrap();
+    assert_eq!(map.clusters.len(), levels.len());
+    for (level, cluster) in levels.iter().zip(map.clusters) {
+        let (lx, ly, lz) = level.as_actor().relative_location();
+        let (lpitch, lyaw, lroll) = level.as_actor().relative_rotation();
+        let (lxscale, lyscale, lzscale) = level.as_actor().relative_scale();
+        for (lp, cp) in level.platforms().zip(cluster.platforms) {
+            lp.as_actor().set_relative_location(cp.x - lx, cp.y - ly, cp.z - lz);
+            // lp.as_actor().set_relative_rotation(cp.pitch - lpitch, cp.yaw - lyaw, cp.roll - lroll);
+            // lp.as_actor().set_relative_scale(cp.xscale - lxscale, cp.yscale - lyscale, cp.zscale - lzscale);
+        }
+        for (lc, cc) in level.cubes().zip(cluster.cubes) {
+            lc.as_actor().set_relative_location(cc.x - lx, cc.y - ly, cc.z - lz);
+            // lc.as_actor().set_relative_rotation(cc.pitch - lpitch, cc.yaw - lyaw, cc.roll - lroll);
+            // lc.as_actor().set_relative_scale(cc.xscale - lxscale, cc.yscale - lyscale, cc.zscale - lzscale);
+        }
+        for (lb, cb) in level.buttons().zip(cluster.buttons) {
+            lb.as_actor().set_relative_location(cb.x - lx, cb.y - ly, cb.z - lz);
+            // lb.as_actor().set_relative_rotation(cb.pitch - lpitch, cb.yaw - lyaw, cb.roll - lroll);
+            // lb.as_actor().set_relative_scale(cb.xscale - lxscale, cb.yscale - lyscale, cb.zscale - lzscale);
+        }
     }
 }

@@ -442,6 +442,22 @@ impl<'a> ActorWrapper<'a> {
         *absolute_rotation.get_field("Yaw").unwrap_float() = yaw;
         *absolute_rotation.get_field("Roll").unwrap_float() = roll;
     }
+    pub fn absolute_scale(&self) -> (f32, f32, f32) {
+        let root_component = self.as_object().get_field("RootComponent").unwrap_object();
+        let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
+        (
+            *absolute_scale.get_field("X").unwrap_float(),
+            *absolute_scale.get_field("Y").unwrap_float(),
+            *absolute_scale.get_field("Z").unwrap_float(),
+        )
+    }
+    pub fn set_absolute_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+        let root_component = self.as_object().get_field("RootComponent").unwrap_object();
+        let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
+        *absolute_scale.get_field("X").unwrap_float() = xscale;
+        *absolute_scale.get_field("Y").unwrap_float() = yscale;
+        *absolute_scale.get_field("Z").unwrap_float() = zscale;
+    }
     pub fn relative_location(&self) -> (f32, f32, f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let relative_location = root_component.get_field("RelativeLocation").unwrap_struct();
@@ -473,6 +489,22 @@ impl<'a> ActorWrapper<'a> {
         *relative_rotation.get_field("Pitch").unwrap_float() = pitch;
         *relative_rotation.get_field("Yaw").unwrap_float() = yaw;
         *relative_rotation.get_field("Roll").unwrap_float() = roll;
+    }
+    pub fn relative_scale(&self) -> (f32, f32, f32) {
+        let root_component = self.as_object().get_field("RootComponent").unwrap_object();
+        let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
+        (
+            *relative_scale.get_field("X").unwrap_float(),
+            *relative_scale.get_field("Y").unwrap_float(),
+            *relative_scale.get_field("Z").unwrap_float(),
+        )
+    }
+    pub fn set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+        let root_component = self.as_object().get_field("RootComponent").unwrap_object();
+        let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
+        *relative_scale.get_field("X").unwrap_float() = xscale;
+        *relative_scale.get_field("Y").unwrap_float() = yscale;
+        *relative_scale.get_field("Z").unwrap_float() = zscale;
     }
 }
 

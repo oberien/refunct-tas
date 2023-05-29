@@ -26,6 +26,9 @@ impl<'a> LevelWrapper<'a> {
     pub fn as_actor(&self) -> ActorWrapper<'a> {
         self.level.clone()
     }
+    pub fn level_index(&self) -> usize {
+        (*self.level.as_object().get_field("LevelIndex").unwrap_int()).try_into().unwrap()
+    }
     pub fn platforms(&self) -> impl Iterator<Item = PlatformWrapper<'a>> + '_ {
         self.level.as_object().get_field("FertileLands").unwrap_array()
             .into_iter()
@@ -150,4 +153,5 @@ pub fn init() {
             LEVELS.lock().unwrap().push(level.clone());
         }
     }
+    LEVELS.lock().unwrap().sort_by_key(|level| level.level_index())
 }

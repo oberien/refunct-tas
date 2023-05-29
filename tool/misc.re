@@ -4,7 +4,7 @@ enum ReplayMenuOp {
     Delete,
 }
 
-fn create_replay_menu(op: ReplayMenuOp) -> Ui{
+fn create_replay_menu(op: ReplayMenuOp) -> Ui {
     let mut recording_name_label = Text { text: "Recording name" };
 
     let recordings_list = Tas::list_recordings();
