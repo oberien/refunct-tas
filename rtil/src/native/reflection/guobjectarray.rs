@@ -35,7 +35,7 @@ impl<'a> ObjectArrayWrapper<'a> {
     pub unsafe fn new(array: *mut TUObjectArray) -> ObjectArrayWrapper<'a> {
         ObjectArrayWrapper { array, _marker: PhantomData }
     }
-    pub fn max_elements(&self) -> usize {
+    pub fn _max_elements(&self) -> usize {
         unsafe { (*self.array).max_elements.try_into().unwrap() }
     }
     pub fn num_elements(&self) -> usize {
@@ -87,7 +87,7 @@ impl<'a> ObjectItemWrapper<'a> {
     pub unsafe fn new(item: *mut FUObjectItem) -> ObjectItemWrapper<'a> {
         ObjectItemWrapper { item, _marker: PhantomData }
     }
-    pub fn as_ptr(&self) -> *mut FUObjectItem {
+    pub fn _as_ptr(&self) -> *mut FUObjectItem {
         self.item
     }
 

@@ -10,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance, LEVELS, ActorWrapper};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, UMyGameInstance, LEVELS, ActorWrapper, LevelWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -908,7 +908,6 @@ struct Cluster {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
 struct Element {
-    index: usize,
     x: f32,
     y: f32,
     z: f32,
@@ -959,18 +958,19 @@ fn remove_map(filename: String) -> bool {
     std::fs::remove_file(path).is_ok()
 }
 
+fn aactor_to_element(level: &LevelWrapper, actor: ActorWrapper) -> Element {
+    let (_, _, lz) = level.as_actor().relative_location();
+    let (ax, ay, az) = actor.absolute_location();
+    let (pitch, yaw, roll) = actor.absolute_rotation();
+    let (xscale, yscale, zscale) = actor.absolute_scale();
+    Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, xscale, yscale, zscale }
+}
 fn get_current_map() -> RefunctMap {
-    fn aactor_to_element(index: usize, actor: ActorWrapper) -> Element {
-        let (x, y, z) = actor.absolute_location();
-        let (pitch, yaw, roll) = actor.absolute_rotation();
-        let (xscale, yscale, zscale) = actor.absolute_scale();
-        Element { index, x, y, z, pitch, yaw, roll, xscale, yscale, zscale }
-    }
     let clusters = LEVELS.lock().unwrap().iter()
         .map(|level| Cluster {
-            platforms: level.platforms().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
-            cubes: level.cubes().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
-            buttons: level.buttons().enumerate().map(|(i, p)| aactor_to_element(i, p.as_actor())).collect(),
+            platforms: level.platforms().map(|p| aactor_to_element(level, p.as_actor())).collect(),
+            cubes: level.cubes().map(|c| aactor_to_element(level, c.as_actor())).collect(),
+            buttons: level.buttons().map(|b| aactor_to_element(level, b.as_actor())).collect(),
         }).collect();
     RefunctMap { clusters }
 }
@@ -991,21 +991,26 @@ fn apply_map(map: RefunctMap) {
     let levels = LEVELS.lock().unwrap();
     assert_eq!(map.clusters.len(), levels.len());
     for (level, cluster) in levels.iter().zip(map.clusters) {
-        let (lx, ly, lz) = level.as_actor().relative_location();
-        let (lpitch, lyaw, lroll) = level.as_actor().relative_rotation();
-        let (lxscale, lyscale, lzscale) = level.as_actor().relative_scale();
+        let (_, _, lz) = level.source_location();
+        let (lpitch, lyaw, lroll) = level.as_actor().absolute_rotation();
+        let (lxscale, lyscale, lzscale) = level.as_actor().absolute_scale();
         for (lp, cp) in level.platforms().zip(cluster.platforms) {
-            lp.as_actor().set_relative_location(cp.x - lx, cp.y - ly, cp.z - lz);
+            let current = aactor_to_element(level, lp.as_actor());
+            let (dx, dy, dz) = (cp.x - current.x, cp.y - current.y, cp.z - current.z);
+            let (rx, ry, rz) = lp.as_actor().relative_location();
+            log!("r{:?} - r{:?}, a{:?} = ({}, {}, {})", level.as_actor().relative_location(), lp.as_actor().relative_location(), lp.as_actor().absolute_location(), cp.x, cp.y, cp.z);
+            lp.as_actor().set_relative_location(rx + dx, ry + dy, rz + dz);
+            log!("s{:?} - r{:?}, a{:?}", level.source_location(), lp.as_actor().relative_location(), lp.as_actor().absolute_location());
             // lp.as_actor().set_relative_rotation(cp.pitch - lpitch, cp.yaw - lyaw, cp.roll - lroll);
             // lp.as_actor().set_relative_scale(cp.xscale - lxscale, cp.yscale - lyscale, cp.zscale - lzscale);
         }
         for (lc, cc) in level.cubes().zip(cluster.cubes) {
-            lc.as_actor().set_relative_location(cc.x - lx, cc.y - ly, cc.z - lz);
+            // lc.as_actor().set_relative_location(cc.x - risen.x, cc.y - ly, cc.z - lz);
             // lc.as_actor().set_relative_rotation(cc.pitch - lpitch, cc.yaw - lyaw, cc.roll - lroll);
             // lc.as_actor().set_relative_scale(cc.xscale - lxscale, cc.yscale - lyscale, cc.zscale - lzscale);
         }
         for (lb, cb) in level.buttons().zip(cluster.buttons) {
-            lb.as_actor().set_relative_location(cb.x - lx, cb.y - ly, cb.z - lz);
+            // lb.as_actor().set_relative_location(cb.x - risen.x, cb.y - ly, cb.z - lz);
             // lb.as_actor().set_relative_rotation(cb.pitch - lpitch, cb.yaw - lyaw, cb.roll - lroll);
             // lb.as_actor().set_relative_scale(cb.xscale - lxscale, cb.yscale - lyscale, cb.zscale - lzscale);
         }

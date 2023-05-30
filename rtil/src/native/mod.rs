@@ -61,7 +61,7 @@ pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
 pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
-pub use self::map_editor::LEVELS;
+pub use self::map_editor::*;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.
@@ -153,7 +153,7 @@ impl Args {
     ///
     /// # Safety
     /// The caller must ensure that at least `n` integer args are passed to the original function.
-    unsafe fn set_nth_integer_arg(&mut self, n: usize, val: usize) {
+    unsafe fn _set_nth_integer_arg(&mut self, n: usize, val: usize) {
         if n > 5 {
             panic!("Args::nth_integer_arg called with number greater than 5: {n}");
         }

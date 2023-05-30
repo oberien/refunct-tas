@@ -124,7 +124,7 @@ pub struct UProperty {
 
 // Byte, Int*, UInt* are all empty
 #[repr(C)]
-pub struct UBoolProperty {
+pub struct _UBoolProperty {
     base_uproperty: UProperty,
     field_size: u8,
     byte_offset: u8,
@@ -139,12 +139,12 @@ pub struct UObjectProperty {
     pub property_class: *mut UClass,
 }
 #[repr(C)]
-pub struct UClassProperty {
+pub struct _UClassProperty {
     pub base_uproperty: UProperty,
     pub meta_class: *mut UClass,
 }
 #[repr(C)]
-pub struct UInterfaceProperty {
+pub struct _UInterfaceProperty {
     pub base_uproperty: UProperty,
     pub interface_class: *mut UClass,
 }
@@ -154,14 +154,14 @@ pub struct UArrayProperty {
     pub inner: *mut UProperty,
 }
 #[repr(C)]
-pub struct UMapProperty {
+pub struct _UMapProperty {
     pub base_uproperty: UProperty,
     pub key_prop: *mut UProperty,
     pub value_prop: *mut UProperty,
     //pub map_layout: FScriptMapLayout,
 }
 #[repr(C)]
-pub struct USetProperty {
+pub struct _USetProperty {
     pub base_uproperty: UProperty,
     pub element_prop: *mut UProperty,
     //pub set_layout: FScriptSetLayout,
@@ -173,18 +173,18 @@ pub struct UStructProperty {
     pub struct_: *mut UStruct,
 }
 #[repr(C)]
-pub struct UDelegateProperty {
+pub struct _UDelegateProperty {
     pub base_uproperty: UProperty,
     //pub signature_function: *mut UFunction,
 }
 #[repr(C)]
-pub struct UMulticastDelegateProperty {
+pub struct _UMulticastDelegateProperty {
     pub base_uproperty: UProperty,
     //pub signature_function: *mut UFunction,
 }
 // {UMulticastInlineDelegateProperty, UMulticastSparseDelegateProperty} : UMulticastDelegateProperty
 #[repr(C)]
-pub struct UEnumProperty {
+pub struct _UEnumProperty {
     pub base_uproperty: UProperty,
     // UNumericProperty - Byte, Int*, UInt*
     pub underlying_prop: *mut UProperty,

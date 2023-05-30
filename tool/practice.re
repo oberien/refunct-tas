@@ -34,6 +34,24 @@ static mut CURRENT_PRACTICE = Practice {
     rotation: Rotation { pitch: 0., yaw: 0., roll: 0. },
 };
 
+fn press_buttons_until(button: int) {
+    let mut pawns = List::new();
+    let mut i = 0;
+    while i <= CURRENT_PRACTICE.button {
+        let button_loc = BUTTONS.get(i).unwrap().loc;
+        let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
+        let id = Tas::spawn_pawn(button_loc, rot);
+        pawns.push(id);
+        i += 1;
+    }
+
+    wait(9);
+
+    for pawn in pawns {
+        Tas::destroy_pawn(pawn);
+    }
+}
+
 static PRACTICE_COMPONENT = Component {
     id: PRACTICE_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, NEW_GAME_100_PERCENT_COMPONENT_ID, PRACTICE_COMPONENT_ID, RANDOMIZER_COMPONENT_ID),
@@ -51,21 +69,7 @@ static PRACTICE_COMPONENT = Component {
         Tas::set_delta(Option::Some(1./2.));
         wait(9);
 
-        let mut pawns = List::new();
-        let mut i = 0;
-        while i <= CURRENT_PRACTICE.button {
-            let button_loc = BUTTONS.get(i).unwrap().loc;
-            let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
-            let id = Tas::spawn_pawn(button_loc, rot);
-            pawns.push(id);
-            i += 1;
-        }
-
-        wait(9);
-
-        for pawn in pawns {
-            Tas::destroy_pawn(pawn);
-        }
+        press_buttons_until(CURRENT_PRACTICE.button);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });

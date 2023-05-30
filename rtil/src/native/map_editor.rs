@@ -29,11 +29,15 @@ impl<'a> LevelWrapper<'a> {
     pub fn level_index(&self) -> usize {
         (*self.level.as_object().get_field("LevelIndex").unwrap_int()).try_into().unwrap()
     }
+    pub fn source_location(&self) -> (f32, f32, f32) {
+        let loc = self.level.as_object().get_field("SourcePosition").unwrap_struct();
+        (*loc.get_field("X").unwrap_float(), *loc.get_field("Y").unwrap_float(), *loc.get_field("Z").unwrap_float())
+    }
     pub fn platforms(&self) -> impl Iterator<Item = PlatformWrapper<'a>> + '_ {
         self.level.as_object().get_field("FertileLands").unwrap_array()
             .into_iter()
     }
-    pub fn platform(&self, index: usize) -> Option<PlatformWrapper<'a>> {
+    pub fn _platform(&self, index: usize) -> Option<PlatformWrapper<'a>> {
         let array = self.level.as_object().get_field("FertileLands").unwrap_array();
         array.get(index)
     }
@@ -41,7 +45,7 @@ impl<'a> LevelWrapper<'a> {
         self.level.as_object().get_field("Collectibles").unwrap_array()
             .into_iter()
     }
-    pub fn cube(&self, index: usize) -> Option<CubeWrapper<'a>> {
+    pub fn _cube(&self, index: usize) -> Option<CubeWrapper<'a>> {
         let array = self.level.as_object().get_field("Collectibles").unwrap_array();
         array.get(index)
     }
@@ -49,11 +53,11 @@ impl<'a> LevelWrapper<'a> {
         self.level.as_object().get_field("Buttons").unwrap_array()
             .into_iter()
     }
-    pub fn button(&self, index: usize) -> Option<ButtonWrapper<'a>> {
+    pub fn _button(&self, index: usize) -> Option<ButtonWrapper<'a>> {
         let array = self.level.as_object().get_field("Buttons").unwrap_array();
         array.get(index)
     }
-    pub fn speed(&self) -> f32 {
+    pub fn _speed(&self) -> f32 {
         *self.level.as_object().get_field("Speed").unwrap_float()
     }
     pub fn set_speed(&self, speed: f32) {
@@ -126,14 +130,15 @@ impl<'a> ButtonWrapper<'a> {
 }
 
 pub fn init() {
+    let mut levels = LEVELS.lock().unwrap();
     for item in unsafe { GlobalObjectArrayWrapper::get().object_array().iter_elements() } {
         let object = item.object();
         let name = object.name();
         let class_name = object.class().name();
-        fn print_children(depth: usize, class: StructWrapper) {
+        fn _print_children(depth: usize, class: StructWrapper) {
             if let Some(super_class) = class.super_class() {
                 log!("{}SuperClass: {}", "    ".repeat(depth), class.name());
-                print_children(depth+1, super_class);
+                _print_children(depth+1, super_class);
             }
             for property in class.iter_properties() {
                 let class_name = property.as_object().class().name();
@@ -146,12 +151,13 @@ pub fn init() {
             }
         }
         // log!("{:?} {:?} ({object:p})", class_name, name);
-        // print_children(1, class);
+        // _print_children(1, class);
 
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();
-            LEVELS.lock().unwrap().push(level.clone());
+            levels.push(level.clone());
         }
     }
-    LEVELS.lock().unwrap().sort_by_key(|level| level.level_index())
+    assert_eq!(levels.len(), 31);
+    levels.sort_by_key(|level| level.level_index())
 }

@@ -177,7 +177,7 @@ impl<'a> StructWrapper<'a> {
         }
         let prop = self.iter_properties()
             .find(|prop| prop.name() == name)
-            .unwrap();
+            .unwrap_or_else(|| panic!("cannot access field {name} of type {}", self.as_object().class().name()));
         let offset = if hacked_absolute {
             match name {
                 "RelativeLocation" => {
@@ -403,7 +403,7 @@ impl<'a> ActorWrapper<'a> {
         assert!(wrapper.as_object().class().extends_from("Actor"));
         wrapper
     }
-    pub fn as_ptr(&self) -> *mut AActor {
+    pub fn _as_ptr(&self) -> *mut AActor {
         self.actor
     }
     pub fn as_object(&self) -> ObjectWrapper<'a> {
@@ -419,7 +419,7 @@ impl<'a> ActorWrapper<'a> {
             *absolute_location.get_field("Z").unwrap_float(),
         )
     }
-    pub fn set_absolute_location(&self, x: f32, y: f32, z: f32) {
+    pub fn _set_absolute_location(&self, x: f32, y: f32, z: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let absolute_location = root_component.get_field("AbsoluteLocation").unwrap_struct();
         *absolute_location.get_field("X").unwrap_float() = x;
@@ -435,7 +435,7 @@ impl<'a> ActorWrapper<'a> {
             *absolute_rotation.get_field("Roll").unwrap_float(),
         )
     }
-    pub fn set_absolute_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
+    pub fn _set_absolute_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let absolute_rotation = root_component.get_field("AbsoluteRotation").unwrap_struct();
         *absolute_rotation.get_field("Pitch").unwrap_float() = pitch;
@@ -451,7 +451,7 @@ impl<'a> ActorWrapper<'a> {
             *absolute_scale.get_field("Z").unwrap_float(),
         )
     }
-    pub fn set_absolute_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+    pub fn _set_absolute_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
         *absolute_scale.get_field("X").unwrap_float() = xscale;
@@ -483,7 +483,7 @@ impl<'a> ActorWrapper<'a> {
             *relative_rotation.get_field("Roll").unwrap_float(),
         )
     }
-    pub fn set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
+    pub fn _set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let relative_rotation = root_component.get_field("RelativeRotation").unwrap_struct();
         *relative_rotation.get_field("Pitch").unwrap_float() = pitch;
@@ -499,7 +499,7 @@ impl<'a> ActorWrapper<'a> {
             *relative_scale.get_field("Z").unwrap_float(),
         )
     }
-    pub fn set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+    pub fn _set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
         *relative_scale.get_field("X").unwrap_float() = xscale;

@@ -1,27 +1,45 @@
 static mut MAP_EDITOR_STATE = MapEditorState {
     map_name: "",
     map: Tas::current_map(),
+    is_currently_auto_newgaming: false,
+    level_during_reset: 0,
 };
 
 struct MapEditorState {
     map_name: string,
     map: RefunctMap,
+    is_currently_auto_newgaming: bool,
+    level_during_reset: int,
+}
+
+enum ElementType {
+    Platform,
+    Cube,
+    Button,
 }
 
 static MAP_EDITOR_COMPONENT = Component {
     id: MAP_EDITOR_COMPONENT_ID,
     conflicts_with: List::of(MAP_EDITOR_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
-        f"{text}\nMap Editor\n    <TAB> edit an element"
+        f"{text}\nMap Editor - editing map {MAP_EDITOR_STATE.map_name:?}\n    <TAB> edit an element"
      },
     draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
-    on_new_game: fn() {},
+    on_new_game: fn() {
+        if MAP_EDITOR_STATE.is_currently_auto_newgaming {
+            Tas::set_level(MAP_EDITOR_STATE.level_during_reset);
+        }
+    },
     on_level_change: fn(old: int, new: int) {},
-    on_reset: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {
+        if MAP_EDITOR_STATE.is_currently_auto_newgaming {
+            Tas::set_level(0);
+        }
+    },
     on_platforms_change: fn(old: int, new: int) {},
     on_buttons_change: fn(old: int, new: int) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
@@ -39,6 +57,10 @@ static MAP_EDITOR_COMPONENT = Component {
 fn apply_and_reload_map(map: RefunctMap) {
     Tas::apply_map(map);
 
+    let level_state = Tas::get_level_state();
+    MAP_EDITOR_STATE.is_currently_auto_newgaming = true;
+    MAP_EDITOR_STATE.level_during_reset = level_state.level;
+
     Tas::set_all_cluster_speeds(9999999.);
     let loc = Tas::get_location();
     let rot = Tas::get_rotation();
@@ -55,9 +77,14 @@ fn apply_and_reload_map(map: RefunctMap) {
     Tas::key_up(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
     Tas::step();
     Tas::step();
+
+    press_buttons_until(level_state.buttons);
+
     Tas::set_location(loc);
     Tas::set_rotation(rot);
     Tas::set_all_cluster_speeds(700.);
+
+    MAP_EDITOR_STATE.is_currently_auto_newgaming = false;
 }
 
 static mut MAP_EDITOR_LABEL = Text { text: if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) { "Stop Map Editor" } else { "Edit Map" } };
@@ -70,6 +97,8 @@ fn create_map_editor_menu() -> Ui {
                     remove_component(MAP_EDITOR_COMPONENT);
                     Tas::apply_map(Tas::original_map());
                     MAP_EDITOR_LABEL.text = "Edit Map";
+                    MAP_EDITOR_STATE.map = Tas::original_map();
+                    apply_and_reload_map(MAP_EDITOR_STATE.map);
                 } else {
                     enter_ui(create_map_editor_map_selection_ui());
                 }
@@ -132,7 +161,7 @@ fn create_map_editor_map_selection_ui() -> Ui {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p<num>, ex: 14pl2 or 2b0 or 4c0)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p<num>, ex: 14pl2 or 2b1 or 4c1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
@@ -146,29 +175,29 @@ fn create_map_editor_input_ui() -> Ui {
                 let cluster_index = indexes.get(0).unwrap().parse_int().unwrap();
                 let element_index = indexes.get(1).unwrap().parse_int().unwrap();
 
-                let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index) {
+                let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index - 1) {
                     Option::Some(cluster) => cluster,
                     Option::None => {
                         MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: invalid cluster index)";
                         return
                     }
                 };
-                let mut element_type = "";
+                let mut element_type = ElementType::Platform;
                 let element_list = if input.contains("pl") {
-                    element_type = "platform";
+                    element_type = ElementType::Platform;
                     cluster.platforms
                 } else if input.contains("c") {
-                    element_type = "cube";
+                    element_type = ElementType::Cube;
                     cluster.cubes
                 } else if input.contains("b") {
-                    element_type = "button";
+                    element_type = ElementType::Button;
                     cluster.buttons
                 } else {
                     MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b)";
                     return
                 };
 
-                let element = match element_list.get(element_index) {
+                let element = match element_list.get(element_index - 1) {
                     Option::Some(element) => element,
                     Option::None => {
                         MAP_EDITOR_INPUT_LABEL.text = f"Input (ERROR: invalid {element_type} index)";
@@ -188,12 +217,13 @@ fn create_map_editor_input_ui() -> Ui {
     ))
 }
 
-fn create_map_editor_element_ui(mut element: Element, element_type: string, cluster_index: int, element_index: int) -> Ui {
-    fn submit() {
+fn create_map_editor_element_ui(mut element: Element, element_type: ElementType, cluster_index: int, element_index: int) -> Ui {
+    let submit = fn() {
         Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
         leave_ui();
         apply_and_reload_map(MAP_EDITOR_STATE.map);
-    }
+        enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index));
+    };
     static mut MAP_EDITOR_X_LABEL = Text { text: "X" };
     static mut MAP_EDITOR_Y_LABEL = Text { text: "Y" };
     static mut MAP_EDITOR_Z_LABEL = Text { text: "Z" };
@@ -203,7 +233,17 @@ fn create_map_editor_element_ui(mut element: Element, element_type: string, clus
     static mut MAP_EDITOR_XSCALE_LABEL = Text { text: "XScale" };
     static mut MAP_EDITOR_YSCALE_LABEL = Text { text: "YScale" };
     static mut MAP_EDITOR_ZSCALE_LABEL = Text { text: "ZScale" };
-    Ui::new(f"Map Editor - Edit cluster {cluster_index} {element_type} {element_index}", List::of(
+    Ui::new(f"Map Editor - Edit Cluster {cluster_index} {element_type} {element_index}", List::of(
+        UiElement::Button(UiButton {
+            label: Text { text: "Set to player location" },
+            onclick: fn(label: Text) {
+                let loc = Tas::get_location();
+                element.x = loc.x;
+                element.y = loc.y;
+                element.z = loc.z;
+                submit();
+            },
+        }),
         UiElement::Input(Input {
             label: MAP_EDITOR_X_LABEL,
             input: f"{element.x}",
@@ -310,6 +350,23 @@ fn create_map_editor_element_ui(mut element: Element, element_type: string, clus
                     Result::Ok(num) => element.zscale = num,
                     Result::Err(e) => MAP_EDITOR_ZSCALE_LABEL.text = "ZScale (invalid value: {e})",
                 }
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Reset to original location" },
+            onclick: fn(label: Text) {
+                let original_map = Tas::original_map();
+                let cluster = original_map.clusters.get(cluster_index - 1).unwrap();
+                let element_list = match element_type {
+                    ElementType::Platform => cluster.platforms,
+                    ElementType::Cube => cluster.cubes,
+                    ElementType::Button => cluster.buttons,
+                };
+                let original_element = element_list.get(element_index - 1).unwrap();
+                element.x = original_element.x;
+                element.y = original_element.y;
+                element.z = original_element.z;
+                submit();
             },
         }),
         UiElement::Button(UiButton {
