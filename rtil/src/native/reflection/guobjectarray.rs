@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
-use crate::native::linux::GUOBJECTARRAY;
+use crate::native::GUOBJECTARRAY;
 use crate::native::reflection::{ObjectWrapper, UObject};
 
 /// Wraps the global FUObjectArray (symbol GUObjectArray)

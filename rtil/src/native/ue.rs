@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::{FMemory, FNAME_FNAME};
-use crate::native::linux::FNAME_APPENDSTRING;
+use crate::native::FNAME_APPENDSTRING;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
