@@ -195,7 +195,7 @@ fn create_map_editor_input_ui() -> Ui {
                 };
 
                 leave_ui();
-                enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index));
+                enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index, 0));
             },
             onchange: fn(input: string) {}
         }),
@@ -206,12 +206,16 @@ fn create_map_editor_input_ui() -> Ui {
     ))
 }
 
-fn create_map_editor_element_ui(mut element: Element, element_type: ElementType, cluster_index: int, element_index: int) -> Ui {
+fn create_map_editor_element_ui(mut element: Element, element_type: ElementType, cluster_index: int, element_index: int, selected: int) -> Ui {
     let submit = fn() {
+        let selected = match UI_STACK.last() {
+            Option::Some(ui) => ui.selected,
+            Option::None => panic("we are currently in a UI"),
+        };
         Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
         leave_ui();
         apply_and_reload_map(MAP_EDITOR_STATE.map);
-        enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index));
+        enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index, selected));
     };
     static mut MAP_EDITOR_X_LABEL = Text { text: "X" };
     static mut MAP_EDITOR_Y_LABEL = Text { text: "Y" };
@@ -222,7 +226,7 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
     static mut MAP_EDITOR_XSCALE_LABEL = Text { text: "XScale" };
     static mut MAP_EDITOR_YSCALE_LABEL = Text { text: "YScale" };
     static mut MAP_EDITOR_ZSCALE_LABEL = Text { text: "ZScale" };
-    Ui::new(f"Map Editor - Edit Cluster {cluster_index} {element_type} {element_index}", List::of(
+    Ui::new_with_selected(f"Map Editor - Edit Cluster {cluster_index} {element_type} {element_index}", selected, List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Set to player location" },
             onclick: fn(label: Text) {

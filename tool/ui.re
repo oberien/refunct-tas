@@ -8,6 +8,9 @@ impl Ui {
     fn new(name: string, elements: List<UiElement>) -> Ui {
         Ui { name: Text { text: name }, elements: elements, on_draw: Option::None, selected: 0 }
     }
+    fn new_with_selected(name: string, selected: int, elements: List<UiElement>) -> Ui {
+        Ui { name: Text { text: name }, elements: elements, on_draw: Option::None, selected: selected }
+    }
 }
 enum UiElement {
     Button(UiButton),
