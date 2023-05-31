@@ -95,7 +95,6 @@ fn create_map_editor_menu() -> Ui {
             onclick: fn(label: Text) {
                 if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
                     remove_component(MAP_EDITOR_COMPONENT);
-                    Tas::apply_map(Tas::original_map());
                     MAP_EDITOR_LABEL.text = "Edit Map";
                     MAP_EDITOR_STATE.map = Tas::original_map();
                     apply_and_reload_map(MAP_EDITOR_STATE.map);
@@ -127,8 +126,8 @@ fn create_map_editor_map_selection_ui() -> Ui {
                 }
                 MAP_EDITOR_STATE.map_name = input;
                 if map_list.contains(input) {
-                     MAP_EDITOR_STATE.map = Tas::load_map(input);
-                     apply_and_reload_map(MAP_EDITOR_STATE.map);
+                    MAP_EDITOR_STATE.map = Tas::load_map(input);
+                    apply_and_reload_map(MAP_EDITOR_STATE.map);
                 } else {
                     MAP_EDITOR_STATE.map = Tas::current_map();
                 };
@@ -147,7 +146,7 @@ fn create_map_editor_map_selection_ui() -> Ui {
             onclick: fn(label: Text) {
                 MAP_EDITOR_STATE.map_name = label.text;
                 MAP_EDITOR_STATE.map = Tas::load_map(label.text);
-                Tas::apply_map(MAP_EDITOR_STATE.map);
+                apply_and_reload_map(MAP_EDITOR_STATE.map);
                 MAP_EDITOR_LABEL.text = "Stop Map Editor";
                 add_component(MAP_EDITOR_COMPONENT);
                 leave_ui();
@@ -256,114 +255,114 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_X_LABEL,
-            input: f"{element.x}",
+            input: f"{element.x:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_X_LABEL.text = "X";
                 match input.parse_float() {
                     Result::Ok(num) => element.x = num,
-                    Result::Err(e) => MAP_EDITOR_X_LABEL.text = "X (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_X_LABEL.text = f"X (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_Y_LABEL,
-            input: f"{element.y}",
+            input: f"{element.y:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_Y_LABEL.text = "Y";
                 match input.parse_float() {
                     Result::Ok(num) => element.y = num,
-                    Result::Err(e) => MAP_EDITOR_Y_LABEL.text = "Y (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_Y_LABEL.text = f"Y (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_Z_LABEL,
-            input: f"{element.z}",
+            input: f"{element.z:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_Z_LABEL.text = "Z";
                 match input.parse_float() {
                     Result::Ok(num) => element.z = num,
-                    Result::Err(e) => MAP_EDITOR_Z_LABEL.text = "Z (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_Z_LABEL.text = f"Z (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_PITCH_LABEL,
-            input: f"{element.pitch}",
+            input: f"{element.pitch:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_PITCH_LABEL.text = "Pitch";
                 match input.parse_float() {
                     Result::Ok(num) => element.pitch = num,
-                    Result::Err(e) => MAP_EDITOR_PITCH_LABEL.text = "Pitch (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_PITCH_LABEL.text = f"Pitch (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_YAW_LABEL,
-            input: f"{element.yaw}",
+            input: f"{element.yaw:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_YAW_LABEL.text = "Yaw";
                 match input.parse_float() {
                     Result::Ok(num) => element.yaw = num,
-                    Result::Err(e) => MAP_EDITOR_YAW_LABEL.text = "Yaw (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_YAW_LABEL.text = f"Yaw (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_ROLL_LABEL,
-            input: f"{element.roll}",
+            input: f"{element.roll:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_ROLL_LABEL.text = "Roll";
                 match input.parse_float() {
                     Result::Ok(num) => element.roll = num,
-                    Result::Err(e) => MAP_EDITOR_ROLL_LABEL.text = "Roll (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_ROLL_LABEL.text = f"Roll (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_XSCALE_LABEL,
-            input: f"{element.xscale}",
+            input: f"{element.xscale:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_XSCALE_LABEL.text = "XScale";
                 match input.parse_float() {
                     Result::Ok(num) => element.xscale = num,
-                    Result::Err(e) => MAP_EDITOR_XSCALE_LABEL.text = "XScale (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_XSCALE_LABEL.text = f"XScale (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_YSCALE_LABEL,
-            input: f"{element.yscale}",
+            input: f"{element.yscale:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_YSCALE_LABEL.text = "YScale";
                 match input.parse_float() {
                     Result::Ok(num) => element.yscale = num,
-                    Result::Err(e) => MAP_EDITOR_YSCALE_LABEL.text = "YScale (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_YSCALE_LABEL.text = f"YScale (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_ZSCALE_LABEL,
-            input: f"{element.zscale}",
+            input: f"{element.zscale:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
                 MAP_EDITOR_ZSCALE_LABEL.text = "ZScale";
                 match input.parse_float() {
                     Result::Ok(num) => element.zscale = num,
-                    Result::Err(e) => MAP_EDITOR_ZSCALE_LABEL.text = "ZScale (invalid value: {e})",
+                    Result::Err(e) => MAP_EDITOR_ZSCALE_LABEL.text = f"ZScale (invalid value)",
                 }
             },
         }),
         UiElement::Button(UiButton {
-            label: Text { text: "Reset to original location" },
+            label: Text { text: "Reset to original values" },
             onclick: fn(label: Text) {
                 let original_map = Tas::original_map();
                 let cluster = original_map.clusters.get(cluster_index - 1).unwrap();
@@ -376,6 +375,12 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
                 element.x = original_element.x;
                 element.y = original_element.y;
                 element.z = original_element.z;
+                element.pitch = original_element.pitch;
+                element.yaw = original_element.yaw;
+                element.roll = original_element.roll;
+                element.xscale = original_element.xscale;
+                element.yscale = original_element.yscale;
+                element.zscale = original_element.zscale;
                 submit();
             },
         }),

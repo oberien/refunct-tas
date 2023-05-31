@@ -256,14 +256,12 @@ impl Input {
             self.input = "";
         } else {
             match chr {
-                Option::Some(s) => {
-                    self.input = f"{self.input}{s}";
-                    let onchange = self.onchange;
-                    onchange(self.input);
-                },
+                Option::Some(s) => self.input = f"{self.input}{s}",
                 Option::None => (),
             }
         }
+        let onchange = self.onchange;
+        onchange(self.input);
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {

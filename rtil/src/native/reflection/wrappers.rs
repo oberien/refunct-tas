@@ -483,7 +483,7 @@ impl<'a> ActorWrapper<'a> {
             *relative_rotation.get_field("Roll").unwrap_float(),
         )
     }
-    pub fn _set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
+    pub fn set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let relative_rotation = root_component.get_field("RelativeRotation").unwrap_struct();
         *relative_rotation.get_field("Pitch").unwrap_float() = pitch;
