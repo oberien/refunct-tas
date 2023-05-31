@@ -68,7 +68,7 @@ fn apply_and_reload_map(map: RefunctMap) {
     Tas::step();
     Tas::step();
 
-    press_buttons_until(level_state.buttons);
+    press_buttons_until(level_state.buttons - 1);
 
     Tas::set_location(loc);
     Tas::set_rotation(rot);

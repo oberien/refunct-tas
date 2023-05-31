@@ -37,7 +37,7 @@ static mut CURRENT_PRACTICE = Practice {
 fn press_buttons_until(button: int) {
     let mut pawns = List::new();
     let mut i = 0;
-    while i <= CURRENT_PRACTICE.button {
+    while i <= button {
         let button_loc = BUTTONS.get(i).unwrap().loc;
         let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
         let id = Tas::spawn_pawn(button_loc, rot);
