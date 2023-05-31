@@ -64,17 +64,7 @@ fn apply_and_reload_map(map: RefunctMap) {
     Tas::set_all_cluster_speeds(9999999.);
     let loc = Tas::get_location();
     let rot = Tas::get_rotation();
-    Tas::key_down(KEY_ESCAPE.large_value, KEY_ESCAPE.large_value, false);
-    Tas::key_up(KEY_ESCAPE.large_value, KEY_ESCAPE.large_value, false);
-    Tas::step();
-    Tas::key_down(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
-    Tas::key_up(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
-    Tas::step();
-    Tas::key_down(KEY_LEFT.large_value, KEY_LEFT.large_value, false);
-    Tas::key_up(KEY_LEFT.large_value, KEY_LEFT.large_value, false);
-    Tas::step();
-    Tas::key_down(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
-    Tas::key_up(KEY_RETURN.large_value, KEY_RETURN.large_value, false);
+    Tas::restart_game();
     Tas::step();
     Tas::step();
 

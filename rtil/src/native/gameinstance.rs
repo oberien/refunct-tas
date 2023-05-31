@@ -1,4 +1,5 @@
 use std::sync::atomic::Ordering;
+use std::ffi::c_void;
 use crate::native::{UWorld, LevelState};
 use crate::native::{AACTOR_PROCESSEVENT, UOBJECT_FINDFUNCTION};
 use crate::native::ue::FName;
@@ -20,16 +21,16 @@ impl UMyGameInstance {
             &mut (*Self::get_umygameinstance()).level_state as *mut LevelState
         }
     }
-    pub fn trigger_new_game() {
-        let fun: extern_fn!(fn(this: *mut UMyGameInstance, name: FName) -> *const ()) =
+    pub fn restart_game() {
+        let fun: extern_fn!(fn(this: *mut UMyGameInstance, name: FName) -> *const c_void) =
             unsafe { ::std::mem::transmute(UOBJECT_FINDFUNCTION.load(Ordering::SeqCst)) };
-        let ufunction = fun(UMyGameInstance::get_umygameinstance(), FName::from("NewGame"));
-        struct Foo { x: i32 }
-        let foo = Foo { x: 1337 };
-        log!("{ufunction:p}");
-        let fun: extern_fn!(fn(this: *mut UMyGameInstance, function: *const (), args: *const ())) =
+        let ufunction = fun(UMyGameInstance::get_umygameinstance(), FName::from("RestartGame"));
+        #[repr(C)]
+        struct RestartGameParams { reset: bool }
+        let restart_game_params = RestartGameParams { reset: false };
+        let fun: extern_fn!(fn(this: *mut UMyGameInstance, function: *const c_void, args: *const c_void)) =
             unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
-        fun(UMyGameInstance::get_umygameinstance(), ufunction, &foo as *const _ as *const ());
+        fun(UMyGameInstance::get_umygameinstance(), ufunction, &restart_game_params as *const _ as *const c_void);
     }
 }
 

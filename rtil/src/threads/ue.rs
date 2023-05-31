@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 
 use crate::statics::Static;
 use crate::threads::{UeToRebo, ReboToUe};
-use crate::native::{FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, AMyHud, UWorld, FPlatformMisc};
+use crate::native::{FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, AMyHud, UWorld, FPlatformMisc, UMyGameInstance};
 
 static STATE: Lazy<Static<State>> = Lazy::new(Static::new);
 
@@ -125,6 +125,9 @@ fn handle(event: UeToRebo) {
                 break;
             },
             ReboToUe::AdvanceFrame => break,
+            ReboToUe::TriggerNewGame => {
+                UMyGameInstance::restart_game();
+            }
         }
     }
 }

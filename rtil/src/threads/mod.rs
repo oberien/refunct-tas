@@ -55,6 +55,7 @@ pub enum ReboToUe {
     Resume,
     /// x, y, z, pitch, yaw, roll
     SpawnAMyCharacter(f32, f32, f32, f32, f32, f32),
+    TriggerNewGame,
 }
 
 #[derive(Debug, PartialEq, Eq)]
