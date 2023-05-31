@@ -1001,17 +1001,34 @@ fn apply_map(map: RefunctMap) {
             log!("r{:?} - r{:?}, a{:?} = ({}, {}, {})", level.as_actor().relative_location(), lp.as_actor().relative_location(), lp.as_actor().absolute_location(), cp.x, cp.y, cp.z);
             lp.as_actor().set_relative_location(rx + dx, ry + dy, rz + dz);
             log!("s{:?} - r{:?}, a{:?}", level.source_location(), lp.as_actor().relative_location(), lp.as_actor().absolute_location());
+            // let (dpitch, dyaw, droll) = (cp.pitch - current.pitch, cp.yaw - current.yaw, cp.roll - current.roll);
+            // let (rpitch, ryaw, rroll) = lp.as_actor().relative_rotation();
+            // lp.as_actor()._set_relative_rotation(rpitch + dpitch, ryaw + dyaw, rroll + droll);
+            // log!("r{:?} - r{:?}, a{:?} = ({}, {}, {})", level.as_actor().relative_rotation(), lp.as_actor().relative_rotation(), lp.as_actor().absolute_rotation(), cp.pitch, cp.roll, cp.yaw);
+            // log!("rpitch: {}, dpitch: {}, ryaw: {}, dyaw: {}, rroll: {}, droll: {})", rpitch, dpitch, ryaw, dyaw, rroll, droll);
             // lp.as_actor().set_relative_rotation(cp.pitch - lpitch, cp.yaw - lyaw, cp.roll - lroll);
             // lp.as_actor().set_relative_scale(cp.xscale - lxscale, cp.yscale - lyscale, cp.zscale - lzscale);
         }
         for (lc, cc) in level.cubes().zip(cluster.cubes) {
+            let current = aactor_to_element(level, lc.as_actor());
+            let (dx, dy, dz) = (cc.x - current.x, cc.y - current.y, cc.z - current.z);
+            let (rx, ry, rz) = lc.as_actor().relative_location();
+            log!("r{:?} - r{:?}, a{:?} = ({}, {}, {})", level.as_actor().relative_location(), lc.as_actor().relative_location(), lc.as_actor().absolute_location(), cc.x, cc.y, cc.z);
+            lc.as_actor().set_relative_location(rx + dx, ry + dy, rz + dz);
+            log!("s{:?} - r{:?}, a{:?}", level.source_location(), lc.as_actor().relative_location(), lc.as_actor().absolute_location());
+            lc.as_actor()._set_relative_rotation(cc.pitch, cc.yaw, cc.roll);
             // lc.as_actor().set_relative_location(cc.x - risen.x, cc.y - ly, cc.z - lz);
             // lc.as_actor().set_relative_rotation(cc.pitch - lpitch, cc.yaw - lyaw, cc.roll - lroll);
             // lc.as_actor().set_relative_scale(cc.xscale - lxscale, cc.yscale - lyscale, cc.zscale - lzscale);
         }
         for (lb, cb) in level.buttons().zip(cluster.buttons) {
-            // lb.as_actor().set_relative_location(cb.x - risen.x, cb.y - ly, cb.z - lz);
-            // lb.as_actor().set_relative_rotation(cb.pitch - lpitch, cb.yaw - lyaw, cb.roll - lroll);
+            let current = aactor_to_element(level, lb.as_actor());
+            let (dx, dy, dz) = (cb.x - current.x, cb.y - current.y, cb.z - current.z);
+            let (rx, ry, rz) = lb.as_actor().relative_location();
+            log!("r{:?} - r{:?}, a{:?} = ({}, {}, {})", level.as_actor().relative_location(), lb.as_actor().relative_location(), lb.as_actor().absolute_location(), cb.x, cb.y, cb.z);
+            lb.as_actor().set_relative_location(rx + dx, ry + dy, rz + dz);
+            log!("s{:?} - r{:?}, a{:?}", level.source_location(), lb.as_actor().relative_location(), lb.as_actor().absolute_location());
+            lb.as_actor()._set_relative_rotation(cb.pitch, cb.yaw, cb.roll);
             // lb.as_actor().set_relative_scale(cb.xscale - lxscale, cb.yscale - lyscale, cb.zscale - lzscale);
         }
     }

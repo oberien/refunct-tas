@@ -240,7 +240,17 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
                 let loc = Tas::get_location();
                 element.x = loc.x;
                 element.y = loc.y;
-                element.z = loc.z;
+                element.z = (loc.z - 89.15);
+                submit();
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Set to player rotation" },
+            onclick: fn(label: Text) {
+                let rot = Tas::get_rotation();
+                element.pitch = rot.pitch;
+                element.yaw = rot.yaw;
+                element.roll = rot.roll;
                 submit();
             },
         }),
