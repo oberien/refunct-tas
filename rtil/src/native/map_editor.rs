@@ -1,3 +1,4 @@
+use std::fmt::{Formatter, Pointer};
 use std::sync::Mutex;
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, StructWrapper, UeObjectWrapper, ClassWrapper};
 
@@ -9,6 +10,11 @@ pub struct LevelWrapper<'a> {
 }
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LevelWrapper<'a> {}
+impl<'a> Pointer for LevelWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.level, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for LevelWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_LevelRoot_C";
@@ -29,7 +35,7 @@ impl<'a> LevelWrapper<'a> {
     pub fn level_index(&self) -> usize {
         (*self.level.as_object().get_field("LevelIndex").unwrap_int()).try_into().unwrap()
     }
-    pub fn source_location(&self) -> (f32, f32, f32) {
+    pub fn _source_location(&self) -> (f32, f32, f32) {
         let loc = self.level.as_object().get_field("SourcePosition").unwrap_struct();
         (*loc.get_field("X").unwrap_float(), *loc.get_field("Y").unwrap_float(), *loc.get_field("Z").unwrap_float())
     }
@@ -69,6 +75,11 @@ impl<'a> LevelWrapper<'a> {
 pub struct PlatformWrapper<'a> {
     platform: ActorWrapper<'a>,
 }
+impl<'a> Pointer for PlatformWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.platform, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for PlatformWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_IslandChunk_C";
@@ -90,6 +101,11 @@ impl<'a> PlatformWrapper<'a> {
 pub struct CubeWrapper<'a> {
     cube: ActorWrapper<'a>,
 }
+impl<'a> Pointer for CubeWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.cube, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for CubeWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_PowerCore_C";
@@ -110,6 +126,11 @@ impl<'a> CubeWrapper<'a> {
 #[derive(Debug, Clone)]
 pub struct ButtonWrapper<'a> {
     button: ActorWrapper<'a>,
+}
+impl<'a> Pointer for ButtonWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.button, f)
+    }
 }
 unsafe impl<'a> UeObjectWrapper for ButtonWrapper<'a> {
     type Wrapping = AActor;

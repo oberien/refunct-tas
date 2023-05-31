@@ -106,6 +106,11 @@ pub struct StructWrapper<'a> {
     struct_: *mut UStruct,
     _marker: PhantomData<&'a mut UStruct>,
 }
+impl<'a> Pointer for StructWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.struct_, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for StructWrapper<'a> {
     type Wrapping = UStruct;
     const CLASS_NAME: &'static str = "Struct";
@@ -231,6 +236,11 @@ pub struct ClassWrapper<'a> {
     class: *mut UClass,
     _marker: PhantomData<&'a mut UClass>,
 }
+impl<'a> Pointer for ClassWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.class, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for ClassWrapper<'a> {
     type Wrapping = UClass;
     const CLASS_NAME: &'static str = "Class";
@@ -325,6 +335,11 @@ pub struct ArrayWrapper<'a, T: ArrayElement> {
     array: *mut TArray<T::ElementType>,
     _marker: PhantomData<&'a mut ()>,
 }
+impl<'a, T: ArrayElement> Pointer for ArrayWrapper<'a, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.array, f)
+    }
+}
 // get rid of the implied T: Clone in derived Clone impls
 impl<'a, T: ArrayElement> Clone for ArrayWrapper<'a, T> {
     fn clone(&self) -> Self {
@@ -389,6 +404,11 @@ pub struct ActorWrapper<'a> {
     actor: *mut AActor,
     _marker: PhantomData<&'a mut AActor>,
 }
+impl<'a> Pointer for ActorWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.actor, f)
+    }
+}
 unsafe impl<'a> UeObjectWrapper for ActorWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "Actor";
@@ -426,7 +446,7 @@ impl<'a> ActorWrapper<'a> {
         *absolute_location.get_field("Y").unwrap_float() = y;
         *absolute_location.get_field("Z").unwrap_float() = z;
     }
-    pub fn absolute_rotation(&self) -> (f32, f32, f32) {
+    pub fn _absolute_rotation(&self) -> (f32, f32, f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let absolute_rotation = root_component.get_field("AbsoluteRotation").unwrap_struct();
         (
@@ -442,7 +462,7 @@ impl<'a> ActorWrapper<'a> {
         *absolute_rotation.get_field("Yaw").unwrap_float() = yaw;
         *absolute_rotation.get_field("Roll").unwrap_float() = roll;
     }
-    pub fn absolute_scale(&self) -> (f32, f32, f32) {
+    pub fn _absolute_scale(&self) -> (f32, f32, f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
         (
@@ -499,7 +519,7 @@ impl<'a> ActorWrapper<'a> {
             *relative_scale.get_field("Z").unwrap_float(),
         )
     }
-    pub fn _set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+    pub fn set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
         let root_component = self.as_object().get_field("RootComponent").unwrap_object();
         let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
         *relative_scale.get_field("X").unwrap_float() = xscale;

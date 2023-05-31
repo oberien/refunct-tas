@@ -958,19 +958,19 @@ fn remove_map(filename: String) -> bool {
     std::fs::remove_file(path).is_ok()
 }
 
-fn aactor_to_element(level: &LevelWrapper, actor: ActorWrapper) -> Element {
+fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
     let (_, _, lz) = level.as_actor().relative_location();
     let (ax, ay, az) = actor.absolute_location();
     let (pitch, yaw, roll) = actor.relative_rotation();
-    let (xscale, yscale, zscale) = actor.absolute_scale();
+    let (xscale, yscale, zscale) = actor.relative_scale();
     Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, xscale, yscale, zscale }
 }
 fn get_current_map() -> RefunctMap {
     let clusters = LEVELS.lock().unwrap().iter()
         .map(|level| Cluster {
-            platforms: level.platforms().map(|p| aactor_to_element(level, p.as_actor())).collect(),
-            cubes: level.cubes().map(|c| aactor_to_element(level, c.as_actor())).collect(),
-            buttons: level.buttons().map(|b| aactor_to_element(level, b.as_actor())).collect(),
+            platforms: level.platforms().map(|p| aactor_to_element(level, &p.as_actor())).collect(),
+            cubes: level.cubes().map(|c| aactor_to_element(level, &c.as_actor())).collect(),
+            buttons: level.buttons().map(|b| aactor_to_element(level, &b.as_actor())).collect(),
         }).collect();
     RefunctMap { clusters }
 }
@@ -988,29 +988,27 @@ fn original_map() -> RefunctMap {
 fn apply_map(map: RefunctMap) {
     // initialize before we change anything
     ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
+
+    fn set_element(level: &LevelWrapper, lp: ActorWrapper, cp: Element) {
+        let current = aactor_to_element(level, &lp);
+        let (dx, dy, dz) = (cp.x - current.x, cp.y - current.y, cp.z - current.z);
+        let (rx, ry, rz) = lp.relative_location();
+        lp.set_relative_location(rx + dx, ry + dy, rz + dz);
+        lp.set_relative_rotation(cp.pitch, cp.yaw, cp.roll);
+        lp.set_relative_scale(cp.xscale, cp.yscale, cp.zscale);
+    }
+
     let levels = LEVELS.lock().unwrap();
     assert_eq!(map.clusters.len(), levels.len());
     for (level, cluster) in levels.iter().zip(map.clusters) {
-        let (lpitch, lyaw, lroll) = level.as_actor().absolute_rotation();
-        let (lxscale, lyscale, lzscale) = level.as_actor().absolute_scale();
         for (lp, cp) in level.platforms().zip(cluster.platforms) {
-            if level.level_index() != 0 {
-                return;
-            }
-            let current = aactor_to_element(level, lp.as_actor());
-            let (dx, dy, dz) = (cp.x - current.x, cp.y - current.y, cp.z - current.z);
-            let (rx, ry, rz) = lp.as_actor().relative_location();
-            lp.as_actor().set_relative_location(rx + dx, ry + dy, rz + dz);
-
-            lp.as_actor().set_relative_rotation(cp.pitch, cp.yaw, cp.roll);
-
-            // log!("rpitch: {}, dpitch: {}, ryaw: {}, dyaw: {}, rroll: {}, droll: {})", rpitch, dpitch, ryaw, dyaw, rroll, droll);
-            // lp.as_actor().set_relative_scale(cp.xscale - lxscale, cp.yscale - lyscale, cp.zscale - lzscale);
+            set_element(level, lp.as_actor(), cp);
         }
-        log!("");
-        // for (lc, cc) in level.cubes().zip(cluster.cubes) {
-        // }
-        // for (lb, cb) in level.buttons().zip(cluster.buttons) {
-        // }
+        for (lc, cc) in level.cubes().zip(cluster.cubes) {
+            set_element(level, lc.as_actor(), cc);
+        }
+        for (lb, cb) in level.buttons().zip(cluster.buttons) {
+            set_element(level, lb.as_actor(), cb);
+        }
     }
 }

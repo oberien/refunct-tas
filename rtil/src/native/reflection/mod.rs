@@ -1,3 +1,4 @@
+use std::fmt::Pointer;
 use crate::native::ue::{FName, TArray};
 
 mod dynamic_value;
@@ -7,7 +8,7 @@ pub use wrappers::*;
 mod guobjectarray;
 pub use guobjectarray::*;
 
-pub unsafe trait UeObjectWrapper {
+pub unsafe trait UeObjectWrapper: Pointer {
     type Wrapping;
     const CLASS_NAME: &'static str;
 
