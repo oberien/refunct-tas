@@ -2,7 +2,7 @@
 
 The protocol used to communicate between the tool and the library uses raw bytes
   sent over a TCP connection.
-The library listens on `localhost:21337` and accepts only one connection at a
+The library listens on `127.0.0.1:21337` and accepts only one connection at a
   time.
 After one connection is established, the listener no longer waits for another
   connection until the current one is finished.

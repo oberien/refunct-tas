@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
-use crate::native::ue::{FVector, FRotator, FString};
+use crate::native::ue::{FVector, FRotator, FString, UeU64};
 use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE};
 use crate::native::reflection::UClass;
 
@@ -87,7 +87,7 @@ impl AMyCharacter {
     pub fn get_steamid(&self) -> u64 {
         let ptr = unsafe { (*self.player_state()).unique_id.unique_id };
         assert!(!ptr.is_null());
-        unsafe { (*ptr).steamid }
+        unsafe { (*ptr).steamid.get() }
     }
 
     pub fn movement_mode(&self) -> u8 {
@@ -180,7 +180,7 @@ struct FUniqueNetIdSteam {
     _vtable: *const c_void,
     _self: *const c_void,
     _shared_ptr: *const c_void,
-    steamid: u64,
+    steamid: UeU64,
 }
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]

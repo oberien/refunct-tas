@@ -170,6 +170,7 @@ pub fn init() {
                     // print_children(depth+1, class);
                 }
             }
+            log!("{}done printing children", "    ".repeat(depth));
         }
         // log!("{:?} {:?} ({object:p})", class_name, name);
         // _print_children(1, class);

@@ -9,7 +9,7 @@ use crate::error::Result;
 
 pub fn run(stream_rebo_tx: Sender<StreamToRebo>, rebo_stream_rx: Receiver<ReboToStream>) -> Result<()> {
     log!("starting listener thread");
-    let listener = TcpListener::bind("localhost:21337")?;
+    let listener = TcpListener::bind("127.0.0.1:21337")?;
     let mut stream_rebo_tx = Some(stream_rebo_tx);
     let mut rebo_stream_rx = Some(rebo_stream_rx);
     let (mut listener_stream_tx, listener_stream_rx) = crossbeam_channel::unbounded();

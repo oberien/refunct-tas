@@ -1,5 +1,5 @@
 use std::fmt::Pointer;
-use crate::native::ue::{FName, TArray};
+use crate::native::ue::{FName, TArray, UeU64};
 
 mod dynamic_value;
 pub use dynamic_value::*;
@@ -113,7 +113,7 @@ pub struct UProperty {
     pub base_ufield: UField,
     pub array_dim: i32,
     pub element_size: i32,
-    pub property_flags: u64,
+    pub property_flags: UeU64,
     pub rep_index: u16,
     pub rep_notify_func: FName,
     pub offset_internal: i32,

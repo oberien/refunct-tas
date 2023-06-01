@@ -5,8 +5,10 @@
 compile_error!("must be compiled as 64bit on Linux (e.g. with `--target x86_64-unknown-linux-gnu`");
 #[cfg(all(target_os = "windows", not(target_pointer_width = "32")))]
 compile_error!("must be compiled as 32bit on Windows (e.g. with `--target i686-pc-windows-msvc`)");
-#[cfg(all(target_os = "macos", not(target_pointer_width = "64")))]
-compile_error!("must be compiled as 64bit on macOS (e.g. with `--target x86_64-apple-darwin`");
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+compile_error!("currently only 64bit linux and 32bit windows are supported");
+//#[cfg(all(target_os = "macos", not(target_pointer_width = "64")))]
+//compile_error!("must be compiled as 64bit on macOS (e.g. with `--target x86_64-apple-darwin`");
 
 use std::sync::Once;
 use std::thread;

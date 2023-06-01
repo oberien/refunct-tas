@@ -210,12 +210,12 @@ impl<S: AsRef<str>> From<S> for FString {
 #[repr(transparent)]
 pub struct FName {
     #[allow(unused)]
-    number: u64,
+    number: UeU64,
 }
 
 impl FName {
     #[allow(non_upper_case_globals)]
-    pub const NAME_None: FName = FName { number: 0 };
+    pub const NAME_None: FName = FName { number: UeU64::new(0) };
 
     pub fn append_string(mut self, out: &mut FString) {
         unsafe {
@@ -235,9 +235,7 @@ impl FName {
 impl<T: Into<FString>> From<T> for FName {
     fn from(s: T) -> FName {
         let s = s.into();
-        let mut name = FName {
-            number: 0,
-        };
+        let mut name = FName::NAME_None;
         unsafe {
             let fun: extern_fn!(fn(this: *mut FName, name: *const TCHAR, find_type: u64) -> u64)
                 = mem::transmute(FNAME_FNAME.load(Ordering::SeqCst));
@@ -312,4 +310,40 @@ pub struct FQuat {
     pub y: f32,
     pub z: f32,
     pub w: f32,
+}
+
+// fuck msvc, fuck UE, fuck rust, fuck the rust reference
+// https://github.com/rust-lang/reference/issues/1235
+macro_rules! fuck_alignment {
+    ($($name:ident, $t:ty;)*) => {
+        $(
+            #[cfg_attr(target_os = "linux", repr(align(8)))]
+            #[cfg_attr(target_os = "windows", repr(align(4)))]
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+            pub struct $name {
+                val: [u8; 8],
+            }
+            #[allow(unused)]
+            impl $name {
+                pub const fn new(val: $t) -> Self {
+                    // amazing!!! https://github.com/rust-lang/rust/issues/72447
+                    unsafe {
+                        Self { val: std::mem::transmute::<$t, [u8; 8]>(val) }
+                    }
+                }
+                pub fn get(&self) -> $t {
+                    <$t>::from_ne_bytes(self.val.clone())
+                }
+                pub fn set(&mut self, val: $t) {
+                    self.val = val.to_ne_bytes();
+                }
+            }
+        )*
+    }
+}
+fuck_alignment! {
+    UeU64, u64;
+    UeI64, i64;
+    UeF64, f64;
 }
