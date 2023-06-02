@@ -114,6 +114,8 @@ find! {
     FUNTYPEDBULKDATA_UNLOCK, "^FUntypedBulkData::Unlock()",
     UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS, "^UGameUserSettings::ApplyResolutionSettings(bool)",
     UUSERWIDGET_ADDTOSCREEN, "^UUserWidget::AddToScreen(ULocalPlayer*, int)",
+    UKISMETSYSTEMLIBRARY_LINETRACESINGLE, "^UKismetSystemLibrary::LineTraceSingle_NEW(UObject*, FVector, FVector, ETraceTypeQuery, bool, TArray<AActor*, FDefaultAllocator> const&, EDrawDebugTrace::Type, FHitResult&, bool, FLinearColor, FLinearColor, float)",
+    FROTATOR_VECTOR, "^FRotator::Vector()",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

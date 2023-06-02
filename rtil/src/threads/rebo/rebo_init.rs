@@ -10,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
 use super::STATE;
@@ -101,6 +101,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(current_map)
         .add_function(original_map)
         .add_function(apply_map)
+        .add_function(get_view_target)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -120,6 +121,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(RefunctMap)
         .add_external_type(Cluster)
         .add_external_type(Element)
+        .add_external_type(ElementType)
+        .add_external_type(ElementIndex)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(on_mouse_move)
@@ -1010,5 +1013,30 @@ fn apply_map(map: RefunctMap) {
         for (lb, cb) in level.buttons().zip(cluster.buttons) {
             set_element(level, lb.as_actor(), cb);
         }
+    }
+}
+
+#[derive(Debug, rebo::ExternalType)]
+enum ElementType {
+    Platform,
+    Cube,
+    Button,
+}
+
+#[derive(Debug, rebo::ExternalType)]
+struct ElementIndex {
+    cluster_index: usize,
+    element_type: ElementType,
+    element_index: usize,
+}
+
+#[rebo::function("Tas::get_view_target")]
+fn get_view_target() -> ElementIndex {
+    let foo = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
+    log!("{foo:p}");
+    ElementIndex {
+        cluster_index: 0,
+        element_type: ElementType::Platform,
+        element_index: 0,
     }
 }

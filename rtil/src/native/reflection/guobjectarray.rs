@@ -95,6 +95,9 @@ impl<'a> ObjectItemWrapper<'a> {
         unsafe { ObjectWrapper::new((*self.item).object) }
     }
 
+    pub fn serial_number(&self) -> i32 {
+        unsafe { (*self.item).serial_number }
+    }
 
     pub fn mark_as_root_object(&self, val: bool) {
         unsafe {

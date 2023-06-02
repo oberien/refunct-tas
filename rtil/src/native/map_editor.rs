@@ -1,7 +1,6 @@
 use std::fmt::{Formatter, Pointer};
 use std::sync::Mutex;
-use crate::native::{PropertyWrapper, UProperty};
-use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, StructWrapper, UeObjectWrapper, ClassWrapper};
+use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
 
@@ -158,6 +157,8 @@ pub fn init() {
         let name = object.name();
         let class_name = object.class().name();
         // fn print_children(depth: usize, class: StructWrapper) {
+        //     use crate::native::{PropertyWrapper, UProperty};
+        //     use crate::native::reflection::{StructWrapper, ClassWrapper};
         //     for property in class.iter_properties() {
         //         let class_name = property.as_object().class().name();
         //         log!("{}{property}", "    ".repeat(depth));

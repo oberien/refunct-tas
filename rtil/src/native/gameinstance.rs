@@ -2,7 +2,6 @@ use std::sync::atomic::Ordering;
 use std::ffi::c_void;
 use crate::native::{UWorld, LevelState, ObjectWrapper, UObject};
 use crate::native::AACTOR_PROCESSEVENT;
-use crate::native::ue::FName;
 
 #[repr(C)]
 pub struct UMyGameInstance {

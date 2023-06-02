@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 use crate::native::{FMemory, FNAME_FNAME};
 use crate::native::FNAME_APPENDSTRING;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct FVector {
     pub x: f32,
@@ -24,7 +24,7 @@ pub struct FVector2D {
     pub y: f32,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 #[repr(C)]
 pub struct FRotator {
     pub pitch: f32,

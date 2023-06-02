@@ -12,17 +12,11 @@ struct MapEditorState {
     level_during_reset: int,
 }
 
-enum ElementType {
-    Platform,
-    Cube,
-    Button,
-}
-
 static MAP_EDITOR_COMPONENT = Component {
     id: MAP_EDITOR_COMPONENT_ID,
     conflicts_with: List::of(MAP_EDITOR_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
-        f"{text}\nMap Editor - editing map {MAP_EDITOR_STATE.map_name:?}\n    <TAB> edit an element"
+        f"{text}\nMap Editor - editing map {MAP_EDITOR_STATE.map_name:?}\n    <TAB> edit an element    <e> select looked-at element"
      },
     draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
@@ -45,6 +39,9 @@ static MAP_EDITOR_COMPONENT = Component {
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
         if key.to_small() == KEY_TAB.to_small() {
             enter_ui(create_map_editor_input_ui());
+        }
+        if key.to_small() == KEY_E.to_small() {
+            Tas::get_view_target();
         }
     },
     on_key_up: fn(key: KeyCode) {},
