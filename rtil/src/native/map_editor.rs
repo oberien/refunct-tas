@@ -1,5 +1,6 @@
 use std::fmt::{Formatter, Pointer};
 use std::sync::Mutex;
+use crate::native::{PropertyWrapper, UProperty};
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, StructWrapper, UeObjectWrapper, ClassWrapper};
 
 pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
@@ -168,8 +169,13 @@ pub fn init() {
             }
             log!("{}done printing children", "    ".repeat(depth));
         }
-        // log!("{:?} {:?} ({object:p})", class_name, name);
-        // _print_children(1, class);
+        if class_name == "Function" {
+            let prop = unsafe { PropertyWrapper::new(object.as_ptr() as *mut UProperty) };
+            log!("{:?} {:?} ({object:p}) (offset: {:#x})", class_name, name, prop.offset());
+        } else {
+            log!("{:?} {:?} ({object:p})", class_name, name);
+        }
+        _print_children(1, object.class().as_struct());
 
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();

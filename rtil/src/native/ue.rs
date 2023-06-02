@@ -210,7 +210,7 @@ impl<S: AsRef<str>> From<S> for FString {
 #[repr(transparent)]
 pub struct FName {
     #[allow(unused)]
-    number: UeU64,
+    pub number: UeU64,
 }
 
 impl FName {

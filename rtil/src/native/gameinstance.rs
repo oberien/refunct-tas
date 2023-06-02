@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 use std::ffi::c_void;
-use crate::native::{UWorld, LevelState};
+use crate::native::{UWorld, LevelState, ObjectWrapper, UObject};
 use crate::native::{AACTOR_PROCESSEVENT, UOBJECT_FINDFUNCTION};
 use crate::native::ue::FName;
 
@@ -22,15 +22,24 @@ impl UMyGameInstance {
         }
     }
     pub fn restart_game() {
-        let fun: extern_fn!(fn(this: *mut UMyGameInstance, name: FName) -> *const c_void) =
+        let fun: extern_fn!(fn(this: *mut UMyGameInstance, name: u64) -> *const c_void) =
             unsafe { ::std::mem::transmute(UOBJECT_FINDFUNCTION.load(Ordering::SeqCst)) };
-        let ufunction = fun(UMyGameInstance::get_umygameinstance(), FName::from("RestartGame"));
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let offset = obj.class().as_struct().iter_properties()
+            .find(|p| p.name() == "RestartGame")
+            .unwrap().offset();
+        log!("getting ufunction");
+        //let ufunction = fun(UMyGameInstance::get_umygameinstance(), FName::from("RestartGame").number.get());
+        let ufunction = offset as *mut c_void;
+        log!("got ufunction: {ufunction:p}");
         #[repr(C)]
         struct RestartGameParams { reset: bool }
         let restart_game_params = RestartGameParams { reset: false };
         let fun: extern_fn!(fn(this: *mut UMyGameInstance, function: *const c_void, args: *const c_void)) =
             unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
+        log!("calling the function");
         fun(UMyGameInstance::get_umygameinstance(), ufunction, &restart_game_params as *const _ as *const c_void);
+        log!("called the function");
     }
 }
 
