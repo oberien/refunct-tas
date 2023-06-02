@@ -157,25 +157,20 @@ pub fn init() {
         let object = item.object();
         let name = object.name();
         let class_name = object.class().name();
-        fn _print_children(depth: usize, class: StructWrapper) {
-            for property in class.iter_properties() {
-                let class_name = property.as_object().class().name();
-                log!("{}{property}", "    ".repeat(depth));
-                if class_name == "ObjectProperty" {
-                    let class = unsafe { ClassWrapper::new((*(property.as_uobjectproperty())).property_class) };
-                    log!("{}going into {}", "    ".repeat(depth), class.name());
-                    // print_children(depth+1, class);
-                }
-            }
-            log!("{}done printing children", "    ".repeat(depth));
-        }
-        if class_name == "Function" {
-            let prop = unsafe { PropertyWrapper::new(object.as_ptr() as *mut UProperty) };
-            log!("{:?} {:?} ({object:p}) (offset: {:#x})", class_name, name, prop.offset());
-        } else {
-            log!("{:?} {:?} ({object:p})", class_name, name);
-        }
-        _print_children(1, object.class().as_struct());
+        // fn print_children(depth: usize, class: StructWrapper) {
+        //     for property in class.iter_properties() {
+        //         let class_name = property.as_object().class().name();
+        //         log!("{}{property}", "    ".repeat(depth));
+        //         if class_name == "ObjectProperty" {
+        //             let class = unsafe { ClassWrapper::new((*(property.as_uobjectproperty())).property_class) };
+        //             log!("{}going into {}", "    ".repeat(depth), class.name());
+        //             // print_children(depth+1, class);
+        //         }
+        //     }
+        //     log!("{}done printing children", "    ".repeat(depth));
+        // }
+        // log!("{:?} {:?} ({object:p})", class_name, name);
+        // print_children(1, object.class().as_struct());
 
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();

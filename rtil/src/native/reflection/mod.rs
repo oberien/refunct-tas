@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::fmt::Pointer;
 use crate::native::ue::{FName, TArray, UeU64};
 
@@ -106,6 +107,22 @@ pub struct UStruct {
 pub struct UClass {
     pub base_ustruct: UStruct,
     // ...
+}
+
+#[repr(C)]
+pub struct UFunction {
+    pub base_ustruct: UStruct,
+    pub function_flags: u32,
+    pub rep_offset: u16,
+    pub num_parms: u8,
+    pub parms_size: u16,
+    pub return_value_offset: u16,
+    pub rpc_id: u16,
+    pub rpc_response_id: u16,
+    pub first_property_to_init: *mut UProperty,
+    pub event_graph_function: *mut UFunction,
+    pub event_graph_call_offset: i32,
+    pub func: *mut c_void,
 }
 
 #[repr(C)]

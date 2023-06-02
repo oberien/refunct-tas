@@ -106,7 +106,6 @@ find! {
     APAWN_SPAWNDEFAULTCONTROLLER, "^APawn::SpawnDefaultController()",
     AACTOR_SETACTORENABLECOLLISION, "^AActor::SetActorEnableCollision(bool)",
     AACTOR_PROCESSEVENT, "^AActor::ProcessEvent(UFunction*, void*)",
-    UOBJECT_FINDFUNCTION, "^UObject::FindFunction(FName)",
     UGAMEPLAYSTATICS_GETACCURATEREALTIME, "^UGameplayStatics::GetAccurateRealTime(UObject const*, int&, float&)",
     UTEXTURE2D_CREATETRANSIENT, "^UTexture2D::CreateTransient(int, int, EPixelFormat)",
     UTEXTURE2D_GETRUNNINGPLATFORMDATA, "^UTexture2D::GetRunningPlatformData()",

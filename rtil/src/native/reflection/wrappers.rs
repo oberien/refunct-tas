@@ -60,7 +60,7 @@ impl<'a> Pointer for PropertyWrapper<'a> {
 }
 impl<'a> Display for PropertyWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} (offset {:#x})", self.as_object().class().name(), self.name(), self.offset())
+        write!(f, "{} {} ({:p}) (offset {:#x})", self.as_object().class().name(), self.name(), self.as_ptr(), self.offset())
     }
 }
 

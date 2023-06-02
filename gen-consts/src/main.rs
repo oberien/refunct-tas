@@ -37,7 +37,6 @@ const NAMES: &[(&str, &str)] = &[
     ("?SpawnDefaultController@APawn@@UAEXXZ", "APAWN_SPAWNDEFAULTCONTROLLER"),
     ("?SetActorEnableCollision@AActor@@QAEX_N@Z", "AACTOR_SETACTORENABLECOLLISION"),
     ("?ProcessEvent@AActor@@UAEXPAVUFunction@@PAX@Z", "AACTOR_PROCESSEVENT"),
-    ("?FindFunction@UObject@@QBEPAVUFunction@@VFName@@@Z", "UOBJECT_FINDFUNCTION"),
     ("?GetAccurateRealTime@UGameplayStatics@@SAXPBVUObject@@AAHAAM@Z", "UGAMEPLAYSTATICS_GETACCURATEREALTIME"),
     ("?CreateTransient@UTexture2D@@SAPAV1@HHW4EPixelFormat@@@Z", "UTEXTURE2D_CREATETRANSIENT"),
     ("?GetRunningPlatformData@UTexture2D@@UAEPAPAUFTexturePlatformData@@XZ", "UTEXTURE2D_GETRUNNINGPLATFORMDATA"),
