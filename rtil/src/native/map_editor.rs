@@ -157,10 +157,6 @@ pub fn init() {
         let name = object.name();
         let class_name = object.class().name();
         fn _print_children(depth: usize, class: StructWrapper) {
-            if let Some(super_class) = class.super_class() {
-                log!("{}SuperClass: {}", "    ".repeat(depth), class.name());
-                _print_children(depth+1, super_class);
-            }
             for property in class.iter_properties() {
                 let class_name = property.as_object().class().name();
                 log!("{}{property}", "    ".repeat(depth));

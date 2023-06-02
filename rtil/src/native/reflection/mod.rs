@@ -117,6 +117,8 @@ pub struct UProperty {
     pub rep_index: u16,
     pub rep_notify_func: FName,
     pub offset_internal: i32,
+    // ELifetimeCondition
+    pub blueprint_replication_condition: i32,
     pub property_link_next: *mut UProperty,
     pub next_ref: *mut UProperty,
     pub destructor_link_next: *mut UProperty,
