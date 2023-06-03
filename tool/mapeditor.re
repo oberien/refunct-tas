@@ -41,7 +41,15 @@ static MAP_EDITOR_COMPONENT = Component {
             enter_ui(create_map_editor_input_ui());
         }
         if key.to_small() == KEY_E.to_small() {
-            Tas::get_view_target();
+            let index = match Tas::get_looked_at_element_index() {
+                Option::Some(index) => index,
+                Option::None => return,
+            };
+            let element = match try_get_element(index) {
+                Result::Ok(element) => element,
+                _ => return,
+            };
+            enter_ui(create_map_editor_element_ui(element, index, 0));
         }
     },
     on_key_up: fn(key: KeyCode) {},
@@ -145,6 +153,33 @@ fn create_map_editor_map_selection_ui() -> Ui {
     Ui::new("Map to edit", maps)
 }
 
+enum TryGetElementError {
+    InvalidClusterIndex,
+    InvalidElementIndex,
+}
+fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
+    let cluster = match MAP_EDITOR_STATE.map.clusters.get(index.cluster_index) {
+        Option::Some(cluster) => cluster,
+        Option::None => {
+            return Result::Err(TryGetElementError::InvalidClusterIndex)
+        }
+    };
+    let mut element_type = ElementType::Platform;
+    let element_list = match index.element_type {
+        ElementType::Platform => cluster.platforms,
+        ElementType::Cube => cluster.cubes,
+        ElementType::Button => cluster.buttons,
+    };
+
+    let element = match element_list.get(index.element_index) {
+        Option::Some(element) => element,
+        Option::None => {
+            return Result::Err(TryGetElementError::InvalidElementIndex)
+        }
+    };
+    Result::Ok(element)
+}
+
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
     Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p<num>, ex: 14pl2 or 2b1 or 4c1)", List::of(
@@ -158,41 +193,41 @@ fn create_map_editor_input_ui() -> Ui {
                     MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: need 2 numbers)";
                     return;
                 }
-                let cluster_index = indexes.get(0).unwrap().parse_int().unwrap();
-                let element_index = indexes.get(1).unwrap().parse_int().unwrap();
+                let cluster_index = indexes.get(0).unwrap().parse_int().unwrap() - 1;
+                let element_index = indexes.get(1).unwrap().parse_int().unwrap() - 1;
 
-                let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index - 1) {
-                    Option::Some(cluster) => cluster,
-                    Option::None => {
-                        MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: invalid cluster index)";
-                        return
-                    }
-                };
-                let mut element_type = ElementType::Platform;
-                let element_list = if input.contains("pl") {
-                    element_type = ElementType::Platform;
-                    cluster.platforms
+                let element_type = if input.contains("pl") {
+                    ElementType::Platform
                 } else if input.contains("c") {
-                    element_type = ElementType::Cube;
-                    cluster.cubes
+                    ElementType::Cube
                 } else if input.contains("b") {
-                    element_type = ElementType::Button;
-                    cluster.buttons
+                    ElementType::Button
                 } else {
                     MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b)";
                     return
                 };
 
-                let element = match element_list.get(element_index - 1) {
-                    Option::Some(element) => element,
-                    Option::None => {
-                        MAP_EDITOR_INPUT_LABEL.text = f"Input (ERROR: invalid {element_type} index)";
-                        return
-                    }
+                let index = ElementIndex {
+                    cluster_index: cluster_index,
+                    element_type: element_type,
+                    element_index: element_index
+                };
+                let element = match try_get_element(index) {
+                    Result::Ok(element) => element,
+                    Result::Err(err) => match err {
+                        TryGetElementError::InvalidClusterIndex => {
+                            MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: invalid cluster index)";
+                            return
+                        },
+                        TryGetElementError::InvalidElementIndex => {
+                            MAP_EDITOR_INPUT_LABEL.text = f"Input (ERROR: invalid {index.element_type} index)";
+                            return
+                        },
+                    },
                 };
 
                 leave_ui();
-                enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index, 0));
+                enter_ui(create_map_editor_element_ui(element, index, 0));
             },
             onchange: fn(input: string) {}
         }),
@@ -203,7 +238,7 @@ fn create_map_editor_input_ui() -> Ui {
     ))
 }
 
-fn create_map_editor_element_ui(mut element: Element, element_type: ElementType, cluster_index: int, element_index: int, selected: int) -> Ui {
+fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selected: int) -> Ui {
     let submit = fn() {
         let selected = match UI_STACK.last() {
             Option::Some(ui) => ui.selected,
@@ -212,7 +247,7 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
         Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
         leave_ui();
         apply_and_reload_map(MAP_EDITOR_STATE.map);
-        enter_ui(create_map_editor_element_ui(element, element_type, cluster_index, element_index, selected));
+        enter_ui(create_map_editor_element_ui(element, index, selected));
     };
     static mut MAP_EDITOR_X_LABEL = Text { text: "X" };
     static mut MAP_EDITOR_Y_LABEL = Text { text: "Y" };
@@ -223,7 +258,7 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
     static mut MAP_EDITOR_XSCALE_LABEL = Text { text: "XScale" };
     static mut MAP_EDITOR_YSCALE_LABEL = Text { text: "YScale" };
     static mut MAP_EDITOR_ZSCALE_LABEL = Text { text: "ZScale" };
-    Ui::new_with_selected(f"Map Editor - Edit Cluster {cluster_index} {element_type} {element_index}", selected, List::of(
+    Ui::new_with_selected(f"Map Editor - Edit Cluster {index.cluster_index + 1} {index.element_type} {index.element_index + 1}", selected, List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Set to player location" },
             onclick: fn(label: Text) {
@@ -356,13 +391,13 @@ fn create_map_editor_element_ui(mut element: Element, element_type: ElementType,
             label: Text { text: "Reset to original values" },
             onclick: fn(label: Text) {
                 let original_map = Tas::original_map();
-                let cluster = original_map.clusters.get(cluster_index - 1).unwrap();
-                let element_list = match element_type {
+                let cluster = original_map.clusters.get(index.cluster_index).unwrap();
+                let element_list = match index.element_type {
                     ElementType::Platform => cluster.platforms,
                     ElementType::Cube => cluster.cubes,
                     ElementType::Button => cluster.buttons,
                 };
-                let original_element = element_list.get(element_index - 1).unwrap();
+                let original_element = element_list.get(index.element_index).unwrap();
                 element.x = original_element.x;
                 element.y = original_element.y;
                 element.z = original_element.z;

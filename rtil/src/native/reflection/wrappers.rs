@@ -423,7 +423,7 @@ impl<'a> ActorWrapper<'a> {
         assert!(wrapper.as_object().class().extends_from("Actor"));
         wrapper
     }
-    pub fn _as_ptr(&self) -> *mut AActor {
+    pub fn as_ptr(&self) -> *mut AActor {
         self.actor
     }
     pub fn as_object(&self) -> ObjectWrapper<'a> {

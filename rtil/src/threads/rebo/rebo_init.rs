@@ -101,7 +101,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(current_map)
         .add_function(original_map)
         .add_function(apply_map)
-        .add_function(get_view_target)
+        .add_function(get_looked_at_element_index)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1030,13 +1030,19 @@ struct ElementIndex {
     element_index: usize,
 }
 
-#[rebo::function("Tas::get_view_target")]
-fn get_view_target() -> ElementIndex {
+#[rebo::function("Tas::get_looked_at_element_index")]
+fn get_looked_at_element_index() -> Option<ElementIndex> {
     let foo = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
     log!("{foo:p}");
-    ElementIndex {
-        cluster_index: 0,
-        element_type: ElementType::Platform,
-        element_index: 0,
+    for (i, level) in LEVELS.lock().unwrap().iter().enumerate() {
+        let found = level.platforms().map(|p| (ElementType::Platform, p.as_ptr() as usize)).enumerate()
+            .chain(level.cubes().map(|c| (ElementType::Cube, c.as_ptr() as usize)).enumerate())
+            .chain(level.buttons().map(|c| (ElementType::Button, c.as_ptr() as usize)).enumerate())
+            .find(|(_, (typ, addr))| foo as usize == *addr)
+            .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
+        if let Some(found) = found {
+            return Some(found);
+        }
     }
+    None
 }

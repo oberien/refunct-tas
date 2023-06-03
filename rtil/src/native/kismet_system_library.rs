@@ -11,7 +11,7 @@ pub struct KismetSystemLibrary;
 impl KismetSystemLibrary {
     pub fn line_trace_single(player: AMyCharacter) -> *mut AActor {
         unsafe {
-            let fun: extern_fn!(fn(
+            let fun: extern "C" fn(
                 world_context_object: *mut UObject,
                 start: FVector,
                 end: FVector,
@@ -24,7 +24,7 @@ impl KismetSystemLibrary {
                 trace_color: FLinearColor,
                 trace_hit_color: FLinearColor,
                 draw_time: f32
-            ) -> bool) = std::mem::transmute(UKISMETSYSTEMLIBRARY_LINETRACESINGLE.load(Ordering::SeqCst));
+            ) -> bool = std::mem::transmute(UKISMETSYSTEMLIBRARY_LINETRACESINGLE.load(Ordering::SeqCst));
 
             let mut hit_result = FHitResult {
                 bitfield: 0,

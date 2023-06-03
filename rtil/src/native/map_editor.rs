@@ -96,6 +96,9 @@ impl<'a> PlatformWrapper<'a> {
     pub fn as_actor(&self) -> ActorWrapper<'a> {
         self.platform.clone()
     }
+    pub fn as_ptr(&self) -> *mut AActor {
+        self.as_actor().as_ptr()
+    }
 }
 #[derive(Debug, Clone)]
 pub struct CubeWrapper<'a> {
@@ -122,6 +125,9 @@ impl<'a> CubeWrapper<'a> {
     pub fn as_actor(&self) -> ActorWrapper<'a> {
         self.cube.clone()
     }
+    pub fn as_ptr(&self) -> *mut AActor {
+        self.as_actor().as_ptr()
+    }
 }
 #[derive(Debug, Clone)]
 pub struct ButtonWrapper<'a> {
@@ -147,6 +153,9 @@ impl<'a> ButtonWrapper<'a> {
     }
     pub fn as_actor(&self) -> ActorWrapper<'a> {
         self.button.clone()
+    }
+    pub fn as_ptr(&self) -> *mut AActor {
+        self.as_actor().as_ptr()
     }
 }
 
