@@ -19,8 +19,8 @@ macro_rules! extern_fn {
 
 #[cfg(unix)] mod linux;
 #[cfg(windows)] mod windows;
-mod ue;
-mod character;
+pub(crate) mod ue;
+pub(crate) mod character;
 mod newgame;
 mod slateapp;
 mod tick;

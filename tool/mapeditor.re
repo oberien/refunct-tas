@@ -69,8 +69,6 @@ fn apply_and_reload_map(map: RefunctMap) {
     Tas::set_all_cluster_speeds(9999999.);
     let loc = Tas::get_location();
     let rot = Tas::get_rotation();
-    Tas::restart_game();
-    Tas::step();
     Tas::step();
 
     press_buttons_until(level_state.buttons - 1);

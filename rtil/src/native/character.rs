@@ -1,8 +1,9 @@
 use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
-use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE};
+use crate::native::ue::{FVector, FRotator, FString, UeU64, FName};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, kismet_system_library::FHitResult, ActorWrapper};
+use crate::native::AACTOR_PROCESSEVENT;
 use crate::native::reflection::UClass;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
@@ -128,10 +129,90 @@ pub struct AMyCharacterUE {
 }
 
 #[repr(C)]
-struct USceneComponent {
+pub(crate) struct USceneComponent {
     #[cfg(unix)] _pad: [u8; 0x1a0],
     #[cfg(windows)] _pad: [u8; 0x140],
     location: FVector,
+}
+
+impl USceneComponent {
+    pub fn set_world_location(loc: FVector, object: &ActorWrapper) {
+        let root_component = object.get_field("RootComponent").unwrap_object();
+        let offset = root_component.class().iter_fields()
+            .find(|p| p.name() == "K2_SetWorldLocation")
+            .unwrap().as_ptr();
+        let ufunction = offset as *mut c_void;
+        let mut hit_result = FHitResult {
+            bitfield: 0,
+            time: 0.0,
+            distance: 0.0,
+            location: Default::default(),
+            impact_point: Default::default(),
+            normal: Default::default(),
+            impact_normal: Default::default(),
+            trace_start: Default::default(),
+            trace_end: Default::default(),
+            penetration_depth: 0.0,
+            item: 0,
+            phys_material: Default::default(),
+            actor: Default::default(),
+            component: Default::default(),
+            bone_name: FName::NAME_None,
+            face_index: 0,
+        };
+        #[repr(C)]
+        struct SetWorldLocationParams { location: FVector, sweep: bool, hit: FHitResult, teleport: bool }
+        let set_world_location_params = SetWorldLocationParams { location: loc, sweep: false, hit: hit_result, teleport: true };
+        let fun: extern_fn!(fn(this: *mut c_void, function: *const c_void, args: *const c_void)) =
+            unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
+        fun(root_component.as_ptr() as *mut c_void, ufunction, &set_world_location_params as *const _ as *const c_void);
+    }
+
+    pub fn set_world_location_and_rotation(loc: FVector, rot: FRotator, object: &ActorWrapper) {
+        let root_component = object.get_field("RootComponent").unwrap_object();
+        let offset = root_component.class().iter_fields()
+            .find(|p| p.name() == "K2_SetWorldLocationAndRotation")
+            .unwrap().as_ptr();
+        let ufunction = offset as *mut c_void;
+        let mut hit_result = FHitResult {
+            bitfield: 0,
+            time: 0.0,
+            distance: 0.0,
+            location: Default::default(),
+            impact_point: Default::default(),
+            normal: Default::default(),
+            impact_normal: Default::default(),
+            trace_start: Default::default(),
+            trace_end: Default::default(),
+            penetration_depth: 0.0,
+            item: 0,
+            phys_material: Default::default(),
+            actor: Default::default(),
+            component: Default::default(),
+            bone_name: FName::NAME_None,
+            face_index: 0,
+        };
+        #[repr(C)]
+        struct SetWorldLocationParams { location: FVector, rotation: FRotator, sweep: bool, hit: FHitResult, teleport: bool }
+        let set_world_location_params = SetWorldLocationParams { location: loc, rotation: rot, sweep: false, hit: hit_result, teleport: true };
+        let fun: extern_fn!(fn(this: *mut c_void, function: *const c_void, args: *const c_void)) =
+            unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
+        fun(root_component.as_ptr() as *mut c_void, ufunction, &set_world_location_params as *const _ as *const c_void);
+    }
+
+    pub fn set_world_scale(scale: FVector, object: &ActorWrapper) {
+        let root_component = object.get_field("RootComponent").unwrap_object();
+        let offset = root_component.class().iter_fields()
+            .find(|p| p.name() == "SetWorldScale3D")
+            .unwrap().as_ptr();
+        let ufunction = offset as *mut c_void;
+        #[repr(C)]
+        struct SetWorldScaleParams { scale: FVector }
+        let set_world_scale_params = SetWorldScaleParams { scale: scale };
+        let fun: extern_fn!(fn(this: *mut c_void, function: *const c_void, args: *const c_void)) =
+            unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
+        fun(root_component.as_ptr() as *mut c_void, ufunction, &set_world_scale_params as *const _ as *const c_void);
+    }
 }
 
 #[repr(C)]

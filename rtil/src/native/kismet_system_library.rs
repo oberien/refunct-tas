@@ -93,27 +93,27 @@ impl KismetSystemLibrary {
 }
 
 #[repr(C)]
-struct FHitResult {
-    bitfield: u8,
-    time: f32,
-    distance: f32,
-    location: FVector,
-    impact_point: FVector,
-    normal: FVector,
-    impact_normal: FVector,
-    trace_start: FVector,
-    trace_end: FVector,
-    penetration_depth: f32,
-    item: i32,
-    phys_material: TWeakObjectPtr<c_void>,
-    actor: TWeakObjectPtr<AActor>,
-    component: TWeakObjectPtr<c_void>,
-    bone_name: FName,
-    face_index: i32,
+pub struct FHitResult {
+    pub bitfield: u8,
+    pub time: f32,
+    pub distance: f32,
+    pub location: FVector,
+    pub impact_point: FVector,
+    pub normal: FVector,
+    pub impact_normal: FVector,
+    pub trace_start: FVector,
+    pub trace_end: FVector,
+    pub penetration_depth: f32,
+    pub item: i32,
+    pub phys_material: TWeakObjectPtr<c_void>,
+    pub actor: TWeakObjectPtr<AActor>,
+    pub component: TWeakObjectPtr<c_void>,
+    pub bone_name: FName,
+    pub face_index: i32,
 }
 
 #[repr(C)]
-struct TWeakObjectPtr<T> {
+pub struct TWeakObjectPtr<T> {
     object_index: i32,
     object_serial_number: i32,
     _marker: PhantomData<*mut T>,

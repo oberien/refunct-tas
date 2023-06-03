@@ -10,13 +10,13 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
-use crate::threads::ue::rebo::YIELDER;
-use crate::threads::ue::{Suspend, UeEvent};
+use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
+use crate::native::ue::FRotator;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -988,12 +988,10 @@ fn apply_map(map: RefunctMap) {
     ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
 
     fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element) {
-        let current = aactor_to_element(level, &lp);
-        let (dx, dy, dz) = (cp.x - current.x, cp.y - current.y, cp.z - current.z);
-        let (rx, ry, rz) = lp.relative_location();
-        lp.set_relative_location(rx + dx, ry + dy, rz + dz);
-        lp.set_relative_rotation(cp.pitch, cp.yaw, cp.roll);
-        lp.set_relative_scale(cp.xscale, cp.yscale, cp.zscale);
+        let (_, _, rz) = level.relative_location();
+        let (rpitch, ryaw, rroll) = level.relative_rotation();
+        USceneComponent::set_world_location_and_rotation(FVector {x: cp.x, y: cp.y, z: cp.z + rz}, FRotator {pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll}, lp);
+        USceneComponent::set_world_scale(FVector {x: (cp.xscale), y: cp.yscale, z: cp.zscale }, lp);
     }
 
     let levels = LEVELS.lock().unwrap();
