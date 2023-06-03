@@ -51,13 +51,13 @@ impl KismetSystemLibrary {
             let character = ObjectWrapper::new(player.as_ptr() as *mut UObject);
             let controller = character.get_field("Controller").unwrap_object();
             let camera = controller.get_field("PlayerCameraManager").unwrap_object();
-            let get_camera_location = camera.class().as_struct().iter_properties()
+            let get_camera_location = camera.class().iter_fields()
                 .find(|p| p.name() == "GetCameraLocation")
                 .unwrap().as_ptr();
             let mut location = FVector::default();
             process_event(camera.as_ptr() as *mut c_void, get_camera_location as *mut c_void, &mut location as *mut _ as *mut c_void);
 
-            let get_camera_rotation = camera.class().as_struct().iter_properties()
+            let get_camera_rotation = camera.class().iter_fields()
                 .find(|p| p.name() == "GetCameraRotation")
                 .unwrap().as_ptr();
             let mut rotation = FRotator::default();

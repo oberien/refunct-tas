@@ -1,4 +1,5 @@
 use std::fmt::{Formatter, Pointer};
+use std::ops::Deref;
 use std::sync::Mutex;
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
 
@@ -6,15 +7,10 @@ pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
 
 #[derive(Debug, Clone)]
 pub struct LevelWrapper<'a> {
-    level: ActorWrapper<'a>,
+    base: ActorWrapper<'a>,
 }
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LevelWrapper<'a> {}
-impl<'a> Pointer for LevelWrapper<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Pointer::fmt(&self.level, f)
-    }
-}
 unsafe impl<'a> UeObjectWrapper for LevelWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_LevelRoot_C";
@@ -23,62 +19,66 @@ unsafe impl<'a> UeObjectWrapper for LevelWrapper<'a> {
         LevelWrapper::new(ActorWrapper::new(ptr))
     }
 }
+impl<'a> Deref for LevelWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for LevelWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
 
 impl<'a> LevelWrapper<'a> {
     pub fn new(level: ActorWrapper<'a>) -> LevelWrapper<'a> {
-        assert_eq!(level.as_object().class().name(), "BP_LevelRoot_C");
-        LevelWrapper { level }
-    }
-    pub fn as_actor(&self) -> ActorWrapper<'a> {
-        self.level.clone()
+        assert_eq!(level.class().name(), "BP_LevelRoot_C");
+        LevelWrapper { base: level }
     }
     pub fn level_index(&self) -> usize {
-        (*self.level.as_object().get_field("LevelIndex").unwrap_int()).try_into().unwrap()
+        (*self.base.get_field("LevelIndex").unwrap_int()).try_into().unwrap()
     }
     pub fn _source_location(&self) -> (f32, f32, f32) {
-        let loc = self.level.as_object().get_field("SourcePosition").unwrap_struct();
+        let loc = self.base.get_field("SourcePosition").unwrap_struct();
         (*loc.get_field("X").unwrap_float(), *loc.get_field("Y").unwrap_float(), *loc.get_field("Z").unwrap_float())
     }
     pub fn platforms(&self) -> impl Iterator<Item = PlatformWrapper<'a>> + '_ {
-        self.level.as_object().get_field("FertileLands").unwrap_array()
+        self.base.get_field("FertileLands").unwrap_array()
             .into_iter()
     }
     pub fn _platform(&self, index: usize) -> Option<PlatformWrapper<'a>> {
-        let array = self.level.as_object().get_field("FertileLands").unwrap_array();
+        let array = self.base.get_field("FertileLands").unwrap_array();
         array.get(index)
     }
     pub fn cubes(&self) -> impl Iterator<Item = CubeWrapper<'a>> + '_ {
-        self.level.as_object().get_field("Collectibles").unwrap_array()
+        self.base.get_field("Collectibles").unwrap_array()
             .into_iter()
     }
     pub fn _cube(&self, index: usize) -> Option<CubeWrapper<'a>> {
-        let array = self.level.as_object().get_field("Collectibles").unwrap_array();
+        let array = self.base.get_field("Collectibles").unwrap_array();
         array.get(index)
     }
     pub fn buttons(&self) -> impl Iterator<Item = ButtonWrapper<'a>> + '_ {
-        self.level.as_object().get_field("Buttons").unwrap_array()
+        self.base.get_field("Buttons").unwrap_array()
             .into_iter()
     }
     pub fn _button(&self, index: usize) -> Option<ButtonWrapper<'a>> {
-        let array = self.level.as_object().get_field("Buttons").unwrap_array();
+        let array = self.base.get_field("Buttons").unwrap_array();
         array.get(index)
     }
     pub fn _speed(&self) -> f32 {
-        *self.level.as_object().get_field("Speed").unwrap_float()
+        *self.base.get_field("Speed").unwrap_float()
     }
     pub fn set_speed(&self, speed: f32) {
-        *self.level.as_object().get_field("Speed").unwrap_float() = speed
+        *self.base.get_field("Speed").unwrap_float() = speed
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct PlatformWrapper<'a> {
-    platform: ActorWrapper<'a>,
-}
-impl<'a> Pointer for PlatformWrapper<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Pointer::fmt(&self.platform, f)
-    }
+    base: ActorWrapper<'a>,
 }
 unsafe impl<'a> UeObjectWrapper for PlatformWrapper<'a> {
     type Wrapping = AActor;
@@ -88,26 +88,27 @@ unsafe impl<'a> UeObjectWrapper for PlatformWrapper<'a> {
         PlatformWrapper::new(ActorWrapper::new(ptr))
     }
 }
+impl<'a> Deref for PlatformWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for PlatformWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
 impl<'a> PlatformWrapper<'a> {
-    pub fn new(platform: ActorWrapper<'a>) -> PlatformWrapper<'a> {
-        assert_eq!(platform.as_object().class().name(), "BP_IslandChunk_C");
-        PlatformWrapper { platform }
-    }
-    pub fn as_actor(&self) -> ActorWrapper<'a> {
-        self.platform.clone()
-    }
-    pub fn as_ptr(&self) -> *mut AActor {
-        self.as_actor().as_ptr()
+    pub fn new(base: ActorWrapper<'a>) -> PlatformWrapper<'a> {
+        assert_eq!(base.class().name(), "BP_IslandChunk_C");
+        PlatformWrapper { base }
     }
 }
 #[derive(Debug, Clone)]
 pub struct CubeWrapper<'a> {
-    cube: ActorWrapper<'a>,
-}
-impl<'a> Pointer for CubeWrapper<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Pointer::fmt(&self.cube, f)
-    }
+    base: ActorWrapper<'a>,
 }
 unsafe impl<'a> UeObjectWrapper for CubeWrapper<'a> {
     type Wrapping = AActor;
@@ -117,26 +118,27 @@ unsafe impl<'a> UeObjectWrapper for CubeWrapper<'a> {
         CubeWrapper::new(ActorWrapper::new(ptr))
     }
 }
+impl<'a> Deref for CubeWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for CubeWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
 impl<'a> CubeWrapper<'a> {
     pub fn new(cube: ActorWrapper<'a>) -> CubeWrapper<'a> {
-        assert_eq!(cube.as_object().class().name(), "BP_PowerCore_C");
-        CubeWrapper { cube }
-    }
-    pub fn as_actor(&self) -> ActorWrapper<'a> {
-        self.cube.clone()
-    }
-    pub fn as_ptr(&self) -> *mut AActor {
-        self.as_actor().as_ptr()
+        assert_eq!(cube.class().name(), "BP_PowerCore_C");
+        CubeWrapper { base: cube }
     }
 }
 #[derive(Debug, Clone)]
 pub struct ButtonWrapper<'a> {
-    button: ActorWrapper<'a>,
-}
-impl<'a> Pointer for ButtonWrapper<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Pointer::fmt(&self.button, f)
-    }
+    base: ActorWrapper<'a>,
 }
 unsafe impl<'a> UeObjectWrapper for ButtonWrapper<'a> {
     type Wrapping = AActor;
@@ -146,16 +148,22 @@ unsafe impl<'a> UeObjectWrapper for ButtonWrapper<'a> {
         ButtonWrapper::new(ActorWrapper::new(ptr))
     }
 }
+impl<'a> Deref for ButtonWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for ButtonWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
 impl<'a> ButtonWrapper<'a> {
     pub fn new(button: ActorWrapper<'a>) -> ButtonWrapper<'a> {
-        assert_eq!(button.as_object().class().name(), "BP_Button_C");
-        ButtonWrapper { button }
-    }
-    pub fn as_actor(&self) -> ActorWrapper<'a> {
-        self.button.clone()
-    }
-    pub fn as_ptr(&self) -> *mut AActor {
-        self.as_actor().as_ptr()
+        assert_eq!(button.class().name(), "BP_Button_C");
+        ButtonWrapper { base: button }
     }
 }
 
@@ -169,7 +177,7 @@ pub fn init() {
         //     use crate::native::{PropertyWrapper, UProperty};
         //     use crate::native::reflection::{StructWrapper, ClassWrapper};
         //     for property in class.iter_properties() {
-        //         let class_name = property.as_object().class().name();
+        //         let class_name = property.class().name();
         //         log!("{}{property}", "    ".repeat(depth));
         //         if class_name == "ObjectProperty" {
         //             let class = unsafe { ClassWrapper::new((*(property.as_uobjectproperty())).property_class) };
@@ -180,7 +188,7 @@ pub fn init() {
         //     log!("{}done printing children", "    ".repeat(depth));
         // }
         // log!("{:?} {:?} ({object:p})", class_name, name);
-        // print_children(1, object.class().as_struct());
+        // print_children(1, object.class());
 
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();

@@ -962,7 +962,7 @@ fn remove_map(filename: String) -> bool {
 }
 
 fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
-    let (_, _, lz) = level.as_actor().relative_location();
+    let (_, _, lz) = level.relative_location();
     let (ax, ay, az) = actor.absolute_location();
     let (pitch, yaw, roll) = actor.relative_rotation();
     let (xscale, yscale, zscale) = actor.relative_scale();
@@ -971,9 +971,9 @@ fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
 fn get_current_map() -> RefunctMap {
     let clusters = LEVELS.lock().unwrap().iter()
         .map(|level| Cluster {
-            platforms: level.platforms().map(|p| aactor_to_element(level, &p.as_actor())).collect(),
-            cubes: level.cubes().map(|c| aactor_to_element(level, &c.as_actor())).collect(),
-            buttons: level.buttons().map(|b| aactor_to_element(level, &b.as_actor())).collect(),
+            platforms: level.platforms().map(|p| aactor_to_element(level, &p)).collect(),
+            cubes: level.cubes().map(|c| aactor_to_element(level, &c)).collect(),
+            buttons: level.buttons().map(|b| aactor_to_element(level, &b)).collect(),
         }).collect();
     RefunctMap { clusters }
 }
@@ -992,7 +992,7 @@ fn apply_map(map: RefunctMap) {
     // initialize before we change anything
     ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
 
-    fn set_element(level: &LevelWrapper, lp: ActorWrapper, cp: Element) {
+    fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element) {
         let current = aactor_to_element(level, &lp);
         let (dx, dy, dz) = (cp.x - current.x, cp.y - current.y, cp.z - current.z);
         let (rx, ry, rz) = lp.relative_location();
@@ -1005,13 +1005,13 @@ fn apply_map(map: RefunctMap) {
     assert_eq!(map.clusters.len(), levels.len());
     for (level, cluster) in levels.iter().zip(map.clusters) {
         for (lp, cp) in level.platforms().zip(cluster.platforms) {
-            set_element(level, lp.as_actor(), cp);
+            set_element(level, &lp, cp);
         }
         for (lc, cc) in level.cubes().zip(cluster.cubes) {
-            set_element(level, lc.as_actor(), cc);
+            set_element(level, &lc, cc);
         }
         for (lb, cb) in level.buttons().zip(cluster.buttons) {
-            set_element(level, lb.as_actor(), cb);
+            set_element(level, &lb, cb);
         }
     }
 }
@@ -1038,7 +1038,7 @@ fn get_looked_at_element_index() -> Option<ElementIndex> {
         let found = level.platforms().map(|p| (ElementType::Platform, p.as_ptr() as usize)).enumerate()
             .chain(level.cubes().map(|c| (ElementType::Cube, c.as_ptr() as usize)).enumerate())
             .chain(level.buttons().map(|c| (ElementType::Button, c.as_ptr() as usize)).enumerate())
-            .find(|(_, (typ, addr))| foo as usize == *addr)
+            .find(|(_, (_, addr))| foo as usize == *addr)
             .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
         if let Some(found) = found {
             return Some(found);

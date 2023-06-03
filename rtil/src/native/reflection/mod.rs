@@ -40,7 +40,7 @@ macro_rules! impl_array_element_for_primitives {
                 type ElementType = $t;
 
                 fn check_property_type(prop: PropertyWrapper) {
-                    assert_eq!(prop.as_object().class().name(), $proptype);
+                    assert_eq!(prop.class().name(), $proptype);
                 }
 
                 unsafe fn create(ptr: *mut Self::ElementType) -> Self {

@@ -22,7 +22,7 @@ impl UMyGameInstance {
     }
     pub fn restart_game() {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
-        let offset = obj.class().as_struct().iter_properties()
+        let offset = obj.class().iter_fields()
             .find(|p| p.name() == "RestartGame")
             .unwrap().as_ptr();
         let ufunction = offset as *mut c_void;
