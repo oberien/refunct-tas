@@ -1,5 +1,6 @@
 use std::ffi::c_void;
-use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, ArrayWrapper, PropertyWrapper, ArrayElement};
+use crate::native::ArrayElement;
+use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, ArrayWrapper, PropertyWrapper};
 use crate::native::ue::{FName, FString, TArray};
 
 #[derive(Debug)]
@@ -124,9 +125,7 @@ impl<'a> DynamicValue<'a> {
             DynamicValue::Array(val, inner_prop) => (val, inner_prop),
             _ => panic!("tried to unwrap an incompatible value"),
         };
-        T::check_property_type(inner_prop);
-        let array = ptr as *mut TArray<T::ElementType>;
-        unsafe { ArrayWrapper::new(array) }
+        unsafe { ArrayWrapper::new(ptr as *mut TArray<c_void>, inner_prop) }
     }
     pub fn unwrap_struct(self) -> ObjectStructFieldWrapper<'a> {
         match self {

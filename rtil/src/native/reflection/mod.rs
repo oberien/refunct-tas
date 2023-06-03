@@ -15,17 +15,17 @@ pub unsafe trait UeObjectWrapper: Pointer {
 
     unsafe fn create(ptr: *mut Self::Wrapping) -> Self;
 }
-pub unsafe trait ArrayElement {
+pub unsafe trait SizedArrayElement {
     type ElementType;
 
-    fn check_property_type(prop: PropertyWrapper);
+    fn check_property_type(prop: &PropertyWrapper);
     unsafe fn create(ptr: *mut Self::ElementType) -> Self;
 }
-unsafe impl<T: UeObjectWrapper> ArrayElement for T {
+unsafe impl<T: UeObjectWrapper> SizedArrayElement for T {
     type ElementType = *mut T::Wrapping;
 
-    fn check_property_type(prop: PropertyWrapper) {
-        let element_class = unsafe { ClassWrapper::new((*prop.as_uobjectproperty()).property_class) };
+    fn check_property_type(prop: &PropertyWrapper) {
+        let element_class = prop.upcast::<ObjectPropertyWrapper>().property_class();
         assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
     }
 
@@ -33,13 +33,22 @@ unsafe impl<T: UeObjectWrapper> ArrayElement for T {
         T::create(*ptr)
     }
 }
+pub trait ArrayElement {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self;
+}
+impl<T: SizedArrayElement> ArrayElement for T {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
+        T::check_property_type(prop);
+        T::create(ptr as *mut T::ElementType)
+    }
+}
 macro_rules! impl_array_element_for_primitives {
     ($($t:ty, $proptype:literal;)*) => {
         $(
-            unsafe impl<'a> ArrayElement for &'a mut $t {
+            unsafe impl<'a> SizedArrayElement for &'a mut $t {
                 type ElementType = $t;
 
-                fn check_property_type(prop: PropertyWrapper) {
+                fn check_property_type(prop: &PropertyWrapper) {
                     assert_eq!(prop.class().name(), $proptype);
                 }
 

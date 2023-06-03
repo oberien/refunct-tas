@@ -2,9 +2,9 @@ use std::ffi::c_void;
 use std::fmt::{Display, Formatter, Pointer};
 use std::marker::PhantomData;
 use std::ops::Deref;
-use crate::native::reflection::{AActor, ArrayElement, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
+use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::{FName, FString, TArray};
-use crate::native::UField;
+use crate::native::{ArrayElement, UField};
 
 #[derive(Debug, Clone)]
 pub struct ObjectStructFieldWrapper<'a> {
@@ -12,16 +12,20 @@ pub struct ObjectStructFieldWrapper<'a> {
     struct_information: StructWrapper<'a>,
     _marker: PhantomData<&'a mut UObject>,
 }
-
 impl<'a> Pointer for ObjectStructFieldWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.ptr, f)
     }
 }
-
+impl<'a> ArrayElement for ObjectStructFieldWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
+        let struct_information = prop.upcast::<StructPropertyWrapper>().struct_();
+        ObjectStructFieldWrapper::new(ptr as *mut c_void, struct_information)
+    }
+}
 impl<'a> ObjectStructFieldWrapper<'a> {
-    pub unsafe fn new(ptr: *mut u8, struct_information: StructWrapper<'a>) -> ObjectStructFieldWrapper<'a> {
-        ObjectStructFieldWrapper { ptr, struct_information, _marker: PhantomData }
+    pub unsafe fn new(ptr: *mut c_void, struct_information: StructWrapper<'a>) -> ObjectStructFieldWrapper<'a> {
+        ObjectStructFieldWrapper { ptr: ptr as *mut u8, struct_information, _marker: PhantomData }
     }
     pub fn get_field(&self, name: &str) -> DynamicValue {
         unsafe {
@@ -166,24 +170,127 @@ impl<'a> PropertyWrapper<'a> {
     pub fn as_ptr(&self) -> *mut UProperty {
         self.base.as_ptr() as *mut UProperty
     }
-    pub fn as_uobjectproperty(&self) -> *mut UObjectProperty {
-        assert_eq!(self.property_kind(), "ObjectProperty");
-        self.as_ptr() as *mut UObjectProperty
-    }
-    pub fn as_uarrayproperty(&self) -> *mut UArrayProperty {
-        assert_eq!(self.property_kind(), "ArrayProperty");
-        self.as_ptr() as *mut UArrayProperty
-    }
     pub fn property_kind(&self) -> String {
         self.class().name()
     }
     pub fn offset(&self) -> isize {
         unsafe { (*self.as_ptr()).offset_internal as isize }
     }
+    pub fn size(&self) -> usize {
+        unsafe { (*self.as_ptr()).element_size.try_into().unwrap() }
+    }
 }
 impl<'a> Display for PropertyWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} ({:p}) (offset {:#x})", self.class().name(), self.name(), self.as_ptr(), self.offset())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjectPropertyWrapper<'a> {
+    base: PropertyWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for ObjectPropertyWrapper<'a> {
+    type Wrapping = UObjectProperty;
+    const CLASS_NAME: &'static str = "ObjectProperty";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        ObjectPropertyWrapper::new(ptr)
+    }
+}
+impl<'a> Deref for ObjectPropertyWrapper<'a> {
+    type Target = PropertyWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for ObjectPropertyWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.as_ptr(), f)
+    }
+}
+impl<'a> ObjectPropertyWrapper<'a> {
+    pub unsafe fn new(prop: *mut UObjectProperty) -> ObjectPropertyWrapper<'a> {
+        ObjectPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
+    }
+    pub fn as_ptr(&self) -> *mut UObjectProperty {
+        self.base.as_ptr() as *mut UObjectProperty
+    }
+    pub fn property_class(&self) -> ClassWrapper<'a> {
+        unsafe { ClassWrapper::new((*self.as_ptr()).property_class) }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ArrayPropertyWrapper<'a> {
+    base: PropertyWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for ArrayPropertyWrapper<'a> {
+    type Wrapping = UArrayProperty;
+    const CLASS_NAME: &'static str = "ArrayProperty";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        ArrayPropertyWrapper::new(ptr)
+    }
+}
+impl<'a> Deref for ArrayPropertyWrapper<'a> {
+    type Target = PropertyWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for ArrayPropertyWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.as_ptr(), f)
+    }
+}
+impl<'a> ArrayPropertyWrapper<'a> {
+    pub unsafe fn new(prop: *mut UArrayProperty) -> ArrayPropertyWrapper<'a> {
+        ArrayPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
+    }
+    pub fn as_ptr(&self) -> *mut UArrayProperty {
+        self.base.as_ptr() as *mut UArrayProperty
+    }
+    pub fn inner(&self) -> PropertyWrapper<'a> {
+        unsafe { PropertyWrapper::new((*self.as_ptr()).inner) }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StructPropertyWrapper<'a> {
+    base: PropertyWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for StructPropertyWrapper<'a> {
+    type Wrapping = UStructProperty;
+    const CLASS_NAME: &'static str = "StructProperty";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        StructPropertyWrapper::new(ptr)
+    }
+}
+impl<'a> Deref for StructPropertyWrapper<'a> {
+    type Target = PropertyWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for StructPropertyWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.as_ptr(), f)
+    }
+}
+impl<'a> StructPropertyWrapper<'a> {
+    pub unsafe fn new(prop: *mut UStructProperty) -> StructPropertyWrapper<'a> {
+        StructPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
+    }
+    pub fn as_ptr(&self) -> *mut UStructProperty {
+        self.base.as_ptr() as *mut UStructProperty
+    }
+    pub fn struct_(&self) -> StructWrapper<'a> {
+        unsafe { StructWrapper::new((*self.as_ptr()).struct_) }
     }
 }
 
@@ -493,8 +600,9 @@ impl<'a> ActorWrapper<'a> {
 /// Wrapper for a UE-owned array
 #[derive(Debug)]
 pub struct ArrayWrapper<'a, T: ArrayElement> {
-    array: *mut TArray<T::ElementType>,
-    _marker: PhantomData<&'a mut ()>,
+    array: *mut TArray<u8>,
+    element_prop: PropertyWrapper<'a>,
+    _marker: PhantomData<&'a mut [T]>,
 }
 impl<'a, T: ArrayElement> Pointer for ArrayWrapper<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -506,21 +614,20 @@ impl<'a, T: ArrayElement> Clone for ArrayWrapper<'a, T> {
     fn clone(&self) -> Self {
         Self {
             array: self.array,
+            element_prop: self.element_prop.clone(),
             _marker: PhantomData,
         }
     }
 }
-unsafe impl<'a, T: ArrayElement> UeObjectWrapper for ArrayWrapper<'a, T> {
-    type Wrapping = TArray<T::ElementType>;
-    const CLASS_NAME: &'static str = "Array";
-
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
-        ArrayWrapper::new(ptr)
+impl<'a, T: ArrayElement> ArrayElement for ArrayWrapper<'a, T> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
+        let element_prop = prop.upcast::<ArrayPropertyWrapper>().inner();
+        ArrayWrapper::new(ptr as *mut TArray<c_void>, element_prop)
     }
 }
 impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
-    pub unsafe fn new(array: *mut TArray<T::ElementType>) -> ArrayWrapper<'a, T> {
-        ArrayWrapper { array, _marker: PhantomData }
+    pub unsafe fn new(array: *mut TArray<c_void>, element_prop: PropertyWrapper<'a>) -> ArrayWrapper<'a, T> {
+        ArrayWrapper { array: array as *mut TArray<u8>, element_prop, _marker: PhantomData }
     }
     pub fn len(&self) -> usize {
         unsafe { (*self.array).len() }
@@ -529,7 +636,9 @@ impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
         unsafe { (*self.array).capacity() }
     }
     pub fn get(&self, index: usize) -> Option<T> {
-        unsafe { (*self.array).get_mut(index).map(|ptr| T::create(ptr)) }
+        let offset = index.checked_mul(self.element_prop.size()).unwrap();
+        unsafe { (*self.array).get_mut(offset).map(|ptr| T::create(ptr as *mut u8 as *mut c_void, &self.element_prop)) }
+
     }
 }
 pub struct ArrayWrapperIter<'a, T: ArrayElement> {
@@ -588,10 +697,10 @@ unsafe fn apply_field_info(ptr: *mut u8, info: FieldInfo) -> DynamicValue {
         "InterfaceProperty" => todo!("InterfaceProperty"),
         "NameProperty" => DynamicValue::Name(*checked_cast::<FName>(value_ptr)),
         "StrProperty" => DynamicValue::Str(checked_cast::<FString>(value_ptr)),
-        "ArrayProperty" => DynamicValue::Array(checked_cast::<TArray<*mut ()>>(value_ptr) as *mut c_void, PropertyWrapper::new((*info.prop.as_uarrayproperty()).inner)),
+        "ArrayProperty" => DynamicValue::Array(checked_cast::<TArray<*mut ()>>(value_ptr) as *mut c_void, info.prop.upcast::<ArrayPropertyWrapper>().inner()),
         "MapProperty" => todo!("MapProperty"),
         "SetProperty" => todo!("SetProperty"),
-        "StructProperty" => DynamicValue::Struct(ObjectStructFieldWrapper::new(value_ptr, StructWrapper::new((*(info.prop.as_ptr() as *mut UStructProperty)).struct_))),
+        "StructProperty" => DynamicValue::Struct(ObjectStructFieldWrapper::new(value_ptr as *mut c_void, StructWrapper::new((*(info.prop.as_ptr() as *mut UStructProperty)).struct_))),
         "DelegateProperty" | "MulticastDelegateProperty" | "MulticastInlineDelegateProperty" | "MulticastSparseDelegateProperty" => todo!("Function-based Properties"),
         "EnumProperty" => todo!("EnumProperty"),
         "TextProperty" => todo!("TextProperty"),
