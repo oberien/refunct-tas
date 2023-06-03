@@ -52,12 +52,12 @@ impl<T> Static<T> {
         MutexGuardWrapper::new(self.val.lock().unwrap())
     }
 
-    pub fn is_some(&self) -> bool {
+    pub fn _is_some(&self) -> bool {
         self.val.lock().unwrap().is_some()
     }
 
-    pub fn is_none(&self) -> bool {
-        !self.is_some()
+    pub fn _is_none(&self) -> bool {
+        !self._is_some()
     }
 }
 

@@ -82,7 +82,7 @@ impl<T> TArray<T> {
         unsafe { Some(&mut *self.ptr.offset(self.check_index_for_indexing(index).ok()?)) }
     }
 
-    fn check_index_for_indexing(&self, index: usize) -> Result<isize, String> {
+    pub fn check_index_for_indexing(&self, index: usize) -> Result<isize, String> {
         assert!(mem::size_of::<usize>() >= mem::size_of::<i32>());
         if !(index <= i32::MAX as usize) {
             return Err("index must be smaller than i32::MAX".to_string());

@@ -10,11 +10,13 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance};
 use protocol::{Request, Response};
-use crate::threads::{ReboToStream, ReboToUe, StreamToRebo, UeToRebo};
+use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
+use crate::threads::ue::rebo::YIELDER;
+use crate::threads::ue::{Suspend, UeEvent};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -205,17 +207,13 @@ fn print(..: _) {
 
 #[rebo::function(raw("Tas::step"))]
 fn step() -> Step {
-    step_internal(vm, StepKind::Step)?
+    step_internal(vm, Suspend::Return)?
 }
 #[rebo::function(raw("Tas::yield"))]
 fn step_yield() -> Step {
-    step_internal(vm, StepKind::Yield)?
+    step_internal(vm, Suspend::Yield)?
 }
-enum StepKind {
-    Step,
-    Yield,
-}
-fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind) -> Result<Step, ExecError<'a, 'i>> {
+fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -> Result<Step, ExecError<'a, 'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let old_level_state = LevelState::get();
 
@@ -223,25 +221,20 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
         FApp::set_delta(delta);
     }
 
-    match step_kind {
-        StepKind::Step => STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap(),
-        StepKind::Yield => STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::PumpMessages).unwrap(),
-    }
     loop {
         let mut to_be_returned = None;
-        // check UE-thread
-        let res = STATE.lock().unwrap().as_ref().unwrap().ue_rebo_rx.recv().unwrap();
-        match res {
-            UeToRebo::Tick => to_be_returned = Some(Step::Tick),
-            UeToRebo::NewGame => to_be_returned = Some(Step::NewGame),
-            UeToRebo::PumpedMessages => to_be_returned = Some(Step::Yield),
-            UeToRebo::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
-            UeToRebo::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
-            UeToRebo::MouseMove(x, y) => on_mouse_move(vm, x, y)?,
-            UeToRebo::DrawHud => draw_hud(vm)?,
-            UeToRebo::ApplyResolutionSettings => on_resolution_change(vm)?,
-            UeToRebo::AddToScreen => on_menu_open(vm)?,
-            UeToRebo::AMyCharacterSpawned(_) => unreachable!(),
+        // yield back to UE stack, but not necessarily the UE loop
+        let evt = YIELDER.with(|yielder| unsafe { (*yielder.get()).suspend(suspend) });
+        match evt {
+            UeEvent::Tick => to_be_returned = Some(Step::Tick),
+            UeEvent::NothingHappened => to_be_returned = Some(Step::Yield),
+            UeEvent::NewGame => to_be_returned = Some(Step::NewGame),
+            UeEvent::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
+            UeEvent::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
+            UeEvent::MouseMove(x, y) => on_mouse_move(vm, x, y)?,
+            UeEvent::DrawHud => draw_hud(vm)?,
+            UeEvent::ApplyResolutionSettings => on_resolution_change(vm)?,
+            UeEvent::AddToScreen => on_menu_open(vm)?,
         }
 
         // check websocket
@@ -280,10 +273,6 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, step_kind: StepKind
             },
             None => (),
         }
-
-        // We aren't actually advancing a frame, but just returning from the
-        // key event or drawhud interceptor.
-        STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::AdvanceFrame).unwrap();
     }
 }
 
@@ -398,18 +387,27 @@ fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.insert(key_code);
-    state.rebo_ue_tx.send(ReboToUe::PressKey(key_code, character_code, is_repeat)).unwrap();
+    // we don't want to trigger our keyevent handler for emulated presses
+    unhook_fslateapplication_onkeydown();
+    FSlateApplication::press_key(key_code, character_code, is_repeat);
+    hook_fslateapplication_onkeydown();
 }
 #[rebo::function("Tas::key_up")]
 fn key_up(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.remove(&key_code);
-    state.rebo_ue_tx.send(ReboToUe::ReleaseKey(key_code, character_code, is_repeat)).unwrap();
+    // we don't want to trigger our keyevent handler for emulated presses
+    unhook_fslateapplication_onkeyup();
+    FSlateApplication::release_key(key_code, character_code, is_repeat);
+    hook_fslateapplication_onkeyup();
 }
 #[rebo::function("Tas::move_mouse")]
 fn move_mouse(x: i32, y: i32) {
-    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::MoveMouse(x, y)).unwrap();
+    // we don't want to trigger our mouseevent handler for emulated mouse movements
+    unhook_fslateapplication_onrawmousemove();
+    FSlateApplication::move_mouse(x, y);
+    hook_fslateapplication_onrawmousemove();
 }
 #[rebo::function("Tas::get_last_frame_delta")]
 fn get_last_frame_delta() -> f64 {
@@ -517,12 +515,12 @@ fn get_level_state() -> LevelState {
 }
 #[rebo::function("Tas::restart_game")]
 fn restart_game() {
-    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::TriggerNewGame).unwrap();
+    UMyGameInstance::restart_game();
 }
 #[rebo::function(raw("Tas::wait_for_new_game"))]
 fn wait_for_new_game() {
     loop {
-        match step_internal(vm, StepKind::Step)? {
+        match step_internal(vm, Suspend::Return)? {
             Step::Tick => continue,
             Step::NewGame => break,
             Step::Yield => unreachable!("step_internal(StepKind::Step) returned Yield"),
@@ -547,7 +545,8 @@ struct Color {
 }
 #[rebo::function("Tas::draw_line")]
 fn draw_line(line: Line) {
-    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::DrawLine(line.startx, line.starty, line.endx, line.endy, (line.color.red, line.color.green, line.color.blue, line.color.alpha), line.thickness)).unwrap();
+    let color = (line.color.red, line.color.green, line.color.blue, line.color.alpha);
+    AMyHud::draw_line(line.startx, line.starty, line.endx, line.endy, color, line.thickness);
 }
 #[derive(Debug, Clone, rebo::ExternalType)]
 struct DrawText {
@@ -560,11 +559,12 @@ struct DrawText {
 }
 #[rebo::function("Tas::draw_text")]
 fn draw_text(text: DrawText) {
-    STATE.lock().unwrap().as_ref().unwrap().rebo_ue_tx.send(ReboToUe::DrawText(text.text, (text.color.red, text.color.green, text.color.blue, text.color.alpha), text.x, text.y, text.scale, text.scale_position)).unwrap();
+    let color = (text.color.red, text.color.green, text.color.blue, text.color.alpha);
+    AMyHud::draw_text(text.text, color, text.x, text.y, text.scale, text.scale_position);
 }
 #[rebo::function("Tas::draw_minimap")]
 fn draw_minimap(x: f32, y: f32, scale: f32, scale_position: bool) {
-    AMyHud::draw_texture_simple(&STATE.lock().unwrap().as_ref().unwrap().minimap_texture, x, y, scale, scale_position);
+    AMyHud::draw_texture_simple(STATE.lock().unwrap().as_ref().unwrap().minimap_texture.as_ref().unwrap(), x, y, scale, scale_position);
 }
 #[rebo::function("Tas::set_minimap_alpha")]
 fn set_minimap_alpha(alpha: f32) {
@@ -574,7 +574,7 @@ fn set_minimap_alpha(alpha: f32) {
     for pixel in image.pixels_mut() {
         pixel.0[3] = (255.0 * alpha).round() as u8;
     }
-    state.minimap_texture.set_image(&image);
+    state.minimap_texture.as_mut().unwrap().set_image(&image);
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
 struct Size {
@@ -584,7 +584,7 @@ struct Size {
 #[rebo::function("Tas::minimap_size")]
 fn minimap_size() -> Size {
     let lock = STATE.lock().unwrap();
-    let minimap = &lock.as_ref().unwrap().minimap_texture;
+    let minimap = lock.as_ref().unwrap().minimap_texture.as_ref().unwrap();
     Size {
         width: minimap.width(),
         height: minimap.height(),
@@ -655,12 +655,7 @@ fn get_viewport_size() -> Size {
 }
 #[rebo::function("Tas::spawn_pawn")]
 fn spawn_pawn(loc: Location, rot: Rotation) -> u32 {
-    STATE.lock().unwrap().as_mut().unwrap().rebo_ue_tx.send(ReboToUe::SpawnAMyCharacter(loc.x, loc.y, loc.z, rot.pitch, rot.yaw, rot.roll)).unwrap();
-    let spawned = STATE.lock().unwrap().as_mut().unwrap().ue_rebo_rx.recv().unwrap();
-    let my_character = match spawned {
-        UeToRebo::AMyCharacterSpawned(c) => c,
-        _ => unreachable!(),
-    };
+    let my_character = UWorld::spawn_amycharacter(loc.x, loc.y, loc.z, rot.pitch, rot.yaw, rot.roll);
     let id = STATE.lock().unwrap().as_mut().unwrap().pawn_id;
     STATE.lock().unwrap().as_mut().unwrap().pawn_id += 1;
     STATE.lock().unwrap().as_mut().unwrap().pawns.insert(id, my_character);

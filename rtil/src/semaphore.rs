@@ -13,7 +13,17 @@ impl Semaphore {
         }
     }
 
-    pub fn acquire(&self) {
+    pub fn try_acquire(&self) -> bool {
+        let mut guard = self.mutex.lock().unwrap();
+        if *guard <= 0 {
+            false
+        } else {
+            *guard -= 1;
+            true
+        }
+    }
+
+    pub fn _acquire(&self) {
         let mut guard = self.mutex.lock().unwrap();
         if *guard <= 0 {
             guard = self.condvar.wait_while(guard, |count| *count <= 0).unwrap();

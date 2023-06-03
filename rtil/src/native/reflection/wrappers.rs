@@ -636,9 +636,12 @@ impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
         unsafe { (*self.array).capacity() }
     }
     pub fn get(&self, index: usize) -> Option<T> {
-        let offset = index.checked_mul(self.element_prop.size()).unwrap();
-        unsafe { (*self.array).get_mut(offset).map(|ptr| T::create(ptr as *mut u8 as *mut c_void, &self.element_prop)) }
-
+        unsafe {
+            let index = (*self.array).check_index_for_indexing(index).ok()?;
+            let offset = index.checked_mul(self.element_prop.size().try_into().unwrap()).unwrap();
+            let ptr = (*self.array).ptr.offset(offset);
+            Some(T::create(ptr as *mut c_void, &self.element_prop))
+        }
     }
 }
 pub struct ArrayWrapperIter<'a, T: ArrayElement> {
