@@ -3,6 +3,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::fs::File;
 use std::env;
+use std::time::Duration;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 
@@ -14,7 +15,7 @@ pub struct Tas {
 
 impl Tas {
     pub fn new() -> Result<Tas> {
-        let con = TcpStream::connect("localhost:21337")
+        let con = TcpStream::connect_timeout(&"127.0.0.1:21337".parse().unwrap(), Duration::from_secs(10))
             .map_err(|_ | Error::CantConnectToRtil)?;
         Ok(Tas {
             con,
