@@ -6,9 +6,9 @@ pub enum FPlatformMisc {}
 impl FPlatformMisc {
     pub fn pump_messages() {
         unsafe {
-            let fun: extern_fn!(fn(from_main_loop: i32))
+            let fun: extern "C" fn(from_main_loop: bool)
                 = std::mem::transmute(FPLATFORMMISC_PUMPMESSAGES.load(Ordering::SeqCst));
-            fun(1);
+            fun(true);
         }
     }
 }

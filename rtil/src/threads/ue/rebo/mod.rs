@@ -90,11 +90,8 @@ pub(super) fn poll(event: UeEvent) {
                         CoroutineResult::Yield(Suspend::Return) => (),
                         CoroutineResult::Yield(Suspend::Yield) => {
                             // don't return to UE, let input events be handled
-                            loop {
-                                FPlatformMisc::pump_messages();
-                                if !STATE.lock().unwrap().as_ref().unwrap().event_queue.is_empty() {
-                                    break;
-                                }
+                            FPlatformMisc::pump_messages();
+                            if STATE.lock().unwrap().as_ref().unwrap().event_queue.is_empty() {
                                 thread::sleep(Duration::from_millis(5));
                                 STATE.lock().unwrap().as_mut().unwrap().event_queue.push_back(UeEvent::NothingHappened);
                             }
@@ -194,6 +191,7 @@ fn cleanup_after_rebo() {
     let state = state.as_mut().unwrap();
     YIELDER.with(|yielder| yielder.set(ptr::null()));
     COROUTINE.with(|co| *co.borrow_mut() = None);
+    state.event_queue.clear();
     state.delta = None;
     drop(state.websocket.take());
     for (_id, my_character) in state.pawns.drain() {
