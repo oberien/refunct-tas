@@ -1,10 +1,10 @@
 pub const FNAME_FNAME: usize = 0x1c1160;
 pub const FMEMORY_MALLOC: usize = 0x148750;
 pub const FMEMORY_FREE: usize = 0x1410d0;
+pub const UOBJECT_PROCESSEVENT: usize = 0x269c80;
 pub const GUOBJECTARRAY: usize = 0x1f046d0;
 pub const UTEXTURE2D_UPDATERESOURCE: usize = 0xed7fe0;
 pub const UTEXTURE2D_GETRUNNINGPLATFORMDATA: usize = 0xc9a520;
-pub const AACTOR_PROCESSEVENT: usize = 0xa4a790;
 pub const APAWN_SPAWNDEFAULTCONTROLLER: usize = 0xd82510;
 pub const AACTOR_SETACTORENABLECOLLISION: usize = 0xa4d540;
 pub const APLAYERCONTROLLER_GETVIEWPORTSIZE: usize = 0xdbba80;

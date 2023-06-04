@@ -153,7 +153,7 @@ pub struct UProperty {
 
 // Byte, Int*, UInt* are all empty
 #[repr(C)]
-pub struct _UBoolProperty {
+pub struct UBoolProperty {
     base_uproperty: UProperty,
     field_size: u8,
     byte_offset: u8,

@@ -1,37 +1,141 @@
+use std::alloc::{Layout, System, GlobalAlloc};
 use std::ffi::c_void;
 use std::fmt::{Display, Formatter, Pointer};
 use std::marker::PhantomData;
 use std::ops::Deref;
+use std::sync::atomic::Ordering;
+use itertools::Itertools;
 use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::{FName, FString, TArray};
-use crate::native::{ArrayElement, UField};
+use crate::native::{ArrayElement, UBoolProperty, UField, UFunction};
+use crate::native::linux::UOBJECT_PROCESSEVENT;
 
 #[derive(Debug, Clone)]
-pub struct ObjectStructFieldWrapper<'a> {
+pub struct BoolInstanceWrapper<'a> {
     ptr: *mut u8,
-    struct_information: StructWrapper<'a>,
-    _marker: PhantomData<&'a mut UObject>,
+    bool_property: BoolPropertyWrapper<'a>,
+    _marker: PhantomData<&'a mut bool>,
 }
-impl<'a> Pointer for ObjectStructFieldWrapper<'a> {
+impl<'a> Pointer for BoolInstanceWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.ptr, f)
     }
 }
-impl<'a> ArrayElement for ObjectStructFieldWrapper<'a> {
+impl<'a> ArrayElement for BoolInstanceWrapper<'a> {
     unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
-        let struct_information = prop.upcast::<StructPropertyWrapper>().struct_();
-        ObjectStructFieldWrapper::new(ptr as *mut c_void, struct_information)
+        let bool_property = prop.upcast();
+        BoolInstanceWrapper::new(ptr as *mut u8, bool_property)
     }
 }
-impl<'a> ObjectStructFieldWrapper<'a> {
-    pub unsafe fn new(ptr: *mut c_void, struct_information: StructWrapper<'a>) -> ObjectStructFieldWrapper<'a> {
-        ObjectStructFieldWrapper { ptr: ptr as *mut u8, struct_information, _marker: PhantomData }
+impl<'a> BoolInstanceWrapper<'a> {
+    pub unsafe fn new(ptr: *mut u8, bool_property: BoolPropertyWrapper<'a>) -> BoolInstanceWrapper<'a> {
+        assert!(!ptr.is_null());
+        BoolInstanceWrapper { ptr, bool_property, _marker: PhantomData }
+    }
+    pub fn get(&self) -> bool {
+        unsafe {
+            let ptr = self.ptr.offset(self.bool_property.byte_offset() as isize);
+            if self.bool_property.field_mask() == 0xff {
+                // full bool byte
+                *ptr != 0
+            } else {
+                // bitfield
+                (*ptr & self.bool_property.byte_mask()) != 0
+            }
+        }
+    }
+    pub fn set(&self, value: bool) {
+        unsafe {
+            let ptr = self.ptr.offset(self.bool_property.byte_offset() as isize);
+            if self.bool_property.field_mask() == 0xff {
+                // full bool byte
+                *ptr = value as u8
+            } else {
+                // bitfield
+                if value {
+                    *ptr |= self.bool_property.byte_mask()
+                } else {
+                    *ptr &= !self.bool_property.byte_mask()
+                }
+            }
+        }
+    }
+}
+#[derive(Debug, Clone)]
+pub struct StructInstanceWrapper<'a> {
+    ptr: *mut u8,
+    struct_information: StructWrapper<'a>,
+    limit_num_fields: usize,
+    _marker: PhantomData<&'a mut UObject>,
+}
+impl<'a> Pointer for StructInstanceWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.ptr, f)
+    }
+}
+impl<'a> ArrayElement for StructInstanceWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
+        let struct_information = prop.upcast::<StructPropertyWrapper>().struct_();
+        StructInstanceWrapper::new(ptr, struct_information)
+    }
+}
+impl<'a> StructInstanceWrapper<'a> {
+    pub unsafe fn new(ptr: *mut c_void, struct_information: StructWrapper<'a>) -> StructInstanceWrapper<'a> {
+        Self::with_limit_num_fields(ptr, struct_information, usize::MAX)
+    }
+    pub fn as_ptr(&self) -> *mut c_void {
+        self.ptr as *mut c_void
+    }
+    pub unsafe fn with_limit_num_fields(ptr: *mut c_void, struct_information: StructWrapper<'a>, limit_num_fields: usize) -> StructInstanceWrapper<'a> {
+        assert!(!ptr.is_null());
+        StructInstanceWrapper { ptr: ptr as *mut u8, struct_information, limit_num_fields, _marker: PhantomData }
     }
     pub fn get_field(&self, name: &str) -> DynamicValue {
         unsafe {
-            let field_info = self.struct_information.get_field_info(name);
+            let field_info = self.struct_information.get_field_info(name, self.limit_num_fields);
             apply_field_info(self.ptr, field_info)
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct OwningStructInstanceWrapper<'a> {
+    inner: StructInstanceWrapper<'a>,
+    layout: Layout,
+}
+impl<'a> Deref for OwningStructInstanceWrapper<'a> {
+    type Target = StructInstanceWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<'a> Pointer for OwningStructInstanceWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.inner, f)
+    }
+}
+impl<'a> OwningStructInstanceWrapper<'a> {
+    pub unsafe fn new(struct_information: StructWrapper<'a>, limit_num_fields: usize, size: usize) -> OwningStructInstanceWrapper<'a> {
+        // check that the size makes sense
+        let mut calculated_size = 0;
+        for field in struct_information.iter_fields().take(limit_num_fields) {
+            let prop: PropertyWrapper = field.upcast();
+            calculated_size = prop.offset() as usize + prop.size();
+        }
+        assert_eq!(size, calculated_size);
+        let align = struct_information.min_alignment();
+        let layout = Layout::from_size_align(size, align).unwrap();
+        let ptr = System.alloc_zeroed(layout);
+        OwningStructInstanceWrapper {
+            inner: StructInstanceWrapper::with_limit_num_fields(ptr as *mut c_void, struct_information.clone(), limit_num_fields),
+            layout,
+        }
+    }
+}
+impl<'a> Drop for OwningStructInstanceWrapper<'a> {
+    fn drop(&mut self) {
+        unsafe { System.dealloc(self.inner.ptr, self.layout) }
     }
 }
 
@@ -60,7 +164,11 @@ impl<'a> Pointer for ObjectWrapper<'a> {
 }
 impl<'a> ObjectWrapper<'a> {
     pub unsafe fn new(object: *mut UObject) -> ObjectWrapper<'a> {
+        assert!(!object.is_null());
         ObjectWrapper { object, _marker: PhantomData }
+    }
+    pub unsafe fn new_nullable(object: *mut UObject) -> Option<ObjectWrapper<'a>> {
+        (!object.is_null()).then(|| ObjectWrapper::new(object))
     }
     pub fn as_ptr(&self) -> *mut UObject {
         self.object
@@ -81,7 +189,7 @@ impl<'a> ObjectWrapper<'a> {
 
     pub fn get_field(&self, name: &str) -> DynamicValue<'a> {
         unsafe {
-            let field_info = self.class().get_field_info(name);
+            let field_info = self.class().get_field_info(name, usize::MAX);
             apply_field_info(self.object as *mut u8, field_info)
         }
     }
@@ -124,6 +232,7 @@ impl<'a> Pointer for FieldWrapper<'a> {
 }
 impl<'a> FieldWrapper<'a> {
     pub unsafe fn new(field: *mut UField) -> FieldWrapper<'a> {
+        assert!(!field.is_null());
         FieldWrapper { base: ObjectWrapper::new(field as *mut UObject)}
     }
     pub fn as_ptr(&self) -> *mut UField {
@@ -136,6 +245,25 @@ impl<'a> FieldWrapper<'a> {
         } else {
             unsafe { Some(FieldWrapper::new(field)) }
         }
+    }
+
+    pub fn iter_this_and_next_fields(&self) -> impl Iterator<Item = FieldWrapper<'a>> {
+        struct FieldIter<'a> {
+            next_field: Option<FieldWrapper<'a>>,
+        }
+        impl<'a> Iterator for FieldIter<'a> {
+            type Item = FieldWrapper<'a>;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if let Some(field) = self.next_field.take() {
+                    self.next_field = field.next_field();
+                    Some(field)
+                } else {
+                    None
+                }
+            }
+        }
+        FieldIter { next_field: Some(self.clone()) }
     }
 }
 
@@ -165,6 +293,7 @@ impl<'a> Pointer for PropertyWrapper<'a> {
 }
 impl<'a> PropertyWrapper<'a> {
     pub unsafe fn new(prop: *mut UProperty) -> PropertyWrapper<'a> {
+        assert!(!prop.is_null());
         PropertyWrapper { base: FieldWrapper::new(prop as *mut UField) }
     }
     pub fn as_ptr(&self) -> *mut UProperty {
@@ -178,6 +307,10 @@ impl<'a> PropertyWrapper<'a> {
     }
     pub fn size(&self) -> usize {
         unsafe { (*self.as_ptr()).element_size.try_into().unwrap() }
+    }
+
+    pub fn iter_this_and_next_properties(&self) -> impl Iterator<Item = PropertyWrapper<'a>> {
+        self.iter_this_and_next_fields().map(|field| field.upcast())
     }
 }
 impl<'a> Display for PropertyWrapper<'a> {
@@ -212,6 +345,7 @@ impl<'a> Pointer for ObjectPropertyWrapper<'a> {
 }
 impl<'a> ObjectPropertyWrapper<'a> {
     pub unsafe fn new(prop: *mut UObjectProperty) -> ObjectPropertyWrapper<'a> {
+        assert!(!prop.is_null());
         ObjectPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
     }
     pub fn as_ptr(&self) -> *mut UObjectProperty {
@@ -248,6 +382,7 @@ impl<'a> Pointer for ArrayPropertyWrapper<'a> {
 }
 impl<'a> ArrayPropertyWrapper<'a> {
     pub unsafe fn new(prop: *mut UArrayProperty) -> ArrayPropertyWrapper<'a> {
+        assert!(!prop.is_null());
         ArrayPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
     }
     pub fn as_ptr(&self) -> *mut UArrayProperty {
@@ -284,6 +419,7 @@ impl<'a> Pointer for StructPropertyWrapper<'a> {
 }
 impl<'a> StructPropertyWrapper<'a> {
     pub unsafe fn new(prop: *mut UStructProperty) -> StructPropertyWrapper<'a> {
+        assert!(!prop.is_null());
         StructPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
     }
     pub fn as_ptr(&self) -> *mut UStructProperty {
@@ -291,6 +427,49 @@ impl<'a> StructPropertyWrapper<'a> {
     }
     pub fn struct_(&self) -> StructWrapper<'a> {
         unsafe { StructWrapper::new((*self.as_ptr()).struct_) }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BoolPropertyWrapper<'a> {
+    base: PropertyWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for BoolPropertyWrapper<'a> {
+    type Wrapping = UBoolProperty;
+    const CLASS_NAME: &'static str = "BoolProperty";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        BoolPropertyWrapper::new(ptr)
+    }
+}
+impl<'a> Deref for BoolPropertyWrapper<'a> {
+    type Target = PropertyWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for BoolPropertyWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.as_ptr(), f)
+    }
+}
+impl<'a> BoolPropertyWrapper<'a> {
+    pub unsafe fn new(prop: *mut UBoolProperty) -> BoolPropertyWrapper<'a> {
+        assert!(!prop.is_null());
+        BoolPropertyWrapper { base: PropertyWrapper::new(prop as *mut UProperty) }
+    }
+    pub fn as_ptr(&self) -> *mut UBoolProperty {
+        self.base.as_ptr() as *mut UBoolProperty
+    }
+    pub fn byte_offset(&self) -> usize {
+        unsafe { (*self.as_ptr()).byte_offset as usize }
+    }
+    pub fn byte_mask(&self) -> u8 {
+        unsafe { (*self.as_ptr()).byte_mask }
+    }
+    pub fn field_mask(&self) -> u8 {
+        unsafe { (*self.as_ptr()).field_mask }
     }
 }
 
@@ -320,12 +499,21 @@ impl<'a> Pointer for StructWrapper<'a> {
 }
 impl<'a> StructWrapper<'a> {
     pub unsafe fn new(struct_: *mut UStruct) -> StructWrapper<'a> {
+        assert!(!struct_.is_null());
         StructWrapper { base: FieldWrapper::new(struct_ as *mut UField) }
     }
     pub fn as_ptr(&self) -> *mut UStruct {
         self.base.as_ptr() as *mut UStruct
     }
 
+    pub fn super_struct(&self) -> Option<StructWrapper<'a>> {
+        let super_class = unsafe { (*self.as_ptr()).super_struct };
+        if super_class.is_null() {
+            None
+        } else {
+            unsafe { Some(StructWrapper::new(super_class)) }
+        }
+    }
     pub fn children(&self) -> Option<FieldWrapper<'a>> {
         let children = unsafe { (*self.as_ptr()).children };
         if children.is_null() {
@@ -333,6 +521,12 @@ impl<'a> StructWrapper<'a> {
         } else {
             unsafe { Some(FieldWrapper::new(children)) }
         }
+    }
+    pub fn properties_size(&self) -> usize {
+        unsafe { (*self.as_ptr()).properties_size.try_into().unwrap() }
+    }
+    pub fn min_alignment(&self) -> usize {
+        unsafe { (*self.as_ptr()).min_alignment.try_into().unwrap() }
     }
 
     pub fn iter_fields(&self) -> impl Iterator<Item = FieldWrapper<'a>> {
@@ -369,8 +563,18 @@ impl<'a> StructWrapper<'a> {
         self.iter_fields()
             .filter_map(|field| field.try_upcast::<PropertyWrapper>())
     }
+    pub fn find_property(&self, name: &str) -> Option<PropertyWrapper<'a>> {
+        self.iter_properties().find(|f| f.name() == name)
+    }
+    pub fn iter_functions(&self) -> impl Iterator<Item = FunctionWrapper<'a>> {
+        self.iter_fields()
+            .filter_map(|field| field.try_upcast::<FunctionWrapper>())
+    }
+    pub fn find_function(&self, name: &str) -> Option<FunctionWrapper<'a>> {
+        self.iter_functions().find(|f| f.name() == name)
+    }
 
-    fn get_field_info(&self, mut name: &str) -> FieldInfo<'a> {
+    fn get_field_info(&self, mut name: &str, limit_num_fields: usize) -> FieldInfo<'a> {
         let hacked_absolute = (name == "AbsoluteLocation" || name == "AbsoluteRotation" || name == "AbsoluteScale3D") && self.extends_from("SceneComponent");
         if hacked_absolute {
             match name {
@@ -380,10 +584,11 @@ impl<'a> StructWrapper<'a> {
                 _ => unreachable!(),
             }
         }
-        let prop = self.iter_properties()
+        let prop = self.iter_properties().take(limit_num_fields)
             .find(|prop| prop.name() == name)
-            .unwrap_or_else(|| panic!("cannot access property {name} of type {}", self.class().name()))
-            .upcast::<PropertyWrapper>();
+            .unwrap_or_else(|| panic!("cannot access property {name} of type {}, properties available: {}", self.class().name(),
+                self.iter_properties().take(limit_num_fields).map(|prop| format!("{} {}", prop.class().name(), prop.name())).join(", "),
+            )).upcast::<PropertyWrapper>();
         let offset = if hacked_absolute {
             match name {
                 "RelativeLocation" => {
@@ -404,15 +609,6 @@ impl<'a> StructWrapper<'a> {
             prop.offset()
         };
         FieldInfo { offset, prop }
-    }
-
-    pub fn super_struct(&self) -> Option<StructWrapper<'a>> {
-        let super_class = unsafe { (*self.as_ptr()).super_struct };
-        if super_class.is_null() {
-            None
-        } else {
-            unsafe { Some(StructWrapper::new(super_class)) }
-        }
     }
 
     pub fn extends_from(&self, name: &str) -> bool {
@@ -454,6 +650,7 @@ impl<'a> Pointer for ClassWrapper<'a> {
 }
 impl<'a> ClassWrapper<'a> {
     pub unsafe fn new(class: *mut UClass) -> ClassWrapper<'a> {
+        assert!(!class.is_null());
         ClassWrapper { base: StructWrapper::new(class as *mut UStruct) }
     }
     pub fn as_ptr(&self) -> *mut UClass {
@@ -463,6 +660,68 @@ impl<'a> ClassWrapper<'a> {
         self.super_struct().map(|p| p.upcast())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct FunctionWrapper<'a> {
+    base: StructWrapper<'a>,
+}
+unsafe impl<'a> UeObjectWrapper for FunctionWrapper<'a> {
+    type Wrapping = UFunction;
+    const CLASS_NAME: &'static str = "Function";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        FunctionWrapper::new(ptr)
+    }
+}
+impl<'a> Deref for FunctionWrapper<'a> {
+    type Target = StructWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for FunctionWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.as_ptr(), f)
+    }
+}
+impl<'a> FunctionWrapper<'a> {
+    pub unsafe fn new(function: *mut UFunction) -> FunctionWrapper<'a> {
+        assert!(!function.is_null());
+        FunctionWrapper { base: StructWrapper::new(function as *mut UStruct) }
+    }
+    pub fn as_ptr(&self) -> *mut UFunction {
+        self.base.as_ptr() as *mut UFunction
+    }
+
+    pub fn num_parms(&self) -> u8 {
+        unsafe { (*self.as_ptr()).num_parms }
+    }
+    pub fn parms_size(&self) -> u16 {
+        unsafe { (*self.as_ptr()).parms_size }
+    }
+
+    pub fn iter_params(&self) -> impl Iterator<Item = PropertyWrapper<'a>> {
+        self.iter_fields().take(self.num_parms() as usize).map(|field| field.upcast())
+    }
+
+    pub fn create_argument_struct(&self) -> OwningStructInstanceWrapper<'a> {
+        unsafe {
+            OwningStructInstanceWrapper::new((**self).clone(), self.num_parms() as usize, self.parms_size() as usize)
+        }
+    }
+    pub unsafe fn call<This>(&self, this: *mut This, args: &OwningStructInstanceWrapper<'a>) {
+        self.call_raw(this, args.as_ptr())
+    }
+    pub unsafe fn call_raw<This, Args>(&self, this: *mut This, args: *mut Args) {
+        assert!(!this.is_null());
+        assert!(!args.is_null());
+        let fun: extern_fn!(fn(this: *mut This, function: *mut UFunction, args: *mut Args))
+            = ::std::mem::transmute(UOBJECT_PROCESSEVENT.load(Ordering::SeqCst));
+        fun(this, self.as_ptr(), args);
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct ActorWrapper<'a> {
@@ -490,6 +749,7 @@ impl<'a> Pointer for ActorWrapper<'a> {
 }
 impl<'a> ActorWrapper<'a> {
     pub unsafe fn new(actor: *mut AActor) -> ActorWrapper<'a> {
+        assert!(!actor.is_null());
         let wrapper = ActorWrapper { base: ObjectWrapper::new(actor as *mut UObject) };
         assert!(wrapper.class().extends_from("Actor"));
         wrapper
@@ -673,6 +933,7 @@ impl<'a, 'b, T: ArrayElement> IntoIterator for &'b ArrayWrapper<'a, T> {
 }
 
 unsafe fn apply_field_info(ptr: *mut u8, info: FieldInfo) -> DynamicValue {
+    assert!(!ptr.is_null());
     let value_ptr = ptr.offset(info.offset);
     let property_kind = info.prop.property_kind();
 
@@ -692,9 +953,9 @@ unsafe fn apply_field_info(ptr: *mut u8, info: FieldInfo) -> DynamicValue {
         "UInt64Property" => DynamicValue::UInt64(&mut *checked_cast::<u64>(value_ptr)),
         "FloatProperty" => DynamicValue::Float(&mut *checked_cast::<f32>(value_ptr)),
         "DoubleProperty" => DynamicValue::Double(&mut *checked_cast::<f64>(value_ptr)),
-        "BoolProperty" => todo!("BoolProperty"),
+        "BoolProperty" => DynamicValue::Bool(BoolInstanceWrapper::new(ptr, info.prop.upcast())),
         "ObjectProperty" | "WeakObjectProperty" | "LazyObjectProperty" | "SoftObjectProperty" => {
-            DynamicValue::Object(ObjectWrapper::new(*checked_cast::<*mut UObject>(value_ptr)))
+            DynamicValue::Object(ObjectWrapper::new_nullable(*checked_cast::<*mut UObject>(value_ptr)))
         },
         "ClassProperty" | "SoftClassProperty" => todo!("ClassProperty"),
         "InterfaceProperty" => todo!("InterfaceProperty"),
@@ -703,7 +964,7 @@ unsafe fn apply_field_info(ptr: *mut u8, info: FieldInfo) -> DynamicValue {
         "ArrayProperty" => DynamicValue::Array(checked_cast::<TArray<*mut ()>>(value_ptr) as *mut c_void, info.prop.upcast::<ArrayPropertyWrapper>().inner()),
         "MapProperty" => todo!("MapProperty"),
         "SetProperty" => todo!("SetProperty"),
-        "StructProperty" => DynamicValue::Struct(ObjectStructFieldWrapper::new(value_ptr as *mut c_void, StructWrapper::new((*(info.prop.as_ptr() as *mut UStructProperty)).struct_))),
+        "StructProperty" => DynamicValue::Struct(StructInstanceWrapper::new(value_ptr as *mut c_void, StructWrapper::new((*(info.prop.as_ptr() as *mut UStructProperty)).struct_))),
         "DelegateProperty" | "MulticastDelegateProperty" | "MulticastInlineDelegateProperty" | "MulticastSparseDelegateProperty" => todo!("Function-based Properties"),
         "EnumProperty" => todo!("EnumProperty"),
         "TextProperty" => todo!("TextProperty"),

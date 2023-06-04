@@ -1,6 +1,6 @@
 use std::ffi::c_void;
-use crate::native::ArrayElement;
-use crate::native::reflection::{ClassWrapper, ObjectWrapper, ObjectStructFieldWrapper, ArrayWrapper, PropertyWrapper};
+use crate::native::{ArrayElement, BoolInstanceWrapper};
+use crate::native::reflection::{ObjectWrapper, StructInstanceWrapper, ArrayWrapper, PropertyWrapper};
 use crate::native::ue::{FName, FString, TArray};
 
 #[derive(Debug)]
@@ -15,16 +15,16 @@ pub enum DynamicValue<'a> {
     UInt64(&'a mut u64),
     Float(&'a mut f32),
     Double(&'a mut f64),
-    // Bool
-    Object(ObjectWrapper<'a>),
-    Class(ClassWrapper<'a>),
-    Interface(ClassWrapper<'a>),
+    Bool(BoolInstanceWrapper<'a>),
+    Object(Option<ObjectWrapper<'a>>),
+    // Class
+    // Interface,
     Name(FName),
     Str(*mut FString),
     Array(*mut c_void, PropertyWrapper<'a>),
     // Map
     // Set
-    Struct(ObjectStructFieldWrapper<'a>),
+    Struct(StructInstanceWrapper<'a>),
     // Function
     // Enum
     // Text
@@ -90,21 +90,21 @@ impl<'a> DynamicValue<'a> {
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
+    pub fn unwrap_bool(self) -> BoolInstanceWrapper<'a> {
+        match self {
+            DynamicValue::Bool(val) => val,
+            _ => panic!("tried to unwrap an incompatible value"),
+        }
+    }
     pub fn unwrap_object(self) -> ObjectWrapper<'a> {
         match self {
+            DynamicValue::Object(val) => val.unwrap(),
+            _ => panic!("tried to unwrap an incompatible value"),
+        }
+    }
+    pub fn unwrap_nullable_object(self) -> Option<ObjectWrapper<'a>> {
+        match self {
             DynamicValue::Object(val) => val,
-            _ => panic!("tried to unwrap an incompatible value"),
-        }
-    }
-    pub fn unwrap_class(self) -> ClassWrapper<'a> {
-        match self {
-            DynamicValue::Class(val) => val,
-            _ => panic!("tried to unwrap an incompatible value"),
-        }
-    }
-    pub fn unwrap_interface(self) -> ClassWrapper<'a> {
-        match self {
-            DynamicValue::Interface(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
@@ -127,7 +127,7 @@ impl<'a> DynamicValue<'a> {
         };
         unsafe { ArrayWrapper::new(ptr as *mut TArray<c_void>, inner_prop) }
     }
-    pub fn unwrap_struct(self) -> ObjectStructFieldWrapper<'a> {
+    pub fn unwrap_struct(self) -> StructInstanceWrapper<'a> {
         match self {
             DynamicValue::Struct(val) => val,
             _ => panic!("tried to unwrap an incompatible value"),

@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
 use crate::native::{AActor, AMyCharacter, GlobalObjectArrayWrapper, ObjectWrapper, UObject};
-use crate::native::ue::{FLinearColor, FName, FRotator, FVector, TArray};
-use crate::native::{UKISMETSYSTEMLIBRARY_LINETRACESINGLE, AACTOR_PROCESSEVENT, FROTATOR_VECTOR};
+use crate::native::ue::{FLinearColor, FName, FVector, TArray};
+use crate::native::{UKISMETSYSTEMLIBRARY_LINETRACESINGLE, FROTATOR_VECTOR};
 
 pub struct KismetSystemLibrary;
 
@@ -46,25 +46,27 @@ impl KismetSystemLibrary {
             };
 
 
-            let process_event: extern_fn!(fn(this: *mut c_void, function: *const c_void, args: *const c_void)) =
-                unsafe { ::std::mem::transmute(AACTOR_PROCESSEVENT.load(Ordering::SeqCst)) };
             let character = ObjectWrapper::new(player.as_ptr() as *mut UObject);
             let controller = character.get_field("Controller").unwrap_object();
             let camera = controller.get_field("PlayerCameraManager").unwrap_object();
-            let get_camera_location = camera.class().iter_fields()
-                .find(|p| p.name() == "GetCameraLocation")
-                .unwrap().as_ptr();
-            let mut location = FVector::default();
-            process_event(camera.as_ptr() as *mut c_void, get_camera_location as *mut c_void, &mut location as *mut _ as *mut c_void);
+            let get_camera_location = camera.class().find_function("GetCameraLocation").unwrap();
+            let loc = get_camera_location.create_argument_struct();
+            get_camera_location.call(camera.as_ptr(), &loc);
+            let loc = loc.get_field("ReturnValue").unwrap_struct();
 
-            let get_camera_rotation = camera.class().iter_fields()
-                .find(|p| p.name() == "GetCameraRotation")
-                .unwrap().as_ptr();
-            let mut rotation = FRotator::default();
-            process_event(camera.as_ptr() as *mut c_void, get_camera_rotation as *mut c_void, &mut rotation as *mut _ as *mut c_void);
-            let frotator_vector: extern_fn!(fn(this: *mut FRotator) -> FVector) =
-                unsafe { ::std::mem::transmute(FROTATOR_VECTOR.load(Ordering::SeqCst)) };
-            let direction = frotator_vector(&mut rotation);
+            let get_camera_rotation = camera.class().find_function("GetCameraRotation").unwrap();
+            let rot = get_camera_rotation.create_argument_struct();
+            get_camera_rotation.call(camera.as_ptr(), &rot);
+            let rot = rot.get_field("ReturnValue").unwrap_struct();
+            let frotator_vector: extern_fn!(fn(this: *mut c_void) -> FVector)
+                = ::std::mem::transmute(FROTATOR_VECTOR.load(Ordering::SeqCst));
+            let direction = frotator_vector(rot.as_ptr());
+            let location = FVector {
+                x: *loc.get_field("X").unwrap_float(),
+                y: *loc.get_field("Y").unwrap_float(),
+                z: *loc.get_field("Z").unwrap_float(),
+            };
+
             let hit = fun(
                 player.as_ptr() as *mut UObject,
                 location,
@@ -77,7 +79,7 @@ impl KismetSystemLibrary {
                 true,
                 FLinearColor { red: 1., green: 0., blue: 0., alpha: 1. },
                 FLinearColor { red: 1., green: 0., blue: 0., alpha: 1. },
-                10000.,
+                10.,
             );
 
             if !hit {

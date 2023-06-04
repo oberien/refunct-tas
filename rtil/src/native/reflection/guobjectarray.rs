@@ -33,6 +33,7 @@ pub struct ObjectArrayWrapper<'a> {
 
 impl<'a> ObjectArrayWrapper<'a> {
     pub unsafe fn new(array: *mut TUObjectArray) -> ObjectArrayWrapper<'a> {
+        assert!(!array.is_null());
         ObjectArrayWrapper { array, _marker: PhantomData }
     }
     pub fn _max_elements(&self) -> usize {
@@ -85,6 +86,7 @@ pub struct ObjectItemWrapper<'a> {
 
 impl<'a> ObjectItemWrapper<'a> {
     pub unsafe fn new(item: *mut FUObjectItem) -> ObjectItemWrapper<'a> {
+        assert!(!item.is_null());
         ObjectItemWrapper { item, _marker: PhantomData }
     }
     pub fn _as_ptr(&self) -> *mut FUObjectItem {
