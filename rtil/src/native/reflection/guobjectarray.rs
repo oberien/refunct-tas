@@ -1,8 +1,63 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
 use crate::native::GUOBJECTARRAY;
 use crate::native::reflection::{ObjectWrapper, UObject};
+
+#[derive(Debug, Clone, Copy)]
+pub struct ObjectIndex {
+    internal_index: i32,
+    serial_number: i32,
+}
+static BUFFER: Lazy<Mutex<HashMap<u32, ObjectIndex>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
+pub enum GetBufferedItemError {
+    NotBuffered,
+    Invalidated,
+}
+
+pub struct UeScope(());
+
+impl UeScope {
+    pub fn with<F: for<'a> FnOnce(&'a UeScope)>(f: F) {
+        let scope = UeScope(());
+        f(&scope)
+    }
+
+    fn object_array<'a>(&'a self) -> ObjectArrayWrapper<'a> {
+        unsafe { GlobalObjectArrayWrapper::get().object_array() }
+    }
+
+    pub fn iter_global_object_array<'a>(&'a self) -> impl Iterator<Item = ObjectItemWrapper<'a>> + 'a {
+        self.object_array().iter_elements()
+    }
+
+    pub fn object_index<'a>(&'a self, item: &ObjectItemWrapper<'a>) -> ObjectIndex {
+        ObjectIndex {
+            internal_index: item.object().internal_index(),
+            serial_number: item.serial_number(),
+        }
+    }
+    pub fn resolve_object_index<'a>(&'a self, index: ObjectIndex) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
+        let item = self.object_array().try_get(index.internal_index)
+            .ok_or(GetBufferedItemError::Invalidated)?;
+        if item.serial_number() != index.serial_number {
+            return Err(GetBufferedItemError::Invalidated);
+        }
+        Ok(item.object())
+    }
+    pub fn buffer_item<'a>(&'a self, ident: impl Into<u32>, item: &ObjectItemWrapper<'a>) {
+        BUFFER.lock().unwrap().insert(ident.into(), self.object_index(item));
+    }
+    pub fn get_buffered<'a>(&'a self, ident: impl Into<u32>) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
+        let index = BUFFER.lock().unwrap().get(&ident.into()).copied()
+            .ok_or(GetBufferedItemError::NotBuffered)?;
+        self.resolve_object_index(index)
+    }
+}
 
 /// Wraps the global FUObjectArray (symbol GUObjectArray)
 #[derive(Debug, Clone)]
@@ -42,9 +97,9 @@ impl<'a> ObjectArrayWrapper<'a> {
     pub fn num_elements(&self) -> usize {
         unsafe { (*self.array).num_elements.try_into().unwrap() }
     }
-    pub fn iter_elements(&'a self) -> impl Iterator<Item = ObjectItemWrapper<'a>> + 'a {
+    pub fn iter_elements(&self) -> impl Iterator<Item = ObjectItemWrapper<'a>> + 'a {
         struct ObjectArrayIterator<'a> {
-            array: &'a ObjectArrayWrapper<'a>,
+            array: ObjectArrayWrapper<'a>,
             index: usize,
         }
         impl<'a> Iterator for ObjectArrayIterator<'a> {
@@ -56,24 +111,31 @@ impl<'a> ObjectArrayWrapper<'a> {
                 }
                 let index = self.index;
                 self.index += 1;
-                Some(self.array.get(index))
+                Some(self.array.get(index.try_into().unwrap()))
             }
         }
         ObjectArrayIterator {
-            array: self,
+            array: self.clone(),
             index: 0,
         }
     }
-    pub fn get_object(&self, obj: &ObjectWrapper<'a>) -> ObjectItemWrapper<'a> {
+    pub fn get_item_of_object(&self, obj: &ObjectWrapper<'a>) -> ObjectItemWrapper<'a> {
         let item = self.get(obj.internal_index());
         assert_eq!(item.object().as_ptr() as usize, obj.as_ptr() as usize);
         item
     }
-    pub fn get(&self, index: usize) -> ObjectItemWrapper<'a> {
+    pub fn get(&self, internal_index: i32) -> ObjectItemWrapper<'a> {
+        self.try_get(internal_index).unwrap_or_else(|| panic!("assert {} < {}", internal_index, self.num_elements()))
+    }
+    pub fn try_get(&self, internal_index: i32) -> Option<ObjectItemWrapper<'a>> {
+        let index: usize = internal_index.try_into().unwrap();
         unsafe {
-            assert!(index < self.num_elements(), "assert {} < {}", index, self.num_elements());
-            let item = (*self.array).objects.offset(index.try_into().unwrap());
-            ObjectItemWrapper::new(item)
+            if index >= self.num_elements() {
+                None
+            } else {
+                let item = (*self.array).objects.offset(index.try_into().unwrap());
+                Some(ObjectItemWrapper::new(item))
+            }
         }
     }
 }

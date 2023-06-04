@@ -21,9 +21,9 @@ impl<'a> Pointer for BoolInstanceWrapper<'a> {
         Pointer::fmt(&self.ptr, f)
     }
 }
-impl<'a> ArrayElement for BoolInstanceWrapper<'a> {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
-        let bool_property = prop.upcast();
+impl<'a> ArrayElement<'a> for BoolInstanceWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> BoolInstanceWrapper<'a> {
+        let bool_property = prop.upcast::<BoolPropertyWrapper<'a>>();
         BoolInstanceWrapper::new(ptr as *mut u8, bool_property)
     }
 }
@@ -73,9 +73,9 @@ impl<'a> Pointer for StructInstanceWrapper<'a> {
         Pointer::fmt(&self.ptr, f)
     }
 }
-impl<'a> ArrayElement for StructInstanceWrapper<'a> {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
-        let struct_information = prop.upcast::<StructPropertyWrapper>().struct_();
+impl<'a> ArrayElement<'a> for StructInstanceWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> StructInstanceWrapper<'a> {
+        let struct_information = prop.upcast::<StructPropertyWrapper<'a>>().struct_();
         StructInstanceWrapper::new(ptr, struct_information)
     }
 }
@@ -149,11 +149,11 @@ pub struct ObjectWrapper<'a> {
     object: *mut UObject,
     _marker: PhantomData<&'a mut UObject>,
 }
-unsafe impl<'a> UeObjectWrapper for ObjectWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ObjectWrapper<'a> {
     type Wrapping = UObject;
     const CLASS_NAME: &'static str = "Object";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ObjectWrapper<'a> {
         ObjectWrapper::new(ptr)
     }
 }
@@ -177,8 +177,8 @@ impl<'a> ObjectWrapper<'a> {
     pub fn vtable(&self) -> *const () {
         unsafe { (*self.object).vtable }
     }
-    pub fn internal_index(&self) -> usize {
-        unsafe { (*self.object).internal_index.try_into().unwrap() }
+    pub fn internal_index(&self) -> i32 {
+        unsafe { (*self.object).internal_index }
     }
     pub fn name(&self) -> String {
         unsafe { (*self.object).name.to_string_lossy() }
@@ -194,10 +194,10 @@ impl<'a> ObjectWrapper<'a> {
         }
     }
 
-    pub fn upcast<T: UeObjectWrapper>(&self) -> T {
+    pub fn upcast<T: UeObjectWrapper<'a>>(&self) -> T {
         self.try_upcast().unwrap_or_else(|| panic!("can't upcast to {}", T::CLASS_NAME))
     }
-    pub fn try_upcast<T: UeObjectWrapper>(&self) -> Option<T> {
+    pub fn try_upcast<T: UeObjectWrapper<'a>>(&self) -> Option<T> {
         if self.class().extends_from(T::CLASS_NAME) {
             unsafe { Some(T::create(self.as_ptr() as *mut T::Wrapping)) }
         } else {
@@ -210,11 +210,11 @@ impl<'a> ObjectWrapper<'a> {
 pub struct FieldWrapper<'a> {
     base: ObjectWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for FieldWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for FieldWrapper<'a> {
     type Wrapping = UField;
     const CLASS_NAME: &'static str = "Field";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> FieldWrapper<'a> {
         FieldWrapper::new(ptr)
     }
 }
@@ -271,11 +271,11 @@ impl<'a> FieldWrapper<'a> {
 pub struct PropertyWrapper<'a> {
     base: FieldWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for PropertyWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for PropertyWrapper<'a> {
     type Wrapping = UProperty;
     const CLASS_NAME: &'static str = "Property";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> PropertyWrapper<'a> {
         PropertyWrapper::new(ptr)
     }
 }
@@ -323,11 +323,11 @@ impl<'a> Display for PropertyWrapper<'a> {
 pub struct ObjectPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for ObjectPropertyWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ObjectPropertyWrapper<'a> {
     type Wrapping = UObjectProperty;
     const CLASS_NAME: &'static str = "ObjectProperty";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ObjectPropertyWrapper<'a> {
         ObjectPropertyWrapper::new(ptr)
     }
 }
@@ -360,11 +360,11 @@ impl<'a> ObjectPropertyWrapper<'a> {
 pub struct ArrayPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for ArrayPropertyWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ArrayPropertyWrapper<'a> {
     type Wrapping = UArrayProperty;
     const CLASS_NAME: &'static str = "ArrayProperty";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ArrayPropertyWrapper<'a> {
         ArrayPropertyWrapper::new(ptr)
     }
 }
@@ -397,11 +397,11 @@ impl<'a> ArrayPropertyWrapper<'a> {
 pub struct StructPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for StructPropertyWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for StructPropertyWrapper<'a> {
     type Wrapping = UStructProperty;
     const CLASS_NAME: &'static str = "StructProperty";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> StructPropertyWrapper<'a> {
         StructPropertyWrapper::new(ptr)
     }
 }
@@ -434,11 +434,11 @@ impl<'a> StructPropertyWrapper<'a> {
 pub struct BoolPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for BoolPropertyWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for BoolPropertyWrapper<'a> {
     type Wrapping = UBoolProperty;
     const CLASS_NAME: &'static str = "BoolProperty";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> BoolPropertyWrapper<'a> {
         BoolPropertyWrapper::new(ptr)
     }
 }
@@ -477,11 +477,11 @@ impl<'a> BoolPropertyWrapper<'a> {
 pub struct StructWrapper<'a> {
     base: FieldWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for StructWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for StructWrapper<'a> {
     type Wrapping = UStruct;
     const CLASS_NAME: &'static str = "Struct";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> StructWrapper<'a> {
         StructWrapper::new(ptr)
     }
 }
@@ -628,11 +628,11 @@ impl<'a> StructWrapper<'a> {
 pub struct ClassWrapper<'a> {
     base: StructWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for ClassWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ClassWrapper<'a> {
     type Wrapping = UClass;
     const CLASS_NAME: &'static str = "Class";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ClassWrapper<'a> {
         ClassWrapper::new(ptr)
     }
 }
@@ -665,11 +665,11 @@ impl<'a> ClassWrapper<'a> {
 pub struct FunctionWrapper<'a> {
     base: StructWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for FunctionWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for FunctionWrapper<'a> {
     type Wrapping = UFunction;
     const CLASS_NAME: &'static str = "Function";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> FunctionWrapper<'a> {
         FunctionWrapper::new(ptr)
     }
 }
@@ -727,11 +727,11 @@ impl<'a> FunctionWrapper<'a> {
 pub struct ActorWrapper<'a> {
     base: ObjectWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for ActorWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ActorWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "Actor";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ActorWrapper<'a> {
         ActorWrapper::new(ptr)
     }
 }
@@ -859,18 +859,18 @@ impl<'a> ActorWrapper<'a> {
 
 /// Wrapper for a UE-owned array
 #[derive(Debug)]
-pub struct ArrayWrapper<'a, T: ArrayElement> {
+pub struct ArrayWrapper<'a, T: ArrayElement<'a>> {
     array: *mut TArray<u8>,
     element_prop: PropertyWrapper<'a>,
     _marker: PhantomData<&'a mut [T]>,
 }
-impl<'a, T: ArrayElement> Pointer for ArrayWrapper<'a, T> {
+impl<'a, T: ArrayElement<'a>> Pointer for ArrayWrapper<'a, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.array, f)
     }
 }
 // get rid of the implied T: Clone in derived Clone impls
-impl<'a, T: ArrayElement> Clone for ArrayWrapper<'a, T> {
+impl<'a, T: ArrayElement<'a>> Clone for ArrayWrapper<'a, T> {
     fn clone(&self) -> Self {
         Self {
             array: self.array,
@@ -879,13 +879,13 @@ impl<'a, T: ArrayElement> Clone for ArrayWrapper<'a, T> {
         }
     }
 }
-impl<'a, T: ArrayElement> ArrayElement for ArrayWrapper<'a, T> {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
-        let element_prop = prop.upcast::<ArrayPropertyWrapper>().inner();
+impl<'a, T: ArrayElement<'a>> ArrayElement<'a> for ArrayWrapper<'a, T> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> ArrayWrapper<'a, T> {
+        let element_prop = prop.upcast::<ArrayPropertyWrapper<'a>>().inner();
         ArrayWrapper::new(ptr as *mut TArray<c_void>, element_prop)
     }
 }
-impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
+impl<'a, T: ArrayElement<'a>> ArrayWrapper<'a, T> {
     pub unsafe fn new(array: *mut TArray<c_void>, element_prop: PropertyWrapper<'a>) -> ArrayWrapper<'a, T> {
         ArrayWrapper { array: array as *mut TArray<u8>, element_prop, _marker: PhantomData }
     }
@@ -904,11 +904,11 @@ impl<'a, T: ArrayElement> ArrayWrapper<'a, T> {
         }
     }
 }
-pub struct ArrayWrapperIter<'a, T: ArrayElement> {
+pub struct ArrayWrapperIter<'a, T: ArrayElement<'a>> {
     array_wrapper: ArrayWrapper<'a, T>,
     index: usize,
 }
-impl<'a, T: ArrayElement> Iterator for ArrayWrapperIter<'a, T> {
+impl<'a, T: ArrayElement<'a>> Iterator for ArrayWrapperIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -920,7 +920,7 @@ impl<'a, T: ArrayElement> Iterator for ArrayWrapperIter<'a, T> {
         Some(e)
     }
 }
-impl<'a, 'b, T: ArrayElement> IntoIterator for &'b ArrayWrapper<'a, T> {
+impl<'a, 'b, T: ArrayElement<'a>> IntoIterator for &'b ArrayWrapper<'a, T> {
     type Item = T;
     type IntoIter = ArrayWrapperIter<'a, T>;
 

@@ -86,7 +86,7 @@ impl KismetSystemLibrary {
                 ptr::null_mut()
             } else {
                 let array = GlobalObjectArrayWrapper::get();
-                let item = array.object_array().get(hit_result.actor.object_index.try_into().unwrap());
+                let item = array.object_array().get(hit_result.actor.object_index);
                 assert_eq!(item.serial_number(), hit_result.actor.object_serial_number);
                 item.object().as_ptr() as *mut AActor
             }
@@ -128,6 +128,7 @@ impl<T> Default for TWeakObjectPtr<T> {
 }
 
 #[repr(i32)]
+#[allow(unused)]
 enum EDrawDebugTraceType {
     None,
     ForOneFrame,

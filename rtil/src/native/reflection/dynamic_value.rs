@@ -120,7 +120,7 @@ impl<'a> DynamicValue<'a> {
             _ => panic!("tried to unwrap an incompatible value"),
         }
     }
-    pub fn unwrap_array<T: ArrayElement>(self) -> ArrayWrapper<'a, T> {
+    pub fn unwrap_array<T: ArrayElement<'a>>(self) -> ArrayWrapper<'a, T> {
         let (ptr, inner_prop) = match self {
             DynamicValue::Array(val, inner_prop) => (val, inner_prop),
             _ => panic!("tried to unwrap an incompatible value"),

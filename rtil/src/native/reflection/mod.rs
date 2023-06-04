@@ -9,35 +9,38 @@ pub use wrappers::*;
 mod guobjectarray;
 pub use guobjectarray::*;
 
-pub unsafe trait UeObjectWrapper: Pointer {
+/// the returned Self type must be bound to lifetime 'a
+pub unsafe trait UeObjectWrapper<'a>: Pointer {
     type Wrapping;
     const CLASS_NAME: &'static str;
 
     unsafe fn create(ptr: *mut Self::Wrapping) -> Self;
 }
-pub unsafe trait SizedArrayElement {
+/// the returned Self type must be bound to lifetime 'a
+pub unsafe trait SizedArrayElement<'a> {
     type ElementType;
 
-    fn check_property_type(prop: &PropertyWrapper);
+    fn check_property_type(prop: &PropertyWrapper<'a>);
     unsafe fn create(ptr: *mut Self::ElementType) -> Self;
 }
-unsafe impl<T: UeObjectWrapper> SizedArrayElement for T {
+unsafe impl<'a, T: UeObjectWrapper<'a>> SizedArrayElement<'a> for T {
     type ElementType = *mut T::Wrapping;
 
-    fn check_property_type(prop: &PropertyWrapper) {
-        let element_class = prop.upcast::<ObjectPropertyWrapper>().property_class();
+    fn check_property_type(prop: &PropertyWrapper<'a>) {
+        let element_class = prop.upcast::<ObjectPropertyWrapper<'a>>().property_class();
         assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
     }
 
-    unsafe fn create(ptr: *mut Self::ElementType) -> Self {
+    unsafe fn create(ptr: *mut Self::ElementType) -> T {
         T::create(*ptr)
     }
 }
-pub trait ArrayElement {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self;
+/// the returned Self type must be bound to lifetime 'a
+pub trait ArrayElement<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> Self;
 }
-impl<T: SizedArrayElement> ArrayElement for T {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper) -> Self {
+impl<'a, T: SizedArrayElement<'a>> ArrayElement<'a> for T {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> Self {
         T::check_property_type(prop);
         T::create(ptr as *mut T::ElementType)
     }
@@ -45,14 +48,14 @@ impl<T: SizedArrayElement> ArrayElement for T {
 macro_rules! impl_array_element_for_primitives {
     ($($t:ty, $proptype:literal;)*) => {
         $(
-            unsafe impl<'a> SizedArrayElement for &'a mut $t {
+            unsafe impl<'a> SizedArrayElement<'a> for &'a mut $t {
                 type ElementType = $t;
 
-                fn check_property_type(prop: &PropertyWrapper) {
+                fn check_property_type(prop: &PropertyWrapper<'a>) {
                     assert_eq!(prop.class().name(), $proptype);
                 }
 
-                unsafe fn create(ptr: *mut Self::ElementType) -> Self {
+                unsafe fn create(ptr: *mut Self::ElementType) -> &'a mut $t {
                     &mut *ptr
                 }
             }

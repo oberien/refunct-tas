@@ -74,7 +74,7 @@ impl UTexture2D {
     }
 
     fn mark_as_root_object(&self, val: bool) {
-        unsafe { GlobalObjectArrayWrapper::get().object_array().get_object(&self.as_object()).mark_as_root_object(val) }
+        unsafe { GlobalObjectArrayWrapper::get().object_array().get_item_of_object(&self.as_object()).mark_as_root_object(val) }
     }
 }
 

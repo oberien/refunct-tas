@@ -11,11 +11,11 @@ pub struct LevelWrapper<'a> {
 }
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LevelWrapper<'a> {}
-unsafe impl<'a> UeObjectWrapper for LevelWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for LevelWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_LevelRoot_C";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> LevelWrapper<'a> {
         LevelWrapper::new(ActorWrapper::new(ptr))
     }
 }
@@ -80,11 +80,11 @@ impl<'a> LevelWrapper<'a> {
 pub struct PlatformWrapper<'a> {
     base: ActorWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for PlatformWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for PlatformWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_IslandChunk_C";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> PlatformWrapper<'a> {
         PlatformWrapper::new(ActorWrapper::new(ptr))
     }
 }
@@ -110,11 +110,11 @@ impl<'a> PlatformWrapper<'a> {
 pub struct CubeWrapper<'a> {
     base: ActorWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for CubeWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for CubeWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_PowerCore_C";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> CubeWrapper<'a> {
         CubeWrapper::new(ActorWrapper::new(ptr))
     }
 }
@@ -140,11 +140,11 @@ impl<'a> CubeWrapper<'a> {
 pub struct ButtonWrapper<'a> {
     base: ActorWrapper<'a>,
 }
-unsafe impl<'a> UeObjectWrapper for ButtonWrapper<'a> {
+unsafe impl<'a> UeObjectWrapper<'a> for ButtonWrapper<'a> {
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_Button_C";
 
-    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+    unsafe fn create(ptr: *mut Self::Wrapping) -> ButtonWrapper<'a> {
         ButtonWrapper::new(ActorWrapper::new(ptr))
     }
 }
