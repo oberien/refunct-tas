@@ -1,6 +1,6 @@
 static mut TAS_STATE = TasState {
-    is_f_pressed: false,
     step_frame_mode: false,
+    is_f_repeat: false,
     is_recording: false,
     is_replaying: Replaying::Nothing,
     recording: List::new(),
@@ -10,8 +10,8 @@ static mut TAS_STATE = TasState {
 };
 
 struct TasState {
-    is_f_pressed: bool,
     step_frame_mode: bool,
+    is_f_repeat: bool,
     is_recording: bool,
     is_replaying: Replaying,
     recording: List<RecordFrame>,
@@ -71,7 +71,7 @@ impl TasState {
     }
 }
 
-static TAS_COMPONENT = Component {
+static mut TAS_COMPONENT = Component {
     id: TAS_COMPONENT_ID,
     conflicts_with: List::of(MULTIPLAYER_COMPONENT_ID, TAS_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
@@ -102,9 +102,13 @@ static TAS_COMPONENT = Component {
         text
     },
     draw_hud_always: fn() {},
-    tick_mode: TickMode::Yield,
+    tick_mode: TickMode::DontCare,
     requested_delta_time: Option::Some(1./60.),
     on_tick: fn() {
+        if TAS_STATE.step_frame_mode && !TAS_STATE.is_f_repeat {
+            TAS_COMPONENT.tick_mode = TickMode::Yield;
+        }
+
         // recording
         if TAS_STATE.is_recording {
             TAS_STATE.recording.push(RecordFrame {
@@ -145,11 +149,7 @@ static TAS_COMPONENT = Component {
             }
         }
     },
-    on_yield: fn() {
-        if !TAS_STATE.step_frame_mode || TAS_STATE.is_f_pressed {
-            step_frame(TickMode::DontCare);
-        }
-    },
+    on_yield: fn() {},
     on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
@@ -159,6 +159,11 @@ static TAS_COMPONENT = Component {
         let key = key_code.to_small();
         if key == KEY_T.to_small() {
             TAS_STATE.step_frame_mode = !TAS_STATE.step_frame_mode;
+            if TAS_STATE.step_frame_mode {
+                TAS_COMPONENT.tick_mode = TickMode::Yield;
+            } else {
+                TAS_COMPONENT.tick_mode = TickMode::DontCare;
+            }
         } else if key == KEY_R.to_small() {
             TAS_STATE.is_recording = !TAS_STATE.is_recording;
             if TAS_STATE.is_recording {
@@ -186,11 +191,8 @@ static TAS_COMPONENT = Component {
                 TAS_STATE.replay_index = 0;
             }
         } else if key == KEY_F.to_small() {
-            if is_repeat {
-                TAS_STATE.is_f_pressed = true;
-            } else {
-                step_frame(TickMode::DontCare);
-            }
+            TAS_STATE.is_f_repeat = is_repeat;
+            TAS_COMPONENT.tick_mode = TickMode::DontCare;
         } else if !is_repeat {
             TAS_STATE.events.push(InputEvent::KeyPressed(key_code.large_value));
         }
@@ -199,7 +201,10 @@ static TAS_COMPONENT = Component {
         let key = key_code.to_small();
 
         if key == KEY_F.to_small() {
-            TAS_STATE.is_f_pressed = false;
+            TAS_STATE.is_f_repeat = false;
+            if TAS_STATE.step_frame_mode {
+                TAS_COMPONENT.tick_mode = TickMode::Yield;
+            }
         } else if key == KEY_T.to_small() || key == KEY_R.to_small() || key == KEY_G.to_small() || key == KEY_H.to_small() || key == KEY_J.to_small() {
             // pass
         } else {
@@ -209,7 +214,10 @@ static TAS_COMPONENT = Component {
     on_mouse_move: fn(x: int, y: int) {
         TAS_STATE.events.push(InputEvent::MouseMoved(x, y));
     },
-    on_component_exit: fn() {},
+    on_component_exit: fn() {
+        TAS_STATE.step_frame_mode = false;
+        TAS_COMPONENT.tick_mode = TickMode::DontCare;
+    },
     on_resolution_change: fn() {},
     on_menu_open: fn() {},
 };
