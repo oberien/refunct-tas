@@ -167,6 +167,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
         ElementType::Platform => cluster.platforms,
         ElementType::Cube => cluster.cubes,
         ElementType::Button => cluster.buttons,
+        ElementType::Lift => cluster.lifts,
     };
 
     let element = match element_list.get(index.element_index) {
@@ -200,8 +201,10 @@ fn create_map_editor_input_ui() -> Ui {
                     ElementType::Cube
                 } else if input.contains("b") {
                     ElementType::Button
+                } else if input.contains("l") {
+                    ElementType::Lift
                 } else {
-                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b)";
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l)";
                     return
                 };
 
@@ -394,6 +397,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Platform => cluster.platforms,
                     ElementType::Cube => cluster.cubes,
                     ElementType::Button => cluster.buttons,
+                    ElementType::Lift => cluster.lifts,
                 };
                 let original_element = element_list.get(index.element_index).unwrap();
                 element.x = original_element.x;

@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
+use once_cell::sync::Lazy;
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
+pub static LIFTS: Lazy<Mutex<HashMap<(usize, usize), LiftWrapper>>> = Lazy::new(||Mutex::new(HashMap::new()));
 
 #[derive(Debug, Clone)]
 pub struct LevelWrapper<'a> {
@@ -166,9 +169,41 @@ impl<'a> ButtonWrapper<'a> {
         ButtonWrapper { base: button }
     }
 }
+#[derive(Debug, Clone)]
+pub struct LiftWrapper<'a> {
+    base: ActorWrapper<'a>,
+}
+unsafe impl<'a> Send for LiftWrapper<'a> {}
+unsafe impl<'a> UeObjectWrapper<'a> for LiftWrapper<'a> {
+    type Wrapping = AActor;
+    const CLASS_NAME: &'static str = "BP_Lift_C";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        LiftWrapper::new(ActorWrapper::new(ptr))
+    }
+}
+impl<'a> Deref for LiftWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for LiftWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
+impl<'a> LiftWrapper<'a> {
+    pub fn new(lift: ActorWrapper<'a>) -> LiftWrapper<'a> {
+        assert_eq!(lift.class().name(), "BP_Lift_C");
+        LiftWrapper { base: lift }
+    }
+}
 
 pub fn init() {
     let mut levels = LEVELS.lock().unwrap();
+    let mut lifts = LIFTS.lock().unwrap();
     for item in unsafe { GlobalObjectArrayWrapper::get().object_array().iter_elements() } {
         let object = item.object();
         let name = object.name();
@@ -193,6 +228,16 @@ pub fn init() {
         if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
             let level: LevelWrapper = object.upcast();
             levels.push(level.clone());
+        }
+        if class_name == "BP_Lift_C" && name != "Default__BP_Lift_C" {
+            let lift: LiftWrapper = object.upcast();
+            let index: usize = match name.as_str() {
+                "BP_Lift_C_1" => 5,
+                "BP_Mover7" => 7,
+                "BP_Mover6" => 8,
+                _ => unreachable!("Invalid lift: {:?}", name.as_str()),
+            };
+            lifts.insert((index, 0), lift);
         }
     }
     assert_eq!(levels.len(), 31);
