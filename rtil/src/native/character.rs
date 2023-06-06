@@ -1,8 +1,9 @@
+use std::cell::Cell;
 use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper};
 use crate::native::reflection::UClass;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
@@ -136,34 +137,34 @@ pub(crate) struct USceneComponent {
 
 impl USceneComponent {
     pub fn set_world_location_and_rotation(loc: FVector, rot: FRotator, object: &ActorWrapper) {
-        let root_component = object.get_field("RootComponent").unwrap_object();
+        let root_component: ObjectWrapper = object.get_field("RootComponent").unwrap();
         let set_world_location_and_rotation = root_component.class().find_function("K2_SetWorldLocationAndRotation").unwrap();
 
         let params = set_world_location_and_rotation.create_argument_struct();
-        let location = params.get_field("NewLocation").unwrap_struct();
-        *location.get_field("X").unwrap_float() = loc.x;
-        *location.get_field("Y").unwrap_float() = loc.y;
-        *location.get_field("Z").unwrap_float() = loc.z;
-        let rotation = params.get_field("NewRotation").unwrap_struct();
-        *rotation.get_field("Pitch").unwrap_float() = rot.pitch;
-        *rotation.get_field("Yaw").unwrap_float() = rot.yaw;
-        *rotation.get_field("Roll").unwrap_float() = rot.roll;
-        params.get_field("bSweep").unwrap_bool().set(false);
-        params.get_field("bTeleport").unwrap_bool().set(true);
+        let location: StructValueWrapper = params.get_field("NewLocation").unwrap();
+        location.get_field("X").unwrap::<&Cell<f32>>().set(loc.x);
+        location.get_field("Y").unwrap::<&Cell<f32>>().set(loc.y);
+        location.get_field("Z").unwrap::<&Cell<f32>>().set(loc.z);
+        let rotation: StructValueWrapper = params.get_field("NewRotation").unwrap();
+        rotation.get_field("Pitch").unwrap::<&Cell<f32>>().set(rot.pitch);
+        rotation.get_field("Yaw").unwrap::<&Cell<f32>>().set(rot.yaw);
+        rotation.get_field("Roll").unwrap::<&Cell<f32>>().set(rot.roll);
+        params.get_field("bSweep").unwrap::<BoolValueWrapper>().set(false);
+        params.get_field("bTeleport").unwrap::<BoolValueWrapper>().set(true);
         unsafe {
             set_world_location_and_rotation.call(root_component.as_ptr(), &params);
         }
     }
 
     pub fn set_world_scale(scale: FVector, object: &ActorWrapper) {
-        let root_component = object.get_field("RootComponent").unwrap_object();
+        let root_component: ObjectWrapper = object.get_field("RootComponent").unwrap();
         let set_world_scale = root_component.class().find_function("SetWorldScale3D").unwrap();
 
         let params = set_world_scale.create_argument_struct();
-        let s = params.get_field("NewScale").unwrap_struct();
-        *s.get_field("X").unwrap_float() = scale.x;
-        *s.get_field("Y").unwrap_float() = scale.y;
-        *s.get_field("Z").unwrap_float() = scale.z;
+        let s: StructValueWrapper = params.get_field("NewScale").unwrap();
+        s.get_field("X").unwrap::<&Cell<f32>>().set(scale.x);
+        s.get_field("Y").unwrap::<&Cell<f32>>().set(scale.y);
+        s.get_field("Z").unwrap::<&Cell<f32>>().set(scale.z);
 
         unsafe { set_world_scale.call(root_component.as_ptr(), &params); }
     }

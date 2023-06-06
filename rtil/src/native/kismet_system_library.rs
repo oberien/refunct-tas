@@ -2,7 +2,7 @@ use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
-use crate::native::{AActor, AMyCharacter, GlobalObjectArrayWrapper, ObjectWrapper, UObject};
+use crate::native::{AActor, AMyCharacter, GlobalObjectArrayWrapper, ObjectWrapper, StructValueWrapper, UObject};
 use crate::native::ue::{FLinearColor, FName, FVector, TArray};
 use crate::native::{UKISMETSYSTEMLIBRARY_LINETRACESINGLE, FROTATOR_VECTOR};
 
@@ -47,24 +47,24 @@ impl KismetSystemLibrary {
 
 
             let character = ObjectWrapper::new(player.as_ptr() as *mut UObject);
-            let controller = character.get_field("Controller").unwrap_object();
-            let camera = controller.get_field("PlayerCameraManager").unwrap_object();
+            let controller: ObjectWrapper = character.get_field("Controller").unwrap();
+            let camera: ObjectWrapper = controller.get_field("PlayerCameraManager").unwrap();
             let get_camera_location = camera.class().find_function("GetCameraLocation").unwrap();
             let loc = get_camera_location.create_argument_struct();
             get_camera_location.call(camera.as_ptr(), &loc);
-            let loc = loc.get_field("ReturnValue").unwrap_struct();
+            let loc: StructValueWrapper = loc.get_field("ReturnValue").unwrap();
 
             let get_camera_rotation = camera.class().find_function("GetCameraRotation").unwrap();
             let rot = get_camera_rotation.create_argument_struct();
             get_camera_rotation.call(camera.as_ptr(), &rot);
-            let rot = rot.get_field("ReturnValue").unwrap_struct();
+            let rot: StructValueWrapper = rot.get_field("ReturnValue").unwrap();
             let frotator_vector: extern_fn!(fn(this: *mut c_void) -> FVector)
                 = ::std::mem::transmute(FROTATOR_VECTOR.load(Ordering::SeqCst));
             let direction = frotator_vector(rot.as_ptr());
             let location = FVector {
-                x: *loc.get_field("X").unwrap_float(),
-                y: *loc.get_field("Y").unwrap_float(),
-                z: *loc.get_field("Z").unwrap_float(),
+                x: loc.get_field("X").unwrap(),
+                y: loc.get_field("Y").unwrap(),
+                z: loc.get_field("Z").unwrap(),
             };
 
             let hit = fun(

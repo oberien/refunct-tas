@@ -1,4 +1,4 @@
-use crate::native::{UWorld, LevelState, ObjectWrapper, UObject};
+use crate::native::{UWorld, LevelState, ObjectWrapper, UObject, BoolValueWrapper};
 
 #[repr(C)]
 pub struct UMyGameInstance {
@@ -21,7 +21,7 @@ impl UMyGameInstance {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         let restart_game = obj.class().find_function("RestartGame").unwrap();
         let params = restart_game.create_argument_struct();
-        params.get_field("Reset").unwrap_bool().set(false);
+        params.get_field("Reset").unwrap::<BoolValueWrapper>().set(false);
         unsafe { restart_game.call(UMyGameInstance::get_umygameinstance(), &params); }
     }
 }

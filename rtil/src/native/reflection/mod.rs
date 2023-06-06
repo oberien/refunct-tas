@@ -1,5 +1,6 @@
 use std::ffi::c_void;
 use std::fmt::Pointer;
+use std::cell::Cell;
 use crate::native::ue::{FName, TArray, UeU64};
 
 mod dynamic_value;
@@ -48,15 +49,26 @@ impl<'a, T: SizedArrayElement<'a>> ArrayElement<'a> for T {
 macro_rules! impl_array_element_for_primitives {
     ($($t:ty, $proptype:literal;)*) => {
         $(
-            unsafe impl<'a> SizedArrayElement<'a> for &'a mut $t {
+            unsafe impl<'a> SizedArrayElement<'a> for $t {
                 type ElementType = $t;
 
                 fn check_property_type(prop: &PropertyWrapper<'a>) {
                     assert_eq!(prop.class().name(), $proptype);
                 }
 
-                unsafe fn create(ptr: *mut Self::ElementType) -> &'a mut $t {
-                    &mut *ptr
+                unsafe fn create(ptr: *mut Self::ElementType) -> $t {
+                    *ptr
+                }
+            }
+            unsafe impl<'a> SizedArrayElement<'a> for &'a Cell<$t> {
+                type ElementType = $t;
+
+                fn check_property_type(prop: &PropertyWrapper<'a>) {
+                    assert_eq!(prop.class().name(), $proptype);
+                }
+
+                unsafe fn create(ptr: *mut Self::ElementType) -> &'a Cell<$t> {
+                    &*(ptr as *const _ as *const _)
                 }
             }
         )*

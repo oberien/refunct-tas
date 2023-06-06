@@ -1,4 +1,5 @@
 use std::alloc::{Layout, System, GlobalAlloc};
+use std::cell::Cell;
 use std::ffi::c_void;
 use std::fmt::{Display, Formatter, Pointer};
 use std::marker::PhantomData;
@@ -6,30 +7,30 @@ use std::ops::Deref;
 use std::sync::atomic::Ordering;
 use itertools::Itertools;
 use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
-use crate::native::ue::{FName, FString, TArray};
+use crate::native::ue::TArray;
 use crate::native::{ArrayElement, UBoolProperty, UField, UFunction, UOBJECT_PROCESSEVENT};
 
 #[derive(Debug, Clone)]
-pub struct BoolInstanceWrapper<'a> {
+pub struct BoolValueWrapper<'a> {
     ptr: *mut u8,
     bool_property: BoolPropertyWrapper<'a>,
     _marker: PhantomData<&'a mut bool>,
 }
-impl<'a> Pointer for BoolInstanceWrapper<'a> {
+impl<'a> Pointer for BoolValueWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.ptr, f)
     }
 }
-impl<'a> ArrayElement<'a> for BoolInstanceWrapper<'a> {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> BoolInstanceWrapper<'a> {
+impl<'a> ArrayElement<'a> for BoolValueWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> BoolValueWrapper<'a> {
         let bool_property = prop.upcast::<BoolPropertyWrapper<'a>>();
-        BoolInstanceWrapper::new(ptr as *mut u8, bool_property)
+        BoolValueWrapper::new(ptr as *mut u8, bool_property)
     }
 }
-impl<'a> BoolInstanceWrapper<'a> {
-    pub unsafe fn new(ptr: *mut u8, bool_property: BoolPropertyWrapper<'a>) -> BoolInstanceWrapper<'a> {
+impl<'a> BoolValueWrapper<'a> {
+    pub unsafe fn new(ptr: *mut u8, bool_property: BoolPropertyWrapper<'a>) -> BoolValueWrapper<'a> {
         assert!(!ptr.is_null());
-        BoolInstanceWrapper { ptr, bool_property, _marker: PhantomData }
+        BoolValueWrapper { ptr, bool_property, _marker: PhantomData }
     }
     pub fn get(&self) -> bool {
         unsafe {
@@ -61,33 +62,33 @@ impl<'a> BoolInstanceWrapper<'a> {
     }
 }
 #[derive(Debug, Clone)]
-pub struct StructInstanceWrapper<'a> {
+pub struct StructValueWrapper<'a> {
     ptr: *mut u8,
     struct_information: StructWrapper<'a>,
     limit_num_fields: usize,
     _marker: PhantomData<&'a mut UObject>,
 }
-impl<'a> Pointer for StructInstanceWrapper<'a> {
+impl<'a> Pointer for StructValueWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.ptr, f)
     }
 }
-impl<'a> ArrayElement<'a> for StructInstanceWrapper<'a> {
-    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> StructInstanceWrapper<'a> {
+impl<'a> ArrayElement<'a> for StructValueWrapper<'a> {
+    unsafe fn create(ptr: *mut c_void, prop: &PropertyWrapper<'a>) -> StructValueWrapper<'a> {
         let struct_information = prop.upcast::<StructPropertyWrapper<'a>>().struct_();
-        StructInstanceWrapper::new(ptr, struct_information)
+        StructValueWrapper::new(ptr, struct_information)
     }
 }
-impl<'a> StructInstanceWrapper<'a> {
-    pub unsafe fn new(ptr: *mut c_void, struct_information: StructWrapper<'a>) -> StructInstanceWrapper<'a> {
+impl<'a> StructValueWrapper<'a> {
+    pub unsafe fn new(ptr: *mut c_void, struct_information: StructWrapper<'a>) -> StructValueWrapper<'a> {
         Self::with_limit_num_fields(ptr, struct_information, usize::MAX)
     }
     pub fn as_ptr(&self) -> *mut c_void {
         self.ptr as *mut c_void
     }
-    pub unsafe fn with_limit_num_fields(ptr: *mut c_void, struct_information: StructWrapper<'a>, limit_num_fields: usize) -> StructInstanceWrapper<'a> {
+    pub unsafe fn with_limit_num_fields(ptr: *mut c_void, struct_information: StructWrapper<'a>, limit_num_fields: usize) -> StructValueWrapper<'a> {
         assert!(!ptr.is_null());
-        StructInstanceWrapper { ptr: ptr as *mut u8, struct_information, limit_num_fields, _marker: PhantomData }
+        StructValueWrapper { ptr: ptr as *mut u8, struct_information, limit_num_fields, _marker: PhantomData }
     }
     pub fn get_field(&self, name: &str) -> DynamicValue {
         unsafe {
@@ -98,24 +99,24 @@ impl<'a> StructInstanceWrapper<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct OwningStructInstanceWrapper<'a> {
-    inner: StructInstanceWrapper<'a>,
+pub struct OwningStructValueWrapper<'a> {
+    inner: StructValueWrapper<'a>,
     layout: Layout,
 }
-impl<'a> Deref for OwningStructInstanceWrapper<'a> {
-    type Target = StructInstanceWrapper<'a>;
+impl<'a> Deref for OwningStructValueWrapper<'a> {
+    type Target = StructValueWrapper<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
-impl<'a> Pointer for OwningStructInstanceWrapper<'a> {
+impl<'a> Pointer for OwningStructValueWrapper<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Pointer::fmt(&self.inner, f)
     }
 }
-impl<'a> OwningStructInstanceWrapper<'a> {
-    pub unsafe fn new(struct_information: StructWrapper<'a>, limit_num_fields: usize, size: usize) -> OwningStructInstanceWrapper<'a> {
+impl<'a> OwningStructValueWrapper<'a> {
+    pub unsafe fn new(struct_information: StructWrapper<'a>, limit_num_fields: usize, size: usize) -> OwningStructValueWrapper<'a> {
         // check that the size makes sense
         let mut calculated_size = 0;
         for field in struct_information.iter_fields().take(limit_num_fields) {
@@ -126,13 +127,13 @@ impl<'a> OwningStructInstanceWrapper<'a> {
         let align = struct_information.min_alignment();
         let layout = Layout::from_size_align(size, align).unwrap();
         let ptr = System.alloc_zeroed(layout);
-        OwningStructInstanceWrapper {
-            inner: StructInstanceWrapper::with_limit_num_fields(ptr as *mut c_void, struct_information.clone(), limit_num_fields),
+        OwningStructValueWrapper {
+            inner: StructValueWrapper::with_limit_num_fields(ptr as *mut c_void, struct_information.clone(), limit_num_fields),
             layout,
         }
     }
 }
-impl<'a> Drop for OwningStructInstanceWrapper<'a> {
+impl<'a> Drop for OwningStructValueWrapper<'a> {
     fn drop(&mut self) {
         unsafe { System.dealloc(self.inner.ptr, self.layout) }
     }
@@ -194,7 +195,7 @@ impl<'a> ObjectWrapper<'a> {
     }
 
     pub fn upcast<T: UeObjectWrapper<'a>>(&self) -> T {
-        self.try_upcast().unwrap_or_else(|| panic!("can't upcast to {}", T::CLASS_NAME))
+        self.try_upcast().unwrap_or_else(|| panic!("can't upcast {} to {}", self.class().name(), T::CLASS_NAME))
     }
     pub fn try_upcast<T: UeObjectWrapper<'a>>(&self) -> Option<T> {
         if self.class().extends_from(T::CLASS_NAME) {
@@ -704,12 +705,12 @@ impl<'a> FunctionWrapper<'a> {
         self.iter_fields().take(self.num_parms() as usize).map(|field| field.upcast())
     }
 
-    pub fn create_argument_struct(&self) -> OwningStructInstanceWrapper<'a> {
+    pub fn create_argument_struct(&self) -> OwningStructValueWrapper<'a> {
         unsafe {
-            OwningStructInstanceWrapper::new((**self).clone(), self.num_parms() as usize, self.parms_size() as usize)
+            OwningStructValueWrapper::new((**self).clone(), self.num_parms() as usize, self.parms_size() as usize)
         }
     }
-    pub unsafe fn call<This>(&self, this: *mut This, args: &OwningStructInstanceWrapper<'a>) {
+    pub unsafe fn call<This>(&self, this: *mut This, args: &OwningStructValueWrapper<'a>) {
         self.call_raw(this, args.as_ptr())
     }
     pub unsafe fn call_raw<This, Args>(&self, this: *mut This, args: *mut Args) {
@@ -758,100 +759,100 @@ impl<'a> ActorWrapper<'a> {
     }
 
     pub fn absolute_location(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_location = root_component.get_field("AbsoluteLocation").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_location: StructValueWrapper = root_component.get_field("AbsoluteLocation").unwrap();
         (
-            *absolute_location.get_field("X").unwrap_float(),
-            *absolute_location.get_field("Y").unwrap_float(),
-            *absolute_location.get_field("Z").unwrap_float(),
+            absolute_location.get_field("X").unwrap(),
+            absolute_location.get_field("Y").unwrap(),
+            absolute_location.get_field("Z").unwrap(),
         )
     }
     pub fn _set_absolute_location(&self, x: f32, y: f32, z: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_location = root_component.get_field("AbsoluteLocation").unwrap_struct();
-        *absolute_location.get_field("X").unwrap_float() = x;
-        *absolute_location.get_field("Y").unwrap_float() = y;
-        *absolute_location.get_field("Z").unwrap_float() = z;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_location: StructValueWrapper = root_component.get_field("AbsoluteLocation").unwrap();
+        absolute_location.get_field("X").unwrap::<&Cell<f32>>().set(x);
+        absolute_location.get_field("Y").unwrap::<&Cell<f32>>().set(y);
+        absolute_location.get_field("Z").unwrap::<&Cell<f32>>().set(z);
     }
     pub fn _absolute_rotation(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_rotation = root_component.get_field("AbsoluteRotation").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_rotation: StructValueWrapper = root_component.get_field("AbsoluteRotation").unwrap();
         (
-            *absolute_rotation.get_field("Pitch").unwrap_float(),
-            *absolute_rotation.get_field("Yaw").unwrap_float(),
-            *absolute_rotation.get_field("Roll").unwrap_float(),
+            absolute_rotation.get_field("Pitch").unwrap(),
+            absolute_rotation.get_field("Yaw").unwrap(),
+            absolute_rotation.get_field("Roll").unwrap(),
         )
     }
     pub fn _set_absolute_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_rotation = root_component.get_field("AbsoluteRotation").unwrap_struct();
-        *absolute_rotation.get_field("Pitch").unwrap_float() = pitch;
-        *absolute_rotation.get_field("Yaw").unwrap_float() = yaw;
-        *absolute_rotation.get_field("Roll").unwrap_float() = roll;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_rotation: StructValueWrapper = root_component.get_field("AbsoluteRotation").unwrap();
+        absolute_rotation.get_field("Pitch").unwrap::<&Cell<f32>>().set(pitch);
+        absolute_rotation.get_field("Yaw").unwrap::<&Cell<f32>>().set(yaw);
+        absolute_rotation.get_field("Roll").unwrap::<&Cell<f32>>().set(roll);
     }
     pub fn _absolute_scale(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_scale: StructValueWrapper = root_component.get_field("AbsoluteScale3D").unwrap();
         (
-            *absolute_scale.get_field("X").unwrap_float(),
-            *absolute_scale.get_field("Y").unwrap_float(),
-            *absolute_scale.get_field("Z").unwrap_float(),
+            absolute_scale.get_field("X").unwrap(),
+            absolute_scale.get_field("Y").unwrap(),
+            absolute_scale.get_field("Z").unwrap(),
         )
     }
     pub fn _set_absolute_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let absolute_scale = root_component.get_field("AbsoluteScale3D").unwrap_struct();
-        *absolute_scale.get_field("X").unwrap_float() = xscale;
-        *absolute_scale.get_field("Y").unwrap_float() = yscale;
-        *absolute_scale.get_field("Z").unwrap_float() = zscale;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let absolute_scale: StructValueWrapper = root_component.get_field("AbsoluteScale3D").unwrap();
+        absolute_scale.get_field("X").unwrap::<&Cell<f32>>().set(xscale);
+        absolute_scale.get_field("Y").unwrap::<&Cell<f32>>().set(yscale);
+        absolute_scale.get_field("Z").unwrap::<&Cell<f32>>().set(zscale);
     }
     pub fn relative_location(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_location = root_component.get_field("RelativeLocation").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_location: StructValueWrapper = root_component.get_field("RelativeLocation").unwrap();
         (
-            *relative_location.get_field("X").unwrap_float(),
-            *relative_location.get_field("Y").unwrap_float(),
-            *relative_location.get_field("Z").unwrap_float(),
+            relative_location.get_field("X").unwrap(),
+            relative_location.get_field("Y").unwrap(),
+            relative_location.get_field("Z").unwrap(),
         )
     }
     pub fn set_relative_location(&self, x: f32, y: f32, z: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_location = root_component.get_field("RelativeLocation").unwrap_struct();
-        *relative_location.get_field("X").unwrap_float() = x;
-        *relative_location.get_field("Y").unwrap_float() = y;
-        *relative_location.get_field("Z").unwrap_float() = z;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_location: StructValueWrapper = root_component.get_field("RelativeLocation").unwrap();
+        relative_location.get_field("X").unwrap::<&Cell<f32>>().set(x);
+        relative_location.get_field("Y").unwrap::<&Cell<f32>>().set(y);
+        relative_location.get_field("Z").unwrap::<&Cell<f32>>().set(z);
     }
     pub fn relative_rotation(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_rotation = root_component.get_field("RelativeRotation").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_rotation: StructValueWrapper = root_component.get_field("RelativeRotation").unwrap();
         (
-            *relative_rotation.get_field("Pitch").unwrap_float(),
-            *relative_rotation.get_field("Yaw").unwrap_float(),
-            *relative_rotation.get_field("Roll").unwrap_float(),
+            relative_rotation.get_field("Pitch").unwrap(),
+            relative_rotation.get_field("Yaw").unwrap(),
+            relative_rotation.get_field("Roll").unwrap(),
         )
     }
     pub fn set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_rotation = root_component.get_field("RelativeRotation").unwrap_struct();
-        *relative_rotation.get_field("Pitch").unwrap_float() = pitch;
-        *relative_rotation.get_field("Yaw").unwrap_float() = yaw;
-        *relative_rotation.get_field("Roll").unwrap_float() = roll;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_rotation: StructValueWrapper = root_component.get_field("RelativeRotation").unwrap();
+        relative_rotation.get_field("Pitch").unwrap::<&Cell<f32>>().set(pitch);
+        relative_rotation.get_field("Yaw").unwrap::<&Cell<f32>>().set(yaw);
+        relative_rotation.get_field("Roll").unwrap::<&Cell<f32>>().set(roll);
     }
     pub fn relative_scale(&self) -> (f32, f32, f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_scale: StructValueWrapper = root_component.get_field("RelativeScale3D").unwrap();
         (
-            *relative_scale.get_field("X").unwrap_float(),
-            *relative_scale.get_field("Y").unwrap_float(),
-            *relative_scale.get_field("Z").unwrap_float(),
+            relative_scale.get_field("X").unwrap(),
+            relative_scale.get_field("Y").unwrap(),
+            relative_scale.get_field("Z").unwrap(),
         )
     }
     pub fn set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
-        let root_component = self.get_field("RootComponent").unwrap_object();
-        let relative_scale = root_component.get_field("RelativeScale3D").unwrap_struct();
-        *relative_scale.get_field("X").unwrap_float() = xscale;
-        *relative_scale.get_field("Y").unwrap_float() = yscale;
-        *relative_scale.get_field("Z").unwrap_float() = zscale;
+        let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
+        let relative_scale: StructValueWrapper = root_component.get_field("RelativeScale3D").unwrap();
+        relative_scale.get_field("X").unwrap::<&Cell<f32>>().set(xscale);
+        relative_scale.get_field("Y").unwrap::<&Cell<f32>>().set(yscale);
+        relative_scale.get_field("Z").unwrap::<&Cell<f32>>().set(zscale);
     }
 }
 
@@ -931,43 +932,9 @@ impl<'a, 'b, T: ArrayElement<'a>> IntoIterator for &'b ArrayWrapper<'a, T> {
     }
 }
 
-unsafe fn apply_field_info(ptr: *mut u8, info: FieldInfo) -> DynamicValue {
+unsafe fn apply_field_info<'a>(ptr: *mut u8, info: FieldInfo<'a>) -> DynamicValue<'a> {
     assert!(!ptr.is_null());
-    let value_ptr = ptr.offset(info.offset);
-    let property_kind = info.prop.property_kind();
-
-    fn checked_cast<T>(ptr: *mut u8) -> *mut T {
-        assert_eq!(ptr as usize % std::mem::align_of::<T>(), 0, "alignment of pointer cast from *mut u8 to *mut {} doesn't fit", std::any::type_name::<T>());
-        ptr as _
-    }
-
-    match property_kind.as_str() {
-        "Int8Property" => DynamicValue::Int8(&mut *checked_cast::<i8>(value_ptr)),
-        "Int16Property" => DynamicValue::Int16(&mut *checked_cast::<i16>(value_ptr)),
-        "IntProperty" => DynamicValue::Int(&mut *checked_cast::<i32>(value_ptr)),
-        "Int64Property" => DynamicValue::Int64(&mut *checked_cast::<i64>(value_ptr)),
-        "ByteProperty" => DynamicValue::Byte(&mut *checked_cast::<u8>(value_ptr)),
-        "UInt16Property" => DynamicValue::UInt16(&mut *checked_cast::<u16>(value_ptr)),
-        "UInt32Property" => DynamicValue::UInt32(&mut *checked_cast::<u32>(value_ptr)),
-        "UInt64Property" => DynamicValue::UInt64(&mut *checked_cast::<u64>(value_ptr)),
-        "FloatProperty" => DynamicValue::Float(&mut *checked_cast::<f32>(value_ptr)),
-        "DoubleProperty" => DynamicValue::Double(&mut *checked_cast::<f64>(value_ptr)),
-        "BoolProperty" => DynamicValue::Bool(BoolInstanceWrapper::new(ptr, info.prop.upcast())),
-        "ObjectProperty" | "WeakObjectProperty" | "LazyObjectProperty" | "SoftObjectProperty" => {
-            DynamicValue::Object(ObjectWrapper::new_nullable(*checked_cast::<*mut UObject>(value_ptr)))
-        },
-        "ClassProperty" | "SoftClassProperty" => todo!("ClassProperty"),
-        "InterfaceProperty" => todo!("InterfaceProperty"),
-        "NameProperty" => DynamicValue::Name(*checked_cast::<FName>(value_ptr)),
-        "StrProperty" => DynamicValue::Str(checked_cast::<FString>(value_ptr)),
-        "ArrayProperty" => DynamicValue::Array(checked_cast::<TArray<*mut ()>>(value_ptr) as *mut c_void, info.prop.upcast::<ArrayPropertyWrapper>().inner()),
-        "MapProperty" => todo!("MapProperty"),
-        "SetProperty" => todo!("SetProperty"),
-        "StructProperty" => DynamicValue::Struct(StructInstanceWrapper::new(value_ptr as *mut c_void, StructWrapper::new((*(info.prop.as_ptr() as *mut UStructProperty)).struct_))),
-        "DelegateProperty" | "MulticastDelegateProperty" | "MulticastInlineDelegateProperty" | "MulticastSparseDelegateProperty" => todo!("Function-based Properties"),
-        "EnumProperty" => todo!("EnumProperty"),
-        "TextProperty" => todo!("TextProperty"),
-        _ => unreachable!("Got unknown UE property kind {property_kind}"),
-    }
+    let value_ptr = ptr.offset(info.offset) as *mut c_void;
+    DynamicValue::new(value_ptr, info.prop)
 }
 

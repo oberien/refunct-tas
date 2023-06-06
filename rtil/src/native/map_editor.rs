@@ -1,8 +1,10 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
+use crate::native::{ArrayWrapper, StructValueWrapper};
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
@@ -41,41 +43,41 @@ impl<'a> LevelWrapper<'a> {
         LevelWrapper { base: level }
     }
     pub fn level_index(&self) -> usize {
-        (*self.base.get_field("LevelIndex").unwrap_int()).try_into().unwrap()
+        self.base.get_field("LevelIndex").unwrap::<i32>().try_into().unwrap()
     }
     pub fn _source_location(&self) -> (f32, f32, f32) {
-        let loc = self.base.get_field("SourcePosition").unwrap_struct();
-        (*loc.get_field("X").unwrap_float(), *loc.get_field("Y").unwrap_float(), *loc.get_field("Z").unwrap_float())
+        let loc = self.base.get_field("SourcePosition").unwrap::<StructValueWrapper>();
+        (loc.get_field("X").unwrap(), loc.get_field("Y").unwrap(), loc.get_field("Z").unwrap())
     }
     pub fn platforms(&self) -> impl Iterator<Item = PlatformWrapper<'a>> + '_ {
-        self.base.get_field("FertileLands").unwrap_array()
+        self.base.get_field("FertileLands").unwrap::<ArrayWrapper<'_, _>>()
             .into_iter()
     }
     pub fn _platform(&self, index: usize) -> Option<PlatformWrapper<'a>> {
-        let array = self.base.get_field("FertileLands").unwrap_array();
+        let array = self.base.get_field("FertileLands").unwrap::<ArrayWrapper<'_, _>>();
         array.get(index)
     }
     pub fn cubes(&self) -> impl Iterator<Item = CubeWrapper<'a>> + '_ {
-        self.base.get_field("Collectibles").unwrap_array()
+        self.base.get_field("Collectibles").unwrap::<ArrayWrapper<'_, _>>()
             .into_iter()
     }
     pub fn _cube(&self, index: usize) -> Option<CubeWrapper<'a>> {
-        let array = self.base.get_field("Collectibles").unwrap_array();
+        let array = self.base.get_field("Collectibles").unwrap::<ArrayWrapper<'_, _>>();
         array.get(index)
     }
     pub fn buttons(&self) -> impl Iterator<Item = ButtonWrapper<'a>> + '_ {
-        self.base.get_field("Buttons").unwrap_array()
+        self.base.get_field("Buttons").unwrap::<ArrayWrapper<'_, _>>()
             .into_iter()
     }
     pub fn _button(&self, index: usize) -> Option<ButtonWrapper<'a>> {
-        let array = self.base.get_field("Buttons").unwrap_array();
+        let array = self.base.get_field("Buttons").unwrap::<ArrayWrapper<'_, _>>();
         array.get(index)
     }
     pub fn _speed(&self) -> f32 {
-        *self.base.get_field("Speed").unwrap_float()
+        self.base.get_field("Speed").unwrap()
     }
     pub fn set_speed(&self, speed: f32) {
-        *self.base.get_field("Speed").unwrap_float() = speed
+        self.base.get_field("Speed").unwrap::<&Cell<f32>>().set(speed)
     }
 }
 
