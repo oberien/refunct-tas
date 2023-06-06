@@ -7,8 +7,7 @@ use std::sync::atomic::Ordering;
 use itertools::Itertools;
 use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::{FName, FString, TArray};
-use crate::native::{ArrayElement, UBoolProperty, UField, UFunction};
-use crate::native::linux::UOBJECT_PROCESSEVENT;
+use crate::native::{ArrayElement, UBoolProperty, UField, UFunction, UOBJECT_PROCESSEVENT};
 
 #[derive(Debug, Clone)]
 pub struct BoolInstanceWrapper<'a> {

@@ -10,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, LIFTS};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -903,6 +903,7 @@ struct Cluster {
     platforms: Vec<Element>,
     cubes: Vec<Element>,
     buttons: Vec<Element>,
+    lifts: Vec<Element>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
 struct Element {
@@ -964,12 +965,17 @@ fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
     Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, xscale, yscale, zscale }
 }
 fn get_current_map() -> RefunctMap {
-    let clusters = LEVELS.lock().unwrap().iter()
+    let levels = LEVELS.lock().unwrap();
+    let mut clusters: Vec<Cluster> = levels.iter()
         .map(|level| Cluster {
             platforms: level.platforms().map(|p| aactor_to_element(level, &p)).collect(),
             cubes: level.cubes().map(|c| aactor_to_element(level, &c)).collect(),
             buttons: level.buttons().map(|b| aactor_to_element(level, &b)).collect(),
+            lifts: vec![],
         }).collect();
+    for ((level_index, element_index), lift) in LIFTS.lock().unwrap().iter() {
+        clusters[*level_index].lifts.push(aactor_to_element(&levels[*level_index], &lift));
+    }
     RefunctMap { clusters }
 }
 
@@ -987,24 +993,32 @@ fn apply_map(map: RefunctMap) {
     // initialize before we change anything
     ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
 
-    fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element) {
+    fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element, apply_rel_offset: bool) {
         let (_, _, rz) = level.relative_location();
         let (rpitch, ryaw, rroll) = level.relative_rotation();
-        USceneComponent::set_world_location_and_rotation(FVector {x: cp.x, y: cp.y, z: cp.z + rz}, FRotator {pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll}, lp);
-        USceneComponent::set_world_scale(FVector {x: (cp.xscale), y: cp.yscale, z: cp.zscale }, lp);
+        if apply_rel_offset {
+            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z + rz }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
+        } else {
+            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
+        }
+        USceneComponent::set_world_scale(FVector { x: cp.xscale, y: cp.yscale, z: cp.zscale }, lp);
     }
 
     let levels = LEVELS.lock().unwrap();
+    let lifts = LIFTS.lock().unwrap();
     assert_eq!(map.clusters.len(), levels.len());
     for (level, cluster) in levels.iter().zip(map.clusters) {
         for (lp, cp) in level.platforms().zip(cluster.platforms) {
-            set_element(level, &lp, cp);
+            set_element(level, &lp, cp, true);
         }
         for (lc, cc) in level.cubes().zip(cluster.cubes) {
-            set_element(level, &lc, cc);
+            set_element(level, &lc, cc, true);
         }
         for (lb, cb) in level.buttons().zip(cluster.buttons) {
-            set_element(level, &lb, cb);
+            set_element(level, &lb, cb, true);
+        }
+        for (element_index, element) in cluster.lifts.into_iter().enumerate() {
+            set_element(level, &lifts[&(level.level_index(), element_index)], element, false);
         }
     }
 }
@@ -1014,6 +1028,7 @@ enum ElementType {
     Platform,
     Cube,
     Button,
+    Lift,
 }
 
 #[derive(Debug, rebo::ExternalType)]
@@ -1035,6 +1050,11 @@ fn get_looked_at_element_index() -> Option<ElementIndex> {
             .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
         if let Some(found) = found {
             return Some(found);
+        }
+    }
+    for ((level_index, element_index), lift) in LIFTS.lock().unwrap().iter() {
+        if lift.as_ptr() as usize == foo as usize {
+            return Some(ElementIndex { cluster_index: *level_index, element_type: ElementType::Lift, element_index: *element_index });
         }
     }
     None
