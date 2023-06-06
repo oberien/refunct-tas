@@ -181,7 +181,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p<num>, ex: 14pl2 or 2b1 or 4c1)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",

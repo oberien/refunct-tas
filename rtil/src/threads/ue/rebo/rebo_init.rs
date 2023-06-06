@@ -996,14 +996,12 @@ fn apply_map(map: RefunctMap) {
     fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element, apply_rel_offset: bool) {
         let (_, _, rz) = level.relative_location();
         let (rpitch, ryaw, rroll) = level.relative_rotation();
-        USceneComponent::set_world_location_and_rotation(FVector {x: cp.x, y: cp.y, z: cp.z + rz}, FRotator {pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll}, lp);
-        USceneComponent::set_world_scale(FVector {x: (cp.xscale), y: cp.yscale, z: cp.zscale }, lp);
         if apply_rel_offset {
-            USceneComponent::set_world_location_and_rotation(FVector {x: cp.x, y: cp.y, z: cp.z + rz}, FRotator {pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll}, lp);
+            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z + rz }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
         } else {
-            USceneComponent::set_world_location_and_rotation(FVector {x: cp.x, y: cp.y, z: cp.z}, FRotator {pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll}, lp);
+            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
         }
-        USceneComponent::set_world_scale(FVector {x: cp.xscale, y: cp.yscale, z: cp.zscale}, lp);
+        USceneComponent::set_world_scale(FVector { x: cp.xscale, y: cp.yscale, z: cp.zscale }, lp);
     }
 
     let levels = LEVELS.lock().unwrap();

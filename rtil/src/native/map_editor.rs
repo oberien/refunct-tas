@@ -173,6 +173,7 @@ impl<'a> ButtonWrapper<'a> {
 pub struct LiftWrapper<'a> {
     base: ActorWrapper<'a>,
 }
+// WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LiftWrapper<'a> {}
 unsafe impl<'a> UeObjectWrapper<'a> for LiftWrapper<'a> {
     type Wrapping = AActor;
@@ -235,7 +236,7 @@ pub fn init() {
                 "BP_Lift_C_1" => 5,
                 "BP_Mover7" => 7,
                 "BP_Mover6" => 8,
-                _ => unreachable!("Invalid lift: {:?}", name.as_str()),
+                _ => unreachable!("Invalid lift: {name:?}"),
             };
             lifts.insert((index, 0), lift);
         }
