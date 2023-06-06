@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
-pub static LIFTS: Lazy<Mutex<HashMap<(usize, usize), LiftWrapper>>> = Lazy::new(||Mutex::new(HashMap::new()));
+pub static LIFTS: Lazy<Mutex<HashMap<(usize, usize), LiftWrapper>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Clone)]
 pub struct LevelWrapper<'a> {
