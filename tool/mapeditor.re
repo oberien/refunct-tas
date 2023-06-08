@@ -414,7 +414,18 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Back" },
-            onclick: fn(label: Text) { leave_ui() },
+            onclick: fn(label: Text) {
+                MAP_EDITOR_X_LABEL.text = "X";
+                MAP_EDITOR_Y_LABEL.text = "Y";
+                MAP_EDITOR_Z_LABEL.text = "Z";
+                MAP_EDITOR_PITCH_LABEL.text = "Pitch";
+                MAP_EDITOR_YAW_LABEL.text = "Yaw";
+                MAP_EDITOR_ROLL_LABEL.text = "Roll";
+                MAP_EDITOR_XSCALE_LABEL.text = "XScale";
+                MAP_EDITOR_YSCALE_LABEL.text = "YScale";
+                MAP_EDITOR_ZSCALE_LABEL.text = "ZScale";
+                leave_ui();
+            },
         }),
     ))
 }
