@@ -48,6 +48,8 @@ const NAMES: &[(&str, &str)] = &[
     ("?AddToScreen@UUserWidget@@MAEXPAVULocalPlayer@@H@Z", "UUSERWIDGET_ADDTOSCREEN"),
     ("?LineTraceSingle_NEW@UKismetSystemLibrary@@SA_NPAVUObject@@UFVector@@1W4ETraceTypeQuery@@_NABV?$TArray@PAVAActor@@VFDefaultAllocator@@@@W4Type@EDrawDebugTrace@@AAUFHitResult@@3UFLinearColor@@7M@Z", "UKISMETSYSTEMLIBRARY_LINETRACESINGLE"),
     ("?Vector@FRotator@@QBE?AUFVector@@XZ", "FROTATOR_VECTOR"),
+    ("?AddBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_ADDBASEDCHARACTER"),
+    ("?RemoveBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_REMOVEBASEDCHARACTER"),
 ];
 
 fn get_linux_level_pointer_path() -> String {

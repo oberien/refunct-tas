@@ -1,15 +1,11 @@
 static mut MAP_EDITOR_STATE = MapEditorState {
     map_name: "",
     map: Tas::current_map(),
-    is_currently_auto_newgaming: false,
-    level_during_reset: 0,
 };
 
 struct MapEditorState {
     map_name: string,
     map: RefunctMap,
-    is_currently_auto_newgaming: bool,
-    level_during_reset: int,
 }
 
 static MAP_EDITOR_COMPONENT = Component {
@@ -23,19 +19,11 @@ static MAP_EDITOR_COMPONENT = Component {
     requested_delta_time: Option::None,
     on_tick: fn() {},
     on_yield: fn() {},
-    on_new_game: fn() {
-        if MAP_EDITOR_STATE.is_currently_auto_newgaming {
-            Tas::set_level(MAP_EDITOR_STATE.level_during_reset);
-        }
-    },
+    on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
-    on_reset: fn(old: int, new: int) {
-        if MAP_EDITOR_STATE.is_currently_auto_newgaming {
-            Tas::set_level(0);
-        }
-    },
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_reset: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
         if key.to_small() == KEY_TAB.to_small() {
             enter_ui(create_map_editor_input_ui());
@@ -59,27 +47,6 @@ static MAP_EDITOR_COMPONENT = Component {
     on_menu_open: fn() {},
 };
 
-fn apply_and_reload_map(map: RefunctMap) {
-    Tas::apply_map(map);
-
-    let level_state = Tas::get_level_state();
-    MAP_EDITOR_STATE.is_currently_auto_newgaming = true;
-    MAP_EDITOR_STATE.level_during_reset = level_state.level;
-
-    Tas::set_all_cluster_speeds(9999999.);
-    let loc = Tas::get_location();
-    let rot = Tas::get_rotation();
-    Tas::step();
-
-    press_buttons_until(level_state.buttons - 1);
-
-    Tas::set_location(loc);
-    Tas::set_rotation(rot);
-    Tas::set_all_cluster_speeds(700.);
-
-    MAP_EDITOR_STATE.is_currently_auto_newgaming = false;
-}
-
 static mut MAP_EDITOR_LABEL = Text { text: if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) { "Stop Map Editor" } else { "Edit Map" } };
 fn create_map_editor_menu() -> Ui {
     Ui::new("Map Editor", List::of(
@@ -90,7 +57,7 @@ fn create_map_editor_menu() -> Ui {
                     remove_component(MAP_EDITOR_COMPONENT);
                     MAP_EDITOR_LABEL.text = "Edit Map";
                     MAP_EDITOR_STATE.map = Tas::original_map();
-                    apply_and_reload_map(MAP_EDITOR_STATE.map);
+                    Tas::apply_map(MAP_EDITOR_STATE.map);
                 } else {
                     enter_ui(create_map_editor_map_selection_ui());
                 }
@@ -120,7 +87,7 @@ fn create_map_editor_map_selection_ui() -> Ui {
                 MAP_EDITOR_STATE.map_name = input;
                 if map_list.contains(input) {
                     MAP_EDITOR_STATE.map = Tas::load_map(input);
-                    apply_and_reload_map(MAP_EDITOR_STATE.map);
+                    Tas::apply_map(MAP_EDITOR_STATE.map);
                 } else {
                     MAP_EDITOR_STATE.map = Tas::current_map();
                 };
@@ -139,7 +106,7 @@ fn create_map_editor_map_selection_ui() -> Ui {
             onclick: fn(label: Text) {
                 MAP_EDITOR_STATE.map_name = label.text;
                 MAP_EDITOR_STATE.map = Tas::load_map(label.text);
-                apply_and_reload_map(MAP_EDITOR_STATE.map);
+                Tas::apply_map(MAP_EDITOR_STATE.map);
                 MAP_EDITOR_LABEL.text = "Stop Map Editor";
                 add_component(MAP_EDITOR_COMPONENT);
                 leave_ui();
@@ -247,7 +214,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         };
         Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
         leave_ui();
-        apply_and_reload_map(MAP_EDITOR_STATE.map);
+        Tas::apply_map(MAP_EDITOR_STATE.map);
         enter_ui(create_map_editor_element_ui(element, index, selected));
     };
     static mut MAP_EDITOR_X_LABEL = Text { text: "X" };

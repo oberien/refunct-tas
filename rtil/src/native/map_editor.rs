@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
-use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope};
+use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope, UObject};
 use crate::native::reflection::{ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<Level>> = Mutex::new(Vec::new());
@@ -19,8 +19,6 @@ pub struct Level {
 pub struct LevelWrapper<'a> {
     base: ActorWrapper<'a>,
 }
-// WARNING: somewhat unsound - see AMyCharacter
-unsafe impl<'a> Send for LevelWrapper<'a> {}
 pub enum LevelWrapperType {}
 impl UeObjectWrapperType for LevelWrapperType {
     type UeObjectWrapper<'a> = LevelWrapper<'a>;
@@ -200,8 +198,6 @@ impl<'a> ButtonWrapper<'a> {
 pub struct LiftWrapper<'a> {
     base: ActorWrapper<'a>,
 }
-// WARNING: somewhat unsound - see AMyCharacter
-unsafe impl<'a> Send for LiftWrapper<'a> {}
 pub enum LiftWrapperType {}
 impl UeObjectWrapperType for LiftWrapperType {
     type UeObjectWrapper<'a> = LiftWrapper<'a>;
@@ -232,6 +228,39 @@ impl<'a> LiftWrapper<'a> {
         assert_eq!(lift.class().name(), "BP_Lift_C");
         LiftWrapper { base: lift }
     }
+}
+
+#[derive(Debug, Clone, rebo::ExternalType)]
+pub enum ElementType {
+    Platform,
+    Cube,
+    Button,
+    Lift,
+}
+
+#[derive(Debug, Clone, rebo::ExternalType)]
+pub struct ElementIndex {
+    pub cluster_index: usize,
+    pub element_type: ElementType,
+    pub element_index: usize,
+}
+
+
+pub fn try_find_element_index(ptr: *mut UObject) -> Option<ElementIndex> {
+    UeScope::with(|scope| {
+        for (i, level) in LEVELS.lock().unwrap().iter().enumerate() {
+            let found = level.platforms.iter().map(|p| (ElementType::Platform, scope.get(p).as_ptr() as usize)).enumerate()
+                .chain(level.cubes.iter().map(|c| (ElementType::Cube, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.buttons.iter().map(|c| (ElementType::Button, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.lifts.iter().map(|c| (ElementType::Lift, scope.get(c).as_ptr() as usize)).enumerate())
+                .find(|(_, (_, addr))| ptr as usize == *addr)
+                .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
+            if let Some(found) = found {
+                return Some(found);
+            }
+        }
+        None
+    })
 }
 
 pub fn init() {

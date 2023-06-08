@@ -54,8 +54,8 @@ static TIMER_COMPONENT = Component {
         }
     },
     on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key_code: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key_code: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},

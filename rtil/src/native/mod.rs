@@ -53,6 +53,12 @@ pub use self::slateapp::{
     unhook_fslateapplication_onrawmousemove,
     hook_fslateapplication_onrawmousemove,
 };
+pub use self::tick::{
+    hook_aliftbase_addbasedcharacter,
+    hook_aliftbase_removebasedcharacter,
+    unhook_aliftbase_addbasedcharacter,
+    unhook_aliftbase_removebasedcharacter,
+};
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::{AMyHud, EBlendMode};
@@ -79,6 +85,8 @@ pub fn init() {
     slateapp::hook_fslateapplication_onrawmousemove();
     newgame::hook_amycharacter_forceduncrouch();
     tick::hook_uengine_updatetimeandhandlemaxtickrate();
+    tick::hook_aliftbase_addbasedcharacter();
+    tick::hook_aliftbase_removebasedcharacter();
     hud::hook_amyhud_drawhud();
     character::hook_amycharacter_tick();
     gameusersettings::hook_ugameusersettings_applyresolutionsettings();

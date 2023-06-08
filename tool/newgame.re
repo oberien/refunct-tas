@@ -78,8 +78,8 @@ static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
@@ -105,8 +105,8 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
@@ -138,8 +138,8 @@ static NEW_GAME_NGG_COMPONENT = Component {
             Tas::set_level(level + 1);
         }
     },
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
@@ -211,17 +211,18 @@ fn on_level_state_change(old: LevelState, new: LevelState) {
             on_reset(old.resets, new.resets);
         }
     }
-    if old.platforms != new.platforms {
-        for comp in CURRENT_COMPONENTS {
-            let on_platforms_change = comp.on_platforms_change;
-            on_platforms_change(old.platforms, new.platforms);
-        }
+}
+
+fn element_pressed(index: ElementIndex) {
+    for comp in CURRENT_COMPONENTS {
+        let on_element_pressed = comp.on_element_pressed;
+        on_element_pressed(index);
     }
-    if old.buttons != new.buttons {
-        for comp in CURRENT_COMPONENTS {
-            let on_buttons_change = comp.on_buttons_change;
-            on_buttons_change(old.buttons, new.buttons);
-        }
+}
+fn element_released(index: ElementIndex) {
+    for comp in CURRENT_COMPONENTS {
+        let on_element_released = comp.on_element_released;
+        on_element_released(index);
     }
 }
 

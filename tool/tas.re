@@ -153,8 +153,8 @@ static mut TAS_COMPONENT = Component {
     on_new_game: fn() {},
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key_code: KeyCode, is_repeat: bool) {
         let key = key_code.to_small();
         if key == KEY_T.to_small() {

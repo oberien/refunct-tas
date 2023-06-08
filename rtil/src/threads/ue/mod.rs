@@ -1,11 +1,14 @@
 use crossbeam_channel::{Receiver, Sender};
+use crate::native::{ElementIndex, try_find_element_index, UObject};
 use crate::threads::{ReboToStream, StreamToRebo};
 
 mod rebo;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 enum UeEvent {
     Tick,
+    ElementPressed(ElementIndex),
+    ElementReleased(ElementIndex),
     /// Response to `Yield` if no new event happened
     NothingHappened,
     NewGame,
@@ -36,6 +39,23 @@ pub fn new_game() {
 
 pub fn tick() {
     handle(UeEvent::Tick);
+}
+
+pub fn add_based_character(ptr: *mut UObject) {
+    // TODO: remove once we added pipes to the map editor
+    let element_index = match try_find_element_index(ptr) {
+        Some(i) => i,
+        None => return,
+    };
+    handle(UeEvent::ElementPressed(element_index));
+}
+pub fn remove_based_character(ptr: *mut UObject) {
+    // TODO: remove once we added pipes to the map editor
+    let element_index = match try_find_element_index(ptr) {
+        Some(i) => i,
+        None => return,
+    };
+    handle(UeEvent::ElementReleased(element_index));
 }
 
 pub fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {

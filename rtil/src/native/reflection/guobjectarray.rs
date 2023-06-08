@@ -26,7 +26,6 @@ impl<T: UeObjectWrapperType> Clone for ObjectIndex<T> {
 impl<T: UeObjectWrapperType> Copy for ObjectIndex<T> {}
 #[derive(Debug, Clone, Copy)]
 struct UntypedObjectIndex {
-    ptr: usize,
     internal_index: i32,
     serial_number: i32,
 }
@@ -64,7 +63,6 @@ impl UeScope {
             sn => sn
         };
         UntypedObjectIndex {
-            ptr: item.object().as_ptr() as usize,
             internal_index,
             serial_number,
         }

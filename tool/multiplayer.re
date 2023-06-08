@@ -174,101 +174,104 @@ static mut MULTIPLAYER_COMPONENT = Component {
         MULTIPLAYER_STATE.risen_clusters.insert(new, current_time_millis());
     },
     on_reset: fn(old: int, new: int) {},
-    on_platforms_change: fn(old: int, new: int) {
-        if old > new {
-            assert(new == 0);
-            return;
-        }
-        if MULTIPLAYER_STATE.current_platforms >= new {
-            return;
-        }
-        MULTIPLAYER_STATE.current_platforms = new;
-
-        let player = Tas::get_location();
-        let mut min_distance = 999999.;
-        let mut platform_num = 0;
-        let mut i = -1;
-        for platform in PLATFORMS {
-            i += 1;
-            if MULTIPLAYER_STATE.pressed_platforms.contains(i) {
-                continue;
-            }
-            let cluster_depth = match cluster_depth(platform.cluster) {
-                Option::Some(depth) => depth,
-                Option::None => continue,
-            };
-
-            let x1 = platform.loc.x - platform.size.x;
-            let x2 = platform.loc.x + platform.size.x;
-            let dx = float::max(x1 - player.x, 0., player.x - x2);
-            let y1 = platform.loc.y - platform.size.y;
-            let y2 = platform.loc.y + platform.size.y;
-            let dy = float::max(y1 - player.y, 0., player.y - y2);
-            let z = platform.loc.z + platform.size.z + 89.15 - cluster_depth;
-            // ignore platforms below the player to prevent invalid platforms during step-ups
-            if z + 5. < player.z {
-                // list of platforms to ignore as they can be triggered from higher up
-                // but don't have any platform you can step-up to from them
-                let excempted_platforms = List::of(
-                    // button platforms
-                    // if you jump on a button, your z is higher than the platform's z but you still activate the platform
-                    0, 9, 15, 26, 32, 38, 43, 44, 57, 63,
-                    68, 70, 84, 85, 90, 96, 98, 101, 105, 109,
-                    108, 123, 130, 141, 150, 153, 155, 168, 183, 178,
-                    180, 193, 211, 201, 217, 243, 247,
-                    // spring platforms: similar
-                    159, 160, 170, 189,
-                );
-                if !excempted_platforms.contains(i) {
-                    continue;
-                }
-            }
-            let dz = z - player.z;
-            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
-            if distance < min_distance {
-                min_distance = distance;
-                platform_num = i;
-            }
-        }
-        Tas::press_platform_on_server(platform_num);
-        MULTIPLAYER_STATE.pressed_platforms.insert(platform_num);
+    on_element_pressed: fn(index: ElementIndex) {
     },
-    on_buttons_change: fn(old: int, new: int) {
-        if old > new {
-            assert(new == 0);
-            return;
-        }
-        if MULTIPLAYER_STATE.current_buttons >= new {
-            return;
-        }
-        MULTIPLAYER_STATE.current_buttons = new;
-
-        let player = Tas::get_location();
-        let mut min_distance = 999999.;
-        let mut button_num = 0;
-        let mut i = -1;
-        for button in BUTTONS {
-            i += 1;
-            if MULTIPLAYER_STATE.pressed_buttons.contains(i) {
-                continue;
-            }
-            let cluster_depth = match cluster_depth(button.cluster) {
-                Option::Some(depth) => depth,
-                Option::None => continue,
-            };
-
-            let dx = button.loc.x - player.x;
-            let dy = button.loc.y - player.y;
-            let dz = button.loc.z - player.z - cluster_depth;
-            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
-            if distance < min_distance {
-                min_distance = distance;
-                button_num = i;
-            }
-        }
-        Tas::press_button_on_server(button_num);
-        MULTIPLAYER_STATE.pressed_buttons.insert(button_num);
-    },
+    on_element_released: fn(index: ElementIndex) {},
+//    on_platforms_change: fn(old: int, new: int) {
+//        if old > new {
+//            assert(new == 0);
+//            return;
+//        }
+//        if MULTIPLAYER_STATE.current_platforms >= new {
+//            return;
+//        }
+//        MULTIPLAYER_STATE.current_platforms = new;
+//
+//        let player = Tas::get_location();
+//        let mut min_distance = 999999.;
+//        let mut platform_num = 0;
+//        let mut i = -1;
+//        for platform in PLATFORMS {
+//            i += 1;
+//            if MULTIPLAYER_STATE.pressed_platforms.contains(i) {
+//                continue;
+//            }
+//            let cluster_depth = match cluster_depth(platform.cluster) {
+//                Option::Some(depth) => depth,
+//                Option::None => continue,
+//            };
+//
+//            let x1 = platform.loc.x - platform.size.x;
+//            let x2 = platform.loc.x + platform.size.x;
+//            let dx = float::max(x1 - player.x, 0., player.x - x2);
+//            let y1 = platform.loc.y - platform.size.y;
+//            let y2 = platform.loc.y + platform.size.y;
+//            let dy = float::max(y1 - player.y, 0., player.y - y2);
+//            let z = platform.loc.z + platform.size.z + 89.15 - cluster_depth;
+//            // ignore platforms below the player to prevent invalid platforms during step-ups
+//            if z + 5. < player.z {
+//                // list of platforms to ignore as they can be triggered from higher up
+//                // but don't have any platform you can step-up to from them
+//                let excempted_platforms = List::of(
+//                    // button platforms
+//                    // if you jump on a button, your z is higher than the platform's z but you still activate the platform
+//                    0, 9, 15, 26, 32, 38, 43, 44, 57, 63,
+//                    68, 70, 84, 85, 90, 96, 98, 101, 105, 109,
+//                    108, 123, 130, 141, 150, 153, 155, 168, 183, 178,
+//                    180, 193, 211, 201, 217, 243, 247,
+//                    // spring platforms: similar
+//                    159, 160, 170, 189,
+//                );
+//                if !excempted_platforms.contains(i) {
+//                    continue;
+//                }
+//            }
+//            let dz = z - player.z;
+//            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
+//            if distance < min_distance {
+//                min_distance = distance;
+//                platform_num = i;
+//            }
+//        }
+//        Tas::press_platform_on_server(platform_num);
+//        MULTIPLAYER_STATE.pressed_platforms.insert(platform_num);
+//    },
+//    on_buttons_change: fn(old: int, new: int) {
+//        if old > new {
+//            assert(new == 0);
+//            return;
+//        }
+//        if MULTIPLAYER_STATE.current_buttons >= new {
+//            return;
+//        }
+//        MULTIPLAYER_STATE.current_buttons = new;
+//
+//        let player = Tas::get_location();
+//        let mut min_distance = 999999.;
+//        let mut button_num = 0;
+//        let mut i = -1;
+//        for button in BUTTONS {
+//            i += 1;
+//            if MULTIPLAYER_STATE.pressed_buttons.contains(i) {
+//                continue;
+//            }
+//            let cluster_depth = match cluster_depth(button.cluster) {
+//                Option::Some(depth) => depth,
+//                Option::None => continue,
+//            };
+//
+//            let dx = button.loc.x - player.x;
+//            let dy = button.loc.y - player.y;
+//            let dz = button.loc.z - player.z - cluster_depth;
+//            let distance = float::sqrt(dx*dx + dy*dy + dz*dz);
+//            if distance < min_distance {
+//                min_distance = distance;
+//                button_num = i;
+//            }
+//        }
+//        Tas::press_button_on_server(button_num);
+//        MULTIPLAYER_STATE.pressed_buttons.insert(button_num);
+//    },
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
@@ -434,7 +437,7 @@ fn player_moved(id: int, loc: Location, rot: Rotation) {
     player.loc = loc;
     player.rot = rot;
 }
-fn platform_pressed(id: int) {
+fn press_platform(id: int) {
     if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
         return;
     }
@@ -453,7 +456,7 @@ fn platform_pressed(id: int) {
     }
     MULTIPLAYER_STATE.pressed_platforms.insert(id);
 }
-fn button_pressed(id: int) {
+fn press_button(id: int) {
     if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
         return;
     }

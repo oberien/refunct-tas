@@ -34,21 +34,21 @@ static mut CURRENT_PRACTICE = Practice {
     rotation: Rotation { pitch: 0., yaw: 0., roll: 0. },
 };
 
-fn press_buttons_until(button: int) {
-    let mut pawns = List::new();
-    let mut i = 0;
-    while i <= button {
-        let button_loc = BUTTONS.get(i).unwrap().loc;
-        let rot = Rotation { pitch: 0., yaw: 0., roll: 0. };
-        let id = Tas::spawn_pawn(button_loc, rot);
-        pawns.push(id);
-        i += 1;
-    }
-
-    wait(9);
-
-    for pawn in pawns {
-        Tas::destroy_pawn(pawn);
+fn press_buttons_until(buttons: int) {
+    let map = Tas::current_map();
+    let mut buttons_pressed = 0;
+    let mut level_index = 0;
+    while level_index < 31 {
+        let mut element_index = 0;
+        for button in map.clusters.get(level_index).unwrap().buttons {
+            Tas::trigger_element(ElementIndex { cluster_index: level_index, element_type: ElementType::Button, element_index: element_index });
+            element_index += 1;
+            buttons_pressed += 1;
+            if buttons_pressed > buttons {
+                return;
+            }
+        }
+        level_index += 1;
     }
 }
 
@@ -64,24 +64,25 @@ static PRACTICE_COMPONENT = Component {
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
+        Tas::set_all_cluster_speeds(999999999.);
         Tas::set_level(CURRENT_PRACTICE.cluster);
-        let old_delta = Tas::get_delta();
-        Tas::set_delta(Option::Some(1./2.));
-        wait(9);
-
-        press_buttons_until(CURRENT_PRACTICE.button);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
         Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
-        Tas::set_delta(old_delta);
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
+        press_buttons_until(CURRENT_PRACTICE.button);
+        Tas::set_all_cluster_speeds(700.);
+        Tas::set_rotation(CURRENT_PRACTICE.rotation);
+        Tas::set_location(CURRENT_PRACTICE.location);
+        Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
+        Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
     },
-    on_platforms_change: fn(old: int, new: int) {},
-    on_buttons_change: fn(old: int, new: int) {},
+    on_element_pressed: fn(index: ElementIndex) {},
+    on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},

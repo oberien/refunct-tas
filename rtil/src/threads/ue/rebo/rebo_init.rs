@@ -10,13 +10,13 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::ue::FRotator;
+use crate::native::{ElementIndex, ElementType, ue::FRotator};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -85,6 +85,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
+        .add_function(trigger_element)
         .add_function(set_start_seconds)
         .add_function(set_start_partial_seconds)
         .add_function(set_end_seconds)
@@ -125,6 +126,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Element)
         .add_external_type(ElementType)
         .add_external_type(ElementIndex)
+        .add_required_rebo_function(element_pressed)
+        .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(on_mouse_move)
@@ -132,8 +135,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(player_joined_multiplayer_room)
         .add_required_rebo_function(player_left_multiplayer_room)
         .add_required_rebo_function(player_moved)
-        .add_required_rebo_function(platform_pressed)
-        .add_required_rebo_function(button_pressed)
+        .add_required_rebo_function(press_platform)
+        .add_required_rebo_function(press_button)
         .add_required_rebo_function(player_pressed_new_game)
         .add_required_rebo_function(start_new_game_at)
         .add_required_rebo_function(disconnected)
@@ -227,6 +230,8 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -
         let evt = YIELDER.with(|yielder| unsafe { (*yielder.get()).suspend(suspend) });
         match evt {
             UeEvent::Tick => to_be_returned = Some(Step::Tick),
+            UeEvent::ElementPressed(index) => element_pressed(vm, index)?,
+            UeEvent::ElementReleased(index) => element_released(vm, index)?,
             UeEvent::NothingHappened => to_be_returned = Some(Step::Yield),
             UeEvent::NewGame => to_be_returned = Some(Step::NewGame),
             UeEvent::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
@@ -249,8 +254,8 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -
                 Response::PlayerJoinedRoom(id, name, red, green, blue, x, y, z, pitch, yaw, roll) => player_joined_multiplayer_room(vm, id.id(), name, Color { red, green, blue, alpha: 1. }, Location { x, y, z}, Rotation { pitch, yaw, roll })?,
                 Response::PlayerLeftRoom(id) => player_left_multiplayer_room(vm, id.id())?,
                 Response::MoveOther(id, x, y, z, pitch, yaw, roll) => player_moved(vm, id.id(), Location { x, y, z }, Rotation { pitch, yaw, roll })?,
-                Response::PressPlatform(id) => platform_pressed(vm, id)?,
-                Response::PressButton(id) => button_pressed(vm, id)?,
+                Response::PressPlatform(id) => press_platform(vm, id)?,
+                Response::PressButton(id) => press_button(vm, id)?,
                 Response::NewGamePressed(id) => player_pressed_new_game(vm, id.id())?,
                 Response::StartNewGameAt(timestamp) => {
                     let local_time_offset = STATE.lock().unwrap().as_ref().unwrap().local_time_offset as i64;
@@ -278,6 +283,8 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -
 
 #[rebo::required_rebo_functions]
 extern "rebo" {
+    fn element_pressed(index: ElementIndex);
+    fn element_released(index: ElementIndex);
     fn on_key_down(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_mouse_move(x: i32, y: i32);
@@ -285,8 +292,8 @@ extern "rebo" {
     fn player_joined_multiplayer_room(id: u32, name: String, col: Color, loc: Location, rot: Rotation);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location, rot: Rotation);
-    fn platform_pressed(id: u8);
-    fn button_pressed(id: u8);
+    fn press_platform(id: u8);
+    fn press_button(id: u8);
     fn player_pressed_new_game(id: u32);
     fn start_new_game_at(timestamp: u64);
     fn disconnected(reason: Disconnected);
@@ -837,6 +844,31 @@ fn get_level() -> i32 {
 fn set_level(level: i32) {
     LevelState::set_level(level);
 }
+#[rebo::function("Tas::trigger_element")]
+fn trigger_element(index: ElementIndex) {
+    fn add_remove_based_character(actor: &ActorWrapper<'_>) {
+        crate::native::unhook_aliftbase_addbasedcharacter();
+        crate::native::unhook_aliftbase_removebasedcharacter();
+        let add_based_character = actor.class().find_function("AddBasedCharacter").unwrap();
+        let remove_based_character = actor.class().find_function("RemoveBasedCharacter").unwrap();
+        let args = add_based_character.create_argument_struct();
+        let character = unsafe { ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject) };
+        args.get_field("BasedCharacter").set_object(&character);
+        unsafe { add_based_character.call(actor.as_ptr(), &args); }
+        unsafe { remove_based_character.call(actor.as_ptr(), &args); }
+        crate::native::hook_aliftbase_removebasedcharacter();
+        crate::native::hook_aliftbase_addbasedcharacter();
+    }
+    UeScope::with(|scope| {
+        let levels = LEVELS.lock().unwrap();
+        match index.element_type {
+            ElementType::Platform => add_remove_based_character(&*scope.get(levels[index.cluster_index].platforms[index.element_index])),
+            ElementType::Cube => (),
+            ElementType::Button => add_remove_based_character(&*scope.get(levels[index.cluster_index].buttons[index.element_index])),
+            ElementType::Lift => add_remove_based_character(&*scope.get(levels[index.cluster_index].lifts[index.element_index])),
+        }
+    })
+}
 #[rebo::function("Tas::set_start_seconds")]
 fn set_start_seconds(start_seconds: i32) {
     LevelState::set_start_seconds(start_seconds);
@@ -1030,36 +1062,8 @@ fn apply_map(map: RefunctMap) {
     })
 }
 
-#[derive(Debug, rebo::ExternalType)]
-enum ElementType {
-    Platform,
-    Cube,
-    Button,
-    Lift,
-}
-
-#[derive(Debug, rebo::ExternalType)]
-struct ElementIndex {
-    cluster_index: usize,
-    element_type: ElementType,
-    element_index: usize,
-}
-
 #[rebo::function("Tas::get_looked_at_element_index")]
 fn get_looked_at_element_index() -> Option<ElementIndex> {
-    UeScope::with(|scope| {
-        let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
-        for (i, level) in LEVELS.lock().unwrap().iter().enumerate() {
-            let found = level.platforms.iter().map(|p| (ElementType::Platform, scope.get(p).as_ptr() as usize)).enumerate()
-                .chain(level.cubes.iter().map(|c| (ElementType::Cube, scope.get(c).as_ptr() as usize)).enumerate())
-                .chain(level.buttons.iter().map(|c| (ElementType::Button, scope.get(c).as_ptr() as usize)).enumerate())
-                .chain(level.lifts.iter().map(|c| (ElementType::Lift, scope.get(c).as_ptr() as usize)).enumerate())
-                .find(|(_, (_, addr))| intersected as usize == *addr)
-                .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
-            if let Some(found) = found {
-                return Some(found);
-            }
-        }
-        None
-    })
+    let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
+    try_find_element_index(intersected as *mut UObject)
 }
