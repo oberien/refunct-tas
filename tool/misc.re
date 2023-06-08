@@ -4,67 +4,6 @@ enum ReplayMenuOp {
     Delete,
 }
 
-fn create_replay_menu(op: ReplayMenuOp) -> Ui {
-    let mut recording_name_label = Text { text: "Recording name" };
-
-    let recordings_list = Tas::list_recordings();
-    let do_operation = fn(input: string) {
-        match op {
-            ReplayMenuOp::Save => {
-                tas_save_recording(input);
-                leave_ui();
-            },
-            ReplayMenuOp::Load => {
-                if !recordings_list.contains(input) {
-                    recording_name_label.text = f"Recording name (Error: no such file)";
-                    return;
-                }
-                tas_load_recording(input);
-                add_component(TAS_COMPONENT);
-                leave_ui();
-                leave_ui();
-                leave_ui();
-            },
-            ReplayMenuOp::Delete => {
-                if !recordings_list.contains(input) {
-                    recording_name_label.text = f"Recording name (Error: no such file)";
-                    return;
-                }
-                Tas::remove_recording(input);
-                leave_ui();
-            },
-        }
-    };
-    recording_name_label.text = f"Recording name";
-    let mut recordings = List::of(
-        UiElement::Button(UiButton {
-            label: Text { text: "Back" },
-            onclick: fn(label: Text) { leave_ui() },
-        }),
-        UiElement::Input(Input {
-            label: recording_name_label,
-            input: "",
-            onclick: fn(input: string) {
-                if input.len_utf8() == 0 {
-                    recording_name_label.text = f"Recording name (Error: empty name)";
-                    return;
-                }
-                do_operation(input);
-            },
-            onchange: fn(input: string) {}
-        }),
-    );
-    for recording in recordings_list {
-        recordings.push(UiElement::Button(UiButton {
-            label: Text { text: recording },
-            onclick: fn(label: Text) {
-                do_operation(label.text);
-            },
-        }));
-    }
-    Ui::new("Recording Options:", recordings)
-}
-
 static mut TIMER_LABEL = Text { text: if CURRENT_COMPONENTS.contains(TIMER_COMPONENT) { "Disable Timer" } else { "Enable Timer" } };
 static mut TAS_LABEL = Text { text: if CURRENT_COMPONENTS.contains(TAS_COMPONENT) { "Disable TAS Mode" } else { "Enable TAS Mode" } };
 
@@ -85,19 +24,42 @@ fn create_misc_menu() -> Ui {
         UiElement::Button(UiButton {
             label: Text { text: "Save Recording" },
             onclick: fn(label: Text) {
-                enter_ui(create_replay_menu(ReplayMenuOp::Save));
+                enter_ui(Ui::new_filechooser("Save Recording", Tas::list_recordings(), fn(input: string) {
+                    tas_save_recording(input);
+                    leave_ui();
+                }));
             }
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Load Recording" },
             onclick: fn(label: Text) {
-                enter_ui(create_replay_menu(ReplayMenuOp::Load));
+                let recordings_list = Tas::list_recordings();
+                enter_ui(Ui::new_filechooser("Load Recording", recordings_list, fn(input: string) {
+                    if !recordings_list.contains(input) {
+                        return;
+                    }
+                    tas_load_recording(input);
+                    add_component(TAS_COMPONENT);
+                    leave_ui();
+                    leave_ui();
+                    leave_ui();
+                }));
             }
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Delete Recording" },
             onclick: fn(label: Text) {
-                enter_ui(create_replay_menu(ReplayMenuOp::Delete));
+                fn create_tas_delete_recording_menu() -> Ui {
+                    let recordings_list = Tas::list_recordings();
+                    Ui::new_filechooser("Delete Recording", recordings_list, fn(input: string) {
+                        if recordings_list.contains(input) {
+                            Tas::remove_recording(input);
+                            leave_ui();
+                            enter_ui(create_tas_delete_recording_menu());
+                        }
+                    })
+                }
+                enter_ui(create_tas_delete_recording_menu());
             }
         }),
         UiElement::Button(UiButton {

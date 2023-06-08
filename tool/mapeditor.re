@@ -59,8 +59,38 @@ fn create_map_editor_menu() -> Ui {
                     MAP_EDITOR_STATE.map = Tas::original_map();
                     Tas::apply_map(MAP_EDITOR_STATE.map);
                 } else {
-                    enter_ui(create_map_editor_map_selection_ui());
+                    let map_list = Tas::list_maps();
+                    enter_ui(Ui::new_filechooser("Map to edit", map_list, fn(input: string) {
+                        MAP_EDITOR_STATE.map_name = input;
+                        if map_list.contains(input) {
+                            MAP_EDITOR_STATE.map = Tas::load_map(input);
+                            Tas::apply_map(MAP_EDITOR_STATE.map);
+                        } else {
+                            MAP_EDITOR_STATE.map = Tas::current_map();
+                        };
+                        MAP_EDITOR_LABEL.text = "Stop Map Editor";
+                        add_component(MAP_EDITOR_COMPONENT);
+                        leave_ui();
+                        leave_ui();
+                        leave_ui();
+                    }));
                 }
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Delete Map" },
+            onclick: fn(label: Text) {
+                fn create_map_editor_delete_map_menu() -> Ui {
+                    let map_list = Tas::list_maps();
+                    Ui::new_filechooser("Map to delete", map_list, fn(input: string) {
+                        if map_list.contains(input) {
+                            Tas::remove_map(input);
+                            leave_ui();
+                            enter_ui(create_map_editor_delete_map_menu());
+                        }
+                    })
+                }
+                enter_ui(create_map_editor_delete_map_menu());
             },
         }),
         UiElement::Button(UiButton {
@@ -69,54 +99,6 @@ fn create_map_editor_menu() -> Ui {
         }),
     ))
 };
-
-fn create_map_editor_map_selection_ui() -> Ui {
-    let map_list = Tas::list_maps();
-    let mut maps = List::of(
-        UiElement::Button(UiButton {
-            label: Text { text: "Back" },
-            onclick: fn(label: Text) { leave_ui() },
-        }),
-        UiElement::Input(Input {
-            label: Text { text: "Map name" },
-            input: "",
-            onclick: fn(input: string) {
-                if input.len_utf8() == 0 {
-                    return;
-                }
-                MAP_EDITOR_STATE.map_name = input;
-                if map_list.contains(input) {
-                    MAP_EDITOR_STATE.map = Tas::load_map(input);
-                    Tas::apply_map(MAP_EDITOR_STATE.map);
-                } else {
-                    MAP_EDITOR_STATE.map = Tas::current_map();
-                };
-                MAP_EDITOR_LABEL.text = "Stop Map Editor";
-                add_component(MAP_EDITOR_COMPONENT);
-                leave_ui();
-                leave_ui();
-                leave_ui();
-            },
-            onchange: fn(input: string) {}
-        }),
-    );
-    for map in map_list {
-        maps.push(UiElement::Button(UiButton {
-            label: Text { text: map },
-            onclick: fn(label: Text) {
-                MAP_EDITOR_STATE.map_name = label.text;
-                MAP_EDITOR_STATE.map = Tas::load_map(label.text);
-                Tas::apply_map(MAP_EDITOR_STATE.map);
-                MAP_EDITOR_LABEL.text = "Stop Map Editor";
-                add_component(MAP_EDITOR_COMPONENT);
-                leave_ui();
-                leave_ui();
-                leave_ui();
-            },
-        }));
-    }
-    Ui::new("Map to edit", maps)
-}
 
 enum TryGetElementError {
     InvalidClusterIndex,

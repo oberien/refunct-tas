@@ -11,7 +11,37 @@ impl Ui {
     fn new_with_selected(name: string, selected: int, elements: List<UiElement>) -> Ui {
         Ui { name: Text { text: name }, elements: elements, on_draw: Option::None, selected: selected }
     }
+
+    fn new_filechooser(name: string, file_list: List<string>, onclick: fn(string)) -> Ui {
+        let mut files = List::of(
+            UiElement::Button(UiButton {
+                label: Text { text: "Back" },
+                onclick: fn(label: Text) { leave_ui() },
+            }),
+            UiElement::Input(Input {
+                label: Text { text: "File name" },
+                input: "",
+                onclick: fn(input: string) {
+                    if input.len_utf8() == 0 {
+                        return;
+                    }
+                    onclick(input);
+                },
+                onchange: fn(input: string) {}
+            }),
+        );
+        for file in file_list {
+            files.push(UiElement::Button(UiButton {
+                label: Text { text: file },
+                onclick: fn(label: Text) {
+                    onclick(label.text);
+                },
+            }));
+        }
+        Ui::new(name, files)
+    }
 }
+
 enum UiElement {
     Button(UiButton),
     Input(Input),
