@@ -10,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, LIFTS};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -889,9 +889,11 @@ fn show_hud() {
 
 #[rebo::function("Tas::set_all_cluster_speeds")]
 fn set_all_cluster_speeds(speed: f32) {
-    for cluster in &*LEVELS.lock().unwrap() {
-        cluster.set_speed(speed);
-    }
+    UeScope::with(|scope| {
+        for level in &*LEVELS.lock().unwrap() {
+            scope.get(level.level).set_speed(speed);
+        }
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
@@ -903,6 +905,7 @@ struct Cluster {
     platforms: Vec<Element>,
     cubes: Vec<Element>,
     buttons: Vec<Element>,
+    #[serde(default)]
     lifts: Vec<Element>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
@@ -965,18 +968,20 @@ fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
     Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, xscale, yscale, zscale }
 }
 fn get_current_map() -> RefunctMap {
-    let levels = LEVELS.lock().unwrap();
-    let mut clusters: Vec<Cluster> = levels.iter()
-        .map(|level| Cluster {
-            platforms: level.platforms().map(|p| aactor_to_element(level, &p)).collect(),
-            cubes: level.cubes().map(|c| aactor_to_element(level, &c)).collect(),
-            buttons: level.buttons().map(|b| aactor_to_element(level, &b)).collect(),
-            lifts: vec![],
-        }).collect();
-    for ((level_index, element_index), lift) in LIFTS.lock().unwrap().iter() {
-        clusters[*level_index].lifts.push(aactor_to_element(&levels[*level_index], &lift));
-    }
-    RefunctMap { clusters }
+    UeScope::with(|scope| {
+        let levels = LEVELS.lock().unwrap();
+        let clusters: Vec<Cluster> = levels.iter()
+            .map(|level| {
+                let level_wrapper = scope.get(level.level);
+                Cluster {
+                    platforms: level.platforms.iter().map(|p| aactor_to_element(&level_wrapper, &*scope.get(p))).collect(),
+                    cubes: level.cubes.iter().map(|c| aactor_to_element(&level_wrapper, &*scope.get(c))).collect(),
+                    buttons: level.buttons.iter().map(|b| aactor_to_element(&level_wrapper, &*scope.get(b))).collect(),
+                    lifts: level.lifts.iter().map(|l| aactor_to_element(&level_wrapper, &*scope.get(l))).collect(),
+                }
+            }).collect();
+        RefunctMap { clusters }
+    })
 }
 
 #[rebo::function("Tas::current_map")]
@@ -1004,23 +1009,25 @@ fn apply_map(map: RefunctMap) {
         USceneComponent::set_world_scale(FVector { x: cp.xscale, y: cp.yscale, z: cp.zscale }, lp);
     }
 
-    let levels = LEVELS.lock().unwrap();
-    let lifts = LIFTS.lock().unwrap();
-    assert_eq!(map.clusters.len(), levels.len());
-    for (level, cluster) in levels.iter().zip(map.clusters) {
-        for (lp, cp) in level.platforms().zip(cluster.platforms) {
-            set_element(level, &lp, cp, true);
+    UeScope::with(|scope| {
+        let levels = LEVELS.lock().unwrap();
+        assert_eq!(map.clusters.len(), levels.len());
+        for (level, cluster) in levels.iter().zip(map.clusters) {
+            let level_wrapper = scope.get(level.level);
+            for (actor, element) in level.platforms.iter().zip(cluster.platforms) {
+                set_element(&level_wrapper, &*scope.get(actor), element, true);
+            }
+            for (actor, element) in level.cubes.iter().zip(cluster.cubes) {
+                set_element(&level_wrapper, &*scope.get(actor), element, true);
+            }
+            for (actor, element) in level.buttons.iter().zip(cluster.buttons) {
+                set_element(&level_wrapper, &*scope.get(actor), element, true);
+            }
+            for (actor, element) in level.lifts.iter().zip(cluster.lifts) {
+                set_element(&level_wrapper, &*scope.get(actor), element, true);
+            }
         }
-        for (lc, cc) in level.cubes().zip(cluster.cubes) {
-            set_element(level, &lc, cc, true);
-        }
-        for (lb, cb) in level.buttons().zip(cluster.buttons) {
-            set_element(level, &lb, cb, true);
-        }
-        for (element_index, element) in cluster.lifts.into_iter().enumerate() {
-            set_element(level, &lifts[&(level.level_index(), element_index)], element, false);
-        }
-    }
+    })
 }
 
 #[derive(Debug, rebo::ExternalType)]
@@ -1040,22 +1047,19 @@ struct ElementIndex {
 
 #[rebo::function("Tas::get_looked_at_element_index")]
 fn get_looked_at_element_index() -> Option<ElementIndex> {
-    let foo = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
-    log!("{foo:p}");
-    for (i, level) in LEVELS.lock().unwrap().iter().enumerate() {
-        let found = level.platforms().map(|p| (ElementType::Platform, p.as_ptr() as usize)).enumerate()
-            .chain(level.cubes().map(|c| (ElementType::Cube, c.as_ptr() as usize)).enumerate())
-            .chain(level.buttons().map(|c| (ElementType::Button, c.as_ptr() as usize)).enumerate())
-            .find(|(_, (_, addr))| foo as usize == *addr)
-            .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
-        if let Some(found) = found {
-            return Some(found);
+    UeScope::with(|scope| {
+        let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
+        for (i, level) in LEVELS.lock().unwrap().iter().enumerate() {
+            let found = level.platforms.iter().map(|p| (ElementType::Platform, scope.get(p).as_ptr() as usize)).enumerate()
+                .chain(level.cubes.iter().map(|c| (ElementType::Cube, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.buttons.iter().map(|c| (ElementType::Button, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.lifts.iter().map(|c| (ElementType::Lift, scope.get(c).as_ptr() as usize)).enumerate())
+                .find(|(_, (_, addr))| intersected as usize == *addr)
+                .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
+            if let Some(found) = found {
+                return Some(found);
+            }
         }
-    }
-    for ((level_index, element_index), lift) in LIFTS.lock().unwrap().iter() {
-        if lift.as_ptr() as usize == foo as usize {
-            return Some(ElementIndex { cluster_index: *level_index, element_type: ElementType::Lift, element_index: *element_index });
-        }
-    }
-    None
+        None
+    })
 }

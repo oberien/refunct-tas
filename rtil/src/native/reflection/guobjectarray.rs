@@ -1,19 +1,38 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
-use crate::native::GUOBJECTARRAY;
+use crate::native::{FUOBJECTARRAY_ALLOCATESERIALNUMBER, GUOBJECTARRAY, UeObjectWrapper, UeObjectWrapperType};
 use crate::native::reflection::{ObjectWrapper, UObject};
 
+#[derive(Debug)]
+pub struct ObjectIndex<T: UeObjectWrapperType> {
+    index: UntypedObjectIndex,
+    _marker: PhantomData<T>,
+}
+// get rid of the implied T: Clone bound of derive
+impl<T: UeObjectWrapperType> Clone for ObjectIndex<T> {
+    fn clone(&self) -> Self {
+        ObjectIndex {
+            index: self.index,
+            _marker: PhantomData,
+        }
+    }
+}
+// get rid of the implied T: Clone bound of derive
+impl<T: UeObjectWrapperType> Copy for ObjectIndex<T> {}
 #[derive(Debug, Clone, Copy)]
-pub struct ObjectIndex {
+struct UntypedObjectIndex {
+    ptr: usize,
     internal_index: i32,
     serial_number: i32,
 }
-static BUFFER: Lazy<Mutex<HashMap<u32, ObjectIndex>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static BUFFER: Lazy<Mutex<HashMap<u32, UntypedObjectIndex>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
+#[derive(Debug, Copy, Clone)]
 pub enum GetBufferedItemError {
     NotBuffered,
     Invalidated,
@@ -22,26 +41,42 @@ pub enum GetBufferedItemError {
 pub struct UeScope(());
 
 impl UeScope {
-    pub fn with<F: for<'a> FnOnce(&'a UeScope)>(f: F) {
+    pub fn with<R: 'static, F: for<'a> FnOnce(&'a UeScope) -> R>(f: F) -> R {
         let scope = UeScope(());
         f(&scope)
     }
 
+    fn global_object_array<'a>(&'a self) -> GlobalObjectArrayWrapper<'a> {
+        unsafe { GlobalObjectArrayWrapper::get() }
+    }
     fn object_array<'a>(&'a self) -> ObjectArrayWrapper<'a> {
-        unsafe { GlobalObjectArrayWrapper::get().object_array() }
+        self.global_object_array().object_array()
     }
 
     pub fn iter_global_object_array<'a>(&'a self) -> impl Iterator<Item = ObjectItemWrapper<'a>> + 'a {
         self.object_array().iter_elements()
     }
 
-    pub fn object_index<'a>(&'a self, item: &ObjectItemWrapper<'a>) -> ObjectIndex {
-        ObjectIndex {
-            internal_index: item.object().internal_index(),
-            serial_number: item.serial_number(),
+    fn untyped_object_index<'a>(&'a self, item: &ObjectItemWrapper<'a>) -> UntypedObjectIndex {
+        let internal_index = item.object().internal_index();
+        let serial_number = match item.serial_number() {
+            0 => self.global_object_array().allocate_serial_number(internal_index),
+            sn => sn
+        };
+        UntypedObjectIndex {
+            ptr: item.object().as_ptr() as usize,
+            internal_index,
+            serial_number,
         }
     }
-    pub fn resolve_object_index<'a>(&'a self, index: ObjectIndex) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
+    pub fn object_index<'a, T: UeObjectWrapper<'a>>(&'a self, object: &T) -> ObjectIndex<T::UeObjectWrapperType> {
+        let item = self.object_array().get_item_of_object(object);
+        ObjectIndex {
+            index: self.untyped_object_index(&item),
+            _marker: PhantomData,
+        }
+    }
+    fn resolve_untyped_object_index<'a>(&'a self, index: UntypedObjectIndex) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
         let item = self.object_array().try_get(index.internal_index)
             .ok_or(GetBufferedItemError::Invalidated)?;
         if item.serial_number() != index.serial_number {
@@ -49,13 +84,21 @@ impl UeScope {
         }
         Ok(item.object())
     }
+    pub fn get<'a, T: UeObjectWrapperType>(&'a self, index: impl Borrow<ObjectIndex<T>>) -> T::UeObjectWrapper<'a> {
+        let object = self.resolve_untyped_object_index(index.borrow().index).unwrap();
+        object.upcast()
+    }
+    pub fn try_get<'a, T: UeObjectWrapper<'a>>(&'a self, index: &ObjectIndex<T::UeObjectWrapperType>) -> Result<T, GetBufferedItemError> {
+        let object = self.resolve_untyped_object_index(index.index)?;
+        Ok(object.upcast())
+    }
     pub fn buffer_item<'a>(&'a self, ident: impl Into<u32>, item: &ObjectItemWrapper<'a>) {
-        BUFFER.lock().unwrap().insert(ident.into(), self.object_index(item));
+        BUFFER.lock().unwrap().insert(ident.into(), self.untyped_object_index(item));
     }
     pub fn get_buffered<'a>(&'a self, ident: impl Into<u32>) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
         let index = BUFFER.lock().unwrap().get(&ident.into()).copied()
             .ok_or(GetBufferedItemError::NotBuffered)?;
-        self.resolve_object_index(index)
+        self.resolve_untyped_object_index(index)
     }
 }
 
@@ -71,6 +114,14 @@ impl<'a> GlobalObjectArrayWrapper<'a> {
         GlobalObjectArrayWrapper {
             guobjectarray: GUOBJECTARRAY.load(Ordering::SeqCst) as *mut FUObjectArray,
             _marker: PhantomData,
+        }
+    }
+
+    fn allocate_serial_number(&self, object_index: i32) -> i32 {
+        unsafe {
+            let fun: extern_fn!(fn(this: *mut FUObjectArray, object_index: i32) -> i32)
+                = ::std::mem::transmute(FUOBJECTARRAY_ALLOCATESERIALNUMBER.load(Ordering::SeqCst));
+            fun(self.guobjectarray, object_index)
         }
     }
 
@@ -119,7 +170,8 @@ impl<'a> ObjectArrayWrapper<'a> {
             index: 0,
         }
     }
-    pub fn get_item_of_object(&self, obj: &ObjectWrapper<'a>) -> ObjectItemWrapper<'a> {
+    pub fn get_item_of_object<T: UeObjectWrapper<'a>>(&self, obj: &T) -> ObjectItemWrapper<'a> {
+        let obj = obj.get_object_wrapper();
         let item = self.get(obj.internal_index());
         assert_eq!(item.object().as_ptr() as usize, obj.as_ptr() as usize);
         item

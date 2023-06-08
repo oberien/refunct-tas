@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::fmt::Pointer;
 use std::cell::Cell;
+use std::ops::Deref;
 use crate::native::ue::{FName, TArray, UeU64};
 
 mod dynamic_value;
@@ -10,8 +11,31 @@ pub use wrappers::*;
 mod guobjectarray;
 pub use guobjectarray::*;
 
+pub trait UeObjectWrapperType {
+    type UeObjectWrapper<'a>: UeObjectWrapper<'a, UeObjectWrapperType = Self>;
+}
+
+pub trait DerefToObjectWrapper<'a> {
+    fn get_object_wrapper(&self) -> &ObjectWrapper<'a>;
+}
+impl<'a> DerefToObjectWrapper<'a> for ObjectWrapper<'a> {
+    fn get_object_wrapper(&self) -> &ObjectWrapper<'a> {
+        self
+    }
+}
+impl<'a, T> DerefToObjectWrapper<'a> for T
+where
+    T: Deref,
+    T::Target: DerefToObjectWrapper<'a>
+{
+    fn get_object_wrapper(&self) -> &ObjectWrapper<'a> {
+        (**self).get_object_wrapper()
+    }
+}
+
 /// the returned Self type must be bound to lifetime 'a
-pub unsafe trait UeObjectWrapper<'a>: Pointer {
+pub unsafe trait UeObjectWrapper<'a>: Pointer + DerefToObjectWrapper<'a> {
+    type UeObjectWrapperType: UeObjectWrapperType<UeObjectWrapper<'a> = Self>;
     type Wrapping;
     const CLASS_NAME: &'static str;
 

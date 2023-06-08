@@ -30,6 +30,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?GetTextSize@AHUD@@QBEXABVFString@@AAM1PAVUFont@@M@Z", "AHUD_GETTEXTSIZE"),
     ("=GWorld", "GWORLD"),
     ("=GUObjectArray", "GUOBJECTARRAY"),
+    ("?AllocateSerialNumber@FUObjectArray@@QAEHH@Z", "FUOBJECTARRAY_ALLOCATESERIALNUMBER"),
     ("?SpawnActor@UWorld@@QAEPAVAActor@@PAVUClass@@PBUFVector@@PBUFRotator@@ABUFActorSpawnParameters@@@Z", "UWORLD_SPAWNACTOR"),
     ("?DestroyActor@UWorld@@QAE_NPAVAActor@@_N1@Z", "UWORLD_DESTROYACTOR"),
     ("?StaticClass@AMyCharacter@@SAPAVUClass@@XZ", "AMYCHARACTER_STATICCLASS"),

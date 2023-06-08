@@ -99,6 +99,7 @@ find! {
     AHUD_GETTEXTSIZE, "^AHUD::GetTextSize(FString const&, float&, float&, UFont*, float)",
     GWORLD, "^GWorld",
     GUOBJECTARRAY, "^GUObjectArray",
+    FUOBJECTARRAY_ALLOCATESERIALNUMBER, "^FUObjectArray::AllocateSerialNumber(int)",
     UWORLD_SPAWNACTOR, "^UWorld::SpawnActor(UClass*, FVector const*, FRotator const*, FActorSpawnParameters const&)",
     UWORLD_DESTROYACTOR, "^UWorld::DestroyActor(AActor*, bool, bool)",
     AMYCHARACTER_STATICCLASS, "^AMyCharacter::StaticClass()",

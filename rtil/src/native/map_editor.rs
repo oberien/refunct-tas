@@ -1,14 +1,19 @@
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
-use crate::native::{ArrayWrapper, StructValueWrapper};
-use crate::native::reflection::{GlobalObjectArrayWrapper, ActorWrapper, AActor, UeObjectWrapper};
+use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope};
+use crate::native::reflection::{ActorWrapper, AActor, UeObjectWrapper};
 
-pub static LEVELS: Mutex<Vec<LevelWrapper>> = Mutex::new(Vec::new());
-pub static LIFTS: Lazy<Mutex<HashMap<(usize, usize), LiftWrapper>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+pub static LEVELS: Mutex<Vec<Level>> = Mutex::new(Vec::new());
+
+pub struct Level {
+    pub level: ObjectIndex<LevelWrapperType>,
+    pub platforms: Vec<ObjectIndex<PlatformWrapperType>>,
+    pub cubes: Vec<ObjectIndex<CubeWrapperType>>,
+    pub buttons: Vec<ObjectIndex<ButtonWrapperType>>,
+    pub lifts: Vec<ObjectIndex<LiftWrapperType>>,
+}
 
 #[derive(Debug, Clone)]
 pub struct LevelWrapper<'a> {
@@ -16,7 +21,12 @@ pub struct LevelWrapper<'a> {
 }
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LevelWrapper<'a> {}
+pub enum LevelWrapperType {}
+impl UeObjectWrapperType for LevelWrapperType {
+    type UeObjectWrapper<'a> = LevelWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for LevelWrapper<'a> {
+    type UeObjectWrapperType = LevelWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_LevelRoot_C";
 
@@ -85,7 +95,12 @@ impl<'a> LevelWrapper<'a> {
 pub struct PlatformWrapper<'a> {
     base: ActorWrapper<'a>,
 }
+pub enum PlatformWrapperType {}
+impl UeObjectWrapperType for PlatformWrapperType {
+    type UeObjectWrapper<'a> = PlatformWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for PlatformWrapper<'a> {
+    type UeObjectWrapperType = PlatformWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_IslandChunk_C";
 
@@ -115,7 +130,12 @@ impl<'a> PlatformWrapper<'a> {
 pub struct CubeWrapper<'a> {
     base: ActorWrapper<'a>,
 }
+pub enum CubeWrapperType {}
+impl UeObjectWrapperType for CubeWrapperType {
+    type UeObjectWrapper<'a> = CubeWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for CubeWrapper<'a> {
+    type UeObjectWrapperType = CubeWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_PowerCore_C";
 
@@ -145,7 +165,12 @@ impl<'a> CubeWrapper<'a> {
 pub struct ButtonWrapper<'a> {
     base: ActorWrapper<'a>,
 }
+pub enum ButtonWrapperType {}
+impl UeObjectWrapperType for ButtonWrapperType {
+    type UeObjectWrapper<'a> = ButtonWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ButtonWrapper<'a> {
+    type UeObjectWrapperType = ButtonWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_Button_C";
 
@@ -177,7 +202,12 @@ pub struct LiftWrapper<'a> {
 }
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl<'a> Send for LiftWrapper<'a> {}
+pub enum LiftWrapperType {}
+impl UeObjectWrapperType for LiftWrapperType {
+    type UeObjectWrapper<'a> = LiftWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for LiftWrapper<'a> {
+    type UeObjectWrapperType = LiftWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "BP_Lift_C";
 
@@ -205,44 +235,56 @@ impl<'a> LiftWrapper<'a> {
 }
 
 pub fn init() {
-    let mut levels = LEVELS.lock().unwrap();
-    let mut lifts = LIFTS.lock().unwrap();
-    for item in unsafe { GlobalObjectArrayWrapper::get().object_array().iter_elements() } {
-        let object = item.object();
-        let name = object.name();
-        let class_name = object.class().name();
-        // fn print_children(depth: usize, class: StructWrapper) {
-        //     use crate::native::{PropertyWrapper, UProperty};
-        //     use crate::native::reflection::{StructWrapper, ClassWrapper};
-        //     for property in class.iter_properties() {
-        //         let class_name = property.class().name();
-        //         log!("{}{property}", "    ".repeat(depth));
-        //         if class_name == "ObjectProperty" {
-        //             let class = unsafe { ClassWrapper::new((*(property.as_uobjectproperty())).property_class) };
-        //             log!("{}going into {}", "    ".repeat(depth), class.name());
-        //             // print_children(depth+1, class);
-        //         }
-        //     }
-        //     log!("{}done printing children", "    ".repeat(depth));
-        // }
-        // log!("{:?} {:?} ({object:p})", class_name, name);
-        // print_children(1, object.class());
+    UeScope::with(|scope| {
+        let mut levels = LEVELS.lock().unwrap();
+        let mut lifts = Vec::new();
+        for item in scope.iter_global_object_array() {
+            let object = item.object();
+            let name = object.name();
+            let class_name = object.class().name();
+            // fn print_children(depth: usize, class: StructWrapper) {
+            //     use crate::native::{PropertyWrapper, UProperty};
+            //     use crate::native::reflection::{StructWrapper, ClassWrapper};
+            //     for property in class.iter_properties() {
+            //         let class_name = property.class().name();
+            //         log!("{}{property}", "    ".repeat(depth));
+            //         if class_name == "ObjectProperty" {
+            //             let class = unsafe { ClassWrapper::new((*(property.as_uobjectproperty())).property_class) };
+            //             log!("{}going into {}", "    ".repeat(depth), class.name());
+            //             // print_children(depth+1, class);
+            //         }
+            //     }
+            //     log!("{}done printing children", "    ".repeat(depth));
+            // }
+            // log!("{:?} {:?} ({object:p})", class_name, name);
+            // print_children(1, object.class());
 
-        if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
-            let level: LevelWrapper = object.upcast();
-            levels.push(level.clone());
+            if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
+                let level: LevelWrapper = object.upcast();
+                levels.push(Level {
+                    level: scope.object_index(&level),
+                    platforms: level.platforms().map(|p| scope.object_index(&p)).collect(),
+                    cubes: level.cubes().map(|c| scope.object_index(&c)).collect(),
+                    buttons: level.buttons().map(|b| scope.object_index(&b)).collect(),
+                    lifts: vec![],
+                })
+            }
+            if class_name == "BP_Lift_C" && name != "Default__BP_Lift_C" {
+                let lift: LiftWrapper = object.upcast();
+                lifts.push(lift);
+            }
         }
-        if class_name == "BP_Lift_C" && name != "Default__BP_Lift_C" {
-            let lift: LiftWrapper = object.upcast();
-            let index: usize = match name.as_str() {
+        assert_eq!(levels.len(), 31);
+        levels.sort_by_key(|level| scope.get(level.level).level_index());
+
+        for lift in lifts {
+            let level_index: usize = match lift.name().as_str() {
                 "BP_Lift_C_1" => 5,
                 "BP_Mover7" => 7,
                 "BP_Mover6" => 8,
-                _ => unreachable!("Invalid lift: {name:?}"),
+                name => unreachable!("Invalid lift: {name:?}"),
             };
-            lifts.insert((index, 0), lift);
+            levels[level_index].lifts.push(scope.object_index(&lift));
         }
-    }
-    assert_eq!(levels.len(), 31);
-    levels.sort_by_key(|level| level.level_index())
+    })
 }

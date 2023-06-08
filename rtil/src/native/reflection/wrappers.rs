@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 use itertools::Itertools;
 use crate::native::reflection::{AActor, DynamicValue, UArrayProperty, UClass, UeObjectWrapper, UObject, UObjectProperty, UProperty, UStruct, UStructProperty};
 use crate::native::ue::TArray;
-use crate::native::{ArrayElement, UBoolProperty, UField, UFunction, UOBJECT_PROCESSEVENT};
+use crate::native::{ArrayElement, UBoolProperty, UeObjectWrapperType, UField, UFunction, UOBJECT_PROCESSEVENT};
 
 #[derive(Debug, Clone)]
 pub struct BoolValueWrapper<'a> {
@@ -149,7 +149,12 @@ pub struct ObjectWrapper<'a> {
     object: *mut UObject,
     _marker: PhantomData<&'a mut UObject>,
 }
+pub enum ObjectWrapperType {}
+impl UeObjectWrapperType for ObjectWrapperType {
+    type UeObjectWrapper<'a> = ObjectWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ObjectWrapper<'a> {
+    type UeObjectWrapperType = ObjectWrapperType;
     type Wrapping = UObject;
     const CLASS_NAME: &'static str = "Object";
 
@@ -210,7 +215,12 @@ impl<'a> ObjectWrapper<'a> {
 pub struct FieldWrapper<'a> {
     base: ObjectWrapper<'a>,
 }
+pub enum FieldWrapperType {}
+impl UeObjectWrapperType for FieldWrapperType {
+    type UeObjectWrapper<'a> = FieldWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for FieldWrapper<'a> {
+    type UeObjectWrapperType = FieldWrapperType;
     type Wrapping = UField;
     const CLASS_NAME: &'static str = "Field";
 
@@ -271,7 +281,12 @@ impl<'a> FieldWrapper<'a> {
 pub struct PropertyWrapper<'a> {
     base: FieldWrapper<'a>,
 }
+pub enum PropertyWrapperType {}
+impl UeObjectWrapperType for PropertyWrapperType {
+    type UeObjectWrapper<'a> = PropertyWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for PropertyWrapper<'a> {
+    type UeObjectWrapperType = PropertyWrapperType;
     type Wrapping = UProperty;
     const CLASS_NAME: &'static str = "Property";
 
@@ -323,7 +338,12 @@ impl<'a> Display for PropertyWrapper<'a> {
 pub struct ObjectPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
+pub enum ObjectPropertyWrapperType {}
+impl UeObjectWrapperType for ObjectPropertyWrapperType {
+    type UeObjectWrapper<'a> = ObjectPropertyWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ObjectPropertyWrapper<'a> {
+    type UeObjectWrapperType = ObjectPropertyWrapperType;
     type Wrapping = UObjectProperty;
     const CLASS_NAME: &'static str = "ObjectProperty";
 
@@ -360,7 +380,12 @@ impl<'a> ObjectPropertyWrapper<'a> {
 pub struct ArrayPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
+pub enum ArrayPropertyWrapperType {}
+impl UeObjectWrapperType for ArrayPropertyWrapperType {
+    type UeObjectWrapper<'a> = ArrayPropertyWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ArrayPropertyWrapper<'a> {
+    type UeObjectWrapperType = ArrayPropertyWrapperType;
     type Wrapping = UArrayProperty;
     const CLASS_NAME: &'static str = "ArrayProperty";
 
@@ -397,7 +422,12 @@ impl<'a> ArrayPropertyWrapper<'a> {
 pub struct StructPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
+pub enum StructPropertyWrapperType {}
+impl UeObjectWrapperType for StructPropertyWrapperType {
+    type UeObjectWrapper<'a> = StructPropertyWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for StructPropertyWrapper<'a> {
+    type UeObjectWrapperType = StructPropertyWrapperType;
     type Wrapping = UStructProperty;
     const CLASS_NAME: &'static str = "StructProperty";
 
@@ -434,7 +464,12 @@ impl<'a> StructPropertyWrapper<'a> {
 pub struct BoolPropertyWrapper<'a> {
     base: PropertyWrapper<'a>,
 }
+pub enum BoolPropertyWrapperType {}
+impl UeObjectWrapperType for BoolPropertyWrapperType {
+    type UeObjectWrapper<'a> = BoolPropertyWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for BoolPropertyWrapper<'a> {
+    type UeObjectWrapperType = BoolPropertyWrapperType;
     type Wrapping = UBoolProperty;
     const CLASS_NAME: &'static str = "BoolProperty";
 
@@ -477,7 +512,12 @@ impl<'a> BoolPropertyWrapper<'a> {
 pub struct StructWrapper<'a> {
     base: FieldWrapper<'a>,
 }
+pub enum StructWrapperType {}
+impl UeObjectWrapperType for StructWrapperType {
+    type UeObjectWrapper<'a> = StructWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for StructWrapper<'a> {
+    type UeObjectWrapperType = StructWrapperType;
     type Wrapping = UStruct;
     const CLASS_NAME: &'static str = "Struct";
 
@@ -628,7 +668,12 @@ impl<'a> StructWrapper<'a> {
 pub struct ClassWrapper<'a> {
     base: StructWrapper<'a>,
 }
+pub enum ClassWrapperType {}
+impl UeObjectWrapperType for ClassWrapperType {
+    type UeObjectWrapper<'a> = ClassWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ClassWrapper<'a> {
+    type UeObjectWrapperType = ClassWrapperType;
     type Wrapping = UClass;
     const CLASS_NAME: &'static str = "Class";
 
@@ -665,7 +710,12 @@ impl<'a> ClassWrapper<'a> {
 pub struct FunctionWrapper<'a> {
     base: StructWrapper<'a>,
 }
+pub enum FunctionWrapperType {}
+impl UeObjectWrapperType for FunctionWrapperType {
+    type UeObjectWrapper<'a> = FunctionWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for FunctionWrapper<'a> {
+    type UeObjectWrapperType = FunctionWrapperType;
     type Wrapping = UFunction;
     const CLASS_NAME: &'static str = "Function";
 
@@ -727,7 +777,12 @@ impl<'a> FunctionWrapper<'a> {
 pub struct ActorWrapper<'a> {
     base: ObjectWrapper<'a>,
 }
+pub enum ActorWrapperType {}
+impl UeObjectWrapperType for ActorWrapperType {
+    type UeObjectWrapper<'a> = ActorWrapper<'a>;
+}
 unsafe impl<'a> UeObjectWrapper<'a> for ActorWrapper<'a> {
+    type UeObjectWrapperType = ActorWrapperType;
     type Wrapping = AActor;
     const CLASS_NAME: &'static str = "Actor";
 
