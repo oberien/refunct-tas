@@ -930,8 +930,60 @@ fn set_all_cluster_speeds(speed: f32) {
     })
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RefunctMapV0 {
+    clusters: Vec<ClusterV0>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ClusterV0 {
+    platforms: Vec<ElementV0>,
+    cubes: Vec<ElementV0>,
+    buttons: Vec<ElementV0>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ElementV0 {
+    x: f32,
+    y: f32,
+    z: f32,
+    pitch: f32,
+    yaw: f32,
+    roll: f32,
+    xscale: f32,
+    yscale: f32,
+    zscale: f32,
+}
+
+fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
+    fn migrate_element(e: ElementV0) -> Element {
+        Element {
+            x: e.x,
+            y: e.y,
+            z: e.z,
+            pitch: e.pitch,
+            yaw: e.yaw,
+            roll: e.roll,
+            xscale: e.xscale,
+            yscale: e.yscale,
+            zscale: e.zscale,
+        }
+    }
+    let cur_map = get_current_map();
+    RefunctMap {
+        version: 1,
+        clusters: map.clusters.into_iter().enumerate().map(|(level_index, cluster)| {
+            Cluster {
+                platforms: cluster.platforms.into_iter().map(migrate_element).collect(),
+                cubes: cluster.cubes.into_iter().map(migrate_element).collect(),
+                buttons: cluster.buttons.into_iter().map(migrate_element).collect(),
+                lifts: cur_map.clusters[level_index].lifts.clone(),
+            }
+        }).collect(),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
 struct RefunctMap {
+    version: u32,
     clusters: Vec<Cluster>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
@@ -939,7 +991,6 @@ struct Cluster {
     platforms: Vec<Element>,
     cubes: Vec<Element>,
     buttons: Vec<Element>,
-    #[serde(default)]
     lifts: Vec<Element>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
@@ -974,11 +1025,24 @@ fn list_maps() -> Vec<String> {
 }
 #[rebo::function("Tas::load_map")]
 fn load_map(filename: String) -> RefunctMap {
+    #[derive(Deserialize)]
+    struct Version {
+        #[serde(default)]
+        version: u32,
+    }
     let filename = sanitize_filename::sanitize(filename);
     let path = map_path().join(filename);
     let content = std::fs::read_to_string(path).unwrap();
-    let res = serde_json::from_str(&content).unwrap();
-    res
+    let version: Version = serde_json::from_str(&content).unwrap();
+    let map = match version.version {
+        0 => {
+            let map = serde_json::from_str(&content).unwrap();
+            migrate_v0_to_v1(map)
+        }
+        1 => serde_json::from_str(&content).unwrap(),
+        version => panic!("the map lives in the future (unknown map version {version}"),
+    };
+    map
 }
 #[rebo::function("Tas::save_map")]
 fn save_map(filename: String, map: RefunctMap) {
@@ -1014,7 +1078,7 @@ fn get_current_map() -> RefunctMap {
                     lifts: level.lifts.iter().map(|l| aactor_to_element(&level_wrapper, &*scope.get(l))).collect(),
                 }
             }).collect();
-        RefunctMap { clusters }
+        RefunctMap { version: 1, clusters }
     })
 }
 

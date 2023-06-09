@@ -216,7 +216,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 let bounds = match index.element_type {
                     ElementType::Platform => Tas::get_element_bounds(index),
                     ElementType::Cube => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
-                    ElementType::Button => Tas::get_element_bounds(index),
+                    ElementType::Button => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                     ElementType::Lift => Tas::get_element_bounds(index),
                 };
                 element.x = loc.x - bounds.extentx;
