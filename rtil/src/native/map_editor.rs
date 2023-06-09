@@ -13,6 +13,7 @@ pub struct Level {
     pub cubes: Vec<ObjectIndex<CubeWrapperType>>,
     pub buttons: Vec<ObjectIndex<ButtonWrapperType>>,
     pub lifts: Vec<ObjectIndex<LiftWrapperType>>,
+    pub pipes: Vec<ObjectIndex<PipeWrapperType>>,
 }
 
 #[derive(Debug, Clone)]
@@ -229,6 +230,41 @@ impl<'a> LiftWrapper<'a> {
         LiftWrapper { base: lift }
     }
 }
+#[derive(Debug, Clone)]
+pub struct PipeWrapper<'a> {
+    base: ActorWrapper<'a>,
+}
+pub enum PipeWrapperType {}
+impl UeObjectWrapperType for PipeWrapperType {
+    type UeObjectWrapper<'a> = PipeWrapper<'a>;
+}
+unsafe impl<'a> UeObjectWrapper<'a> for PipeWrapper<'a> {
+    type UeObjectWrapperType = PipeWrapperType;
+    type Wrapping = AActor;
+    const CLASS_NAME: &'static str = "BP_TravelPipe_C";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        PipeWrapper::new(ActorWrapper::new(ptr))
+    }
+}
+impl<'a> Deref for PipeWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for PipeWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
+impl<'a> PipeWrapper<'a> {
+    pub fn new(pipe: ActorWrapper<'a>) -> PipeWrapper<'a> {
+        assert_eq!(pipe.class().name(), "BP_TravelPipe_C");
+        PipeWrapper { base: pipe }
+    }
+}
 
 #[derive(Debug, Clone, rebo::ExternalType)]
 pub enum ElementType {
@@ -236,6 +272,7 @@ pub enum ElementType {
     Cube,
     Button,
     Lift,
+    Pipe,
 }
 
 #[derive(Debug, Clone, rebo::ExternalType)]
@@ -253,6 +290,7 @@ pub fn try_find_element_index(ptr: *mut UObject) -> Option<ElementIndex> {
                 .chain(level.cubes.iter().map(|c| (ElementType::Cube, scope.get(c).as_ptr() as usize)).enumerate())
                 .chain(level.buttons.iter().map(|c| (ElementType::Button, scope.get(c).as_ptr() as usize)).enumerate())
                 .chain(level.lifts.iter().map(|c| (ElementType::Lift, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.pipes.iter().map(|c| (ElementType::Pipe, scope.get(c).as_ptr() as usize)).enumerate())
                 .find(|(_, (_, addr))| ptr as usize == *addr)
                 .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
             if let Some(found) = found {
@@ -267,6 +305,7 @@ pub fn init() {
     UeScope::with(|scope| {
         let mut levels = LEVELS.lock().unwrap();
         let mut lifts = Vec::new();
+        let mut pipes = Vec::new();
         for item in scope.iter_global_object_array() {
             let object = item.object();
             let name = object.name();
@@ -296,11 +335,16 @@ pub fn init() {
                     cubes: level.cubes().map(|c| scope.object_index(&c)).collect(),
                     buttons: level.buttons().map(|b| scope.object_index(&b)).collect(),
                     lifts: vec![],
+                    pipes: vec![],
                 })
             }
             if class_name == "BP_Lift_C" && name != "Default__BP_Lift_C" {
                 let lift: LiftWrapper = object.upcast();
                 lifts.push(lift);
+            }
+            if class_name == "BP_TravelPipe_C" && name != "Default__BP_TravelPipe_C" {
+                let pipe: PipeWrapper = object.upcast();
+                pipes.push(pipe);
             }
         }
         assert_eq!(levels.len(), 31);
@@ -314,6 +358,29 @@ pub fn init() {
                 name => unreachable!("Invalid lift: {name:?}"),
             };
             levels[level_index].lifts.push(scope.object_index(&lift));
+        }
+
+        for pipe in &pipes {
+            let level_index: usize = match pipe.name().as_str() {
+                "BP_TravelPipe_C_6" => 4,
+                "BP_TravelPipe_C_5" => 4,
+                "BP_TravelPipe_359" => 6,
+                "BP_TravelPipe_C_3" => 9,
+                "BP_TravelPipe_C_2" => 9,
+                "BP_Pipe4" => 18,
+                "BP_TravelPipe_C_1" => 18,
+                "BP_TravelPipe2_855" => 24,
+                "BP_TravelPipe_1816" => 25,
+                name => unreachable!("Invalid pipe: {name:?}"),
+            };
+            levels[level_index].pipes.push(scope.object_index(pipe));
+        }
+
+        for lvl in &mut *levels {
+            lvl.pipes.sort_by_key(|pipe| {
+                let (x, y, z) = scope.get(pipe).absolute_location();
+                (x as i32, y as i32, z as i32)
+            });
         }
     })
 }
