@@ -118,6 +118,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
         ElementType::Button => cluster.buttons,
         ElementType::Lift => cluster.lifts,
         ElementType::Pipe => cluster.pipes,
+        ElementType::Springpad => cluster.springpads,
     };
 
     let element = match element_list.get(index.element_index) {
@@ -155,6 +156,8 @@ fn create_map_editor_input_ui() -> Ui {
                     ElementType::Lift
                 } else if input.contains("pi") {
                     ElementType::Pipe
+                } else if input.contains("spr") {
+                    ElementType::Springpad
                 } else {
                     MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l)";
                     return
@@ -222,6 +225,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Button => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                     ElementType::Lift => Tas::get_element_bounds(index),
                     ElementType::Pipe => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
+                    ElementType::Springpad => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                 };
                 element.x = loc.x - bounds.extentx;
                 element.y = loc.y - bounds.extenty;
@@ -358,6 +362,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Button => cluster.buttons,
                     ElementType::Lift => cluster.lifts,
                     ElementType::Pipe => cluster.pipes,
+                    ElementType::Springpad => cluster.springpads,
                 };
                 let original_element = element_list.get(index.element_index).unwrap();
                 element.x = original_element.x;
