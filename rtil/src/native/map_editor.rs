@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
-use crate::native::{ArrayWrapper, ClassWrapper, ObjectIndex, ObjectWrapper, StructValueWrapper, UeObjectWrapperType, UeScope, UObject};
+use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope, UObject};
 use crate::native::reflection::{ActorWrapper, AActor, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<Level>> = Mutex::new(Vec::new());
@@ -374,7 +374,6 @@ pub fn init() {
                 name => unreachable!("Invalid pipe: {name:?}"),
             };
             levels[level_index].pipes.push(scope.object_index(pipe));
-            log!("---Sorted---\n{:?}", pipe.absolute_location());
         }
 
         for lvl in &mut *levels {
