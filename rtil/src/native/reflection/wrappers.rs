@@ -909,6 +909,18 @@ impl<'a> ActorWrapper<'a> {
         relative_scale.get_field("Y").unwrap::<&Cell<f32>>().set(yscale);
         relative_scale.get_field("Z").unwrap::<&Cell<f32>>().set(zscale);
     }
+    /// origin x,y,z, size x,y,z
+    pub fn get_actor_bounds(&self) -> (f32, f32, f32, f32, f32, f32) {
+        let get_actor_bounds = self.class().find_function("GetActorBounds").unwrap();
+        let args = get_actor_bounds.create_argument_struct();
+        unsafe { get_actor_bounds.call(self.as_ptr(), &args) };
+        let origin: StructValueWrapper = args.get_field("Origin").unwrap();
+        let extent: StructValueWrapper = args.get_field("BoxExtent").unwrap();
+        (
+            origin.get_field("X").unwrap(), origin.get_field("Y").unwrap(), origin.get_field("Z").unwrap(),
+            extent.get_field("X").unwrap(), extent.get_field("Y").unwrap(), extent.get_field("Z").unwrap(),
+        )
+    }
 }
 
 

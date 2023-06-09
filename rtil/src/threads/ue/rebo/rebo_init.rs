@@ -10,7 +10,7 @@ use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -105,6 +105,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(original_map)
         .add_function(apply_map)
         .add_function(get_looked_at_element_index)
+        .add_function(get_element_bounds)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -126,6 +127,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Element)
         .add_external_type(ElementType)
         .add_external_type(ElementIndex)
+        .add_external_type(Bounds)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -1066,4 +1068,34 @@ fn apply_map(map: RefunctMap) {
 fn get_looked_at_element_index() -> Option<ElementIndex> {
     let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
     try_find_element_index(intersected as *mut UObject)
+}
+
+fn get_indexed_element<'a>(levels: &[Level], scope: &'a UeScope, index: ElementIndex) -> ActorWrapper<'a> {
+    let level = &levels[index.cluster_index];
+    match index.element_type {
+        ElementType::Platform => (*scope.get(level.platforms[index.element_index])).clone(),
+        ElementType::Cube => (*scope.get(level.cubes[index.element_index])).clone(),
+        ElementType::Button => (*scope.get(level.buttons[index.element_index])).clone(),
+        ElementType::Lift => (*scope.get(level.lifts[index.element_index])).clone(),
+    }
+}
+
+#[derive(Debug, Clone, rebo::ExternalType)]
+struct Bounds {
+    originx: f32,
+    originy: f32,
+    originz: f32,
+    extentx: f32,
+    extenty: f32,
+    extentz: f32,
+}
+
+#[rebo::function("Tas::get_element_bounds")]
+fn get_element_bounds(index: ElementIndex) -> Bounds {
+    UeScope::with(|scope| {
+        let levels = LEVELS.lock().unwrap();
+        let actor = get_indexed_element(&levels, scope, index);
+        let (originx, originy, originz, extentx, extenty, extentz) = actor.get_actor_bounds();
+        Bounds { originx, originy, originz, extentx, extenty, extentz }
+    })
 }
