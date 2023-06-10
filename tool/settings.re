@@ -29,7 +29,7 @@ fn create_settings_menu() -> Ui {
                 show_game_stats_button_text.text = f"Show Game Stats: {SETTINGS.show_game_stats}";
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Player Color Red (0.0 - 1.0)" },
             input: f"{SETTINGS.player_color_red}",
             onclick: fn(input: string) {},
@@ -45,7 +45,7 @@ fn create_settings_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Player Color Green (0.0 - 1.0)" },
             input: f"{SETTINGS.player_color_green}",
             onclick: fn(input: string) {},
@@ -61,7 +61,7 @@ fn create_settings_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Player Color Blue (0.0 - 1.0)" },
             input: f"{SETTINGS.player_color_blue}",
             onclick: fn(input: string) {},

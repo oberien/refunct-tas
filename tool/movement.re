@@ -37,7 +37,7 @@ fn create_movement_menu() -> Ui {
                 Tas::set_movement_mode(1);
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: FLYING_UP_DOWN_VELOCITY_LABEL,
             input: f"{SETTINGS.flying_up_down_velocity}",
             onclick: fn(input: string) {},
@@ -52,7 +52,7 @@ fn create_movement_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: FLYING_FORWARD_BACKWARD_VELOCITY_LABEL,
             input: f"{SETTINGS.flying_forward_backward_velocity}",
             onclick: fn(input: string) {},

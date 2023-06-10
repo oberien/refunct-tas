@@ -179,7 +179,7 @@ fn create_minimap_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Size (0.0 - 1.0)" },
             input: f"{MINIMAP_STATE.size}",
             onclick: fn(input: string) {},
@@ -194,7 +194,7 @@ fn create_minimap_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Alpha (0.0 - 1.0)" },
             input: f"{MINIMAP_STATE.alpha}",
             onclick: fn(input: string) {},

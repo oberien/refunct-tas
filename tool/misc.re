@@ -131,7 +131,7 @@ fn create_misc_menu() -> Ui {
             },
             onchange: fn(input: string) {},
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Set Roll" },
             input: "0",
             onclick: fn(input: string) {},
@@ -145,7 +145,7 @@ fn create_misc_menu() -> Ui {
                 Tas::set_rotation(rot);
             },
         }),
-        UiElement::Input(Input {
+        UiElement::FloatInput(FloatInput {
             label: Text { text: "Windscreen Wipers (s/wipe)" },
             input: "2",
             onclick: fn(input: string) {
