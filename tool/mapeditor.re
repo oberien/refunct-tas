@@ -44,6 +44,7 @@ static MAP_EDITOR_COMPONENT = Component {
     on_key_up: fn(key: KeyCode) {},
     on_key_up_always: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
+    on_component_enter: fn() { Tas::set_max_fly_speed(SETTINGS.flying_forward_backward_velocity) },
     on_component_exit: fn() {},
     on_resolution_change: fn() {},
     on_menu_open: fn() {},

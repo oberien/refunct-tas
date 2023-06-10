@@ -216,6 +216,7 @@ static mut TAS_COMPONENT = Component {
     on_mouse_move: fn(x: int, y: int) {
         TAS_STATE.events.push(InputEvent::MouseMoved(x, y));
     },
+    on_component_enter: fn() {},
     on_component_exit: fn() {
         TAS_STATE.step_frame_mode = false;
         TAS_COMPONENT.tick_mode = TickMode::DontCare;

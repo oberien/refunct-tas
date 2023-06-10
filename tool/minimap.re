@@ -112,6 +112,7 @@ static MINIMAP_COMPONENT = Component {
     on_key_up: fn(key_code: KeyCode) {},
     on_key_up_always: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
+    on_component_enter: fn() {},
     on_component_exit: fn() {},
     on_resolution_change: fn() { MINIMAP_STATE.calculate_minimap_size(MINIMAP_STATE.size); },
     on_menu_open: fn() {},
