@@ -1087,12 +1087,28 @@ fn get_current_map(original: bool) -> RefunctMap {
                 let (ax, ay, az) = actor.absolute_location();
                 let (pitch, yaw, roll) = actor.relative_rotation();
                 let (xscale, yscale, zscale) = actor.relative_scale();
-                Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, sizex: sizex * xscale, sizey: sizey * yscale, sizez: sizez * zscale }
+                Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, sizex: sizex / xscale, sizey: sizey / yscale, sizez: sizez / zscale }
             }).collect()
         }
         let get_orig_size: Box<for<'a> fn(&'a ActorWrapper, _) -> _> = if original {
             Box::new(|actor: &ActorWrapper, _index: ElementIndex| {
                 let (_, _, _, hx, hy, hz) = actor.get_actor_bounds();
+                // ugly hack for rotated platforms to switch sizex and sizey
+                // if they are rotated by 90° or -90°
+                let (pitch, yaw, roll) = actor.relative_rotation();
+                let (hx, hy) = if (89. < yaw && yaw <= 91.) || (-91. < yaw && yaw < -89.) {
+                    (hy, hx)
+                } else {
+                    (hx, hy)
+                };
+                // it's never rotated exactly 90° / 180° / -180° / -90° but slightly off
+                // like -89.99963 or -179.99976 or 179.99976 or even 0.0033555343
+                // we correct that by flooring in those cases
+                let (hx, hy) = if pitch.fract() != 0. || yaw.fract() != 0. || roll.fract() != 0. {
+                    ((hx * 4.).floor() / 4., (hy * 4.).floor() / 4.)
+                } else {
+                    (hx, hy)
+                };
                 (hx*2., hy*2., hz*2.)
             })
         } else {

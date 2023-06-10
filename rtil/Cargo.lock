@@ -1638,7 +1638,7 @@ dependencies = [
 
 [[package]]
 name = "refunct-tas-ingame-lib"
-version = "0.9.5"
+version = "0.9.7"
 dependencies = [
  "backtrace",
  "bit_field",
