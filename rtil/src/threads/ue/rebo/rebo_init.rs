@@ -11,7 +11,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -107,6 +107,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(apply_map)
         .add_function(get_looked_at_element_index)
         .add_function(get_element_bounds)
+        .add_function(enable_collision)
+        .add_function(disable_collision)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1220,4 +1222,14 @@ fn get_element_bounds(index: ElementIndex) -> Bounds {
         let (originx, originy, originz, extentx, extenty, extentz) = actor.get_actor_bounds();
         Bounds { originx, originy, originz, extentx, extenty, extentz }
     })
+}
+
+#[rebo::function("Tas::enable_collision")]
+fn enable_collision() {
+    AActor::set_actor_enable_collision(AMyCharacter::get_player().as_ptr() as *const AActor, true);
+}
+
+#[rebo::function("Tas::disable_collision")]
+fn disable_collision() {
+    AActor::set_actor_enable_collision(AMyCharacter::get_player().as_ptr() as *const AActor, false);
 }
