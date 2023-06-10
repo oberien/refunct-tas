@@ -55,6 +55,7 @@ fn create_map_editor_menu() -> Ui {
             onclick: fn(label: Text) {
                 if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
                     remove_component(MAP_EDITOR_COMPONENT);
+                    remove_component(MOVEMENT_COMPONENT);
                     MAP_EDITOR_LABEL.text = "Edit Map";
                     MAP_EDITOR_STATE.map = Tas::original_map();
                     Tas::apply_map(MAP_EDITOR_STATE.map);
@@ -70,6 +71,8 @@ fn create_map_editor_menu() -> Ui {
                         };
                         MAP_EDITOR_LABEL.text = "Stop Map Editor";
                         add_component(MAP_EDITOR_COMPONENT);
+                        add_component(MOVEMENT_COMPONENT);
+                        MOVEMENT_STATE.enable_fly = false;
                         leave_ui();
                         leave_ui();
                         leave_ui();
