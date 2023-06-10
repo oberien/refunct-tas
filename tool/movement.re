@@ -78,7 +78,14 @@ fn create_movement_menu() -> Ui {
 static MOVEMENT_COMPONENT = Component {
     id: MOVEMENT_COMPONENT_ID,
     conflicts_with: List::of(MOVEMENT_COMPONENT_ID),
-    draw_hud_text: fn(text: string) -> string { text },
+    draw_hud_text: fn(text: string) -> string {
+        let mut text = f"{text}";
+        match MOVEMENT_STATE.enable_fly {
+            false => text = f"{text}\nFlying: 'f' to enable flying",
+            true => text = f"{text}\nFlying: 'f' to disable flying",
+        }
+        text
+    },
     draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
     requested_delta_time: Option::None,
@@ -113,6 +120,14 @@ static MOVEMENT_COMPONENT = Component {
             MOVEMENT_STATE.fly_state = FlyState::Down;
         } else if key == KEY_SPACE.to_small() {
             MOVEMENT_STATE.fly_state = FlyState::Up;
+        } else if key == KEY_F.to_small() {
+            match MOVEMENT_STATE.enable_fly {
+                false => MOVEMENT_STATE.enable_fly = true,
+                true => {
+                    MOVEMENT_STATE.enable_fly = false;
+                    Tas::set_movement_mode(1);
+                }
+            }
         }
     },
     on_key_up: fn(key_code: KeyCode) {

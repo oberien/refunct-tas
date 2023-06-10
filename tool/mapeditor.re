@@ -70,6 +70,8 @@ fn create_map_editor_menu() -> Ui {
                         };
                         MAP_EDITOR_LABEL.text = "Stop Map Editor";
                         add_component(MAP_EDITOR_COMPONENT);
+                        add_component(MOVEMENT_COMPONENT);
+                        MOVEMENT_STATE.enable_fly = true;
                         leave_ui();
                         leave_ui();
                         leave_ui();
