@@ -142,10 +142,11 @@ fn create_map_editor_input_ui() -> Ui {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
             onclick: fn(input: string) {
+                MAP_EDITOR_INPUT_LABEL.text = "Input";
                 // check if it's just one number -> edit cluster
                 match input.parse_int() {
                     Result::Ok(cluster_index) => {
-                        let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index) {
+                        let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index - 1) {
                             Option::Some(cluster) => cluster,
                             Option::None => {
                                 MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: no such cluster exists)";
@@ -153,7 +154,7 @@ fn create_map_editor_input_ui() -> Ui {
                             }
                         };
                         leave_ui();
-                        enter_ui(create_map_editor_cluster_ui(cluster, cluster_index));
+                        enter_ui(create_map_editor_cluster_ui(cluster, cluster_index - 1));
                         return
                     },
                     Result::Err(err) => (),
@@ -161,7 +162,6 @@ fn create_map_editor_input_ui() -> Ui {
 
                 // handle element
                 let indexes = input.find_matches("\\d+");
-                MAP_EDITOR_INPUT_LABEL.text = "Input";
                 if indexes.len() != 2 {
                     MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: need 2 numbers)";
                     return;
