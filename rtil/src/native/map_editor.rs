@@ -14,6 +14,7 @@ pub struct Level {
     pub buttons: Vec<ObjectIndex<ButtonWrapperType>>,
     pub lifts: Vec<ObjectIndex<LiftWrapperType>>,
     pub pipes: Vec<ObjectIndex<PipeWrapperType>>,
+    pub springpads: Vec<ObjectIndex<SpringpadWrapperType>>,
 }
 
 #[derive(Debug, Clone)]
@@ -266,6 +267,42 @@ impl<'a> PipeWrapper<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct SpringpadWrapper<'a> {
+    base: ActorWrapper<'a>,
+}
+pub enum SpringpadWrapperType {}
+impl UeObjectWrapperType for SpringpadWrapperType {
+    type UeObjectWrapper<'a> = SpringpadWrapper<'a>;
+}
+unsafe impl<'a> UeObjectWrapper<'a> for SpringpadWrapper<'a> {
+    type UeObjectWrapperType = SpringpadWrapperType;
+    type Wrapping = AActor;
+    const CLASS_NAME: &'static str = "BP_Jumppad_C";
+
+    unsafe fn create(ptr: *mut Self::Wrapping) -> Self {
+        SpringpadWrapper::new(ActorWrapper::new(ptr))
+    }
+}
+impl<'a> Deref for SpringpadWrapper<'a> {
+    type Target = ActorWrapper<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<'a> Pointer for SpringpadWrapper<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.base, f)
+    }
+}
+impl<'a> SpringpadWrapper<'a> {
+    pub fn new(springpad: ActorWrapper<'a>) -> SpringpadWrapper<'a> {
+        assert_eq!(springpad.class().name(), "BP_Jumppad_C");
+        SpringpadWrapper { base: springpad }
+    }
+}
+
 #[derive(Debug, Clone, rebo::ExternalType)]
 pub enum ElementType {
     Platform,
@@ -273,6 +310,7 @@ pub enum ElementType {
     Button,
     Lift,
     Pipe,
+    Springpad,
 }
 
 #[derive(Debug, Clone, rebo::ExternalType)]
@@ -291,6 +329,7 @@ pub fn try_find_element_index(ptr: *mut UObject) -> Option<ElementIndex> {
                 .chain(level.buttons.iter().map(|c| (ElementType::Button, scope.get(c).as_ptr() as usize)).enumerate())
                 .chain(level.lifts.iter().map(|c| (ElementType::Lift, scope.get(c).as_ptr() as usize)).enumerate())
                 .chain(level.pipes.iter().map(|c| (ElementType::Pipe, scope.get(c).as_ptr() as usize)).enumerate())
+                .chain(level.springpads.iter().map(|c| (ElementType::Springpad, scope.get(c).as_ptr() as usize)).enumerate())
                 .find(|(_, (_, addr))| ptr as usize == *addr)
                 .map(|(ei, (typ, _))| ElementIndex { cluster_index: i, element_type: typ, element_index: ei});
             if let Some(found) = found {
@@ -306,6 +345,7 @@ pub fn init() {
         let mut levels = LEVELS.lock().unwrap();
         let mut lifts = Vec::new();
         let mut pipes = Vec::new();
+        let mut springpads = Vec::new();
         for item in scope.iter_global_object_array() {
             let object = item.object();
             let name = object.name();
@@ -336,6 +376,7 @@ pub fn init() {
                     buttons: level.buttons().map(|b| scope.object_index(&b)).collect(),
                     lifts: vec![],
                     pipes: vec![],
+                    springpads: vec![],
                 })
             }
             if class_name == "BP_Lift_C" && name != "Default__BP_Lift_C" {
@@ -345,6 +386,10 @@ pub fn init() {
             if class_name == "BP_TravelPipe_C" && name != "Default__BP_TravelPipe_C" {
                 let pipe: PipeWrapper = object.upcast();
                 pipes.push(pipe);
+            }
+            if class_name == "BP_Jumppad_C" && name != "Default__BP_Jumppad_C" {
+                let springpad: SpringpadWrapper = object.upcast();
+                springpads.push(springpad);
             }
         }
         assert_eq!(levels.len(), 31);
@@ -374,6 +419,17 @@ pub fn init() {
                 name => unreachable!("Invalid pipe: {name:?}"),
             };
             levels[level_index].pipes.push(scope.object_index(pipe));
+        }
+
+        for pad in &springpads {
+            let level_index: usize = match pad.name().as_str() {
+                "BP_Jumppad_414" if pad.absolute_location().0 == 250. => 24,
+                "BP_Jumppad2_530" => 23,
+                "BP_Jumppad_414" if pad.absolute_location().0 == 2075. => 25,
+                "BP_Jumppad_514" => 26,
+                name => unreachable!("Invalid pipe: {name:?}"),
+            };
+            levels[level_index].springpads.push(scope.object_index(pad));
         }
 
         for lvl in &mut *levels {

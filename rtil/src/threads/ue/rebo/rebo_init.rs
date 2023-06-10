@@ -869,6 +869,7 @@ fn trigger_element(index: ElementIndex) {
             ElementType::Button => add_remove_based_character(&*scope.get(levels[index.cluster_index].buttons[index.element_index])),
             ElementType::Lift => add_remove_based_character(&*scope.get(levels[index.cluster_index].lifts[index.element_index])),
             ElementType::Pipe => (),
+            ElementType::Springpad => (),
         }
     })
 }
@@ -978,6 +979,7 @@ fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
                 buttons: cluster.buttons.into_iter().map(migrate_element).collect(),
                 lifts: cur_map.clusters[level_index].lifts.clone(),
                 pipes: cur_map.clusters[level_index].pipes.clone(),
+                springpads: cur_map.clusters[level_index].springpads.clone(),
             }
         }).collect(),
     }
@@ -995,6 +997,7 @@ struct Cluster {
     buttons: Vec<Element>,
     lifts: Vec<Element>,
     pipes: Vec<Element>,
+    springpads: Vec<Element>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
 struct Element {
@@ -1080,6 +1083,7 @@ fn get_current_map() -> RefunctMap {
                     buttons: level.buttons.iter().map(|b| aactor_to_element(&level_wrapper, &*scope.get(b))).collect(),
                     lifts: level.lifts.iter().map(|l| aactor_to_element(&level_wrapper, &*scope.get(l))).collect(),
                     pipes: level.pipes.iter().map(|pi| aactor_to_element(&level_wrapper, &*scope.get(pi))).collect(),
+                    springpads: level.springpads.iter().map(|pa| aactor_to_element(&level_wrapper, &*scope.get(pa))).collect(),
                 }
             }).collect();
         RefunctMap { version: 1, clusters }
@@ -1131,6 +1135,9 @@ fn apply_map(map: RefunctMap) {
             for (actor, element) in level.pipes.iter().zip(cluster.pipes) {
                 set_element(&level_wrapper, &*scope.get(actor), element, true);
             }
+            for (actor, element) in level.springpads.iter().zip(cluster.springpads) {
+                set_element(&level_wrapper, &*scope.get(actor), element, true);
+            }
         }
     })
 }
@@ -1149,6 +1156,7 @@ fn get_indexed_element<'a>(levels: &[Level], scope: &'a UeScope, index: ElementI
         ElementType::Button => (*scope.get(level.buttons[index.element_index])).clone(),
         ElementType::Lift => (*scope.get(level.lifts[index.element_index])).clone(),
         ElementType::Pipe => (*scope.get(level.pipes[index.element_index])).clone(),
+        ElementType::Springpad => (*scope.get(level.springpads[index.element_index])).clone(),
     }
 }
 

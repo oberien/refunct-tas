@@ -118,6 +118,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
         ElementType::Button => cluster.buttons,
         ElementType::Lift => cluster.lifts,
         ElementType::Pipe => cluster.pipes,
+        ElementType::Springpad => cluster.springpads,
     };
 
     let element = match element_list.get(index.element_index) {
@@ -131,7 +132,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l/pi/s<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1 or 5pi1 or 25s1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
@@ -155,8 +156,10 @@ fn create_map_editor_input_ui() -> Ui {
                     ElementType::Lift
                 } else if input.contains("pi") {
                     ElementType::Pipe
+                } else if input.contains("s") {
+                    ElementType::Springpad
                 } else {
-                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l)";
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l / pi / s)";
                     return
                 };
 
@@ -222,6 +225,11 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Button => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                     ElementType::Lift => Tas::get_element_bounds(index),
                     ElementType::Pipe => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
+                    ElementType::Springpad => {
+                        let mut bounds = Tas::get_element_bounds(index);
+                        bounds.extentz -= 112.;
+                        bounds
+                    },
                 };
                 element.x = loc.x - bounds.extentx;
                 element.y = loc.y - bounds.extenty;
@@ -358,6 +366,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Button => cluster.buttons,
                     ElementType::Lift => cluster.lifts,
                     ElementType::Pipe => cluster.pipes,
+                    ElementType::Springpad => cluster.springpads,
                 };
                 let original_element = element_list.get(index.element_index).unwrap();
                 element.x = original_element.x;
