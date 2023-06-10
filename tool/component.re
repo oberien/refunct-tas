@@ -38,6 +38,7 @@ struct Component {
     /// triggered even when in the menu
     on_key_up_always: fn(KeyCode),
     on_mouse_move: fn(int, int),
+    on_component_enter: fn(),
     on_component_exit: fn(),
     on_resolution_change: fn(),
     on_menu_open: fn(),
@@ -63,6 +64,8 @@ fn add_component(component: Component) {
     }
     CURRENT_COMPONENTS.push(component);
     CURRENT_COMPONENTS.sort();
+    let on_component_enter = component.on_component_enter;
+    on_component_enter();
 }
 
 fn remove_component(component: Component) {

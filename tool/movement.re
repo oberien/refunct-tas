@@ -9,7 +9,7 @@ static mut FLYING_FORWARD_BACKWARD_VELOCITY_LABEL = Text { text: "Forward/Backwa
 
 static mut MOVEMENT_STATE = MovementState {
     enable_fly: false,
-    fly_down_up_velocity: 300.,
+    fly_down_up_velocity: SETTINGS.flying_up_down_velocity,
     fly_state: FlyState::None,
 };
 
@@ -146,6 +146,7 @@ static MOVEMENT_COMPONENT = Component {
         }
     },
     on_mouse_move: fn(x: int, y: int) {},
+    on_component_enter: fn() {},
     on_component_exit: fn() { MOVEMENT_STATE.enable_fly = false; },
     on_resolution_change: fn() {},
     on_menu_open: fn() {},
