@@ -1,6 +1,6 @@
 [package]
 name = "refunct-tas-ingame-lib"
-version = "0.9.5"
+version = "0.9.7"
 authors = ["oberien <jaro.fietz@gmx.de>"]
 edition = "2021"
 
