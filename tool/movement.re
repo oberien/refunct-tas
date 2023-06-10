@@ -130,18 +130,6 @@ static MOVEMENT_COMPONENT = Component {
             MOVEMENT_STATE.fly_state = FlyState::Down;
         } else if key == KEY_SPACE.to_small() {
             MOVEMENT_STATE.fly_state = FlyState::Up;
-        } else if key == KEY_F.to_small() {
-            match MOVEMENT_STATE.enable_fly {
-                false => {
-                    MOVEMENT_STATE.enable_fly = true;
-                    Tas::disable_collision();
-                },
-                true => {
-                    MOVEMENT_STATE.enable_fly = false;
-                    Tas::set_movement_mode(1);
-                    Tas::enable_collision();
-                }
-            }
         }
     },
     on_key_up: fn(key_code: KeyCode) {},
