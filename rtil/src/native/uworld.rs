@@ -65,7 +65,7 @@ impl APawn {
     }
 }
 impl AActor {
-    fn set_actor_enable_collision(this: *const AActor, enable: bool) {
+    pub fn set_actor_enable_collision(this: *const AActor, enable: bool) {
         let fun: extern_fn!(fn(this: *const AActor, enable: u32))
             = unsafe { ::std::mem::transmute(AACTOR_SETACTORENABLECOLLISION.load(Ordering::SeqCst)) };
         fun(this, enable as u32)
