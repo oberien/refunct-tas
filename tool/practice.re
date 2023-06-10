@@ -33,6 +33,7 @@ static mut CURRENT_PRACTICE = Practice {
     location: Location { x: 0., y: 0., z: 0. },
     rotation: Rotation { pitch: 0., yaw: 0., roll: 0. },
 };
+static mut CURRENT_PRACTICE_MAP = Tas::current_map();
 
 fn press_buttons_until(buttons: int) {
     let map = Tas::current_map();
@@ -64,8 +65,8 @@ static PRACTICE_COMPONENT = Component {
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
+        CURRENT_PRACTICE_MAP = Tas::current_map();
         Tas::set_all_cluster_speeds(999999999.);
-        Tas::set_level(CURRENT_PRACTICE.cluster);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
@@ -73,9 +74,8 @@ static PRACTICE_COMPONENT = Component {
     },
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
-        Tas::set_level(0);
         press_buttons_until(CURRENT_PRACTICE.button);
-        Tas::apply_map(Tas::current_map());
+        Tas::apply_map(CURRENT_PRACTICE_MAP);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });

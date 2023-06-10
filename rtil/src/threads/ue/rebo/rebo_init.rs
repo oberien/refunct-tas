@@ -928,6 +928,8 @@ fn show_hud() {
 
 #[rebo::function("Tas::set_all_cluster_speeds")]
 fn set_all_cluster_speeds(speed: f32) {
+    // initialize before we change anything
+    let _ = &*ORIGINAL_MAP;
     UeScope::with(|scope| {
         for level in &*LEVELS.lock().unwrap() {
             scope.get(level.level).set_speed(speed);
