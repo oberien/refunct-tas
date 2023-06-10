@@ -79,12 +79,10 @@ static MOVEMENT_COMPONENT = Component {
     id: MOVEMENT_COMPONENT_ID,
     conflicts_with: List::of(MOVEMENT_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
-        let mut text = f"{text}";
         match MOVEMENT_STATE.enable_fly {
-            false => text = f"{text}\nFlying: 'f' to enable flying",
-            true => text = f"{text}\nFlying: 'f' to disable flying",
+            false => f"{text}\nFlying: <f> enable flying",
+            true => f"{text}\nFlying: <f> disable flying",
         }
-        text
     },
     draw_hud_always: fn() {},
     tick_mode: TickMode::DontCare,
@@ -139,7 +137,7 @@ static MOVEMENT_COMPONENT = Component {
         } 
     },
     on_mouse_move: fn(x: int, y: int) {},
-    on_component_exit: fn() {},
+    on_component_exit: fn() { MOVEMENT_STATE.enable_fly = false; },
     on_resolution_change: fn() {},
     on_menu_open: fn() {},
 };
