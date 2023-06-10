@@ -156,10 +156,10 @@ fn create_map_editor_input_ui() -> Ui {
                     ElementType::Lift
                 } else if input.contains("pi") {
                     ElementType::Pipe
-                } else if input.contains("spr") {
+                } else if input.contains("s") {
                     ElementType::Springpad
                 } else {
-                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l)";
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l / pi / s)";
                     return
                 };
 
@@ -225,7 +225,11 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Button => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                     ElementType::Lift => Tas::get_element_bounds(index),
                     ElementType::Pipe => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
-                    ElementType::Springpad => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
+                    ElementType::Springpad => {
+                        let mut bnds = Tas::get_element_bounds(index);
+                        bnds.extentz -= 112.;
+                        bnds
+                    },
                 };
                 element.x = loc.x - bounds.extentx;
                 element.y = loc.y - bounds.extenty;
