@@ -211,9 +211,9 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
     static mut MAP_EDITOR_PITCH_LABEL = Text { text: "Pitch" };
     static mut MAP_EDITOR_YAW_LABEL = Text { text: "Yaw" };
     static mut MAP_EDITOR_ROLL_LABEL = Text { text: "Roll" };
-    static mut MAP_EDITOR_XSCALE_LABEL = Text { text: "XScale" };
-    static mut MAP_EDITOR_YSCALE_LABEL = Text { text: "YScale" };
-    static mut MAP_EDITOR_ZSCALE_LABEL = Text { text: "ZScale" };
+    static mut MAP_EDITOR_SIZEX_LABEL = Text { text: "SizeX" };
+    static mut MAP_EDITOR_SIZEY_LABEL = Text { text: "SizeY" };
+    static mut MAP_EDITOR_SIZEZ_LABEL = Text { text: "SizeZ" };
     Ui::new_with_selected(f"Map Editor - Edit Cluster {index.cluster_index + 1} {index.element_type} {index.element_index + 1}", selected, List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Set to player location" },
@@ -320,38 +320,38 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
             },
         }),
         UiElement::Input(Input {
-            label: MAP_EDITOR_XSCALE_LABEL,
-            input: f"{element.xscale:.1}",
+            label: MAP_EDITOR_SIZEX_LABEL,
+            input: f"{element.sizex:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
-                MAP_EDITOR_XSCALE_LABEL.text = "XScale";
+                MAP_EDITOR_SIZEX_LABEL.text = "SizeX";
                 match input.parse_float() {
-                    Result::Ok(num) => element.xscale = num,
-                    Result::Err(e) => MAP_EDITOR_XSCALE_LABEL.text = f"XScale (invalid value)",
+                    Result::Ok(num) => element.sizex = num,
+                    Result::Err(e) => MAP_EDITOR_SIZEX_LABEL.text = f"SizeX (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
-            label: MAP_EDITOR_YSCALE_LABEL,
-            input: f"{element.yscale:.1}",
+            label: MAP_EDITOR_SIZEY_LABEL,
+            input: f"{element.sizey:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
-                MAP_EDITOR_YSCALE_LABEL.text = "YScale";
+                MAP_EDITOR_SIZEY_LABEL.text = "SizeY";
                 match input.parse_float() {
-                    Result::Ok(num) => element.yscale = num,
-                    Result::Err(e) => MAP_EDITOR_YSCALE_LABEL.text = f"YScale (invalid value)",
+                    Result::Ok(num) => element.sizey = num,
+                    Result::Err(e) => MAP_EDITOR_SIZEY_LABEL.text = f"SizeY (invalid value)",
                 }
             },
         }),
         UiElement::Input(Input {
-            label: MAP_EDITOR_ZSCALE_LABEL,
-            input: f"{element.zscale:.1}",
+            label: MAP_EDITOR_SIZEZ_LABEL,
+            input: f"{element.sizez:.1}",
             onclick: fn(input: string) { submit() },
             onchange: fn(input: string) {
-                MAP_EDITOR_ZSCALE_LABEL.text = "ZScale";
+                MAP_EDITOR_SIZEZ_LABEL.text = "SizeZ";
                 match input.parse_float() {
-                    Result::Ok(num) => element.zscale = num,
-                    Result::Err(e) => MAP_EDITOR_ZSCALE_LABEL.text = f"ZScale (invalid value)",
+                    Result::Ok(num) => element.sizez = num,
+                    Result::Err(e) => MAP_EDITOR_SIZEZ_LABEL.text = f"SizeZ (invalid value)",
                 }
             },
         }),
@@ -375,9 +375,9 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 element.pitch = original_element.pitch;
                 element.yaw = original_element.yaw;
                 element.roll = original_element.roll;
-                element.xscale = original_element.xscale;
-                element.yscale = original_element.yscale;
-                element.zscale = original_element.zscale;
+                element.sizex = original_element.sizex;
+                element.sizey = original_element.sizey;
+                element.sizez = original_element.sizez;
                 submit();
             },
         }),
@@ -390,9 +390,9 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 MAP_EDITOR_PITCH_LABEL.text = "Pitch";
                 MAP_EDITOR_YAW_LABEL.text = "Yaw";
                 MAP_EDITOR_ROLL_LABEL.text = "Roll";
-                MAP_EDITOR_XSCALE_LABEL.text = "XScale";
-                MAP_EDITOR_YSCALE_LABEL.text = "YScale";
-                MAP_EDITOR_ZSCALE_LABEL.text = "ZScale";
+                MAP_EDITOR_SIZEX_LABEL.text = "SizeX";
+                MAP_EDITOR_SIZEY_LABEL.text = "SizeY";
+                MAP_EDITOR_SIZEZ_LABEL.text = "SizeZ";
                 leave_ui();
             },
         }),

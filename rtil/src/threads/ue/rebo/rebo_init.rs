@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
+use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -956,7 +957,8 @@ struct ElementV0 {
 }
 
 fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
-    fn migrate_element(e: ElementV0) -> Element {
+    fn migrate_element(orig: &RefunctMap, e: ElementV0, index: ElementIndex) -> Element {
+        let orig = get_indexed_element(orig, index);
         Element {
             x: e.x,
             y: e.y,
@@ -964,23 +966,21 @@ fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
             pitch: e.pitch,
             yaw: e.yaw,
             roll: e.roll,
-            xscale: e.xscale,
-            yscale: e.yscale,
-            zscale: e.zscale,
+            sizex: e.xscale * orig.sizex,
+            sizey: e.yscale * orig.sizey,
+            sizez: e.zscale * orig.sizez,
         }
     }
-    let cur_map = get_current_map();
+    let orig = &*ORIGINAL_MAP;
     RefunctMap {
         version: 1,
-        clusters: map.clusters.into_iter().enumerate().map(|(level_index, cluster)| {
-            Cluster {
-                platforms: cluster.platforms.into_iter().map(migrate_element).collect(),
-                cubes: cluster.cubes.into_iter().map(migrate_element).collect(),
-                buttons: cluster.buttons.into_iter().map(migrate_element).collect(),
-                lifts: cur_map.clusters[level_index].lifts.clone(),
-                pipes: cur_map.clusters[level_index].pipes.clone(),
-                springpads: cur_map.clusters[level_index].springpads.clone(),
-            }
+        clusters: map.clusters.into_iter().enumerate().map(|(cluster_index, cluster)| Cluster {
+            platforms: cluster.platforms.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Platform, element_index })).collect(),
+            cubes: cluster.cubes.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Cube, element_index })).collect(),
+            buttons: cluster.buttons.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Button, element_index })).collect(),
+            lifts: orig.clusters[cluster_index].lifts.clone(),
+            pipes: orig.clusters[cluster_index].pipes.clone(),
+            springpads: orig.clusters[cluster_index].springpads.clone(),
         }).collect(),
     }
 }
@@ -1007,9 +1007,9 @@ struct Element {
     pitch: f32,
     yaw: f32,
     roll: f32,
-    xscale: f32,
-    yscale: f32,
-    zscale: f32,
+    sizex: f32,
+    sizey: f32,
+    sizez: f32,
 }
 
 fn map_path() -> PathBuf {
@@ -1046,7 +1046,7 @@ fn load_map(filename: String) -> RefunctMap {
             migrate_v0_to_v1(map)
         }
         1 => serde_json::from_str(&content).unwrap(),
-        version => panic!("the map lives in the future (unknown map version {version}"),
+        version => panic!("the map lives in the future (unknown map version {version})"),
     };
     map
 }
@@ -1064,26 +1064,48 @@ fn remove_map(filename: String) -> bool {
     std::fs::remove_file(path).is_ok()
 }
 
-fn aactor_to_element(level: &LevelWrapper, actor: &ActorWrapper) -> Element {
-    let (_, _, lz) = level.relative_location();
-    let (ax, ay, az) = actor.absolute_location();
-    let (pitch, yaw, roll) = actor.relative_rotation();
-    let (xscale, yscale, zscale) = actor.relative_scale();
-    Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, xscale, yscale, zscale }
-}
-fn get_current_map() -> RefunctMap {
+fn get_current_map(original: bool) -> RefunctMap {
     UeScope::with(|scope| {
+        fn actor_list_to_element_list<'a, T, F>(scope: &'a UeScope, level: &LevelWrapper<'a>, list: &[ObjectIndex<T>], element_type: ElementType, get_orig_size: F) -> Vec<Element>
+        where
+            T: UeObjectWrapperType,
+            T::UeObjectWrapper<'a>: Deref<Target = ActorWrapper<'a>>,
+            F: Fn(&ActorWrapper<'a>, ElementIndex) -> (f32, f32, f32),
+        {
+            list.iter().enumerate().map(|(element_index, actor)| {
+                let actor = scope.get(actor);
+                let actor = actor.deref();
+                let index = ElementIndex { cluster_index: level.level_index(), element_type, element_index };
+                let (sizex, sizey, sizez) = get_orig_size(actor, index);
+                let (_, _, lz) = level.relative_location();
+                let (ax, ay, az) = actor.absolute_location();
+                let (pitch, yaw, roll) = actor.relative_rotation();
+                let (xscale, yscale, zscale) = actor.relative_scale();
+                Element { x: ax, y: ay, z: az - lz, pitch, yaw, roll, sizex: sizex * xscale, sizey: sizey * yscale, sizez: sizez * zscale }
+            }).collect()
+        }
+        let get_orig_size: Box<for<'a> fn(&'a ActorWrapper, _) -> _> = if original {
+            Box::new(|actor: &ActorWrapper, _index: ElementIndex| {
+                let (_, _, _, hx, hy, hz) = actor.get_actor_bounds();
+                (hx*2., hy*2., hz*2.)
+            })
+        } else {
+            Box::new(move |_actor: &ActorWrapper, index: ElementIndex| {
+                let e = get_indexed_element(&*ORIGINAL_MAP, index);
+                (e.sizex, e.sizey, e.sizez)
+            })
+        };
         let levels = LEVELS.lock().unwrap();
         let clusters: Vec<Cluster> = levels.iter()
             .map(|level| {
                 let level_wrapper = scope.get(level.level);
                 Cluster {
-                    platforms: level.platforms.iter().map(|p| aactor_to_element(&level_wrapper, &*scope.get(p))).collect(),
-                    cubes: level.cubes.iter().map(|c| aactor_to_element(&level_wrapper, &*scope.get(c))).collect(),
-                    buttons: level.buttons.iter().map(|b| aactor_to_element(&level_wrapper, &*scope.get(b))).collect(),
-                    lifts: level.lifts.iter().map(|l| aactor_to_element(&level_wrapper, &*scope.get(l))).collect(),
-                    pipes: level.pipes.iter().map(|pi| aactor_to_element(&level_wrapper, &*scope.get(pi))).collect(),
-                    springpads: level.springpads.iter().map(|pa| aactor_to_element(&level_wrapper, &*scope.get(pa))).collect(),
+                    platforms: actor_list_to_element_list(scope, &level_wrapper, &level.platforms, ElementType::Platform, &get_orig_size),
+                    cubes: actor_list_to_element_list(scope, &level_wrapper, &level.cubes, ElementType::Cube, &get_orig_size),
+                    buttons: actor_list_to_element_list(scope, &level_wrapper, &level.buttons, ElementType::Button, &get_orig_size),
+                    lifts: actor_list_to_element_list(scope, &level_wrapper, &level.lifts, ElementType::Lift, &get_orig_size),
+                    pipes: actor_list_to_element_list(scope, &level_wrapper, &level.pipes, ElementType::Pipe, &get_orig_size),
+                    springpads: actor_list_to_element_list(scope, &level_wrapper, &level.springpads, ElementType::Springpad, &get_orig_size),
                 }
             }).collect();
         RefunctMap { version: 1, clusters }
@@ -1092,52 +1114,48 @@ fn get_current_map() -> RefunctMap {
 
 #[rebo::function("Tas::current_map")]
 fn current_map() -> RefunctMap {
-    get_current_map()
+    // initialize original map
+    let _ = &*ORIGINAL_MAP;
+    get_current_map(false)
 }
-static ORIGINAL_MAP: Mutex<Option<RefunctMap>> = Mutex::new(None);
+static ORIGINAL_MAP: Lazy<RefunctMap> = Lazy::new(|| get_current_map(true));
 #[rebo::function("Tas::original_map")]
 fn original_map() -> RefunctMap {
-    ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map()).clone()
+    ORIGINAL_MAP.clone()
 }
 #[rebo::function("Tas::apply_map")]
 fn apply_map(map: RefunctMap) {
     // initialize before we change anything
-    ORIGINAL_MAP.lock().unwrap().get_or_insert_with(|| get_current_map());
+    let _ = &*ORIGINAL_MAP;
 
-    fn set_element(level: &LevelWrapper, lp: &ActorWrapper, cp: Element, apply_rel_offset: bool) {
+    fn set_element(scope: &UeScope, levels: &[Level], target_map: &RefunctMap, index: ElementIndex) {
+        let level = scope.get(levels[index.cluster_index].level);
+        let actor = get_indexed_actor(scope, levels, index);
+        let target = get_indexed_element(target_map, index);
+        let orig = get_indexed_element(&*ORIGINAL_MAP, index);
         let (_, _, rz) = level.relative_location();
         let (rpitch, ryaw, rroll) = level.relative_rotation();
-        if apply_rel_offset {
-            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z + rz }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
-        } else {
-            USceneComponent::set_world_location_and_rotation(FVector { x: cp.x, y: cp.y, z: cp.z }, FRotator { pitch: cp.pitch + rpitch, yaw: cp.yaw + ryaw, roll: cp.roll + rroll }, lp);
-        }
-        USceneComponent::set_world_scale(FVector { x: cp.xscale, y: cp.yscale, z: cp.zscale }, lp);
+        let target_location = FVector { x: target.x, y: target.y, z: target.z + rz };
+        let target_rotation = FRotator { pitch: target.pitch + rpitch, yaw: target.yaw + ryaw, roll: target.roll + rroll };
+        let target_scale = FVector { x: target.sizex / orig.sizex, y: target.sizey / orig.sizey, z: target.sizez / orig.sizez };
+        USceneComponent::set_world_location_and_rotation(target_location, target_rotation, &actor);
+        USceneComponent::set_world_scale(target_scale, &actor);
     }
 
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
         assert_eq!(map.clusters.len(), levels.len());
-        for (level, cluster) in levels.iter().zip(map.clusters) {
-            let level_wrapper = scope.get(level.level);
-            for (actor, element) in level.platforms.iter().zip(cluster.platforms) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
-            for (actor, element) in level.cubes.iter().zip(cluster.cubes) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
-            for (actor, element) in level.buttons.iter().zip(cluster.buttons) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
-            for (actor, element) in level.lifts.iter().zip(cluster.lifts) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
-            for (actor, element) in level.pipes.iter().zip(cluster.pipes) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
-            for (actor, element) in level.springpads.iter().zip(cluster.springpads) {
-                set_element(&level_wrapper, &*scope.get(actor), element, true);
-            }
+        for (cluster_index, (level, cluster)) in levels.iter().zip(&map.clusters).enumerate() {
+            level.platforms.iter().zip(&cluster.platforms).enumerate().map(|i| (i.0, ElementType::Platform))
+                .chain(level.cubes.iter().zip(&cluster.cubes).enumerate().map(|i| (i.0, ElementType::Cube)))
+                .chain(level.buttons.iter().zip(&cluster.buttons).enumerate().map(|i| (i.0, ElementType::Button)))
+                .chain(level.lifts.iter().zip(&cluster.lifts).enumerate().map(|i| (i.0, ElementType::Lift)))
+                .chain(level.pipes.iter().zip(&cluster.pipes).enumerate().map(|i| (i.0, ElementType::Pipe)))
+                .chain(level.springpads.iter().zip(&cluster.springpads).enumerate().map(|i| (i.0, ElementType::Springpad)))
+                .for_each(|(element_index, element_type)| {
+                    let index = ElementIndex { cluster_index, element_type, element_index };
+                    set_element(scope, &levels, &map, index);
+                });
         }
     })
 }
@@ -1148,7 +1166,18 @@ fn get_looked_at_element_index() -> Option<ElementIndex> {
     try_find_element_index(intersected as *mut UObject)
 }
 
-fn get_indexed_element<'a>(levels: &[Level], scope: &'a UeScope, index: ElementIndex) -> ActorWrapper<'a> {
+fn get_indexed_element(map: &RefunctMap, index: ElementIndex) -> Element {
+    let level = &map.clusters[index.cluster_index];
+    match index.element_type {
+        ElementType::Platform => level.platforms[index.element_index].clone(),
+        ElementType::Cube => level.cubes[index.element_index].clone(),
+        ElementType::Button => level.buttons[index.element_index].clone(),
+        ElementType::Lift => level.lifts[index.element_index].clone(),
+        ElementType::Pipe => level.pipes[index.element_index].clone(),
+        ElementType::Springpad => level.springpads[index.element_index].clone(),
+    }
+}
+fn get_indexed_actor<'a>(scope: &'a UeScope, levels: &[Level], index: ElementIndex) -> ActorWrapper<'a> {
     let level = &levels[index.cluster_index];
     match index.element_type {
         ElementType::Platform => (*scope.get(level.platforms[index.element_index])).clone(),
@@ -1174,7 +1203,7 @@ struct Bounds {
 fn get_element_bounds(index: ElementIndex) -> Bounds {
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
-        let actor = get_indexed_element(&levels, scope, index);
+        let actor = get_indexed_actor(scope, &levels, index);
         let (originx, originy, originz, extentx, extenty, extentz) = actor.get_actor_bounds();
         Bounds { originx, originy, originz, extentx, extenty, extentz }
     })

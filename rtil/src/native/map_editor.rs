@@ -303,7 +303,7 @@ impl<'a> SpringpadWrapper<'a> {
     }
 }
 
-#[derive(Debug, Clone, rebo::ExternalType)]
+#[derive(Debug, Copy, Clone, rebo::ExternalType)]
 pub enum ElementType {
     Platform,
     Cube,
@@ -313,7 +313,7 @@ pub enum ElementType {
     Springpad,
 }
 
-#[derive(Debug, Clone, rebo::ExternalType)]
+#[derive(Debug, Clone, Copy, rebo::ExternalType)]
 pub struct ElementIndex {
     pub cluster_index: usize,
     pub element_type: ElementType,

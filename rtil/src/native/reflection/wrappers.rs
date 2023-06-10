@@ -32,7 +32,7 @@ impl<'a> BoolValueWrapper<'a> {
         assert!(!ptr.is_null());
         BoolValueWrapper { ptr, bool_property, _marker: PhantomData }
     }
-    pub fn get(&self) -> bool {
+    pub fn _get(&self) -> bool {
         unsafe {
             let ptr = self.ptr.offset(self.bool_property.byte_offset() as isize);
             if self.bool_property.field_mask() == 0xff {
@@ -870,7 +870,7 @@ impl<'a> ActorWrapper<'a> {
             relative_location.get_field("Z").unwrap(),
         )
     }
-    pub fn set_relative_location(&self, x: f32, y: f32, z: f32) {
+    pub fn _set_relative_location(&self, x: f32, y: f32, z: f32) {
         let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
         let relative_location: StructValueWrapper = root_component.get_field("RelativeLocation").unwrap();
         relative_location.get_field("X").unwrap::<&Cell<f32>>().set(x);
@@ -886,7 +886,7 @@ impl<'a> ActorWrapper<'a> {
             relative_rotation.get_field("Roll").unwrap(),
         )
     }
-    pub fn set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
+    pub fn _set_relative_rotation(&self, pitch: f32, yaw: f32, roll: f32) {
         let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
         let relative_rotation: StructValueWrapper = root_component.get_field("RelativeRotation").unwrap();
         relative_rotation.get_field("Pitch").unwrap::<&Cell<f32>>().set(pitch);
@@ -902,14 +902,14 @@ impl<'a> ActorWrapper<'a> {
             relative_scale.get_field("Z").unwrap(),
         )
     }
-    pub fn set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
+    pub fn _set_relative_scale(&self, xscale: f32, yscale: f32, zscale: f32) {
         let root_component: ObjectWrapper = self.get_field("RootComponent").unwrap();
         let relative_scale: StructValueWrapper = root_component.get_field("RelativeScale3D").unwrap();
         relative_scale.get_field("X").unwrap::<&Cell<f32>>().set(xscale);
         relative_scale.get_field("Y").unwrap::<&Cell<f32>>().set(yscale);
         relative_scale.get_field("Z").unwrap::<&Cell<f32>>().set(zscale);
     }
-    /// origin x,y,z, size x,y,z
+    /// origin x,y,z, half-size x,y,z
     pub fn get_actor_bounds(&self) -> (f32, f32, f32, f32, f32, f32) {
         let get_actor_bounds = self.class().find_function("GetActorBounds").unwrap();
         let args = get_actor_bounds.create_argument_struct();
