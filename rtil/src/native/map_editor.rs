@@ -55,9 +55,15 @@ impl<'a> LevelWrapper<'a> {
     pub fn level_index(&self) -> usize {
         self.base.get_field("LevelIndex").unwrap::<i32>().try_into().unwrap()
     }
-    pub fn _source_location(&self) -> (f32, f32, f32) {
+    pub fn source_location(&self) -> (f32, f32, f32) {
         let loc = self.base.get_field("SourcePosition").unwrap::<StructValueWrapper>();
         (loc.get_field("X").unwrap(), loc.get_field("Y").unwrap(), loc.get_field("Z").unwrap())
+    }
+    pub fn set_source_location(&self, x: f32, y: f32, z: f32) {
+        let loc = self.base.get_field("SourcePosition").unwrap::<StructValueWrapper>();
+        loc.get_field("X").unwrap::<&Cell<f32>>().set(x);
+        loc.get_field("Y").unwrap::<&Cell<f32>>().set(y);
+        loc.get_field("Z").unwrap::<&Cell<f32>>().set(z);
     }
     pub fn platforms(&self) -> impl Iterator<Item = PlatformWrapper<'a>> + '_ {
         self.base.get_field("FertileLands").unwrap::<ArrayWrapper<'_, _>>()
@@ -83,7 +89,7 @@ impl<'a> LevelWrapper<'a> {
         let array = self.base.get_field("Buttons").unwrap::<ArrayWrapper<'_, _>>();
         array.get(index)
     }
-    pub fn _speed(&self) -> f32 {
+    pub fn speed(&self) -> f32 {
         self.base.get_field("Speed").unwrap()
     }
     pub fn set_speed(&self, speed: f32) {

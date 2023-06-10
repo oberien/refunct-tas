@@ -975,7 +975,9 @@ fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
     RefunctMap {
         version: 1,
         clusters: map.clusters.into_iter().enumerate().map(|(cluster_index, cluster)| Cluster {
-            platforms: cluster.platforms.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Platform, element_index })).collect(),
+            z: orig.clusters[cluster_index].z,
+            rise_speed: orig.clusters[cluster_index].rise_speed,
+            platforms: cluster.platforms.into_iter().enumerate().map(|(element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Platform, element_index })).collect(),
             cubes: cluster.cubes.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Cube, element_index })).collect(),
             buttons: cluster.buttons.into_iter().enumerate().map(| (element_index, e)| migrate_element(&orig, e, ElementIndex { cluster_index, element_type: ElementType::Button, element_index })).collect(),
             lifts: orig.clusters[cluster_index].lifts.clone(),
@@ -986,12 +988,14 @@ fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
-struct RefunctMap {
+pub struct RefunctMap {
     version: u32,
     clusters: Vec<Cluster>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
 struct Cluster {
+    z: f32,
+    rise_speed: f32,
     platforms: Vec<Element>,
     cubes: Vec<Element>,
     buttons: Vec<Element>,
@@ -1100,6 +1104,8 @@ fn get_current_map(original: bool) -> RefunctMap {
             .map(|level| {
                 let level_wrapper = scope.get(level.level);
                 Cluster {
+                    z: level_wrapper.source_location().2,
+                    rise_speed: level_wrapper.speed(),
                     platforms: actor_list_to_element_list(scope, &level_wrapper, &level.platforms, ElementType::Platform, &get_orig_size),
                     cubes: actor_list_to_element_list(scope, &level_wrapper, &level.cubes, ElementType::Cube, &get_orig_size),
                     buttons: actor_list_to_element_list(scope, &level_wrapper, &level.buttons, ElementType::Button, &get_orig_size),
@@ -1118,13 +1124,12 @@ fn current_map() -> RefunctMap {
     let _ = &*ORIGINAL_MAP;
     get_current_map(false)
 }
-static ORIGINAL_MAP: Lazy<RefunctMap> = Lazy::new(|| get_current_map(true));
+pub static ORIGINAL_MAP: Lazy<RefunctMap> = Lazy::new(|| get_current_map(true));
 #[rebo::function("Tas::original_map")]
 fn original_map() -> RefunctMap {
     ORIGINAL_MAP.clone()
 }
-#[rebo::function("Tas::apply_map")]
-fn apply_map(map: RefunctMap) {
+pub fn apply_map_internal(map: &RefunctMap) {
     // initialize before we change anything
     let _ = &*ORIGINAL_MAP;
 
@@ -1146,6 +1151,10 @@ fn apply_map(map: RefunctMap) {
         let levels = LEVELS.lock().unwrap();
         assert_eq!(map.clusters.len(), levels.len());
         for (cluster_index, (level, cluster)) in levels.iter().zip(&map.clusters).enumerate() {
+            let level_wrapper = scope.get(level.level);
+            let (rx, ry, _) = level_wrapper.source_location();
+            level_wrapper.set_source_location(rx, ry, cluster.z);
+            level_wrapper.set_speed(cluster.rise_speed);
             level.platforms.iter().zip(&cluster.platforms).enumerate().map(|i| (i.0, ElementType::Platform))
                 .chain(level.cubes.iter().zip(&cluster.cubes).enumerate().map(|i| (i.0, ElementType::Cube)))
                 .chain(level.buttons.iter().zip(&cluster.buttons).enumerate().map(|i| (i.0, ElementType::Button)))
@@ -1158,6 +1167,10 @@ fn apply_map(map: RefunctMap) {
                 });
         }
     })
+}
+#[rebo::function("Tas::apply_map")]
+fn apply_map(map: RefunctMap) {
+    apply_map_internal(&map)
 }
 
 #[rebo::function("Tas::get_looked_at_element_index")]

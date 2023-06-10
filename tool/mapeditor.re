@@ -135,11 +135,29 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l/pi/s<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1 or 5pi1 or 25s1)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster> or <cluster>pl/b/p/l/pi/s<num>, ex: 1 or 14pl2 or 25s1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
             onclick: fn(input: string) {
+                // check if it's just one number -> edit cluster
+                match input.parse_int() {
+                    Result::Ok(cluster_index) => {
+                        let cluster = match MAP_EDITOR_STATE.map.clusters.get(cluster_index) {
+                            Option::Some(cluster) => cluster,
+                            Option::None => {
+                                MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: no such cluster exists)";
+                                return
+                            }
+                        };
+                        leave_ui();
+                        enter_ui(create_map_editor_cluster_ui(cluster, cluster_index));
+                        return
+                    },
+                    Result::Err(err) => (),
+                }
+
+                // handle element
                 let indexes = input.find_matches("\\d+");
                 MAP_EDITOR_INPUT_LABEL.text = "Input";
                 if indexes.len() != 2 {
@@ -197,17 +215,51 @@ fn create_map_editor_input_ui() -> Ui {
     ))
 }
 
+fn create_map_editor_cluster_ui(mut cluster: Cluster, cluster_index: int) -> Ui {
+    static mut MAP_EDITOR_CLUSTER_Z_LABEL = Text { text: "Initial Z" };
+    static mut MAP_EDITOR_CLUSTER_SPEED_LABEL = Text { text: "Rise Speed" };
+    Ui::new(f"Map Editor - Edit Cluster {cluster_index + 1}", List::of(
+        UiElement::Input(Input {
+            label: MAP_EDITOR_CLUSTER_Z_LABEL,
+            input: f"{cluster.z:.1}",
+            onclick: fn(input: string) { submit_map_editor() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_CLUSTER_Z_LABEL.text = "Initial Z";
+                match input.parse_float() {
+                    Result::Ok(num) => cluster.z = num,
+                    Result::Err(e) => MAP_EDITOR_CLUSTER_Z_LABEL.text = f"Initial Z (invalid value)",
+                }
+            },
+        }),
+        UiElement::Input(Input {
+            label: MAP_EDITOR_CLUSTER_SPEED_LABEL,
+            input: f"{cluster.rise_speed:.1}",
+            onclick: fn(input: string) { submit_map_editor() },
+            onchange: fn(input: string) {
+                MAP_EDITOR_CLUSTER_SPEED_LABEL.text = "Rise Speed";
+                match input.parse_float() {
+                    Result::Ok(num) => cluster.rise_speed = num,
+                    Result::Err(e) => MAP_EDITOR_CLUSTER_SPEED_LABEL.text = f"Rise Speed (invalid value)",
+                }
+            },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) {
+                MAP_EDITOR_CLUSTER_Z_LABEL.text = "Initial Z";
+                MAP_EDITOR_CLUSTER_SPEED_LABEL.text = "Rise Speed";
+                leave_ui();
+            },
+        }),
+    ))
+}
+
+fn submit_map_editor() {
+    Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
+    Tas::apply_map(MAP_EDITOR_STATE.map);
+};
+
 fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selected: int) -> Ui {
-    let submit = fn() {
-        let selected = match UI_STACK.last() {
-            Option::Some(ui) => ui.selected,
-            Option::None => panic("we are currently in a UI"),
-        };
-        Tas::save_map(MAP_EDITOR_STATE.map_name, MAP_EDITOR_STATE.map);
-        leave_ui();
-        Tas::apply_map(MAP_EDITOR_STATE.map);
-        enter_ui(create_map_editor_element_ui(element, index, selected));
-    };
     static mut MAP_EDITOR_X_LABEL = Text { text: "X" };
     static mut MAP_EDITOR_Y_LABEL = Text { text: "Y" };
     static mut MAP_EDITOR_Z_LABEL = Text { text: "Z" };
@@ -237,7 +289,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 element.x = loc.x - bounds.extentx;
                 element.y = loc.y - bounds.extenty;
                 element.z = (loc.z - 89.15) - bounds.extentz * 2.;
-                submit();
+                submit_map_editor();
             },
         }),
         UiElement::Button(UiButton {
@@ -247,13 +299,13 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 element.pitch = rot.pitch;
                 element.yaw = rot.yaw;
                 element.roll = rot.roll;
-                submit();
+                submit_map_editor();
             },
         }),
         UiElement::Input(Input {
             label: MAP_EDITOR_X_LABEL,
             input: f"{element.x:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_X_LABEL.text = "X";
                 match input.parse_float() {
@@ -265,7 +317,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_Y_LABEL,
             input: f"{element.y:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_Y_LABEL.text = "Y";
                 match input.parse_float() {
@@ -277,7 +329,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_Z_LABEL,
             input: f"{element.z:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_Z_LABEL.text = "Z";
                 match input.parse_float() {
@@ -289,7 +341,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_PITCH_LABEL,
             input: f"{element.pitch:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_PITCH_LABEL.text = "Pitch";
                 match input.parse_float() {
@@ -301,7 +353,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_YAW_LABEL,
             input: f"{element.yaw:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_YAW_LABEL.text = "Yaw";
                 match input.parse_float() {
@@ -313,7 +365,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_ROLL_LABEL,
             input: f"{element.roll:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_ROLL_LABEL.text = "Roll";
                 match input.parse_float() {
@@ -325,7 +377,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_SIZEX_LABEL,
             input: f"{element.sizex:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_SIZEX_LABEL.text = "SizeX";
                 match input.parse_float() {
@@ -337,7 +389,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_SIZEY_LABEL,
             input: f"{element.sizey:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_SIZEY_LABEL.text = "SizeY";
                 match input.parse_float() {
@@ -349,7 +401,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
         UiElement::Input(Input {
             label: MAP_EDITOR_SIZEZ_LABEL,
             input: f"{element.sizez:.1}",
-            onclick: fn(input: string) { submit() },
+            onclick: fn(input: string) { submit_map_editor() },
             onchange: fn(input: string) {
                 MAP_EDITOR_SIZEZ_LABEL.text = "SizeZ";
                 match input.parse_float() {
@@ -381,7 +433,7 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                 element.sizex = original_element.sizex;
                 element.sizey = original_element.sizey;
                 element.sizez = original_element.sizez;
-                submit();
+                submit_map_editor();
             },
         }),
         UiElement::Button(UiButton {

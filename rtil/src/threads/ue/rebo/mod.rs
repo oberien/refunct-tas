@@ -204,6 +204,7 @@ fn cleanup_after_rebo() {
         FSlateApplication::release_key(key, key as u32, false);
     }
     hook_fslateapplication_onkeyup();
+    rebo_init::apply_map_internal(&rebo_init::ORIGINAL_MAP);
     state.rebo_stream_tx.send(ReboToStream::MiDone).unwrap();
     log!("Cleanup finished.");
 }
