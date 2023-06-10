@@ -132,7 +132,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster>pl/b/p/l/pi/s<num>, ex: 14pl2 or 2b1 or 4c1 or 9l1 or 5pi1 or 25s1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
@@ -226,9 +226,9 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
                     ElementType::Lift => Tas::get_element_bounds(index),
                     ElementType::Pipe => Bounds { originx: 0., originy: 0., originz: 0., extentx: 0., extenty: 0., extentz: 0. },
                     ElementType::Springpad => {
-                        let mut bnds = Tas::get_element_bounds(index);
-                        bnds.extentz -= 112.;
-                        bnds
+                        let mut bounds = Tas::get_element_bounds(index);
+                        bounds.extentz -= 112.;
+                        bounds
                     },
                 };
                 element.x = loc.x - bounds.extentx;
