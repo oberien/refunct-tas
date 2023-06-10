@@ -117,9 +117,11 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
         Option::Some(ui) => ui.onkey(key, chr),
         Option::None => (),
     }
-    // don't trigger key events while in the menu
-    if UI_STACK.len() == 1 {
-        for comp in CURRENT_COMPONENTS {
+    for comp in CURRENT_COMPONENTS {
+        let on_key_down_always = comp.on_key_down_always;
+        on_key_down_always(key, is_repeat);
+        // don't trigger key events while in the menu
+        if UI_STACK.len() == 1 {
             let on_key_down = comp.on_key_down;
             on_key_down(key, is_repeat);
         }
@@ -136,9 +138,11 @@ fn on_key_up(key_code: int, character_code: int, is_repeat: bool) {
     } else if key.to_small() == KEY_RIGHT_CTRL.to_small() {
         RCTRL_PRESSED = false;
     }
-    // don't trigger key events while in the menu
-    if UI_STACK.len() == 1 {
-        for comp in CURRENT_COMPONENTS {
+    for comp in CURRENT_COMPONENTS {
+        let on_key_up_always = comp.on_key_up_always;
+        on_key_up_always(key);
+        // don't trigger key events while in the menu
+        if UI_STACK.len() == 1 {
             let on_key_up = comp.on_key_up;
             on_key_up(key);
         }

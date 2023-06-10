@@ -40,7 +40,9 @@ static MAP_EDITOR_COMPONENT = Component {
             enter_ui(create_map_editor_element_ui(element, index, 0));
         }
     },
+    on_key_down_always: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key: KeyCode) {},
+    on_key_up_always: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() {},
     on_resolution_change: fn() {},

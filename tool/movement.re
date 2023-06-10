@@ -114,11 +114,7 @@ static MOVEMENT_COMPONENT = Component {
     on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key_code: KeyCode, is_repeat: bool) {
         let key = key_code.to_small();
-        if key == KEY_LEFT_SHIFT.to_small() {
-            MOVEMENT_STATE.fly_state = FlyState::Down;
-        } else if key == KEY_SPACE.to_small() {
-            MOVEMENT_STATE.fly_state = FlyState::Up;
-        } else if key == KEY_F.to_small() {
+        if key == KEY_F.to_small() {
             match MOVEMENT_STATE.enable_fly {
                 false => MOVEMENT_STATE.enable_fly = true,
                 true => {
@@ -128,13 +124,22 @@ static MOVEMENT_COMPONENT = Component {
             }
         }
     },
-    on_key_up: fn(key_code: KeyCode) {
-        let key = key_code.to_small();
+    on_key_down_always: fn(key: KeyCode, is_repeat: bool) {
+        let key = key.to_small();
+        if key == KEY_LEFT_SHIFT.to_small() {
+            MOVEMENT_STATE.fly_state = FlyState::Down;
+        } else if key == KEY_SPACE.to_small() {
+            MOVEMENT_STATE.fly_state = FlyState::Up;
+        }
+    },
+    on_key_up: fn(key_code: KeyCode) {},
+    on_key_up_always: fn(key: KeyCode) {
+        let key = key.to_small();
         if key == KEY_LEFT_SHIFT.to_small() && MOVEMENT_STATE.fly_state == FlyState::Down {
             MOVEMENT_STATE.fly_state = FlyState::None;
         } else if key == KEY_SPACE.to_small() && MOVEMENT_STATE.fly_state == FlyState::Up {
             MOVEMENT_STATE.fly_state = FlyState::None;
-        } 
+        }
     },
     on_mouse_move: fn(x: int, y: int) {},
     on_component_exit: fn() { MOVEMENT_STATE.enable_fly = false; },

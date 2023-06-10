@@ -32,7 +32,11 @@ struct Component {
     on_element_pressed: fn(ElementIndex),
     on_element_released: fn(ElementIndex),
     on_key_down: fn(KeyCode, bool),
+    /// triggered even when in the menu
+    on_key_down_always: fn(KeyCode, bool),
     on_key_up: fn(KeyCode),
+    /// triggered even when in the menu
+    on_key_up_always: fn(KeyCode),
     on_mouse_move: fn(int, int),
     on_component_exit: fn(),
     on_resolution_change: fn(),

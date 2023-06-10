@@ -197,6 +197,7 @@ static mut TAS_COMPONENT = Component {
             TAS_STATE.events.push(InputEvent::KeyPressed(key_code.large_value));
         }
     },
+    on_key_down_always: fn(key: KeyCode, is_repeat: bool) {},
     on_key_up: fn(key_code: KeyCode) {
         let key = key_code.to_small();
 
@@ -211,6 +212,7 @@ static mut TAS_COMPONENT = Component {
             TAS_STATE.events.push(InputEvent::KeyReleased(key_code.large_value));
         }
     },
+    on_key_up_always: fn(key: KeyCode) {},
     on_mouse_move: fn(x: int, y: int) {
         TAS_STATE.events.push(InputEvent::MouseMoved(x, y));
     },
