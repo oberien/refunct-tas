@@ -65,7 +65,6 @@ static PRACTICE_COMPONENT = Component {
     on_tick: fn() {},
     on_yield: fn() {},
     on_new_game: fn() {
-        CURRENT_PRACTICE_MAP = Tas::current_map();
         Tas::set_all_cluster_speeds(999999999.);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
@@ -75,7 +74,7 @@ static PRACTICE_COMPONENT = Component {
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         press_buttons_until(CURRENT_PRACTICE.button);
-        Tas::apply_map(CURRENT_PRACTICE_MAP);
+        Tas::set_all_cluster_speeds(700.);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
