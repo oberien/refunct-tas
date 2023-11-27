@@ -960,6 +960,12 @@ struct ElementV0 {
     zscale: f32,
 }
 
+// Changes since the last released map version:
+// - Cluster 25 pipe -> Cluster 24 pipe
+// - Cluster 25 springpad -> Cluster 24 springpad
+// - Cluster 24 springpad -> Cluster 25 springpad
+// - Cluster 26 springpad -> Cluster 25 springpad
+
 fn migrate_v0_to_v1(map: RefunctMapV0) -> RefunctMap {
     fn migrate_element(orig: &RefunctMap, e: ElementV0, index: ElementIndex) -> Element {
         let orig = get_indexed_element(orig, index);
