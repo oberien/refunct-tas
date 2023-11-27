@@ -420,7 +420,7 @@ pub fn init() {
                 "BP_TravelPipe_C_2" => 9,
                 "BP_Pipe4" => 18,
                 "BP_TravelPipe_C_1" => 18,
-                "BP_TravelPipe2_855" => 24,
+                "BP_TravelPipe2_855" => 23,
                 "BP_TravelPipe_1816" => 25,
                 name => unreachable!("Invalid pipe: {name:?}"),
             };
@@ -429,9 +429,9 @@ pub fn init() {
 
         for pad in &springpads {
             let level_index: usize = match pad.name().as_str() {
-                "BP_Jumppad_414" if pad.absolute_location().0 == 250. => 24,
-                "BP_Jumppad2_530" => 23,
-                "BP_Jumppad_414" if pad.absolute_location().0 == 2075. => 25,
+                "BP_Jumppad_414" if pad.absolute_location().0 == 250. => 23,
+                "BP_Jumppad2_530" => 24,
+                "BP_Jumppad_414" if pad.absolute_location().0 == 2075. => 24,
                 "BP_Jumppad_514" => 26,
                 name => unreachable!("Invalid pipe: {name:?}"),
             };
