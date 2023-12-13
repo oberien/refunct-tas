@@ -75,7 +75,7 @@ static PRACTICE_COMPONENT = Component {
     on_level_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         press_buttons_until(CURRENT_PRACTICE.button);
-        Tas::apply_map(CURRENT_PRACTICE_MAP);
+        Tas::apply_map_cluster_speeds(CURRENT_PRACTICE_MAP);
         Tas::set_rotation(CURRENT_PRACTICE.rotation);
         Tas::set_location(CURRENT_PRACTICE.location);
         Tas::set_velocity(Velocity { x: 0., y: 0., z: 0. });
