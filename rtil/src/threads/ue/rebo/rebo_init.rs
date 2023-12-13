@@ -1195,7 +1195,12 @@ pub fn apply_map_internal(map: &RefunctMap) {
         }
     })
 }
-pub fn apply_map_cluster_speeds_internal(map: &RefunctMap) {
+#[rebo::function("Tas::apply_map")]
+fn apply_map(map: RefunctMap) {
+    apply_map_internal(&map)
+}
+#[rebo::function("Tas::apply_map_cluster_speeds")]
+fn apply_map_cluster_speeds(map: RefunctMap) {
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
         assert_eq!(map.clusters.len(), levels.len());
@@ -1204,14 +1209,6 @@ pub fn apply_map_cluster_speeds_internal(map: &RefunctMap) {
             level_wrapper.set_speed(cluster.rise_speed);
         }
     })
-}
-#[rebo::function("Tas::apply_map")]
-fn apply_map(map: RefunctMap) {
-    apply_map_internal(&map)
-}
-#[rebo::function("Tas::apply_map_cluster_speeds")]
-fn apply_map_cluster_speeds(map: RefunctMap) {
-    apply_map_cluster_speeds_internal(&map);
 }
 #[rebo::function("Tas::get_looked_at_element_index")]
 fn get_looked_at_element_index() -> Option<ElementIndex> {
