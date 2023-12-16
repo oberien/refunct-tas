@@ -10,10 +10,9 @@ use serde_json::Value::Object;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
-use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
+use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME, UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE};
 use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
-use crate::native::linux::UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE;
 use crate::native::reflection::{AActor, UClass, UObject};
 
 pub enum APawn {}
