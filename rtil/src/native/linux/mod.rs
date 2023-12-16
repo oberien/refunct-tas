@@ -119,7 +119,7 @@ find! {
     FROTATOR_VECTOR, "^FRotator::Vector()",
     ALIFTBASE_ADDBASEDCHARACTER, "^ALiftBase::AddBasedCharacter(AMyCharacter*)",
     ALIFTBASE_REMOVEBASEDCHARACTER, "^ALiftBase::RemoveBasedCharacter(AMyCharacter*)",
-    AMYCHARACTER_UNDERWATERCHANGED, "^AMyCharacter::UnderwaterChanged(bool)",
+    UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE, "^UMaterialInstanceDynamic::SetScalarParameterValue(FName, float)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

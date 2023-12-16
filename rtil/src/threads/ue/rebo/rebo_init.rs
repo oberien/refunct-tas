@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
@@ -11,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, ObjectArrayWrapper, ArrayWrapper, BoolValueWrapper, StructValueWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -113,6 +114,26 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(disable_collision)
         .add_function(exit_water)
         .add_function(open_maps_folder)
+        .add_function(set_lighting_casts_shadows)
+        .add_function(enable_disable_sky_light)
+        .add_function(set_time_dilation)
+        .add_function(set_gravity)
+        .add_function(get_time_of_day)
+        .add_function(set_time_of_day)
+        .add_function(get_time_speed)
+        .add_function(set_time_speed)
+        .add_function(set_sky_light_brightness)
+        .add_function(set_sky_light_intensity)
+        .add_function(set_stars_brightness)
+        .add_function(set_fog_enabled)
+        .add_function(set_sun_color)
+        .add_function(set_cloud_color)
+        .add_function(set_zenith_color)
+        .add_function(set_reflection_render_scale)
+        .add_function(set_cloud_speed)
+        .add_function(set_outro_time_dilation)
+        .add_function(set_outro_dilated_duration)
+        .add_function(set_kill_z)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1281,4 +1302,192 @@ fn open_maps_folder() {
     if let Err(err) = opener::open(&map_path()) {
         log!("Error opening maps folder in file manager: {}", err);
     }
+}
+#[rebo::function("Tas::set_lighting_casts_shadows")]
+fn set_lighting_casts_shadows(value: bool) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+    let light_component = light.get_field("LightComponent").unwrap::<ObjectWrapper>();
+    let fun = light_component.class().find_function("SetCastShadows").unwrap();
+    let params = fun.create_argument_struct();
+    params.get_field("bNewValue").unwrap::<BoolValueWrapper>().set(value);
+    unsafe {
+        fun.call(light_component.as_ptr(), &params);
+    }
+}
+#[rebo::function("Tas::enable_disable_sky_light")]
+fn enable_disable_sky_light(value: bool) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+    let fun = light.class().find_function("SetEnabled").unwrap();
+    let params = fun.create_argument_struct();
+    params.get_field("bSetEnabled").unwrap::<BoolValueWrapper>().set(value);
+    unsafe {
+        fun.call(light.as_ptr(), &params);
+    }
+}
+#[rebo::function("Tas::set_time_dilation")]
+fn set_time_dilation(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+    let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+    let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+    world_settings.get_field("TimeDilation").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::set_gravity")]
+fn set_gravity(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+    let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+    let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+    world_settings.get_field("bWorldGravitySet").unwrap::<BoolValueWrapper>().set(true);
+    world_settings.get_field("WorldGravityZ").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::get_time_of_day")]
+fn get_time_of_day() -> f32 {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    return time_of_day.get_field("CurrentMinute").unwrap::<f32>();
+}
+#[rebo::function("Tas::set_time_of_day")]
+fn set_time_of_day(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    time_of_day.get_field("CurrentMinute").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::get_time_speed")]
+fn get_time_speed() -> f32 {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    return time_of_day.get_field("TimeSpeed").unwrap::<f32>();
+}
+#[rebo::function("Tas::set_time_speed")]
+fn set_time_speed(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    time_of_day.get_field("TimeSpeed").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::set_sky_light_brightness")]
+fn set_sky_light_brightness(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+    let fun = light.class().find_function("SetBrightness").unwrap();
+    let params = fun.create_argument_struct();
+    params.get_field("NewBrightness").unwrap::<&Cell<f32>>().set(value);
+    unsafe {
+        fun.call(light.as_ptr(), &params);
+    }
+}
+#[rebo::function("Tas::set_sky_light_intensity")]
+fn set_sky_light_intensity(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+    let light_component = light.get_field("LightComponent").unwrap::<ObjectWrapper>();
+    let fun = light_component.class().find_function("SetIntensity").unwrap();
+    let params = fun.create_argument_struct();
+    params.get_field("NewIntensity").unwrap::<&Cell<f32>>().set(value);
+    unsafe {
+        fun.call(light_component.as_ptr(), &params);
+    }
+}
+#[rebo::function("Tas::set_stars_brightness")]
+fn set_stars_brightness(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let stars_brightness = time_of_day.get_field("StarsBrightness").unwrap::<ObjectWrapper>();
+    let float_curves = stars_brightness.get_field("FloatCurve").unwrap::<StructValueWrapper>();
+    let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+    keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::set_fog_enabled")]
+fn set_fog_enabled(value: bool) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let fog = time_of_day.get_field("Fog").unwrap::<ObjectWrapper>();
+    let component = fog.get_field("Component").unwrap::<ObjectWrapper>();
+    if value {
+        component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.05);
+        component.get_field("DirectionalInscatteringExponent").unwrap::<&Cell<f32>>().set(0.);
+    } else {
+        component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.);
+        component.get_field("DirectionalInscatteringExponent").unwrap::<&Cell<f32>>().set(0.);
+    }
+}
+#[rebo::function("Tas::set_sun_color")]
+fn set_sun_color(red: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let sun_color = time_of_day.get_field("SunColor").unwrap::<ObjectWrapper>();
+    let float_curves = sun_color.get_field("FloatCurves").unwrap::<StructValueWrapper>();
+    let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+    keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(red);
+}
+#[rebo::function("Tas::set_cloud_color")]
+fn set_cloud_color(red: f32, green: f32, blue: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let sun_color = time_of_day.get_field("CloudColor").unwrap::<ObjectWrapper>();
+    let float_curves = sun_color.get_field("FloatCurves").unwrap::<StructValueWrapper>();
+    let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+    log!("KEYS LEN: {:?}", keys.len());
+    log!("RED KEY: {:?}", keys.get(0).unwrap().get_field("Value").unwrap::<f32>());
+    log!("GRN KEY: {:?}", keys.get(1).unwrap().get_field("Value").unwrap::<f32>());
+    log!("BLU KEY: {:?}", keys.get(2).unwrap().get_field("Value").unwrap::<f32>());
+    keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(red);
+    keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(green);
+    keys.get(2).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(blue);
+}
+
+#[rebo::function("Tas::set_zenith_color")]
+fn set_zenith_color(red: f32, green: f32, blue: f32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+    let sun_color = time_of_day.get_field("ZenithColor").unwrap::<ObjectWrapper>();
+    let float_curves = sun_color.get_field("FloatCurves").unwrap::<StructValueWrapper>();
+    let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+    keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(red);
+    keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(green);
+    keys.get(2).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(blue);
+}
+#[rebo::function("Tas::set_reflection_render_scale")]
+fn set_reflection_render_scale(value: i32) {
+    let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+    let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+    let water = world_references.get_field("Water").unwrap::<ObjectWrapper>();
+    let component = water.get_field("PlanarReflectionComponent").unwrap::<ObjectWrapper>();
+    component.get_field("ScreenPercentage").unwrap::<&Cell<i32>>().set(value);
+}
+#[rebo::function("Tas::set_cloud_speed")]
+fn set_cloud_speed(speed: f32) {
+    UWorld::set_cloud_speed(speed);
+}
+#[rebo::function("Tas::set_outro_time_dilation")]
+fn set_outro_time_dilation(dilation: f32) {
+    UWorld::set_outro_time_dilation(dilation);
+}
+#[rebo::function("Tas::set_outro_dilated_duration")]
+fn set_outro_dilated_duration(duration: f32) {
+    UWorld::set_outro_dilated_duration(duration);
+}
+#[rebo::function("Tas::set_kill_z")]
+fn set_kill_z(value: f32) {
+    let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+    let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+    let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+    world_settings.get_field("KillZ").unwrap::<&Cell<f32>>().set(value);
 }

@@ -100,6 +100,12 @@ fn create_misc_menu() -> Ui {
                 enter_ui(create_minimap_menu());
             }
         }),
+        UiElement::Button(UiButton {
+            label: Text { text: "World Options" },
+            onclick: fn(label: Text) {
+                enter_ui(create_world_options_menu());
+            }
+        }),
         UiElement::Input(Input {
             label: Text { text: "Teleport (x,y,z)" },
             input: "",

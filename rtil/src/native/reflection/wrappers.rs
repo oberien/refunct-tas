@@ -149,6 +149,7 @@ pub struct ObjectWrapper<'a> {
     object: *mut UObject,
     _marker: PhantomData<&'a mut UObject>,
 }
+#[derive(Debug)]
 pub enum ObjectWrapperType {}
 impl UeObjectWrapperType for ObjectWrapperType {
     type UeObjectWrapper<'a> = ObjectWrapper<'a>;

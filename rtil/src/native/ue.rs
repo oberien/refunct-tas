@@ -239,6 +239,11 @@ impl FName {
     }
 }
 
+enum EFindType {
+    FNAME_FIND,
+    FNAME_ADD,
+}
+
 impl<T: Into<FString>> From<T> for FName {
     fn from(s: T) -> FName {
         let s = s.into();

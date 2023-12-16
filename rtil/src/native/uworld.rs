@@ -1,19 +1,27 @@
-use std::ptr;
-use std::sync::atomic::Ordering;
-use crate::native::Args;
+use std::{mem, ptr};
+use std::borrow::Borrow;
+use std::cell::Cell;
+use std::sync::{OnceLock, atomic::Ordering};
+use crate::native::{Args, Level, LEVELS, LevelWrapper, LiftWrapper, ObjectIndex, ObjectWrapper, ObjectWrapperType, PipeWrapper, SpringpadWrapper, UeScope};
 
 #[cfg(unix)] use libc::{c_void, c_int};
+use serde::de::Unexpected::Option;
+use serde_json::Value::Object;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
 use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
 use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
+use crate::native::linux::UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE;
 use crate::native::reflection::{AActor, UClass, UObject};
 
 pub enum APawn {}
 pub enum UGameplayStatics {}
 pub(in crate::native) type ULevel = c_void;
+
+pub static CLOUDS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static JUMP6_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -114,7 +122,7 @@ impl UWorld {
         res != 0
     }
 
-    pub(in crate::native) fn get_global() -> *mut UWorld {
+    pub fn get_global() -> *mut UWorld {
         unsafe { *(GWORLD.load(Ordering::SeqCst) as *mut *mut UWorld)}
     }
 
@@ -158,9 +166,48 @@ impl UWorld {
             }
         }
     }
+
+    pub fn set_cloud_speed(speed: f32) {
+        UeScope::with(|scope| {
+            let object = scope.get(CLOUDS_INDEX.get().unwrap());
+            let fun: extern_fn!(fn( this: *const c_void, name: FName, value: f32 ))
+                = unsafe { mem::transmute(UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE.load(Ordering::SeqCst)) };
+            fun(object.as_ptr() as *const c_void, FName::from("Cloud speed"), speed);
+        })
+    }
+
+    pub fn set_outro_time_dilation(dilation: f32) {
+        UeScope::with(|scope| {
+            let object = scope.get(JUMP6_INDEX.get().unwrap());
+            object.get_field("OutroDilation").unwrap::<&Cell<f32>>().set(dilation);
+        })
+    }
+
+    pub fn set_outro_dilated_duration(duration: f32) {
+        UeScope::with(|scope| {
+            let object = scope.get(JUMP6_INDEX.get().unwrap());
+            object.get_field("OutroDilatedDuration").unwrap::<&Cell<f32>>().set(duration);
+        })
+    }
 }
 
 #[rtil_derive::hook_before(UUserWidget::AddToScreen)]
 fn add_to_screen(_args: &mut Args) {
     crate::threads::ue::add_to_screen();
+}
+
+pub fn init() {
+    UeScope::with(|scope| {
+        for item in scope.iter_global_object_array() {
+            let object = item.object();
+            let name = object.name();
+            let class_name = object.class().name();
+            if class_name == "MaterialInstanceDynamic" && name != "Default__MaterialInstanceDynamic" {
+                CLOUDS_INDEX.set(scope.object_index(&object)).unwrap();
+            }
+            if class_name == "jump6_C" && name != "Default__jump6_C" {
+                JUMP6_INDEX.set(scope.object_index(&object)).unwrap();
+            }
+        }
+    })
 }

@@ -78,6 +78,7 @@ pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
+    uworld::init();
     map_editor::init();
     slateapp::hook_fslateapplication_tick();
     slateapp::hook_fslateapplication_onkeydown();

@@ -15,6 +15,7 @@ include "multiplayer.re";
 include "movement.re";
 include "misc.re";
 include "mapeditor.re";
+include "world_options.re";
 
 static mut NEW_VERSION: Option<string> = Tas::new_version_string();
 
@@ -112,5 +113,7 @@ loop {
         }
     }
     Tas::show_hud();
+    Tas::set_time_speed(SETTINGS.sky_time_speed);
+    if SETTINGS.time_dilation != 1. { Tas::set_time_dilation(SETTINGS.time_dilation); }
     step_frame(tick_mode);
 }
