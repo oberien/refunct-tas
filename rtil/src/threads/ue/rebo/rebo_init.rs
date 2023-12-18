@@ -1272,5 +1272,5 @@ fn disable_collision() {
 
 #[rebo::function("Tas::exit_water")]
 fn exit_water() {
-    UWorld::exit_water();
+    AMyCharacter::exit_water();
 }

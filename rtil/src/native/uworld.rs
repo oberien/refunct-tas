@@ -6,7 +6,7 @@ use crate::native::Args;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
-use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME, AMYCHARACTER_UNDERWATERCHANGED};
+use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME};
 use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
 use crate::native::reflection::{AActor, UClass, UObject};
@@ -156,13 +156,6 @@ impl UWorld {
             if !destroyed {
                 log!("amycharacter {:p} not destroyed", my_character.as_ptr());
             }
-        }
-    }
-    pub fn exit_water() {
-        unsafe {
-            let fun: extern_fn!(fn(this: *mut AMyCharacterUE, value: bool))
-                = ::std::mem::transmute(AMYCHARACTER_UNDERWATERCHANGED.load(Ordering::SeqCst));
-            fun(AMyCharacter::get_player().as_ptr(), false);
         }
     }
 }
