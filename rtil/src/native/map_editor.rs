@@ -373,6 +373,9 @@ pub fn init() {
             // log!("{:?} {:?} ({object:p})", class_name, name);
             // print_children(1, object.class());
 
+            if class_name == "SoundMix" {
+                object.get_field("bApplyEQ").unwrap::<BoolValueWrapper>().set(false);
+            }
             if class_name == "BP_LevelRoot_C" && name != "Default__BP_LevelRoot_C" {
                 let level: LevelWrapper = object.upcast();
                 levels.push(Level {
