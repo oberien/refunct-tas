@@ -118,7 +118,7 @@ impl AMyCharacter {
             let fun: extern_fn!(fn(this: *mut AMyCharacterUE, value: bool))
                 = ::std::mem::transmute(AMYCHARACTER_UNDERWATERCHANGED.load(Ordering::SeqCst));
             fun(AMyCharacter::get_player().as_ptr(), false);
-            let obj = unsafe { ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject) };
+            let obj = ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject);
             let fun = obj.class().find_function("StopSwimEffect").unwrap();
             let params = fun.create_argument_struct();
             fun.call(obj.as_ptr(), &params);
