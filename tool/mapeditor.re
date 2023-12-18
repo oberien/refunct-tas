@@ -176,7 +176,7 @@ fn try_get_element(index: ElementIndex) -> Result<Element, TryGetElementError> {
 
 static mut MAP_EDITOR_INPUT_LABEL = Text { text: "Input" };
 fn create_map_editor_input_ui() -> Ui {
-    Ui::new("Map Editor - What do you want to modify? (format: <cluster> or <cluster>pl/b/p/l/pi/s<num>, ex: 1 or 14pl2 or 25s1)", List::of(
+    Ui::new("Map Editor - What do you want to modify? (format: <cluster> or <cluster>pl/b/c/l/pi/s<num>, ex: 1 or 14pl2 or 25s1)", List::of(
         UiElement::Input(Input {
             label: MAP_EDITOR_INPUT_LABEL,
             input: "",
@@ -221,7 +221,7 @@ fn create_map_editor_input_ui() -> Ui {
                 } else if input.contains("s") {
                     ElementType::Springpad
                 } else {
-                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / c / b / l / pi / s)";
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: must contain pl / b / c / l / pi / s)";
                     return
                 };
 
