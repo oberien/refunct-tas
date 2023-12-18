@@ -202,7 +202,7 @@ fn create_map_editor_input_ui() -> Ui {
                 // handle element
                 let indexes = input.find_matches("\\d+");
                 if indexes.len() != 2 {
-                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: need 2 numbers)";
+                    MAP_EDITOR_INPUT_LABEL.text = "Input (ERROR: need 1 or 2 numbers)";
                     return;
                 }
                 let cluster_index = indexes.get(0).unwrap().parse_int().unwrap() - 1;
