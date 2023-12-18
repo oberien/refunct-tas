@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject};
 use crate::native::reflection::UClass;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
@@ -118,6 +118,13 @@ impl AMyCharacter {
             let fun: extern_fn!(fn(this: *mut AMyCharacterUE, value: bool))
                 = ::std::mem::transmute(AMYCHARACTER_UNDERWATERCHANGED.load(Ordering::SeqCst));
             fun(AMyCharacter::get_player().as_ptr(), false);
+            let obj = unsafe { ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject) };
+            let fun = obj.class().find_function("StopSwimEffect").unwrap();
+            let params = fun.create_argument_struct();
+            fun.call(obj.as_ptr(), &params);
+            let fun = obj.class().find_function("StopFootstepEffect").unwrap();
+            let params = fun.create_argument_struct();
+            fun.call(obj.as_ptr(), &params);
         }
     }
 }

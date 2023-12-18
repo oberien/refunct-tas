@@ -90,6 +90,7 @@ static MOVEMENT_COMPONENT = Component {
     on_tick: fn() {
         if MOVEMENT_STATE.enable_fly {
             Tas::set_movement_mode(5);
+            Tas::exit_water();
             match MOVEMENT_STATE.fly_state {
                 FlyState::None => {
                     let vel = Tas::get_velocity();
