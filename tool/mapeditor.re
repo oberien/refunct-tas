@@ -37,7 +37,7 @@ static MAP_EDITOR_COMPONENT = Component {
     on_element_pressed: fn(index: ElementIndex) {},
     on_element_released: fn(index: ElementIndex) {},
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
-        if !MAP_EDITOR_STATE.mode == MapEditorMode::Edit {
+        if MAP_EDITOR_STATE.mode != MapEditorMode::Edit {
             return;
         }
         if key.to_small() == KEY_TAB.to_small() {
@@ -65,22 +65,12 @@ static MAP_EDITOR_COMPONENT = Component {
     on_menu_open: fn() {},
 };
 
-static mut MAP_EDITOR_EDIT_LABEL = Text { text: if MAP_EDITOR_STATE.mode != MapEditorMode::None { "Stop Map Editor" } else { "Edit Map" } };
-static mut MAP_EDITOR_PLAY_LABEL = Text { text: if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) { "Stop Map Editor" } else { "Play Map" } };
-
 fn create_map_editor_menu() -> Ui {
-    let edit_map_button = UiElement::Button(UiButton {
-       label: MAP_EDITOR_EDIT_LABEL,
-       onclick: fn(label: Text) {
-           if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
-               remove_component(MAP_EDITOR_COMPONENT);
-               remove_component(MOVEMENT_COMPONENT);
-               MAP_EDITOR_EDIT_LABEL.text = "Edit Map";
-               MAP_EDITOR_STATE.map = Tas::original_map();
-               Tas::apply_map(MAP_EDITOR_STATE.map);
-               MAP_EDITOR_STATE.mode = MapEditorMode::None;
-               leave_ui();
-           } else {
+    let list = List::new();
+    if MAP_EDITOR_STATE.mode == MapEditorMode::None {
+        list.push(UiElement::Button(UiButton {
+            label: Text { text: "Edit Map" },
+            onclick: fn(label: Text) {
                let map_list = Tas::list_maps();
                enter_ui(Ui::new_filechooser("Map to edit", map_list, fn(input: string) {
                    MAP_EDITOR_STATE.map_name = input;
@@ -90,7 +80,6 @@ fn create_map_editor_menu() -> Ui {
                    } else {
                        MAP_EDITOR_STATE.map = Tas::current_map();
                    };
-                   MAP_EDITOR_EDIT_LABEL.text = "Stop Map Editor";
                    add_component(MAP_EDITOR_COMPONENT);
                    add_component(MOVEMENT_COMPONENT);
                    MAP_EDITOR_STATE.mode = MapEditorMode::Edit;
@@ -99,20 +88,11 @@ fn create_map_editor_menu() -> Ui {
                    leave_ui();
                    leave_ui();
                }));
-           }
-       },
-    });
-
-    let play_map_button = UiElement::Button(UiButton {
-        label: MAP_EDITOR_PLAY_LABEL,
-        onclick: fn(label: Text) {
-            if CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
-                remove_component(MAP_EDITOR_COMPONENT);
-                remove_component(MOVEMENT_COMPONENT);
-                MAP_EDITOR_PLAY_LABEL.text = "Play Map";
-                MAP_EDITOR_STATE.map = Tas::original_map();
-                Tas::apply_map(MAP_EDITOR_STATE.map);
-            } else {
+            },
+        }));
+        list.push(UiElement::Button(UiButton {
+            label: Text { text: "Play Map" },
+            onclick: fn(label: Text) {
                 let map_list = Tas::list_maps();
                 enter_ui(Ui::new_filechooser("Map to play", map_list, fn(input: string) {
                     MAP_EDITOR_STATE.map_name = input;
@@ -122,7 +102,6 @@ fn create_map_editor_menu() -> Ui {
                     } else {
                         MAP_EDITOR_STATE.map = Tas::current_map();
                     };
-                    MAP_EDITOR_EDIT_LABEL.text = "Stop Map Editor";
                     add_component(MAP_EDITOR_COMPONENT);
                     MAP_EDITOR_STATE.mode = MapEditorMode::Play;
                     MOVEMENT_STATE.enable_fly = false;
@@ -130,11 +109,22 @@ fn create_map_editor_menu() -> Ui {
                     leave_ui();
                     leave_ui();
                 }));
-            }
-        },
-    });
-
-    let delete_map_button =  UiElement::Button(UiButton {
+            },
+        }));
+    } else {
+        list.push(UiElement::Button(UiButton {
+            label: Text { text: "Stop Map Editor" },
+            onclick: fn(label: Text) {
+               remove_component(MAP_EDITOR_COMPONENT);
+               remove_component(MOVEMENT_COMPONENT);
+               MAP_EDITOR_STATE.map = Tas::original_map();
+               Tas::apply_map(MAP_EDITOR_STATE.map);
+               MAP_EDITOR_STATE.mode = MapEditorMode::None;
+               leave_ui();
+            },
+        }));
+    }
+    list.push(UiElement::Button(UiButton {
         label: Text { text: "Delete Map" },
         onclick: fn(label: Text) {
             fn create_map_editor_delete_map_menu() -> Ui {
@@ -149,18 +139,12 @@ fn create_map_editor_menu() -> Ui {
             }
             enter_ui(create_map_editor_delete_map_menu());
         },
-    });
-
-    let back_button = UiElement::Button(UiButton {
+    }));
+    list.push(UiElement::Button(UiButton {
        label: Text { text: "Back" },
        onclick: fn(label: Text) { leave_ui() },
-    });
-
-    if MAP_EDITOR_STATE.mode == MapEditorMode::None {
-        return Ui::new("Map Editor", List::of(edit_map_button, play_map_button, delete_map_button, back_button))
-    } else {
-        return Ui::new("Map Editor", List::of(edit_map_button, delete_map_button, back_button))
-    }
+    }));
+    Ui::new("Map Editor", list)
 };
 
 enum TryGetElementError {
