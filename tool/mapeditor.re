@@ -1,7 +1,7 @@
 static mut MAP_EDITOR_STATE = MapEditorState {
     map_name: "",
     map: Tas::current_map(),
-    mode: MapEditorMode::None,
+    mode: MapEditorMode::Edit,
 };
 
 struct MapEditorState {
@@ -13,7 +13,6 @@ struct MapEditorState {
 enum MapEditorMode {
     Play,
     Edit,
-    None,
 }
 
 static MAP_EDITOR_COMPONENT = Component {
@@ -23,7 +22,6 @@ static MAP_EDITOR_COMPONENT = Component {
         match MAP_EDITOR_STATE.mode {
             MapEditorMode::Edit => f"{text}\nMap Editor - editing map {MAP_EDITOR_STATE.map_name:?}\n    <TAB> edit an element    <e> select looked-at element",
             MapEditorMode::Play => f"{text}\nMap Editor - playing map {MAP_EDITOR_STATE.map_name:?}",
-            MapEditorMode::None => f"{text}",
         }
      },
     draw_hud_always: fn() {},
@@ -67,7 +65,7 @@ static MAP_EDITOR_COMPONENT = Component {
 
 fn create_map_editor_menu() -> Ui {
     let list = List::new();
-    if MAP_EDITOR_STATE.mode == MapEditorMode::None {
+    if !CURRENT_COMPONENTS.contains(MAP_EDITOR_COMPONENT) {
         list.push(UiElement::Button(UiButton {
             label: Text { text: "Edit Map" },
             onclick: fn(label: Text) {
@@ -119,7 +117,6 @@ fn create_map_editor_menu() -> Ui {
                remove_component(MOVEMENT_COMPONENT);
                MAP_EDITOR_STATE.map = Tas::original_map();
                Tas::apply_map(MAP_EDITOR_STATE.map);
-               MAP_EDITOR_STATE.mode = MapEditorMode::None;
                leave_ui();
             },
         }));
