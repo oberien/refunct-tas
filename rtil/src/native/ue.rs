@@ -213,6 +213,13 @@ pub struct FName {
     pub number: UeU64,
 }
 
+#[repr(C)]
+#[allow(non_camel_case_types)]
+enum EFindName {
+    FNAME_FIND,
+    FNAME_ADD,
+}
+
 impl FName {
     #[allow(non_upper_case_globals)]
     pub const NAME_None: FName = FName { number: UeU64::new(0) };
@@ -237,9 +244,9 @@ impl<T: Into<FString>> From<T> for FName {
         let s = s.into();
         let mut name = FName::NAME_None;
         unsafe {
-            let fun: extern_fn!(fn(this: *mut FName, name: *const TCHAR, find_type: u64) -> u64)
+            let fun: extern_fn!(fn(this: *mut FName, name: *const TCHAR, find_type: EFindName) -> u64)
                 = mem::transmute(FNAME_FNAME.load(Ordering::SeqCst));
-            fun(&mut name as *mut FName, s.as_ptr(), 1);
+            fun(&mut name as *mut FName, s.as_ptr(), EFindName::FNAME_ADD);
         }
         name
     }
