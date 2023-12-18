@@ -110,6 +110,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(get_element_bounds)
         .add_function(enable_collision)
         .add_function(disable_collision)
+        .add_function(exit_water)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1267,4 +1268,9 @@ fn enable_collision() {
 #[rebo::function("Tas::disable_collision")]
 fn disable_collision() {
     AActor::set_actor_enable_collision(AMyCharacter::get_player().as_ptr() as *const AActor, false);
+}
+
+#[rebo::function("Tas::exit_water")]
+fn exit_water() {
+    UWorld::exit_water();
 }
