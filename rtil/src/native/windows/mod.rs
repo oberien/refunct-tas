@@ -165,6 +165,7 @@ find! {
     FROTATOR_VECTOR,
     ALIFTBASE_ADDBASEDCHARACTER,
     ALIFTBASE_REMOVEBASEDCHARACTER,
+    AMYCHARACTER_UNDERWATERCHANGED,
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

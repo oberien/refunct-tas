@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED};
 use crate::native::reflection::UClass;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
@@ -112,6 +112,13 @@ impl AMyCharacter {
         )) = unsafe { mem::transmute(APLAYERCONTROLLER_GETVIEWPORTSIZE.load(Ordering::SeqCst)) };
         fun(self.controller(), &mut width, &mut height);
         (width, height)
+    }
+    pub fn exit_water() {
+        unsafe {
+            let fun: extern_fn!(fn(this: *mut AMyCharacterUE, value: bool))
+                = ::std::mem::transmute(AMYCHARACTER_UNDERWATERCHANGED.load(Ordering::SeqCst));
+            fun(AMyCharacter::get_player().as_ptr(), false);
+        }
     }
 }
 
