@@ -18,6 +18,7 @@ use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator};
+use opener;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -111,6 +112,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(enable_collision)
         .add_function(disable_collision)
         .add_function(exit_water)
+        .add_function(open_maps_folder)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1273,4 +1275,10 @@ fn disable_collision() {
 #[rebo::function("Tas::exit_water")]
 fn exit_water() {
     AMyCharacter::exit_water();
+}
+#[rebo::function("Tas::open_maps_folder")]
+fn open_maps_folder() {
+    if let Err(err) = opener::open(map_path().as_os_str().to_str().unwrap()) {
+        log!("An error occurred: {}", err);
+    }
 }
