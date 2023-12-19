@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
@@ -1278,7 +1279,7 @@ fn exit_water() {
 }
 #[rebo::function("Tas::open_maps_folder")]
 fn open_maps_folder() {
-    if let Err(err) = opener::open(map_path().as_os_str().to_str().unwrap()) {
+    if let Err(err) = opener::open::<&OsStr>(map_path().as_path().as_ref()) {
         log!("An error occurred: {}", err);
     }
 }
