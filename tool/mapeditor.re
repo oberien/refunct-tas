@@ -138,6 +138,10 @@ fn create_map_editor_menu() -> Ui {
         },
     }));
     list.push(UiElement::Button(UiButton {
+       label: Text { text: "Open Maps Folder" },
+       onclick: fn(label: Text) { Tas::open_maps_folder(); },
+    }));
+    list.push(UiElement::Button(UiButton {
        label: Text { text: "Back" },
        onclick: fn(label: Text) { leave_ui() },
     }));

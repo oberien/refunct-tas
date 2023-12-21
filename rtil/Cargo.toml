@@ -5,6 +5,7 @@ authors = ["oberien <jaro.fietz@gmx.de>"]
 edition = "2021"
 
 [dependencies]
+opener = "0.6.1"
 protocol = { path = "../protocol" }
 once_cell = "1.9.0"
 byteorder = "1.4.3"
