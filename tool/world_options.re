@@ -216,6 +216,27 @@ fn create_world_options_menu() -> Ui {
                 }
             },
         }),
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Springpad Length" },
+            input: "",
+            onclick: fn(input: string) {
+                match input {
+                    "short" => Tas::set_springpad_length(Tas::current_map(), "short");
+                    "medium" => Tas::set_springpad_length(Tas::current_map(), "medium");
+                    "long" => Tas::set_springpad_length(Tas::current_map(), "long");
+                }
+            },
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(color) => {
+                        Tas::set_cloud_color(color, SETTINGS.cloud_color_green, SETTINGS.cloud_color_blue);
+                        SETTINGS.cloud_color_red = color;
+                        SETTINGS.store();
+                    },
+                    Result::Err(e) => {},
+                }
+            },
+        }),
 //        UiElement::FloatInput(FloatInput {
 //            label: Text { text: "Cloud Color Green" },
 //            input: f"{SETTINGS.cloud_color_green}",

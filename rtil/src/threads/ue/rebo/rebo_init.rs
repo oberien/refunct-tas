@@ -134,6 +134,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_outro_time_dilation)
         .add_function(set_outro_dilated_duration)
         .add_function(set_kill_z)
+        .add_function(set_springpad_length)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1490,4 +1491,25 @@ fn set_kill_z(value: f32) {
     let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
     let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
     world_settings.get_field("KillZ").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::set_springpad_length")]
+fn set_springpad_length(map: RefunctMap, length: String) {
+    UeScope::with(|scope| {
+        let levels = LEVELS.lock().unwrap();
+        for (cluster_index, (level, cluster)) in levels.iter().zip(map.clusters).enumerate() {
+            for springpad in level.springpads.iter() {
+                let foo = scope.get(springpad);
+                let thingy = foo.as_ptr() as *mut UObject;
+                let launch_animation = foo.get_field("LaunchAnimation").unwrap::<ObjectWrapper>();
+                let timeline = launch_animation.get_field("TheTimeline").unwrap::<StructValueWrapper>();
+                let value = match length.as_str() {
+                    "short" => 0.1,
+                    "medium" => 0.25,
+                    "long" => 0.5,
+                    _ => unreachable!("Invalid length: {length:?}"),
+                };
+                timeline.get_field("Position").unwrap::<&Cell<f32>>().set(value);
+            }
+        }
+    })
 }

@@ -50,6 +50,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?Vector@FRotator@@QBE?AUFVector@@XZ", "FROTATOR_VECTOR"),
     ("?AddBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_ADDBASEDCHARACTER"),
     ("?RemoveBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_REMOVEBASEDCHARACTER"),
+    ("?UnderwaterChanged@AMyCharacter@@QAEX_N@Z","AMYCHARACTER_UNDERWATERCHANGED"),
     ("?SetScalarParameterValue@UMaterialInstanceDynamic@@QAEXVFName@@M@Z", "UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE"),
 ];
 
