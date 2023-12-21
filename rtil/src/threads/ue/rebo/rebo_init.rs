@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
