@@ -27,7 +27,7 @@ mod tick;
 mod app;
 mod memory;
 mod hud;
-mod uworld;
+pub mod uworld;
 mod level_state;
 mod gameinstance;
 mod platform_misc;
@@ -36,6 +36,7 @@ mod gameusersettings;
 mod reflection;
 mod map_editor;
 mod kismet_system_library;
+pub mod engine;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -70,6 +71,7 @@ pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
 pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
+pub use self::engine::*;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.

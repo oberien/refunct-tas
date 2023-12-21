@@ -12,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, ObjectArrayWrapper, ArrayWrapper, BoolValueWrapper, StructValueWrapper};
+use crate::native::{engine, AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, ObjectArrayWrapper, ArrayWrapper, BoolValueWrapper, StructValueWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -134,6 +134,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_outro_time_dilation)
         .add_function(set_outro_dilated_duration)
         .add_function(set_kill_z)
+        .add_function(set_gamma)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1490,4 +1491,8 @@ fn set_kill_z(value: f32) {
     let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
     let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
     world_settings.get_field("KillZ").unwrap::<&Cell<f32>>().set(value);
+}
+#[rebo::function("Tas::set_gamma")]
+fn set_gamma(value: f32) {
+    engine::set_gamma(value);
 }

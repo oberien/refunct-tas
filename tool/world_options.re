@@ -9,6 +9,7 @@ Tas::set_sky_light_intensity(SETTINGS.sky_light_intensity);
 Tas::set_stars_brightness(SETTINGS.stars_brightness);
 Tas::set_fog_enabled(SETTINGS.fog_enabled);
 Tas::set_cloud_speed(SETTINGS.cloud_speed);
+Tas::set_gamma(SETTINGS.display_gamma);
 
 fn create_world_options_menu() -> Ui {
     let mut lighting_casts_shadows_button_text = Text { text: f"Lighting Casts Shadows: {SETTINGS.lighting_casts_shadows}" };
@@ -270,6 +271,21 @@ fn create_world_options_menu() -> Ui {
                     Result::Ok(scale) => {
                         Tas::set_reflection_render_scale(scale);
                         SETTINGS.reflection_render_scale = scale;
+                        SETTINGS.store();
+                    },
+                    Result::Err(e) => {},
+                }
+            },
+        }),
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Display Gamma" },
+            input: f"{SETTINGS.display_gamma}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(gamma) => {
+                        Tas::set_gamma(gamma);
+                        SETTINGS.display_gamma = gamma;
                         SETTINGS.store();
                     },
                     Result::Err(e) => {},

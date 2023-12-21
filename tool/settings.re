@@ -119,6 +119,7 @@ struct Settings {
     cloud_speed: float,
     fog_enabled: bool,
     reflection_render_scale: int,
+    display_gamma: float,
 }
 static mut SETTINGS = Settings::load();
 
@@ -196,6 +197,7 @@ impl Settings {
             cloud_speed: get_float("cloud_speed", 2.),
             fog_enabled: get_bool("fog_enabled", true),
             reflection_render_scale: get_int("reflection_render_scale", 100),
+            display_gamma: get_float("display_gamma", 2.2),
         }
     }
 
@@ -231,6 +233,7 @@ impl Settings {
         map.insert("cloud_speed", f"{SETTINGS.cloud_speed}");
         map.insert("fog_enabled", f"{SETTINGS.fog_enabled}");
         map.insert("reflection_render_scale", f"{SETTINGS.reflection_render_scale}");
+        map.insert("display_gamma", f"{SETTINGS.display_gamma}");
         Tas::store_settings(map);
     }
 

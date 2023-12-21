@@ -21,6 +21,7 @@ pub(in crate::native) type ULevel = c_void;
 
 pub static CLOUDS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static JUMP6_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static ENGINE_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -206,6 +207,9 @@ pub fn init() {
             }
             if class_name == "jump6_C" && name != "Default__jump6_C" {
                 JUMP6_INDEX.set(scope.object_index(&object)).unwrap();
+            }
+            if class_name == "GameEngine" && name != "Default__GameEngine" {
+                ENGINE_INDEX.set(scope.object_index(&object)).unwrap();
             }
         }
     })
