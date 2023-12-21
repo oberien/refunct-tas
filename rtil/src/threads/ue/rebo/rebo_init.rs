@@ -1279,7 +1279,7 @@ fn exit_water() {
 }
 #[rebo::function("Tas::open_maps_folder")]
 fn open_maps_folder() {
-    if let Err(err) = opener::open::<&OsStr>(map_path().as_path().as_ref()) {
+    if let Err(err) = opener::open(&map_path()) {
         log!("An error occurred: {}", err);
     }
 }
