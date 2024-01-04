@@ -71,7 +71,7 @@ pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
 pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
-pub use self::engine::*;
+pub use self::engine::UEngine;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.

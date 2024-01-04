@@ -1,20 +1,29 @@
 Tas::set_reflection_render_scale(SETTINGS.reflection_render_scale);
 Tas::set_lighting_casts_shadows(SETTINGS.lighting_casts_shadows);
-Tas::enable_disable_sky_light(SETTINGS.sky_light_enabled);
+Tas::enable_sky_light(SETTINGS.sky_light_enabled);
 Tas::set_time_dilation(SETTINGS.time_dilation);
 Tas::set_gravity(SETTINGS.gravity);
-Tas::set_time_speed(SETTINGS.sky_time_speed);
+Tas::set_time_of_day(SETTINGS.time_of_day);
+Tas::set_sky_time_speed(SETTINGS.sky_time_speed);
 Tas::set_sky_light_brightness(SETTINGS.sky_light_brightness);
 Tas::set_sky_light_intensity(SETTINGS.sky_light_intensity);
 Tas::set_stars_brightness(SETTINGS.stars_brightness);
-Tas::set_fog_enabled(SETTINGS.fog_enabled);
+Tas::enable_fog(SETTINGS.fog_enabled);
 Tas::set_cloud_speed(SETTINGS.cloud_speed);
 Tas::set_gamma(SETTINGS.display_gamma);
+Tas::set_kill_z(SETTINGS.kill_z);
+Tas::set_cloud_color(SETTINGS.cloud_color_red, SETTINGS.cloud_color_green, SETTINGS.cloud_color_blue);
+Tas::set_outro_dilated_duration(SETTINGS.outro_dilated_duration);
+Tas::set_outro_time_dilation(SETTINGS.outro_time_dilation);
+Tas::set_sun_redness(SETTINGS.sun_redness);
+Tas::set_show_stars_all_the_time(SETTINGS.show_stars_all_the_time, SETTINGS.stars_brightness);
+Tas::set_screen_percentage(SETTINGS.screen_percentage);
 
 fn create_world_options_menu() -> Ui {
     let mut lighting_casts_shadows_button_text = Text { text: f"Lighting Casts Shadows: {SETTINGS.lighting_casts_shadows}" };
     let mut sky_light_enabled_button_text = Text { text: f"Sky Light Enabled: {SETTINGS.sky_light_enabled}" };
     let mut fog_enabled_button_text = Text { text: f"Fog Enabled: {SETTINGS.fog_enabled}" };
+    let mut show_stars_all_the_time_button_text = Text { text: f"Show Stars All The Time: {SETTINGS.show_stars_all_the_time}" };
     Ui::new("World Options:", List::of(
         UiElement::Button(UiButton {
             label: lighting_casts_shadows_button_text,
@@ -28,16 +37,15 @@ fn create_world_options_menu() -> Ui {
             label: sky_light_enabled_button_text,
             onclick: fn(label: Text) {
                 SETTINGS.toggle_sky_light_enabled();
-                Tas::enable_disable_sky_light(SETTINGS.sky_light_enabled);
+                Tas::enable_sky_light(SETTINGS.sky_light_enabled);
                 sky_light_enabled_button_text.text = f"Sky Light Enabled: {SETTINGS.sky_light_enabled}";
             },
         }),
         UiElement::Button(UiButton {
             label: fog_enabled_button_text,
             onclick: fn(label: Text) {
-                let tod = Tas::get_time_of_day();
                 SETTINGS.toggle_fog_enabled();
-                Tas::set_fog_enabled(SETTINGS.fog_enabled);
+                Tas::enable_fog(SETTINGS.fog_enabled);
                 fog_enabled_button_text.text = f"Fog Enabled: {SETTINGS.fog_enabled}";
             },
         }),
@@ -121,7 +129,11 @@ fn create_world_options_menu() -> Ui {
             input: f"{Tas::get_time_of_day()}",
             onclick: fn(input: string) {
                 match input.parse_float() {
-                    Result::Ok(time) => { Tas::set_time_of_day(time); },
+                    Result::Ok(time) => {
+                        Tas::set_time_of_day(time);
+                        SETTINGS.time_of_day = time;
+                        SETTINGS.store();
+                    },
                     Result::Err(e) => {},
                 }
             },
@@ -134,7 +146,7 @@ fn create_world_options_menu() -> Ui {
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(speed) => {
-                        Tas::set_time_speed(speed);
+                        Tas::set_sky_time_speed(speed);
                         SETTINGS.sky_time_speed = speed;
                         SETTINGS.store();
                     },
@@ -187,23 +199,31 @@ fn create_world_options_menu() -> Ui {
                 }
             },
         }),
+        UiElement::Button(UiButton {
+            label: show_stars_all_the_time_button_text,
+            onclick: fn(label: Text) {
+                SETTINGS.toggle_show_stars_all_the_time();
+                Tas::set_show_stars_all_the_time(SETTINGS.show_stars_all_the_time, SETTINGS.stars_brightness);
+                show_stars_all_the_time_button_text.text = f"Show Stars All The Time: {SETTINGS.show_stars_all_the_time}";
+            },
+        }),
         UiElement::FloatInput(FloatInput {
             label: Text { text: "Sun Color Red" },
-            input: f"{SETTINGS.sun_color_red}",
+            input: f"{SETTINGS.sun_redness}",
             onclick: fn(input: string) {},
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(color) => {
-                        Tas::set_sun_color(color);
-                        SETTINGS.sun_color_red = color;
+                        Tas::set_sun_redness(color);
+                        SETTINGS.sun_redness = color;
                         SETTINGS.store();
                     },
                     Result::Err(e) => {},
                 }
             },
         }),
-        UiElement::FloatInput(FloatInput {
-            label: Text { text: "Cloud Color Red" },
+        UiElement::Input(Input {
+            label: Text { text: "Cloud Color Red (e.g. 0xFF or 255)" },
             input: f"{SETTINGS.cloud_color_red}",
             onclick: fn(input: string) {},
             onchange: fn(input: string) {
@@ -217,36 +237,7 @@ fn create_world_options_menu() -> Ui {
                 }
             },
         }),
-//        UiElement::FloatInput(FloatInput {
-//            label: Text { text: "Cloud Color Green" },
-//            input: f"{SETTINGS.cloud_color_green}",
-//            onclick: fn(input: string) {},
-//            onchange: fn(input: string) {
-//                match input.parse_float() {
-//                    Result::Ok(color) => {
-//                        Tas::set_cloud_color(SETTINGS.cloud_color_red, color, SETTINGS.cloud_color_blue);
-//                        SETTINGS.cloud_color_green = color;
-//                        SETTINGS.store();
-//                    },
-//                    Result::Err(e) => {},
-//                }
-//            },
-//        }),
-//        UiElement::FloatInput(FloatInput {
-//            label: Text { text: "Cloud Color Blue" },
-//            input: f"{SETTINGS.cloud_color_blue}",
-//            onclick: fn(input: string) {},
-//            onchange: fn(input: string) {
-//                match input.parse_float() {
-//                    Result::Ok(color) => {
-//                        Tas::set_cloud_color(SETTINGS.cloud_color_red, SETTINGS.cloud_color_green, color);
-//                        SETTINGS.cloud_color_blue = color;
-//                        SETTINGS.store();
-//                    },
-//                    Result::Err(e) => {},
-//                }
-//            },
-//        }),
+
         UiElement::FloatInput(FloatInput {
             label: Text { text: "Cloud Speed" },
             input: f"{SETTINGS.cloud_speed}",
@@ -286,6 +277,21 @@ fn create_world_options_menu() -> Ui {
                     Result::Ok(gamma) => {
                         Tas::set_gamma(gamma);
                         SETTINGS.display_gamma = gamma;
+                        SETTINGS.store();
+                    },
+                    Result::Err(e) => {},
+                }
+            },
+        }),
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Screen Percentage" },
+            input: f"{SETTINGS.screen_percentage}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(percentage) => {
+                        Tas::set_screen_percentage(percentage);
+                        SETTINGS.screen_percentage = percentage;
                         SETTINGS.store();
                     },
                     Result::Err(e) => {},

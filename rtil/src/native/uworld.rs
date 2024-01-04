@@ -2,11 +2,10 @@ use std::{mem, ptr};
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::sync::{OnceLock, atomic::Ordering};
-use crate::native::{Args, Level, LEVELS, LevelWrapper, LiftWrapper, ObjectIndex, ObjectWrapper, ObjectWrapperType, PipeWrapper, SpringpadWrapper, UeScope};
+use crate::native::{Args, ArrayWrapper, BoolValueWrapper, ObjectIndex, ObjectWrapper, ObjectWrapperType, StructValueWrapper, UeScope};
 
 #[cfg(unix)] use libc::{c_void, c_int};
-use serde::de::Unexpected::Option;
-use serde_json::Value::Object;
+use libc::time;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
@@ -167,6 +166,142 @@ impl UWorld {
         }
     }
 
+    pub fn set_sun_redness(redness: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let sun_color = time_of_day.get_field("SunColor").unwrap::<ObjectWrapper>();
+        let float_curves = sun_color.get_field("FloatCurves").unwrap::<StructValueWrapper>();
+        let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+        for key in keys.into_iter() {
+            key.get_field("Value").unwrap::<&Cell<f32>>().set(redness);
+        }
+    }
+
+    pub fn set_cloud_color(red: f32, green: f32, blue: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let sun_color = time_of_day.get_field("CloudColor").unwrap::<ObjectWrapper>();
+        let float_curves = sun_color.get_field("FloatCurves").unwrap::<StructValueWrapper>();
+        let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+        for key in keys.into_iter() {
+            key.get_field("Value").unwrap::<&Cell<f32>>().set(red);
+        }
+    }
+
+    pub fn set_stars_brightness(brightness: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let stars_brightness = time_of_day.get_field("StarsBrightness").unwrap::<ObjectWrapper>();
+        let float_curves = stars_brightness.get_field("FloatCurve").unwrap::<StructValueWrapper>();
+        let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+        keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness);
+        for key in keys.into_iter() {
+            log!("GOT KEY: {:?}", key.get_field("Value").unwrap::<f32>());
+        }
+    }
+    pub fn set_show_stars_appear_all_the_time(value: bool, brightness: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let stars_brightness = time_of_day.get_field("StarsBrightness").unwrap::<ObjectWrapper>();
+        let float_curves = stars_brightness.get_field("FloatCurve").unwrap::<StructValueWrapper>();
+        let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+        if value {
+            keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness);
+        } else {
+            keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(0.);
+        }
+    }
+
+    pub fn set_sky_light_intensity(intensity: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+        let light_component = light.get_field("LightComponent").unwrap::<ObjectWrapper>();
+        let fun = light_component.class().find_function("SetIntensity").unwrap();
+        let params = fun.create_argument_struct();
+        params.get_field("NewIntensity").unwrap::<&Cell<f32>>().set(intensity);
+        unsafe {
+            fun.call(light_component.as_ptr(), &params);
+        }
+    }
+    pub fn set_sky_light_brightness(brightness: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+        let fun = light.class().find_function("SetBrightness").unwrap();
+        let params = fun.create_argument_struct();
+        params.get_field("NewBrightness").unwrap::<&Cell<f32>>().set(brightness);
+        unsafe {
+            fun.call(light.as_ptr(), &params);
+        }
+    }
+    pub fn set_sky_time_speed(speed: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        time_of_day.get_field("TimeSpeed").unwrap::<&Cell<f32>>().set(speed);
+    }
+    pub fn enable_sky_light(value: bool) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+        let fun = light.class().find_function("SetEnabled").unwrap();
+        let params = fun.create_argument_struct();
+        params.get_field("bSetEnabled").unwrap::<BoolValueWrapper>().set(value);
+        unsafe {
+            fun.call(light.as_ptr(), &params);
+        }
+    }
+    pub fn set_lighting_casts_shadows(value: bool) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
+        let light_component = light.get_field("LightComponent").unwrap::<ObjectWrapper>();
+        let fun = light_component.class().find_function("SetCastShadows").unwrap();
+        let params = fun.create_argument_struct();
+        params.get_field("bNewValue").unwrap::<BoolValueWrapper>().set(value);
+        unsafe {
+            fun.call(light_component.as_ptr(), &params);
+        }
+    }
+
+    pub fn set_time_dilation(dilation: f32) {
+        let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+        let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+        let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+        world_settings.get_field("TimeDilation").unwrap::<&Cell<f32>>().set(dilation);
+    }
+
+    pub fn set_gravity(gravity: f32) {
+        let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+        let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+        let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+        world_settings.get_field("bWorldGravitySet").unwrap::<BoolValueWrapper>().set(true);
+        world_settings.get_field("WorldGravityZ").unwrap::<&Cell<f32>>().set(gravity);
+    }
+
+    pub fn get_time_of_day() -> f32 {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        return time_of_day.get_field("CurrentMinute").unwrap::<f32>();
+    }
+
+    pub fn set_time_of_day(time: f32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        time_of_day.get_field("CurrentMinute").unwrap::<&Cell<f32>>().set(time);
+    }
+
     pub fn set_cloud_speed(speed: f32) {
         UeScope::with(|scope| {
             let object = scope.get(CLOUDS_INDEX.get().unwrap());
@@ -188,6 +323,48 @@ impl UWorld {
             let object = scope.get(JUMP6_INDEX.get().unwrap());
             object.get_field("OutroDilatedDuration").unwrap::<&Cell<f32>>().set(duration);
         })
+    }
+
+    pub fn set_kill_z(kill_z: f32) {
+        let obj = unsafe { ObjectWrapper::new(UWorld::get_global() as *mut UObject) };
+        let persistent_level = obj.get_field("PersistentLevel").unwrap::<ObjectWrapper>();
+        let world_settings = persistent_level.get_field("WorldSettings").unwrap::<ObjectWrapper>();
+        world_settings.get_field("KillZ").unwrap::<&Cell<f32>>().set(kill_z);
+    }
+
+    pub fn set_reflection_render_scale(render_scale: i32) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let water = world_references.get_field("Water").unwrap::<ObjectWrapper>();
+        let component = water.get_field("PlanarReflectionComponent").unwrap::<ObjectWrapper>();
+        component.get_field("ScreenPercentage").unwrap::<&Cell<i32>>().set(render_scale);
+    }
+
+    pub fn enable_fog(value: bool) {
+        let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let fog = time_of_day.get_field("Fog").unwrap::<ObjectWrapper>();
+        let component = fog.get_field("Component").unwrap::<ObjectWrapper>();
+        if value {
+            component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.05);
+            component.get_field("DirectionalInscatteringExponent").unwrap::<&Cell<f32>>().set(0.);
+        } else {
+            component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.);
+            component.get_field("DirectionalInscatteringExponent").unwrap::<&Cell<f32>>().set(0.);
+        }
+    }
+
+    pub fn set_screen_percentage(percentage: f32) {
+        let game_instance = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
+        let world_references = game_instance.get_field("WorldReferences").unwrap::<ObjectWrapper>();
+        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
+        let volumes = time_of_day.get_field("Volumes").unwrap::<ArrayWrapper<ObjectWrapper>>();
+        for volume in volumes.into_iter() {
+            let settings = volume.get_field("Settings").unwrap::<StructValueWrapper>();
+            settings.get_field("bOverride_ScreenPercentage").unwrap::<BoolValueWrapper>().set(true);
+            settings.get_field("ScreenPercentage").unwrap::<&Cell<f32>>().set(percentage);
+        }
     }
 }
 
