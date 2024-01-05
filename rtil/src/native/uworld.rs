@@ -5,7 +5,6 @@ use std::sync::{OnceLock, atomic::Ordering};
 use crate::native::{Args, ArrayWrapper, BoolValueWrapper, ObjectIndex, ObjectWrapper, ObjectWrapperType, StructValueWrapper, UeScope};
 
 #[cfg(unix)] use libc::{c_void, c_int};
-use libc::time;
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
