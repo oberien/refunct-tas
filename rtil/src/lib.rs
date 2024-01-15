@@ -1,5 +1,4 @@
 #![feature(naked_functions)]
-#![feature(abi_thiscall)]
 
 #[cfg(all(target_os = "linux", not(target_pointer_width = "64")))]
 compile_error!("must be compiled as 64bit on Linux (e.g. with `--target x86_64-unknown-linux-gnu`");
