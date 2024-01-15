@@ -235,7 +235,7 @@ struct FUniqueNetIdSteam {
 
 #[rtil_derive::hook_once(AMyCharacter::Tick)]
 fn save(args: &mut Args) {
-    let this = unsafe { args.nth_integer_arg(0) } as *mut AMyCharacterUE;
+    let this = unsafe { args.with_this_pointer::<*mut AMyCharacterUE>() };
     CURRENT_PLAYER.store(this, Ordering::SeqCst);
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:p}", this);

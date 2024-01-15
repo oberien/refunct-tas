@@ -49,7 +49,7 @@ impl FSlateApplication {
 
 #[rtil_derive::hook_once(FSlateApplication::Tick)]
 fn save(args: &mut Args) {
-    let this: *mut FSlateApplication = unsafe { args.nth_integer_arg(0) } as *mut FSlateApplication;
+    let this: *mut FSlateApplication = unsafe { args.with_this_pointer::<*mut FSlateApplication>() };
     #[cfg(unix)] { SLATEAPP.store(this, Ordering::SeqCst); }
     #[cfg(windows)] {
         let this_addr = this as usize;
@@ -65,35 +65,36 @@ fn save(args: &mut Args) {
 
 #[rtil_derive::hook_before(FSlateApplication::OnKeyDown)]
 fn key_down(args: &mut Args) {
-    let key_code = unsafe { args.nth_integer_arg(1) } as i32;
-    let character_code = unsafe { args.nth_integer_arg(2) } as u32;
-    let is_repeat = (unsafe { args.nth_integer_arg(3) } & 0xff) != 0;
+    let (
+        _this, key_code, character_code, is_repeat
+    ) = unsafe { args.with_this_pointer::<(usize, i32, u32, usize)>() };
+    let is_repeat = *is_repeat & 0xff != 0;
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
-        crate::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
+        crate::threads::ue::key_down(*key_code & !(1<<30), *character_code, is_repeat);
     }
     #[cfg(windows)] {
-        crate::threads::ue::key_down(key_code, character_code, is_repeat);
+        crate::threads::ue::key_down(*key_code, *character_code, is_repeat);
     }
 }
 
 #[rtil_derive::hook_before(FSlateApplication::OnKeyUp)]
 fn key_up(args: &mut Args) {
-    let key_code = unsafe { args.nth_integer_arg(1) } as i32;
-    let character_code = unsafe { args.nth_integer_arg(2) } as u32;
-    let is_repeat = (unsafe { args.nth_integer_arg(3) } & 0xff) != 0;
+    let (
+        _this, key_code, character_code, is_repeat
+    ) = unsafe { args.with_this_pointer::<(usize, i32, u32, usize)>() };
+    let is_repeat = *is_repeat & 0xff != 0;
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
-        crate::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);
+        crate::threads::ue::key_up(*key_code & !(1 << 30), *character_code, is_repeat);
     }
     #[cfg(windows)] {
-        crate::threads::ue::key_up(key_code, character_code, is_repeat);
+        crate::threads::ue::key_up(*key_code, *character_code, is_repeat);
     }
 }
 
 #[rtil_derive::hook_before(FSlateApplication::OnRawMouseMove)]
 fn on_raw_mouse_move(args: &mut Args) {
-    let x = unsafe { args.nth_integer_arg(1) } as i32;
-    let y = unsafe { args.nth_integer_arg(2) } as i32;
-    crate::threads::ue::mouse_move(x, y);
+    let (_this, x, y) = unsafe { args.with_this_pointer::<(usize, i32, i32)>() };
+    crate::threads::ue::mouse_move(*x, *y);
 }

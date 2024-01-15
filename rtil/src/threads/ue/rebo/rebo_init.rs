@@ -1207,7 +1207,7 @@ fn apply_map_cluster_speeds(map: RefunctMap) {
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
         assert_eq!(map.clusters.len(), levels.len());
-        for (cluster_index, (level, cluster)) in levels.iter().zip(&map.clusters).enumerate() {
+        for (_cluster_index, (level, cluster)) in levels.iter().zip(&map.clusters).enumerate() {
             let level_wrapper = scope.get(level.level);
             level_wrapper.set_speed(cluster.rise_speed);
         }
