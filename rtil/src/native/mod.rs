@@ -95,6 +95,7 @@ pub fn init() {
 
 #[cfg(unix)]
 #[repr(C)]
+#[derive(Debug)]
 struct Args {
     // xmm7, xmm6, xmm5, xmm4, xmm3, xmm2, xmm1, xmm0
     xmm7_0: [u128; 8],
@@ -110,6 +111,7 @@ struct Args {
 const WINDOWS_MAX_ARG_NUM: usize = 0x60/::std::mem::size_of::<usize>();
 #[cfg(windows)]
 #[repr(C)]
+#[derive(Debug)]
 struct Args {
     _xmm7: u128,
     _xmm6: u128,
@@ -201,7 +203,9 @@ impl<T: 'static> AccessArgs for *mut T {
     type Pointer = *mut T;
     type Output<'a> = *mut T;
     unsafe fn access(args: &mut ArgsAccessWrapper<'_>) -> *mut T {
-        args.next_int_arg() as *mut _ as *mut T
+        // we get a pointer to the value in the args-struct, which is the
+        // actual pointer we want, so we need to deref
+        *(args.next_int_arg() as *mut _ as *mut *mut T)
     }
     unsafe fn convert_to_output<'a>(ptr: Self::Pointer) -> Self::Output<'a> {
         ptr
