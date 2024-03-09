@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
@@ -18,7 +17,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, engine::UEngine};
+use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine};
 use opener;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -126,14 +125,13 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_stars_brightness)
         .add_function(enable_fog)
         .add_function(set_sun_redness)
-        .add_function(set_cloud_color)
+        .add_function(set_cloud_redness)
         .add_function(set_reflection_render_scale)
         .add_function(set_cloud_speed)
         .add_function(set_outro_time_dilation)
         .add_function(set_outro_dilated_duration)
         .add_function(set_kill_z)
         .add_function(set_gamma)
-        .add_function(set_show_stars_all_the_time)
         .add_function(set_screen_percentage)
         .add_external_type(Location)
         .add_external_type(Rotation)
@@ -1341,8 +1339,8 @@ fn set_sky_light_intensity(intensity: f32) {
     UWorld::set_sky_light_intensity(intensity);
 }
 #[rebo::function("Tas::set_stars_brightness")]
-fn set_stars_brightness(brightness: f32) {
-    UWorld::set_stars_brightness(brightness);
+fn set_stars_brightness(day: bool, brightness: f32) {
+    UWorld::set_stars_brightness(day, brightness);
 }
 #[rebo::function("Tas::enable_fog")]
 fn enable_fog(value: bool) {
@@ -1352,9 +1350,9 @@ fn enable_fog(value: bool) {
 fn set_sun_redness(redness: f32) {
     UWorld::set_sun_redness(redness);
 }
-#[rebo::function("Tas::set_cloud_color")]
-fn set_cloud_color(red: f32, green: f32, blue: f32) {
-    UWorld::set_cloud_color(red, green, blue);
+#[rebo::function("Tas::set_cloud_redness")]
+fn set_cloud_redness(red: f32) {
+    UWorld::set_cloud_redness(red);
 }
 #[rebo::function("Tas::set_reflection_render_scale")]
 fn set_reflection_render_scale(render_scale: i32) {
@@ -1379,10 +1377,6 @@ fn set_kill_z(kill_z: f32) {
 #[rebo::function("Tas::set_gamma")]
 fn set_gamma(value: f32) {
     UEngine::set_gamma(value);
-}
-#[rebo::function("Tas::set_show_stars_all_the_time")]
-fn set_show_stars_all_the_time(value: bool, brightness: f32) {
-    UWorld::set_show_stars_appear_all_the_time(value, brightness);
 }
 #[rebo::function("Tas::set_screen_percentage")]
 fn set_screen_percentage(percentage: f32) {

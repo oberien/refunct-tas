@@ -112,16 +112,14 @@ struct Settings {
     sky_light_enabled: bool,
     sky_light_brightness: float,
     sky_light_intensity: float,
-    stars_brightness: float,
     sun_redness: float,
-    cloud_color_red: float,
-    cloud_color_green: float,
-    cloud_color_blue: float,
+    cloud_redness: float,
     cloud_speed: float,
     fog_enabled: bool,
     reflection_render_scale: int,
     display_gamma: float,
-    show_stars_all_the_time: bool,
+    day_stars_brightness: float,
+    night_stars_brightness: float,
     screen_percentage: float,
 }
 static mut SETTINGS = Settings::load();
@@ -193,16 +191,14 @@ impl Settings {
             sky_light_enabled: get_bool("sky_light_enabled", true),
             sky_light_brightness: get_float("sky_light_brightness", 3.141592741),
             sky_light_intensity: get_float("sky_light_intensity", 10.),
-            stars_brightness: get_float("stars_brightness", 1.),
             sun_redness: get_float("sun_redness", 0.21960786),
-            cloud_color_red: get_float("cloud_color_red", 0.23137257),
-            cloud_color_green: get_float("cloud_color_green", 0.3),
-            cloud_color_blue: get_float("cloud_color_blue", 0.8),
+            cloud_redness: get_float("cloud_redness", 0.23137257),
             cloud_speed: get_float("cloud_speed", 2.),
             fog_enabled: get_bool("fog_enabled", true),
             reflection_render_scale: get_int("reflection_render_scale", 100),
             display_gamma: get_float("display_gamma", 2.2),
-            show_stars_all_the_time: get_bool("show_stars_all_the_time", false),
+            day_stars_brightness: get_float("day_stars_brightness", 0.),
+            night_stars_brightness: get_float("night_stars_brightness", 5.),
             screen_percentage: get_float("screen_percentage", 100.),
         }
     }
@@ -232,16 +228,14 @@ impl Settings {
         map.insert("sky_light_enabled", f"{SETTINGS.sky_light_enabled}");
         map.insert("sky_light_brightness", f"{SETTINGS.sky_light_brightness}");
         map.insert("sky_light_intensity", f"{SETTINGS.sky_light_intensity}");
-        map.insert("stars_brightness", f"{SETTINGS.stars_brightness}");
         map.insert("sun_redness", f"{SETTINGS.sun_redness}");
-        map.insert("cloud_color_red", f"{SETTINGS.cloud_color_red}");
-        map.insert("cloud_color_green", f"{SETTINGS.cloud_color_green}");
-        map.insert("cloud_color_blue", f"{SETTINGS.cloud_color_blue}");
+        map.insert("cloud_redness", f"{SETTINGS.cloud_redness}");
         map.insert("cloud_speed", f"{SETTINGS.cloud_speed}");
         map.insert("fog_enabled", f"{SETTINGS.fog_enabled}");
         map.insert("reflection_render_scale", f"{SETTINGS.reflection_render_scale}");
         map.insert("display_gamma", f"{SETTINGS.display_gamma}");
-        map.insert("show_stars_all_the_time", f"{SETTINGS.show_stars_all_the_time}");
+        map.insert("day_stars_brightness", f"{SETTINGS.day_stars_brightness}");
+        map.insert("night_stars_brightness", f"{SETTINGS.night_stars_brightness}");
         map.insert("screen_percentage", f"{SETTINGS.screen_percentage}");
         Tas::store_settings(map);
     }
@@ -274,10 +268,6 @@ impl Settings {
     }
     fn toggle_fog_enabled(mut self) {
         self.fog_enabled = !self.fog_enabled;
-        self.store();
-    }
-    fn toggle_show_stars_all_the_time(mut self) {
-        self.show_stars_all_the_time = !self.show_stars_all_the_time;
         self.store();
     }
 }

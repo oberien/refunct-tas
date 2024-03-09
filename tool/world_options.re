@@ -7,23 +7,22 @@ Tas::set_time_of_day(SETTINGS.time_of_day);
 Tas::set_sky_time_speed(SETTINGS.sky_time_speed);
 Tas::set_sky_light_brightness(SETTINGS.sky_light_brightness);
 Tas::set_sky_light_intensity(SETTINGS.sky_light_intensity);
-Tas::set_stars_brightness(SETTINGS.stars_brightness);
+Tas::set_stars_brightness(true, SETTINGS.day_stars_brightness);
+Tas::set_stars_brightness(false, SETTINGS.night_stars_brightness);
 Tas::enable_fog(SETTINGS.fog_enabled);
 Tas::set_cloud_speed(SETTINGS.cloud_speed);
 Tas::set_gamma(SETTINGS.display_gamma);
 Tas::set_kill_z(SETTINGS.kill_z);
-Tas::set_cloud_color(SETTINGS.cloud_color_red, SETTINGS.cloud_color_green, SETTINGS.cloud_color_blue);
+Tas::set_cloud_redness(SETTINGS.cloud_redness);
 Tas::set_outro_dilated_duration(SETTINGS.outro_dilated_duration);
 Tas::set_outro_time_dilation(SETTINGS.outro_time_dilation);
 Tas::set_sun_redness(SETTINGS.sun_redness);
-Tas::set_show_stars_all_the_time(SETTINGS.show_stars_all_the_time, SETTINGS.stars_brightness);
 Tas::set_screen_percentage(SETTINGS.screen_percentage);
 
 fn create_world_options_menu() -> Ui {
     let mut lighting_casts_shadows_button_text = Text { text: f"Lighting Casts Shadows: {SETTINGS.lighting_casts_shadows}" };
     let mut sky_light_enabled_button_text = Text { text: f"Sky Light Enabled: {SETTINGS.sky_light_enabled}" };
     let mut fog_enabled_button_text = Text { text: f"Fog Enabled: {SETTINGS.fog_enabled}" };
-    let mut show_stars_all_the_time_button_text = Text { text: f"Show Stars All The Time: {SETTINGS.show_stars_all_the_time}" };
     Ui::new("World Options:", List::of(
         UiElement::Button(UiButton {
             label: lighting_casts_shadows_button_text,
@@ -185,26 +184,33 @@ fn create_world_options_menu() -> Ui {
             },
         }),
         UiElement::FloatInput(FloatInput {
-            label: Text { text: "Stars Brightness" },
-            input: f"{SETTINGS.stars_brightness}",
+            label: Text { text: "Day Stars Brightness" },
+            input: f"{SETTINGS.day_stars_brightness}",
             onclick: fn(input: string) {},
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(brightness) => {
-                        Tas::set_stars_brightness(brightness);
-                        SETTINGS.stars_brightness = brightness;
+                        Tas::set_stars_brightness(true, brightness);
+                        SETTINGS.day_stars_brightness = brightness;
                         SETTINGS.store();
                     },
                     Result::Err(e) => {},
                 }
             },
         }),
-        UiElement::Button(UiButton {
-            label: show_stars_all_the_time_button_text,
-            onclick: fn(label: Text) {
-                SETTINGS.toggle_show_stars_all_the_time();
-                Tas::set_show_stars_all_the_time(SETTINGS.show_stars_all_the_time, SETTINGS.stars_brightness);
-                show_stars_all_the_time_button_text.text = f"Show Stars All The Time: {SETTINGS.show_stars_all_the_time}";
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Night Stars Brightness" },
+            input: f"{SETTINGS.night_stars_brightness}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(brightness) => {
+                        Tas::set_stars_brightness(false, brightness);
+                        SETTINGS.night_stars_brightness = brightness;
+                        SETTINGS.store();
+                    },
+                    Result::Err(e) => {},
+                }
             },
         }),
         UiElement::FloatInput(FloatInput {
@@ -222,22 +228,21 @@ fn create_world_options_menu() -> Ui {
                 }
             },
         }),
-        UiElement::Input(Input {
-            label: Text { text: "Cloud Color Red (e.g. 0xFF or 255)" },
-            input: f"{SETTINGS.cloud_color_red}",
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Cloud Color Red" },
+            input: f"{SETTINGS.cloud_redness}",
             onclick: fn(input: string) {},
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(color) => {
-                        Tas::set_cloud_color(color, SETTINGS.cloud_color_green, SETTINGS.cloud_color_blue);
-                        SETTINGS.cloud_color_red = color;
+                        Tas::set_cloud_redness(color);
+                        SETTINGS.cloud_redness = color;
                         SETTINGS.store();
                     },
                     Result::Err(e) => {},
                 }
             },
         }),
-
         UiElement::FloatInput(FloatInput {
             label: Text { text: "Cloud Speed" },
             input: f"{SETTINGS.cloud_speed}",

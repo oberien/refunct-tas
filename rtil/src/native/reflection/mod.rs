@@ -112,6 +112,7 @@ impl_array_element_for_primitives! {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct UObject {
     // technically its UObject : UObjectBaseUtility : UObjectBase
     // UObjectBase is the only one of those three actually containing fields

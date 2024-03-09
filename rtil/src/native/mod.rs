@@ -36,7 +36,7 @@ mod gameusersettings;
 mod reflection;
 mod map_editor;
 mod kismet_system_library;
-pub mod engine;
+mod engine;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
