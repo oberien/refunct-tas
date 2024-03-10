@@ -24,7 +24,7 @@ impl<'a> DynamicValue<'a> {
         } else if StructValueWrapper::can_be_created_from(&self.prop) {
             self.unwrap::<StructValueWrapper<'a>>().get_field(name)
         } else {
-            panic!("{} does not have fields", &self.prop.property_kind())
+            panic!("{} does not have fields", self.prop.property_kind())
         }
     }
 

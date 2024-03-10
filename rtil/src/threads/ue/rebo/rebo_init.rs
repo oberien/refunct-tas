@@ -156,7 +156,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(ElementType)
         .add_external_type(ElementIndex)
         .add_external_type(Bounds)
-        .add_external_type(uworld::TimeOfDay)
+        .add_external_type(TimeOfDay)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
