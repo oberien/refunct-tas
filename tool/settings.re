@@ -101,6 +101,26 @@ struct Settings {
     player_color_blue: float,
     flying_up_down_velocity: float,
     flying_forward_backward_velocity: float,
+    lighting_casts_shadows: bool,
+    time_dilation: float,
+    gravity: float,
+    kill_z: float,
+    outro_dilated_duration: float,
+    outro_time_dilation: float,
+    time_of_day: float,
+    sky_time_speed: float,
+    sky_light_enabled: bool,
+    sky_light_brightness: float,
+    sky_light_intensity: float,
+    sun_redness: float,
+    cloud_redness: float,
+    cloud_speed: float,
+    fog_enabled: bool,
+    reflection_render_scale: int,
+    display_gamma: float,
+    day_stars_brightness: float,
+    night_stars_brightness: float,
+    screen_percentage: float,
 }
 static mut SETTINGS = Settings::load();
 
@@ -115,6 +135,12 @@ impl Settings {
 //                let num = list.get(0).unwrap().parse_int().unwrap();
 //                let decimal = list.get(1).unwrap().parse_int().unwrap();
 //                num.to_float() + decimal.to_float() / 10.
+                Option::None => default,
+            }
+        };
+        let get_int = fn(key: string, default: int) -> int {
+            match map.get(key) {
+                Option::Some(val) => val.parse_int().unwrap(),
                 Option::None => default,
             }
         };
@@ -154,6 +180,26 @@ impl Settings {
             player_color_blue: get_float("player_color_blue", 0.),
             flying_up_down_velocity: get_float("flying_up_down_velocity", 600.),
             flying_forward_backward_velocity: get_float("flying_forward_backward_velocity", 1200.),
+            lighting_casts_shadows: get_bool("lighting_casts_shadows", true),
+            time_dilation: get_float("time_dilation", 1.),
+            gravity: get_float("gravity", -980.),
+            kill_z: get_float("kill_z", -2550.),
+            outro_dilated_duration: get_float("outro_dilated_duration", 0.6),
+            outro_time_dilation: get_float("outro_time_dilation", 0.03),
+            time_of_day: get_float("time_of_day", 0.),
+            sky_time_speed: get_float("sky_time_speed", 120.),
+            sky_light_enabled: get_bool("sky_light_enabled", true),
+            sky_light_brightness: get_float("sky_light_brightness", 3.141592741),
+            sky_light_intensity: get_float("sky_light_intensity", 10.),
+            sun_redness: get_float("sun_redness", 0.21960786),
+            cloud_redness: get_float("cloud_redness", 0.23137257),
+            cloud_speed: get_float("cloud_speed", 2.),
+            fog_enabled: get_bool("fog_enabled", true),
+            reflection_render_scale: get_int("reflection_render_scale", 100),
+            display_gamma: get_float("display_gamma", 2.2),
+            day_stars_brightness: get_float("day_stars_brightness", 0.),
+            night_stars_brightness: get_float("night_stars_brightness", 5.),
+            screen_percentage: get_float("screen_percentage", 100.),
         }
     }
 
@@ -171,6 +217,26 @@ impl Settings {
         map.insert("player_color_blue", f"{SETTINGS.player_color_blue}");
         map.insert("flying_up_down_velocity", f"{SETTINGS.flying_up_down_velocity}");
         map.insert("flying_forward_backward_velocity", f"{SETTINGS.flying_forward_backward_velocity}");
+        map.insert("lighting_casts_shadows", f"{SETTINGS.lighting_casts_shadows}");
+        map.insert("time_dilation", f"{SETTINGS.time_dilation}");
+        map.insert("gravity", f"{SETTINGS.gravity}");
+        map.insert("kill_z", f"{SETTINGS.kill_z}");
+        map.insert("outro_dilated_duration", f"{SETTINGS.outro_dilated_duration}");
+        map.insert("outro_time_dilation", f"{SETTINGS.outro_time_dilation}");
+        map.insert("time_of_day", f"{SETTINGS.time_of_day}");
+        map.insert("sky_time_speed", f"{SETTINGS.sky_time_speed}");
+        map.insert("sky_light_enabled", f"{SETTINGS.sky_light_enabled}");
+        map.insert("sky_light_brightness", f"{SETTINGS.sky_light_brightness}");
+        map.insert("sky_light_intensity", f"{SETTINGS.sky_light_intensity}");
+        map.insert("sun_redness", f"{SETTINGS.sun_redness}");
+        map.insert("cloud_redness", f"{SETTINGS.cloud_redness}");
+        map.insert("cloud_speed", f"{SETTINGS.cloud_speed}");
+        map.insert("fog_enabled", f"{SETTINGS.fog_enabled}");
+        map.insert("reflection_render_scale", f"{SETTINGS.reflection_render_scale}");
+        map.insert("display_gamma", f"{SETTINGS.display_gamma}");
+        map.insert("day_stars_brightness", f"{SETTINGS.day_stars_brightness}");
+        map.insert("night_stars_brightness", f"{SETTINGS.night_stars_brightness}");
+        map.insert("screen_percentage", f"{SETTINGS.screen_percentage}");
         Tas::store_settings(map);
     }
 
@@ -190,6 +256,18 @@ impl Settings {
     }
     fn toggle_show_game_stats(mut self) {
         self.show_game_stats = !self.show_game_stats;
+        self.store();
+    }
+    fn toggle_lighting_casts_shadows(mut self) {
+        self.lighting_casts_shadows = !self.lighting_casts_shadows;
+        self.store();
+    }
+    fn toggle_sky_light_enabled(mut self) {
+        self.sky_light_enabled = !self.sky_light_enabled;
+        self.store();
+    }
+    fn toggle_fog_enabled(mut self) {
+        self.fog_enabled = !self.fog_enabled;
         self.store();
     }
 }

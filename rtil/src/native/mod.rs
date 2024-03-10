@@ -36,6 +36,7 @@ mod gameusersettings;
 mod reflection;
 mod map_editor;
 mod kismet_system_library;
+mod engine;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
@@ -62,7 +63,7 @@ pub use self::tick::{
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::{AMyHud, EBlendMode};
-pub use self::uworld::{APawn, UWorld, UGameplayStatics};
+pub use self::uworld::{APawn, UWorld, UGameplayStatics, TimeOfDay};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
@@ -70,6 +71,7 @@ pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
 pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
+pub use self::engine::UEngine;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.
@@ -78,6 +80,7 @@ pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 pub fn init() {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
+    uworld::init();
     map_editor::init();
     slateapp::hook_fslateapplication_tick();
     slateapp::hook_fslateapplication_onkeydown();

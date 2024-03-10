@@ -3,7 +3,7 @@ use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
 use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope, UObject};
-use crate::native::reflection::{ActorWrapper, AActor, UeObjectWrapper};
+use crate::native::reflection::{AActor, ActorWrapper, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<Level>> = Mutex::new(Vec::new());
 

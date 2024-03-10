@@ -51,6 +51,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?AddBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_ADDBASEDCHARACTER"),
     ("?RemoveBasedCharacter@ALiftBase@@QAEXPAVAMyCharacter@@@Z", "ALIFTBASE_REMOVEBASEDCHARACTER"),
     ("?UnderwaterChanged@AMyCharacter@@QAEX_N@Z","AMYCHARACTER_UNDERWATERCHANGED"),
+    ("?SetScalarParameterValue@UMaterialInstanceDynamic@@QAEXVFName@@M@Z", "UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE"),
 ];
 
 fn get_linux_level_pointer_path() -> String {

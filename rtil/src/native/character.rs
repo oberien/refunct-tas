@@ -173,7 +173,6 @@ impl USceneComponent {
     pub fn set_world_scale(scale: FVector, object: &ActorWrapper) {
         let root_component: ObjectWrapper = object.get_field("RootComponent").unwrap();
         let set_world_scale = root_component.class().find_function("SetWorldScale3D").unwrap();
-
         let params = set_world_scale.create_argument_struct();
         let s: StructValueWrapper = params.get_field("NewScale").unwrap();
         s.get_field("X").unwrap::<&Cell<f32>>().set(scale.x);

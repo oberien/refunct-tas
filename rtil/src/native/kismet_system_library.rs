@@ -47,8 +47,7 @@ impl KismetSystemLibrary {
 
 
             let character = ObjectWrapper::new(player.as_ptr() as *mut UObject);
-            let controller: ObjectWrapper = character.get_field("Controller").unwrap();
-            let camera: ObjectWrapper = controller.get_field("PlayerCameraManager").unwrap();
+            let camera: ObjectWrapper = character.get_field("Controller").field("PlayerCameraManager").unwrap();
             let get_camera_location = camera.class().find_function("GetCameraLocation").unwrap();
             let loc = get_camera_location.create_argument_struct();
             get_camera_location.call(camera.as_ptr(), &loc);

@@ -17,7 +17,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator};
+use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -113,6 +113,26 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(disable_collision)
         .add_function(exit_water)
         .add_function(open_maps_folder)
+        .add_function(set_lighting_casts_shadows)
+        .add_function(set_sky_light_enabled)
+        .add_function(set_time_dilation)
+        .add_function(set_gravity)
+        .add_function(get_time_of_day)
+        .add_function(set_time_of_day)
+        .add_function(set_sky_time_speed)
+        .add_function(set_sky_light_brightness)
+        .add_function(set_sky_light_intensity)
+        .add_function(set_stars_brightness)
+        .add_function(set_fog_enabled)
+        .add_function(set_sun_redness)
+        .add_function(set_cloud_redness)
+        .add_function(set_reflection_render_scale)
+        .add_function(set_cloud_speed)
+        .add_function(set_outro_time_dilation)
+        .add_function(set_outro_dilated_duration)
+        .add_function(set_kill_z)
+        .add_function(set_gamma)
+        .add_function(set_screen_percentage)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -135,6 +155,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(ElementType)
         .add_external_type(ElementIndex)
         .add_external_type(Bounds)
+        .add_external_type(TimeOfDay)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -1281,4 +1302,84 @@ fn open_maps_folder() {
     if let Err(err) = opener::open(&map_path()) {
         log!("Error opening maps folder in file manager: {}", err);
     }
+}
+#[rebo::function("Tas::set_lighting_casts_shadows")]
+fn set_lighting_casts_shadows(value: bool) {
+    UWorld::set_lighting_casts_shadows(value);
+}
+#[rebo::function("Tas::set_sky_light_enabled")]
+fn set_sky_light_enabled(enabled: bool) {
+    UWorld::set_sky_light_enabled(enabled);
+}
+#[rebo::function("Tas::set_time_dilation")]
+fn set_time_dilation(dilation: f32) {
+    UWorld::set_time_dilation(dilation);
+}
+#[rebo::function("Tas::set_gravity")]
+fn set_gravity(gravity: f32) {
+    UWorld::set_gravity(gravity);
+}
+#[rebo::function("Tas::get_time_of_day")]
+fn get_time_of_day() -> f32 {
+    UWorld::get_time_of_day()
+}
+#[rebo::function("Tas::set_time_of_day")]
+fn set_time_of_day(time: f32) {
+    UWorld::set_time_of_day(time);
+}
+#[rebo::function("Tas::set_sky_time_speed")]
+fn set_sky_time_speed(speed: f32) {
+    UWorld::set_sky_time_speed(speed);
+}
+#[rebo::function("Tas::set_sky_light_brightness")]
+fn set_sky_light_brightness(brightness: f32) {
+    UWorld::set_sky_light_brightness(brightness);
+}
+#[rebo::function("Tas::set_sky_light_intensity")]
+fn set_sky_light_intensity(intensity: f32) {
+    UWorld::set_sky_light_intensity(intensity);
+}
+#[rebo::function("Tas::set_stars_brightness")]
+fn set_stars_brightness(time_of_day: TimeOfDay, brightness: f32) {
+    UWorld::set_stars_brightness(time_of_day, brightness);
+}
+#[rebo::function("Tas::set_fog_enabled")]
+fn set_fog_enabled(enabled: bool) {
+    UWorld::set_fog_enabled(enabled);
+}
+#[rebo::function("Tas::set_sun_redness")]
+fn set_sun_redness(redness: f32) {
+    UWorld::set_sun_redness(redness);
+}
+#[rebo::function("Tas::set_cloud_redness")]
+fn set_cloud_redness(red: f32) {
+    UWorld::set_cloud_redness(red);
+}
+#[rebo::function("Tas::set_reflection_render_scale")]
+fn set_reflection_render_scale(render_scale: i32) {
+    UWorld::set_reflection_render_scale(render_scale);
+}
+#[rebo::function("Tas::set_cloud_speed")]
+fn set_cloud_speed(speed: f32) {
+    UWorld::set_cloud_speed(speed);
+}
+#[rebo::function("Tas::set_outro_time_dilation")]
+fn set_outro_time_dilation(dilation: f32) {
+    UWorld::set_outro_time_dilation(dilation);
+}
+#[rebo::function("Tas::set_outro_dilated_duration")]
+fn set_outro_dilated_duration(duration: f32) {
+    UWorld::set_outro_dilated_duration(duration);
+}
+#[rebo::function("Tas::set_kill_z")]
+fn set_kill_z(kill_z: f32) {
+    UWorld::set_kill_z(kill_z);
+}
+#[rebo::function("Tas::set_gamma")]
+fn set_gamma(value: f32) {
+    UEngine::set_gamma(value);
+}
+#[rebo::function("Tas::set_screen_percentage")]
+fn set_screen_percentage(percentage: f32) {
+    UWorld::set_screen_percentage(percentage);
 }
