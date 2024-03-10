@@ -11,7 +11,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, uworld};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -1309,8 +1309,8 @@ fn set_lighting_casts_shadows(value: bool) {
     UWorld::set_lighting_casts_shadows(value);
 }
 #[rebo::function("Tas::set_sky_light_enabled")]
-fn set_sky_light_enabled(value: bool) {
-    UWorld::set_sky_light_enabled(value);
+fn set_sky_light_enabled(enabled: bool) {
+    UWorld::set_sky_light_enabled(enabled);
 }
 #[rebo::function("Tas::set_time_dilation")]
 fn set_time_dilation(dilation: f32) {
@@ -1345,8 +1345,8 @@ fn set_stars_brightness(time_of_day: TimeOfDay, brightness: f32) {
     UWorld::set_stars_brightness(time_of_day, brightness);
 }
 #[rebo::function("Tas::set_fog_enabled")]
-fn set_fog_enabled(value: bool) {
-    UWorld::set_fog_enabled(value);
+fn set_fog_enabled(enabled: bool) {
+    UWorld::set_fog_enabled(enabled);
 }
 #[rebo::function("Tas::set_sun_redness")]
 fn set_sun_redness(redness: f32) {

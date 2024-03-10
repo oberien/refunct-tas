@@ -175,7 +175,8 @@ impl UWorld {
             .field("TimeOfDay")
             .field("SunColor")
             .field("FloatCurves")
-            .field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+            .field("Keys")
+            .unwrap::<ArrayWrapper<StructValueWrapper>>();
         for key in keys.into_iter() {
             key.get_field("Value").unwrap::<&Cell<f32>>().set(redness);
         }
@@ -187,7 +188,8 @@ impl UWorld {
             .field("TimeOfDay")
             .field("CloudColor")
             .field("FloatCurves")
-            .field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+            .field("Keys")
+            .unwrap::<ArrayWrapper<StructValueWrapper>>();
         for key in keys.into_iter() {
             key.get_field("Value").unwrap::<&Cell<f32>>().set(red);
         }
@@ -198,7 +200,8 @@ impl UWorld {
             .field("TimeOfDay")
             .field("StarsBrightness")
             .field("FloatCurve")
-            .field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
+            .field("Keys")
+            .unwrap::<ArrayWrapper<StructValueWrapper>>();
         match time {
             TimeOfDay::Day => keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
             TimeOfDay::Night => keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
@@ -223,7 +226,8 @@ impl UWorld {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         let light = obj.get_field("WorldReferences")
             .field("TimeOfDay")
-            .field("Light").unwrap::<ObjectWrapper>();
+            .field("Light")
+            .unwrap::<ObjectWrapper>();
         let fun = light.get_field("LightComponent").unwrap::<ObjectWrapper>()
             .class().find_function("SetIntensity").unwrap();
         let params = fun.create_argument_struct();
@@ -235,7 +239,8 @@ impl UWorld {
     pub fn set_sky_time_speed(speed: f32) {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         obj.get_field("WorldReferences")
-            .field("TimeOfDay").field("TimeSpeed")
+            .field("TimeOfDay")
+            .field("TimeSpeed")
             .unwrap::<&Cell<f32>>().set(speed);
     }
     pub fn set_sky_light_enabled(enabled: bool) {
@@ -271,7 +276,8 @@ impl UWorld {
         obj.get_field("PersistentLevel")
             .field("WorldSettings")
             .field("TimeDilation")
-            .unwrap::<&Cell<f32>>().set(dilation);
+            .unwrap::<&Cell<f32>>()
+            .set(dilation);
     }
 
     pub fn set_gravity(gravity: f32) {
@@ -286,14 +292,17 @@ impl UWorld {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         obj.get_field("WorldReferences")
             .field("TimeOfDay")
-            .field("CurrentMinute").unwrap::<f32>()
+            .field("CurrentMinute")
+            .unwrap::<f32>()
     }
 
     pub fn set_time_of_day(time: f32) {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         obj.get_field("WorldReferences")
             .field("TimeOfDay")
-            .field("CurrentMinute").unwrap::<&Cell<f32>>().set(time);
+            .field("CurrentMinute")
+            .unwrap::<&Cell<f32>>()
+            .set(time);
     }
 
     pub fn set_cloud_speed(speed: f32) {
@@ -324,7 +333,8 @@ impl UWorld {
         obj.get_field("PersistentLevel")
             .field("WorldSettings")
             .field("KillZ")
-            .unwrap::<&Cell<f32>>().set(kill_z);
+            .unwrap::<&Cell<f32>>()
+            .set(kill_z);
     }
 
     pub fn set_reflection_render_scale(render_scale: i32) {
@@ -334,7 +344,8 @@ impl UWorld {
             .field("Water")
             .field("PlanarReflectionComponent")
             .field("ScreenPercentage")
-            .unwrap::<&Cell<i32>>().set(render_scale);
+            .unwrap::<&Cell<i32>>()
+            .set(render_scale);
     }
 
     pub fn set_fog_enabled(enabled: bool) {
