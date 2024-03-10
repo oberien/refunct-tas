@@ -18,9 +18,6 @@ pub(in crate::native) type ULevel = c_void;
 pub static CLOUDS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static JUMP6_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static ENGINE_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
-pub static PHYSICS_SETTINGS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
-pub static RENDERER_SETTINGS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
-pub static PHYSICS_HANDLE_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 
 #[derive(Debug)]
 #[repr(u8)]
