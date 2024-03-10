@@ -114,6 +114,5 @@ loop {
     }
     Tas::show_hud();
     Tas::set_sky_time_speed(SETTINGS.sky_time_speed);
-    if SETTINGS.time_dilation != 1. { Tas::set_time_dilation(SETTINGS.time_dilation); }
     step_frame(tick_mode);
 }

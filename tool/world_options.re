@@ -1,15 +1,15 @@
 Tas::set_reflection_render_scale(SETTINGS.reflection_render_scale);
 Tas::set_lighting_casts_shadows(SETTINGS.lighting_casts_shadows);
-Tas::enable_sky_light(SETTINGS.sky_light_enabled);
+Tas::set_sky_light_enabled(SETTINGS.sky_light_enabled);
 Tas::set_time_dilation(SETTINGS.time_dilation);
 Tas::set_gravity(SETTINGS.gravity);
 Tas::set_time_of_day(SETTINGS.time_of_day);
 Tas::set_sky_time_speed(SETTINGS.sky_time_speed);
 Tas::set_sky_light_brightness(SETTINGS.sky_light_brightness);
 Tas::set_sky_light_intensity(SETTINGS.sky_light_intensity);
-Tas::set_stars_brightness(true, SETTINGS.day_stars_brightness);
-Tas::set_stars_brightness(false, SETTINGS.night_stars_brightness);
-Tas::enable_fog(SETTINGS.fog_enabled);
+Tas::set_stars_brightness(TimeOfDay::Day, SETTINGS.day_stars_brightness);
+Tas::set_stars_brightness(TimeOfDay::Night, SETTINGS.night_stars_brightness);
+Tas::set_fog_enabled(SETTINGS.fog_enabled);
 Tas::set_cloud_speed(SETTINGS.cloud_speed);
 Tas::set_gamma(SETTINGS.display_gamma);
 Tas::set_kill_z(SETTINGS.kill_z);
@@ -36,7 +36,7 @@ fn create_world_options_menu() -> Ui {
             label: sky_light_enabled_button_text,
             onclick: fn(label: Text) {
                 SETTINGS.toggle_sky_light_enabled();
-                Tas::enable_sky_light(SETTINGS.sky_light_enabled);
+                Tas::set_sky_light_enabled(SETTINGS.sky_light_enabled);
                 sky_light_enabled_button_text.text = f"Sky Light Enabled: {SETTINGS.sky_light_enabled}";
             },
         }),
@@ -44,7 +44,7 @@ fn create_world_options_menu() -> Ui {
             label: fog_enabled_button_text,
             onclick: fn(label: Text) {
                 SETTINGS.toggle_fog_enabled();
-                Tas::enable_fog(SETTINGS.fog_enabled);
+                Tas::set_fog_enabled(SETTINGS.fog_enabled);
                 fog_enabled_button_text.text = f"Fog Enabled: {SETTINGS.fog_enabled}";
             },
         }),
@@ -190,7 +190,7 @@ fn create_world_options_menu() -> Ui {
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(brightness) => {
-                        Tas::set_stars_brightness(true, brightness);
+                        Tas::set_stars_brightness(TimeOfDay::Day, brightness);
                         SETTINGS.day_stars_brightness = brightness;
                         SETTINGS.store();
                     },
@@ -205,7 +205,7 @@ fn create_world_options_menu() -> Ui {
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(brightness) => {
-                        Tas::set_stars_brightness(false, brightness);
+                        Tas::set_stars_brightness(TimeOfDay::Night, brightness);
                         SETTINGS.night_stars_brightness = brightness;
                         SETTINGS.store();
                     },

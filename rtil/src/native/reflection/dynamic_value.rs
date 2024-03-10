@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::native::{ArrayElement, ObjectPropertyWrapper, ObjectWrapper, SizedArrayElement, UObject};
+use crate::native::{ArrayElement, ObjectPropertyWrapper, ObjectWrapper, SizedArrayElement, StructValueWrapper, UObject};
 use crate::native::reflection::{PropertyWrapper};
 
 #[derive(Debug)]
@@ -16,6 +16,16 @@ impl<'a> DynamicValue<'a> {
 
     pub fn prop(&self) -> PropertyWrapper<'a> {
         self.prop.clone()
+    }
+
+    pub fn field(self, name: &str) -> DynamicValue<'a> {
+        if ObjectWrapper::can_be_created_from(&self.prop) {
+            self.unwrap::<ObjectWrapper<'a>>().get_field(name)
+        } else if StructValueWrapper::can_be_created_from(&self.prop) {
+            self.unwrap::<StructValueWrapper<'a>>().get_field(name)
+        } else {
+            panic!("{} does not have fields", &self.prop.property_kind())
+        }
     }
 
     pub fn unwrap<T: ArrayElement<'a>>(self) -> T {

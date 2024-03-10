@@ -27,7 +27,7 @@ mod tick;
 mod app;
 mod memory;
 mod hud;
-pub mod uworld;
+pub(crate) mod uworld;
 mod level_state;
 mod gameinstance;
 mod platform_misc;

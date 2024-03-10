@@ -90,11 +90,14 @@ impl<'a> StructValueWrapper<'a> {
         assert!(!ptr.is_null());
         StructValueWrapper { ptr: ptr as *mut u8, struct_information, limit_num_fields, _marker: PhantomData }
     }
-    pub fn get_field(&self, name: &str) -> DynamicValue {
+    pub fn get_field(&self, name: &str) -> DynamicValue<'a> {
         unsafe {
             let field_info = self.struct_information.get_field_info(name, self.limit_num_fields);
             apply_field_info(self.ptr, field_info)
         }
+    }
+    pub fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool {
+        prop.try_upcast::<StructPropertyWrapper<'a>>().is_some()
     }
 }
 
@@ -149,7 +152,7 @@ pub struct ObjectWrapper<'a> {
     object: *mut UObject,
     _marker: PhantomData<&'a mut UObject>,
 }
-#[derive(Debug)]
+
 pub enum ObjectWrapperType {}
 impl UeObjectWrapperType for ObjectWrapperType {
     type UeObjectWrapper<'a> = ObjectWrapper<'a>;

@@ -100,7 +100,8 @@ pub struct UWorld {
     game_instance: *mut UMyGameInstance,
 }
 
-enum StarsBrightness {
+#[derive(rebo::ExternalType)]
+pub enum TimeOfDay {
     Day,
     Night,
 }
@@ -194,16 +195,16 @@ impl UWorld {
             key.get_field("Value").unwrap::<&Cell<f32>>().set(red);
         }
     }
-    pub fn set_stars_brightness(day: bool, brightness: f32) {
+    pub fn set_stars_brightness(time: TimeOfDay, brightness: f32) {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
         let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
         let stars_brightness = time_of_day.get_field("StarsBrightness").unwrap::<ObjectWrapper>();
         let float_curves = stars_brightness.get_field("FloatCurve").unwrap::<StructValueWrapper>();
         let keys = float_curves.get_field("Keys").unwrap::<ArrayWrapper<StructValueWrapper>>();
-        match day {
-            true => keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
-            false => keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
+        match time {
+            TimeOfDay::Day => keys.get(0).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
+            TimeOfDay::Night => keys.get(1).unwrap().get_field("Value").unwrap::<&Cell<f32>>().set(brightness),
         }
     }
 
@@ -238,16 +239,17 @@ impl UWorld {
         let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
         time_of_day.get_field("TimeSpeed").unwrap::<&Cell<f32>>().set(speed);
     }
-    pub fn enable_sky_light(value: bool) {
+    pub fn set_sky_light_enabled(value: bool) {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
-        let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
-        let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
-        let light = time_of_day.get_field("Light").unwrap::<ObjectWrapper>();
-        let fun = light.class().find_function("SetEnabled").unwrap();
+        let light_component  = obj.get_field("WorldReferences")
+            .field("TimeOfDay")
+            .field("Light")
+            .unwrap::<ObjectWrapper>();
+        let fun = light_component.class().find_function("SetIntensity").unwrap();
         let params = fun.create_argument_struct();
         params.get_field("bSetEnabled").unwrap::<BoolValueWrapper>().set(value);
         unsafe {
-            fun.call(light.as_ptr(), &params);
+            fun.call(light_component.as_ptr(), &params);
         }
     }
     pub fn set_lighting_casts_shadows(value: bool) {
@@ -296,7 +298,7 @@ impl UWorld {
     pub fn set_cloud_speed(speed: f32) {
         UeScope::with(|scope| {
             let object = scope.get(CLOUDS_INDEX.get().unwrap());
-            let fun: extern_fn!(fn( this: *const c_void, name: FName, value: f32 ))
+            let fun: extern_fn!(fn(this: *const c_void, name: FName, value: f32))
                 = unsafe { mem::transmute(UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE.load(Ordering::SeqCst)) };
             fun(object.as_ptr() as *const c_void, FName::from("Cloud speed"), speed);
         })
@@ -331,17 +333,14 @@ impl UWorld {
         component.get_field("ScreenPercentage").unwrap::<&Cell<i32>>().set(render_scale);
     }
 
-    pub fn enable_fog(value: bool) {
+    pub fn set_fog_enabled(enabled: bool) {
         let obj = unsafe { ObjectWrapper::new(UMyGameInstance::get_umygameinstance() as *mut UObject) };
         let world_references = obj.get_field("WorldReferences").unwrap::<ObjectWrapper>();
         let time_of_day = world_references.get_field("TimeOfDay").unwrap::<ObjectWrapper>();
         let fog = time_of_day.get_field("Fog").unwrap::<ObjectWrapper>();
         let component = fog.get_field("Component").unwrap::<ObjectWrapper>();
-        if value {
-            component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.05);
-        } else {
-            component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(0.);
-        }
+        let new_value = if enabled { 0.05 } else { 0. };
+        component.get_field("FogDensity").unwrap::<&Cell<f32>>().set(new_value);
         component.get_field("DirectionalInscatteringExponent").unwrap::<&Cell<f32>>().set(1.);
     }
 
@@ -372,32 +371,13 @@ pub fn init() {
             let name = object.name();
             let class_name = object.class().name();
             if class_name == "MaterialInstanceDynamic" && name != "Default__MaterialInstanceDynamic" {
-                CLOUDS_INDEX.set(scope.object_index(&object)).unwrap();
+                CLOUDS_INDEX.set(scope.object_index(&object)).ok().unwrap();
             }
             if class_name == "jump6_C" && name != "Default__jump6_C" {
-                JUMP6_INDEX.set(scope.object_index(&object)).unwrap();
+                JUMP6_INDEX.set(scope.object_index(&object)).ok().unwrap();
             }
             if class_name == "GameEngine" && name != "Default__GameEngine" {
-                ENGINE_INDEX.set(scope.object_index(&object)).unwrap();
-                object.get_field("MaxDeltaTime").unwrap::<&Cell<f32>>().set(0.016667);
-                object.get_field("bSmoothFrameRate").unwrap::<BoolValueWrapper>().set(true);
-            }
-            if class_name == "PhysicsSettings" {
-                PHYSICS_SETTINGS_INDEX.set(scope.object_index(&object)).unwrap();
-                log!("GRAVITY: {:?}", object.get_field("DefaultGravityZ").unwrap::<f32>());
-                log!("TERMVEL: {:?}", object.get_field("DefaultTerminalVelocity").unwrap::<f32>());
-                log!("FLUFRIC: {:?}", object.get_field("DefaultFluidFriction").unwrap::<f32>());
-                log!("ASYNCSC: {:?}", object.get_field("bEnableAsyncScene").unwrap::<BoolValueWrapper>()._get());
-                log!("ENABPCM: {:?}", object.get_field("bEnablePCM").unwrap::<BoolValueWrapper>()._get());
-                log!("MXANGVL: {:?}", object.get_field("MaxAngularVelocity").unwrap::<f32>());
-                log!("MXDPNVL: {:?}", object.get_field("MaxDepenetrationVelocity").unwrap::<f32>());
-                log!("MXPHYDT: {:?}", object.get_field("MaxPhysicsDeltaTime").unwrap::<f32>());
-                object.get_field("MaxPhysicsDeltaTime").unwrap::<&Cell<f32>>().set(0.016667);
-                log!("SBSTPPN: {:?}", object.get_field("bSubstepping").unwrap::<BoolValueWrapper>()._get());
-                log!("SBSTPAS: {:?}", object.get_field("bSubsteppingAsync").unwrap::<BoolValueWrapper>()._get());
-                log!("MXSTPDT: {:?}", object.get_field("MaxSubstepDeltaTime").unwrap::<f32>());
-                log!("MXSBSTP: {:?}", object.get_field("MaxSubsteps").unwrap::<i32>());
-                object.get_field("MaxSubsteps").unwrap::<&Cell<i32>>().set(1);
+                ENGINE_INDEX.set(scope.object_index(&object)).ok().unwrap();
             }
         }
     })

@@ -46,6 +46,7 @@ pub unsafe trait SizedArrayElement<'a> {
     type ElementType;
 
     fn check_property_type(prop: &PropertyWrapper<'a>);
+    fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool;
     unsafe fn create(ptr: *mut Self::ElementType) -> Self;
 }
 unsafe impl<'a, T: UeObjectWrapper<'a>> SizedArrayElement<'a> for T {
@@ -54,6 +55,11 @@ unsafe impl<'a, T: UeObjectWrapper<'a>> SizedArrayElement<'a> for T {
     fn check_property_type(prop: &PropertyWrapper<'a>) {
         let element_class = prop.upcast::<ObjectPropertyWrapper<'a>>().property_class();
         assert!(element_class.extends_from(T::CLASS_NAME), "{} does not extend from {}", element_class.name(), T::CLASS_NAME);
+    }
+
+    fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool {
+        let element_class = prop.upcast::<ObjectPropertyWrapper<'a>>().property_class();
+        element_class.extends_from(T::CLASS_NAME)
     }
 
     unsafe fn create(ptr: *mut Self::ElementType) -> T {
@@ -80,6 +86,10 @@ macro_rules! impl_array_element_for_primitives {
                     assert_eq!(prop.class().name(), $proptype);
                 }
 
+                fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool {
+                    prop.class().name() == $proptype
+                }
+
                 unsafe fn create(ptr: *mut Self::ElementType) -> $t {
                     *ptr
                 }
@@ -89,6 +99,10 @@ macro_rules! impl_array_element_for_primitives {
 
                 fn check_property_type(prop: &PropertyWrapper<'a>) {
                     assert_eq!(prop.class().name(), $proptype);
+                }
+
+                fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool {
+                    prop.class().name() == $proptype
                 }
 
                 unsafe fn create(ptr: *mut Self::ElementType) -> &'a Cell<$t> {
@@ -112,7 +126,6 @@ impl_array_element_for_primitives! {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
 pub struct UObject {
     // technically its UObject : UObjectBaseUtility : UObjectBase
     // UObjectBase is the only one of those three actually containing fields
