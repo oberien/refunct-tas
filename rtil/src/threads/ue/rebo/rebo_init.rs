@@ -17,9 +17,8 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine};
+use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
-use crate::native::uworld::TimeOfDay;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()

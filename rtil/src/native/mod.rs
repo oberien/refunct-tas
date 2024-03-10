@@ -27,7 +27,7 @@ mod tick;
 mod app;
 mod memory;
 mod hud;
-pub mod uworld;
+mod uworld;
 mod level_state;
 mod gameinstance;
 mod platform_misc;
@@ -63,7 +63,7 @@ pub use self::tick::{
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::{AMyHud, EBlendMode};
-pub use self::uworld::{APawn, UWorld, UGameplayStatics};
+pub use self::uworld::{APawn, UWorld, UGameplayStatics, TimeOfDay};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
