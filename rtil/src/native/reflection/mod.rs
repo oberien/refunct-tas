@@ -58,8 +58,10 @@ unsafe impl<'a, T: UeObjectWrapper<'a>> SizedArrayElement<'a> for T {
     }
 
     fn can_be_created_from(prop: &PropertyWrapper<'a>) -> bool {
-        let element_class = prop.upcast::<ObjectPropertyWrapper<'a>>().property_class();
-        element_class.extends_from(T::CLASS_NAME)
+        match prop.try_upcast::<ObjectPropertyWrapper<'a>>() {
+            Some(element_class) => element_class.property_class().extends_from(T::CLASS_NAME),
+            None => false
+        }
     }
 
     unsafe fn create(ptr: *mut Self::ElementType) -> T {
