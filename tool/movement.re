@@ -25,6 +25,7 @@ fn create_movement_menu() -> Ui {
             label: Text { text: "Enable Flying" },
             onclick: fn(label: Text) {
                 MOVEMENT_STATE.enable_fly = true;
+                Tas::disable_collision();
                 leave_ui();
                 leave_ui();
                 leave_ui();
@@ -34,6 +35,7 @@ fn create_movement_menu() -> Ui {
             label: Text { text: "Disable Flying" },
             onclick: fn(label: Text) {
                 MOVEMENT_STATE.enable_fly = false;
+                Tas::enable_collision();
                 Tas::set_movement_mode(1);
             },
         }),
