@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
@@ -11,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, StructValueWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -470,12 +471,12 @@ struct Location {
 }
 #[rebo::function("Tas::get_location")]
 fn get_location() -> Location {
-    let (x, y, z) = AMyCharacter::get_player().location();
+    let (x, y, z) = AMyCharacter::location();
     Location { x, y, z }
 }
 #[rebo::function("Tas::set_location")]
 fn set_location(loc: Location) {
-    AMyCharacter::get_player().set_location(loc.x, loc.y, loc.z);
+    AMyCharacter::set_location(loc.x, loc.y, loc.z);
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Rotation {
@@ -485,20 +486,20 @@ struct Rotation {
 }
 #[rebo::function("Tas::get_rotation")]
 fn get_rotation() -> Rotation {
-    let (pitch, yaw, roll) = AMyCharacter::get_player().rotation();
+    let (pitch, yaw, roll) = AMyCharacter::rotation();
     Rotation { pitch, yaw, roll }
 }
 #[rebo::function("Tas::set_rotation")]
 fn set_rotation(rot: Rotation) {
-    AMyCharacter::get_player().set_rotation(rot.pitch, rot.yaw, rot.roll);
+    AMyCharacter::set_rotation(rot.pitch, rot.yaw, rot.roll);
 }
 #[rebo::function("Tas::get_player_name")]
 fn get_player_name() -> String {
-    AMyCharacter::get_player().get_player_name()
+    AMyCharacter::get_player_name()
 }
 #[rebo::function("Tas::get_steamid")]
 fn get_steamid() -> u64 {
-    AMyCharacter::get_player().get_steamid()
+    AMyCharacter::get_steamid()
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Velocity {
@@ -508,12 +509,12 @@ struct Velocity {
 }
 #[rebo::function("Tas::get_velocity")]
 fn get_velocity() -> Velocity {
-    let (x, y, z) = AMyCharacter::get_player().velocity();
+    let (x, y, z) = AMyCharacter::velocity();
     Velocity { x, y, z }
 }
 #[rebo::function("Tas::set_velocity")]
 fn set_velocity(vel: Velocity) {
-    AMyCharacter::get_player().set_velocity(vel.x, vel.y, vel.z);
+    AMyCharacter::set_velocity(vel.x, vel.y, vel.z);
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType, Serialize, Deserialize)]
 struct Acceleration {
@@ -523,28 +524,28 @@ struct Acceleration {
 }
 #[rebo::function("Tas::get_acceleration")]
 fn get_acceleration() -> Acceleration {
-    let (x, y, z) = AMyCharacter::get_player().acceleration();
+    let (x, y, z) = AMyCharacter::acceleration();
     Acceleration { x, y, z }
 }
 #[rebo::function("Tas::set_acceleration")]
 fn set_acceleration(acc: Acceleration) {
-    AMyCharacter::get_player().set_acceleration(acc.x, acc.y, acc.z);
+    AMyCharacter::set_acceleration(acc.x, acc.y, acc.z);
 }
 #[rebo::function("Tas::get_movement_mode")]
 fn get_movement_mode() -> u8 {
-    AMyCharacter::get_player().movement_mode()
+    AMyCharacter::movement_mode()
 }
 #[rebo::function("Tas::set_movement_mode")]
 fn set_movement_mode(mode: u8) {
-    AMyCharacter::get_player().set_movement_mode(mode);
+    AMyCharacter::set_movement_mode(mode);
 }
 #[rebo::function("Tas::get_max_fly_speed")]
 fn get_max_fly_speed() -> f32 {
-    AMyCharacter::get_player().max_fly_speed()
+    AMyCharacter::max_fly_speed()
 }
 #[rebo::function("Tas::set_max_fly_speed")]
 fn set_max_fly_speed(speed: f32) {
-    AMyCharacter::get_player().set_max_fly_speed(speed);
+    AMyCharacter::set_max_fly_speed(speed);
 }
 #[rebo::function("Tas::get_level_state")]
 fn get_level_state() -> LevelState {
@@ -651,7 +652,7 @@ fn draw_player_minimap(x: f32, y: f32, width: f32, height: f32, rotation_degrees
         });
     AMyHud::draw_texture(
         texture, x, y, width, height, 0., 0., 1., 1.,
-        (1., 1., 1.), EBlendMode::Translucent, 1., false,
+        (255., 255., 255.), 2, 1., false,
         rotation_degrees, 0.5, 0.5
     );
 }
@@ -687,7 +688,7 @@ fn get_text_size(text: String, scale: f32) -> TextSize {
 }
 #[rebo::function("Tas::get_viewport_size")]
 fn get_viewport_size() -> Size {
-    let (width, height) = AMyCharacter::get_player().get_viewport_size();
+    let (width, height) = AMyCharacter::get_viewport_size();
     Size { width, height }
 }
 #[rebo::function("Tas::spawn_pawn")]
@@ -701,29 +702,46 @@ fn spawn_pawn(loc: Location, rot: Rotation) -> u32 {
 #[rebo::function("Tas::destroy_pawn")]
 fn destroy_pawn(pawn_id: u32) {
     let my_character = STATE.lock().unwrap().as_mut().unwrap().pawns.remove(&pawn_id).expect("pawn_id not valid anymore");
-    UWorld::destroy_amycharaccter(my_character);
+    let character = unsafe { ObjectWrapper::new(my_character.as_ptr() as *mut UObject) };
+    UWorld::destroy_amycharacter(character.as_ptr());
 }
 #[rebo::function("Tas::move_pawn")]
 fn move_pawn(pawn_id: u32, loc: Location) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
-    let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
-    my_character.set_location(loc.x, loc.y, loc.z);
+    let character = unsafe { ObjectWrapper::new(state.pawns.get_mut(&pawn_id).expect("pawn_id not valid").as_ptr() as *mut UObject) };
+    let fun = character.class().find_function("K2_SetActorLocation").unwrap();
+    let params = fun.create_argument_struct();
+    params.get_field("NewLocation").field("X").unwrap::<&Cell<f32>>().set(loc.x);
+    params.get_field("NewLocation").field("Y").unwrap::<&Cell<f32>>().set(loc.y);
+    params.get_field("NewLocation").field("Z").unwrap::<&Cell<f32>>().set(loc.z);
+    unsafe {
+        fun.call(character.as_ptr(), &params);
+    }
 }
 #[rebo::function("Tas::set_pawn_velocity")]
 fn set_pawn_velocity(pawn_id: u32, vel: Velocity) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
-    let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
-    my_character.set_velocity(vel.x, vel.y, vel.z);
+    let character = unsafe { ObjectWrapper::new(state.pawns.get_mut(&pawn_id).expect("pawn_id not valid").as_ptr() as *mut UObject) };
+    let velocity = character.get_field("CharacterMovement").field("Velocity").unwrap::<StructValueWrapper>();
+    velocity.get_field("X").unwrap::<&Cell<f32>>().set(vel.x);
+    velocity.get_field("Y").unwrap::<&Cell<f32>>().set(vel.y);
+    velocity.get_field("Z").unwrap::<&Cell<f32>>().set(vel.z);
 }
 #[rebo::function("Tas::pawn_location")]
 fn pawn_location(pawn_id: u32) -> Location {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     let my_character = state.pawns.get_mut(&pawn_id).expect("pawn_id not valid");
-    let (x, y, z) = my_character.location();
-    Location { x, y, z }
+    let character = unsafe { ObjectWrapper::new(my_character.as_ptr() as *mut UObject) };
+    let fun = character.class().find_function("K2_GetActorLocation").unwrap();
+    let params = fun.create_argument_struct();
+    unsafe {
+        fun.call(character.as_ptr(), &params);
+    }
+    let loc = params.get_field("ReturnValue").unwrap::<StructValueWrapper>();
+    Location { x: loc.get_field("X").unwrap::<f32>(), y: loc.get_field("Y").unwrap::<f32>(), z: loc.get_field("Z").unwrap::<f32>() }
 }
 #[derive(rebo::ExternalType)]
 enum Server {
@@ -882,7 +900,7 @@ fn trigger_element(index: ElementIndex) {
         let add_based_character = actor.class().find_function("AddBasedCharacter").unwrap();
         let remove_based_character = actor.class().find_function("RemoveBasedCharacter").unwrap();
         let args = add_based_character.create_argument_struct();
-        let character = unsafe { ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject) };
+        let character = unsafe { ObjectWrapper::new(AMyCharacter::character() as *mut UObject) };
         args.get_field("BasedCharacter").set_object(&character);
         unsafe { add_based_character.call(actor.as_ptr(), &args); }
         unsafe { remove_based_character.call(actor.as_ptr(), &args); }
@@ -1236,7 +1254,7 @@ fn apply_map_cluster_speeds(map: RefunctMap) {
 }
 #[rebo::function("Tas::get_looked_at_element_index")]
 fn get_looked_at_element_index() -> Option<ElementIndex> {
-    let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::get_player());
+    let intersected = KismetSystemLibrary::line_trace_single(AMyCharacter::character());
     try_find_element_index(intersected as *mut UObject)
 }
 
@@ -1285,12 +1303,12 @@ fn get_element_bounds(index: ElementIndex) -> Bounds {
 
 #[rebo::function("Tas::enable_collision")]
 fn enable_collision() {
-    AActor::set_actor_enable_collision(AMyCharacter::get_player().as_ptr() as *const AActor, true);
+    AActor::set_actor_enable_collision(AMyCharacter::character() as *const AActor, true);
 }
 
 #[rebo::function("Tas::disable_collision")]
 fn disable_collision() {
-    AActor::set_actor_enable_collision(AMyCharacter::get_player().as_ptr() as *const AActor, false);
+    AActor::set_actor_enable_collision(AMyCharacter::character() as *const AActor, false);
 }
 
 #[rebo::function("Tas::exit_water")]

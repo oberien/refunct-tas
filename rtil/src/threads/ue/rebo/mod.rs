@@ -13,7 +13,7 @@ use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream};
-use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslateapplication_onkeyup, REBO_DOESNT_START_SEMAPHORE, unhook_fslateapplication_onkeyup, UTexture2D, UWorld};
+use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslateapplication_onkeyup, ObjectWrapper, REBO_DOESNT_START_SEMAPHORE, unhook_fslateapplication_onkeyup, UObject, UTexture2D, UWorld};
 use crate::threads::ue::{Suspend, UeEvent};
 
 mod rebo_init;
@@ -195,7 +195,8 @@ fn cleanup_after_rebo() {
     state.delta = None;
     drop(state.websocket.take());
     for (_id, my_character) in state.pawns.drain() {
-        UWorld::destroy_amycharaccter(my_character);
+        let character = unsafe { ObjectWrapper::new(my_character.as_ptr() as *mut UObject) };
+        UWorld::destroy_amycharacter(character.as_ptr());
     }
     state.pawn_id = 0;
     // we don't want to trigger our keyevent handler for emulated presses

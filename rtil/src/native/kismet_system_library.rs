@@ -2,14 +2,14 @@ use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
-use crate::native::{AActor, AMyCharacter, GlobalObjectArrayWrapper, ObjectWrapper, StructValueWrapper, UObject};
+use crate::native::{AActor, GlobalObjectArrayWrapper, ObjectWrapper, StructValueWrapper, UObject};
 use crate::native::ue::{FLinearColor, FName, FVector, TArray};
 use crate::native::{UKISMETSYSTEMLIBRARY_LINETRACESINGLE, FROTATOR_VECTOR};
 
 pub struct KismetSystemLibrary;
 
 impl KismetSystemLibrary {
-    pub fn line_trace_single(player: AMyCharacter) -> *mut AActor {
+    pub fn line_trace_single(player: *mut UObject) -> *mut AActor {
         unsafe {
             let fun: extern "C" fn(
                 world_context_object: *mut UObject,
@@ -46,7 +46,7 @@ impl KismetSystemLibrary {
             };
 
 
-            let character = ObjectWrapper::new(player.as_ptr() as *mut UObject);
+            let character = ObjectWrapper::new(player);
             let camera: ObjectWrapper = character.get_field("Controller").field("PlayerCameraManager").unwrap();
             let get_camera_location = camera.class().find_function("GetCameraLocation").unwrap();
             let loc = get_camera_location.create_argument_struct();
@@ -67,7 +67,7 @@ impl KismetSystemLibrary {
             };
 
             let hit = fun(
-                player.as_ptr() as *mut UObject,
+                player,
                 location,
                 FVector { x: direction.x * 100000. + location.x, y: direction.y * 100000. + location.y, z: direction.z * 100000. + location.z },
                 0,

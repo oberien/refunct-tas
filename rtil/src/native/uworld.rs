@@ -6,7 +6,7 @@ use crate::native::{Args, ArrayWrapper, BoolValueWrapper, ObjectIndex, ObjectWra
 #[cfg(windows)] use winapi::ctypes::{c_void, c_int};
 
 use crate::native::ue::{FName, FVector, FRotator};
-use crate::native::{APAWN_SPAWNDEFAULTCONTROLLER, AACTOR_SETACTORENABLECOLLISION, GWORLD, UWORLD_SPAWNACTOR, UWORLD_DESTROYACTOR, AMyCharacter, UGAMEPLAYSTATICS_GETACCURATEREALTIME, UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE};
+use crate::native::{UWORLD_SPAWNACTOR, AMyCharacter, UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE};
 use crate::native::character::AMyCharacterUE;
 use crate::native::gameinstance::UMyGameInstance;
 use crate::native::reflection::{AActor, UClass, UObject};
@@ -18,6 +18,12 @@ pub(in crate::native) type ULevel = c_void;
 pub static CLOUDS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static JUMP6_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static ENGINE_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static CHARACTER_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static MOVEMENT_COMP_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static PLAYER_CONTROLLER_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static GAMEPLAY_STATICS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static KISMET_SYSTEM_LIBRARY_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static WORLD_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -62,40 +68,43 @@ impl FActorSpawnParameters {
 }
 
 impl APawn {
-    fn spawn_default_controller(this: *const APawn) {
-        let fun: extern_fn!(fn(this: *const APawn))
-            = unsafe { ::std::mem::transmute(APAWN_SPAWNDEFAULTCONTROLLER.load(Ordering::SeqCst)) };
-        fun(this)
+    fn spawn_default_controller(this: *mut UObject) {
+        let pawn = unsafe { ObjectWrapper::new(this) };
+        let fun = pawn.class().find_function("SpawnDefaultController").unwrap();
+        let params = fun.create_argument_struct();
+        unsafe {
+            fun.call(pawn.as_ptr(), &params);
+        }
     }
 }
 impl AActor {
     pub fn set_actor_enable_collision(this: *const AActor, enable: bool) {
-        let fun: extern_fn!(fn(this: *const AActor, enable: u32))
-            = unsafe { ::std::mem::transmute(AACTOR_SETACTORENABLECOLLISION.load(Ordering::SeqCst)) };
-        fun(this, enable as u32)
+        let actor = unsafe { ObjectWrapper::new(this as *mut UObject) };
+        let fun = actor.class().find_function("SetActorEnableCollision").unwrap();
+        let params = fun.create_argument_struct();
+        params.get_field("bNewActorEnableCollision").unwrap::<BoolValueWrapper>().set(enable);
+        unsafe {
+            fun.call(actor.as_ptr(), &params);
+        }
     }
 }
 
 impl UGameplayStatics {
     pub fn get_accurate_real_time() -> f64 {
-        let fun: extern "C" fn(world_context_object: *const UObject, seconds: *mut i32, partial_seconds: *mut f32)
-            = unsafe { ::std::mem::transmute(UGAMEPLAYSTATICS_GETACCURATEREALTIME.load(Ordering::SeqCst)) };
-        let my_character = AMyCharacter::get_player();
-        let mut rt_seconds = 0_i32;
-        let mut rt_partial_seconds = 0_f32;
-        fun(&my_character as *const _ as *const _, &mut rt_seconds, &mut rt_partial_seconds);
-        rt_seconds as f64 + rt_partial_seconds as f64
+        UeScope::with(|scope| {
+            let gameplay_statics = scope.get(GAMEPLAY_STATICS_INDEX.get().unwrap());
+            let fun = gameplay_statics.class().find_function("GetAccurateRealTime").unwrap();
+            let params = fun.create_argument_struct();
+            params.get_field("WorldContextObject").set_object(&gameplay_statics);
+            unsafe {
+                fun.call(gameplay_statics.as_ptr(), &params);
+                params.get_field("Seconds").unwrap::<i32>() as f64 + params.get_field("PartialSeconds").unwrap::<f32>() as f64
+            }
+        })
     }
 }
 
-#[repr(C)]
-pub struct UWorld {
-    #[cfg(windows)]
-    pad: [u8; 0xc0],
-    #[cfg(unix)]
-    pad: [u8; 0x138],
-    game_instance: *mut UMyGameInstance,
-}
+pub struct UWorld {}
 
 #[derive(rebo::ExternalType)]
 pub enum TimeOfDay {
@@ -109,29 +118,31 @@ impl UWorld {
         spawn_parameters: *const FActorSpawnParameters,
     ) -> *mut AActor {
         let fun: extern_fn!(fn(
-            this: *const UWorld, class: *const UClass, location: *const FVector,
+            this: *const UObject, class: *const UClass, location: *const FVector,
             rotation: *const FRotator, spawn_parameters: *const FActorSpawnParameters
         ) -> *mut AActor) = ::std::mem::transmute(UWORLD_SPAWNACTOR.load(Ordering::SeqCst));
         let this = Self::get_global();
-        fun(this, class, location, rotation, spawn_parameters)
+        let foo = fun(this, class, location, rotation, spawn_parameters);
+        foo
     }
-    unsafe fn destroy_actor(actor: *const AActor, net_force: bool, should_modify_level: bool) -> bool {
-        let fun: extern_fn!(fn(
-            this: *const UWorld, actor: *const AActor, net_force: bool, should_modify_level: bool
-        ) -> c_int) = ::std::mem::transmute(UWORLD_DESTROYACTOR.load(Ordering::SeqCst));
-        let this = Self::get_global();
-        let res = fun(this, actor, net_force, should_modify_level);
-        res != 0
+     fn destroy_actor(actor: *const UObject) {
+        let act = unsafe { ObjectWrapper::new(actor.cast_mut()) };
+        let fun = act.class().find_function("K2_DestroyActor").unwrap();
+        let params = fun.create_argument_struct();
+        unsafe {
+            fun.call(act.as_ptr(), &params);
+        }
     }
 
-    pub fn get_global() -> *mut UWorld {
-        unsafe { *(GWORLD.load(Ordering::SeqCst) as *mut *mut UWorld)}
+    pub fn get_global() -> *mut UObject {
+        UeScope::with(|scope| {
+            scope.get(WORLD_INDEX.get().unwrap()).as_ptr()
+        })
     }
 
     pub fn get_umygameinstance() -> *mut UMyGameInstance {
-        unsafe {
-            (*Self::get_global()).game_instance
-        }
+        let obj = unsafe { ObjectWrapper::new(*&Self::get_global()) };
+        obj.get_field("OwningGameInstance").unwrap::<ObjectWrapper>().as_ptr() as *mut UMyGameInstance
     }
 
     pub fn spawn_amycharacter(x: f32, y: f32, z: f32, pitch: f32, yaw: f32, roll: f32) -> AMyCharacter {
@@ -152,21 +163,14 @@ impl UWorld {
             let ptr = Self::spawn_actor(
                 AMyCharacter::static_class(), &location, &rotation, &spawn_parameters,
             ) as *mut AMyCharacterUE;
-            assert!(!ptr.is_null(), "UWorld::SpawnActor returned null");
-            APawn::spawn_default_controller(ptr as *const APawn);
+            APawn::spawn_default_controller(ptr as *mut UObject);
             AActor::set_actor_enable_collision(ptr as *const AActor, true);
             let my_character = AMyCharacter::new(ptr);
             my_character
         }
     }
-    pub fn destroy_amycharaccter(my_character: AMyCharacter) {
-        unsafe {
-            let destroyed = Self::destroy_actor(my_character.as_ptr() as *const AActor, true, true);
-            // assert!(destroyed, "amycharacter not destroyed");
-            if !destroyed {
-                log!("amycharacter {:p} not destroyed", my_character.as_ptr());
-            }
-        }
+    pub fn destroy_amycharacter(my_character: *mut UObject) {
+        Self::destroy_actor(my_character);
     }
 
     pub fn set_sun_redness(redness: f32) {
@@ -393,6 +397,23 @@ pub fn init() {
             }
             if class_name == "GameEngine" && name != "Default__GameEngine" {
                 ENGINE_INDEX.set(scope.object_index(&object)).ok().unwrap();
+            }
+            if class_name == "BP_MyCharacter_C" && name != "Default__BP_MyCharacter_C" {
+                CHARACTER_INDEX.set(scope.object_index(&object)).ok().unwrap();
+                let comp = object.get_field("CharacterMovement").unwrap::<ObjectWrapper>();
+                MOVEMENT_COMP_INDEX.set(scope.object_index(&comp)).ok().unwrap();
+            }
+            if class_name == "PlayerController" && name != "Default__PlayerController" {
+                PLAYER_CONTROLLER_INDEX.set(scope.object_index(&object)).ok().unwrap();
+            }
+            if class_name == "GameplayStatics" && name == "Default__GameplayStatics" {
+                GAMEPLAY_STATICS_INDEX.set(scope.object_index(&object)).ok().unwrap();
+            }
+            if class_name == "KismetSystemLibrary" && name == "Default__KismetSystemLibrary" {
+                KISMET_SYSTEM_LIBRARY_INDEX.set(scope.object_index(&object)).ok().unwrap();
+            }
+            if class_name == "World" && name == "WorldBase" {
+                WORLD_INDEX.set(scope.object_index(&object)).ok().unwrap();
             }
         }
     })
