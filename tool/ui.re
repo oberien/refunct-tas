@@ -46,6 +46,7 @@ enum UiElement {
     Button(UiButton),
     Input(Input),
     FloatInput(FloatInput),
+    IntInput(IntInput),
     Slider(Slider),
     Chooser(Chooser),
 }
@@ -60,6 +61,12 @@ struct Input {
     onchange: fn(string),
 }
 struct FloatInput {
+    label: Text,
+    input: string,
+    onclick: fn(string),
+    onchange: fn(string),
+}
+struct IntInput {
     label: Text,
     input: string,
     onclick: fn(string),
@@ -251,6 +258,7 @@ impl UiElement {
             UiElement::Button(button) => button.onclick(),
             UiElement::Input(input) => input.onclick(),
             UiElement::FloatInput(input) => input.onclick(),
+            UiElement::IntInput(input) => input.onclick(),
             UiElement::Slider(slider) => (),
             UiElement::Chooser(chooser) => (),
         }
@@ -260,6 +268,7 @@ impl UiElement {
             UiElement::Button(button) => (),
             UiElement::Input(input) => input.onkey(key, chr),
             UiElement::FloatInput(input) => input.onkey(key, chr),
+            UiElement::IntInput(input) => input.onkey(key, chr),
             UiElement::Slider(slider) => slider.onkey(key, chr),
             UiElement::Chooser(chooser) => chooser.onkey(key, chr),
         }
@@ -269,6 +278,7 @@ impl UiElement {
             UiElement::Button(button) => button.draw(y, color),
             UiElement::Input(input) => input.draw(y, color),
             UiElement::FloatInput(input) => input.draw(y, color),
+            UiElement::IntInput(input) => input.draw(y, color),
             UiElement::Slider(slider) => slider.draw(y, color),
             UiElement::Chooser(chooser) => chooser.draw(y, color),
         }
@@ -359,6 +369,58 @@ impl FloatInput {
                 "+" => "+",
                 "-" => "-",
                 "." => ".",
+                _ => "",
+            };
+            self.input = f"{self.input}{chr}";
+            i += 1;
+        }
+        let onchange = self.onchange;
+        onchange(self.input);
+    }
+    fn draw(self, y: float, color: Color) {
+        Tas::draw_text(DrawText {
+            text: f"    {self.label.text}: {self.input}",
+            color: color,
+            x: 0.,
+            y: y,
+            scale: SETTINGS.ui_scale,
+            scale_position: true,
+        })
+    }
+}
+impl IntInput {
+    fn onclick(self) {
+        let f = self.onclick;
+        f(self.input);
+    }
+    fn onkey(mut self, key: KeyCode, chr: Option<string>) {
+        let mut input = self.input;
+        if key.to_small() == KEY_BACKSPACE.to_small() {
+            input = self.input.slice(0, -1);
+        } else if key.to_small() == KEY_V.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
+            input = f"{self.input}{Tas::get_clipboard()}";
+        } else if key.to_small() == KEY_D.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
+            input = "";
+        } else {
+            match chr {
+                Option::Some(s) => input = f"{self.input}{s}",
+                Option::None => (),
+            }
+        }
+        self.input = "";
+        let mut i = 0;
+        while i < input.len_utf8() {
+            let chr = match input.slice(i, i+1) {
+                "0" => "0",
+                "1" => "1",
+                "2" => "2",
+                "3" => "3",
+                "4" => "4",
+                "5" => "5",
+                "6" => "6",
+                "7" => "7",
+                "8" => "8",
+                "9" => "9",
                 _ => "",
             };
             self.input = f"{self.input}{chr}";

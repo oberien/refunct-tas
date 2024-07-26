@@ -180,6 +180,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_input_mode_game_only)
         .add_function(set_input_mode_ui_only)
         .add_function(flush_pressed_keys)
+        .add_function(list_practice_states)
+        .add_function(save_practice_state)
+        .add_function(load_practice_state)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -212,6 +215,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(livesplit::Accuracy)
         .add_external_type(livesplit::Comparison)
         .add_external_type(livesplit::LiveSplitLayoutColor)
+        .add_external_type(Practice)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -1198,6 +1202,14 @@ struct Element {
     sizez: f32,
 }
 
+fn practice_path() -> PathBuf {
+    let appdata_path = data_path();
+    let practice_path = appdata_path.join("practice/");
+    if !practice_path.is_dir() {
+        std::fs::create_dir(&practice_path).unwrap();
+    }
+    practice_path
+}
 fn map_path() -> PathBuf {
     let appdata_path = data_path();
     let map_path = appdata_path.join("maps/");
@@ -1408,6 +1420,41 @@ fn get_indexed_actor<'a>(scope: &'a UeScope, levels: &[Level], index: ElementInd
         ElementType::Pipe => (*scope.get(level.pipes[index.element_index])).clone(),
         ElementType::Springpad => (*scope.get(level.springpads[index.element_index])).clone(),
     }
+}
+#[rebo::function("Tas::list_practice_states")]
+fn list_practice_states() -> Vec<String> {
+    let path = practice_path();
+    std::fs::read_dir(path).unwrap().flatten()
+        .map(|entry| {
+            assert!(entry.file_type().unwrap().is_file());
+            entry.file_name().into_string().unwrap()
+        }).collect()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, rebo::ExternalType)]
+struct Practice {
+    name: String,
+    cluster: i32,
+    button: i32,
+    location: Location,
+    rotation: Rotation,
+    velocity: Velocity
+}
+
+#[rebo::function("Tas::save_practice_state")]
+fn save_practice_state(filename: String, state: Practice) {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = practice_path().join(filename);
+    let file = File::create(path).unwrap();
+    serde_json::to_writer_pretty(file, &state).unwrap();
+}
+#[rebo::function("Tas::load_practice_state")]
+fn load_practice_state(filename: String) -> Practice {
+    let filename = sanitize_filename::sanitize(filename);
+    let path = practice_path().join(filename);
+    let content = std::fs::read_to_string(path).unwrap();
+    let res = serde_json::from_str(&content).unwrap();
+    res
 }
 
 #[derive(Debug, Clone, rebo::ExternalType)]
