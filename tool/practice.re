@@ -63,7 +63,7 @@ fn create_custom_practice_menu() -> Ui {
             label: Text { text: "Save Custom Practice State" },
             onclick: fn(label: Text) {
                 let practice_list = Tas::list_practice_states();
-                enter_ui(Ui::new_filechooser("Load Custom Practice State", practice_list, fn(input: string) {
+                enter_ui(Ui::new_filechooser("Save Custom Practice State", practice_list, fn(input: string) {
                     if input.len_utf8() == 0 {
                         return;
                     }
