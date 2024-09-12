@@ -28,6 +28,8 @@ bit_field = "0.10.2"
 image = "0.24.6"
 ureq = "2.6.2"
 corosensei = "0.1.3"
+tokio = { version = "1.40.0", features = ["full"] }
+archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", rev = "e0e42bbe804e4714e6652c554ed08891bc8fd0b6" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.119"

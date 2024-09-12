@@ -9,10 +9,11 @@ use corosensei::{CoroutineResult, Yielder};
 use crossbeam_channel::{Sender, Receiver};
 use image::{Rgba, RgbaImage};
 use once_cell::sync::Lazy;
+use tokio::sync::mpsc::UnboundedSender;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
-use crate::threads::{StreamToRebo, ReboToStream};
+use crate::threads::{StreamToRebo, ReboToStream, ArchipelagoToRebo, ReboToArchipelago};
 use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslateapplication_onkeyup, REBO_DOESNT_START_SEMAPHORE, unhook_fslateapplication_onkeyup, UTexture2D, UWorld};
 use crate::threads::ue::{Suspend, UeEvent};
 
@@ -35,6 +36,8 @@ struct State {
     delta: Option<f64>,
     stream_rebo_rx: Receiver<StreamToRebo>,
     rebo_stream_tx: Sender<ReboToStream>,
+    archipelago_rebo_rx: Receiver<ArchipelagoToRebo>,
+    rebo_archipelago_tx: UnboundedSender<ReboToArchipelago>,
     working_dir: Option<String>,
     pressed_keys: HashSet<i32>,
     websocket: Option<Client<Box<dyn NetworkStream + Send>>>,
@@ -123,7 +126,10 @@ pub(super) fn poll(event: UeEvent) {
     }
 }
 
-pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>) {
+pub fn init(
+    stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>,
+    archipelago_rebo_rx: Receiver<ArchipelagoToRebo>, rebo_archipelago_tx: UnboundedSender<ReboToArchipelago>,
+) {
     log!("init rebo state");
     log!("checking for a new refunct-tas release");
     let new_version = check_for_new_version();
@@ -145,6 +151,8 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
         delta: None,
         stream_rebo_rx,
         rebo_stream_tx,
+        archipelago_rebo_rx,
+        rebo_archipelago_tx,
         working_dir: None,
         pressed_keys: HashSet::new(),
         websocket: None,

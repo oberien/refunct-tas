@@ -1,6 +1,7 @@
 use crossbeam_channel::{Receiver, Sender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use crate::native::{ElementIndex, try_find_element_index, UObject};
-use crate::threads::{ReboToStream, StreamToRebo};
+use crate::threads::{ArchipelagoToRebo, ReboToArchipelago, ReboToStream, StreamToRebo};
 
 mod rebo;
 
@@ -27,8 +28,11 @@ enum Suspend {
     Return,
 }
 
-pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>) {
-    rebo::init(stream_rebo_rx, rebo_stream_tx);
+pub fn run(
+    stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>,
+    archipelago_rebo_rx: Receiver<ArchipelagoToRebo>, rebo_archipelago_tx: UnboundedSender<ReboToArchipelago>,
+) {
+    rebo::init(stream_rebo_rx, rebo_stream_tx, archipelago_rebo_rx, rebo_archipelago_tx);
     log!("\"starting\" ue thread");
 }
 

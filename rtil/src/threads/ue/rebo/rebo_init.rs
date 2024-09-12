@@ -4,6 +4,7 @@ use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
+use archipelago_rs::protocol::ServerMessage;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
@@ -13,7 +14,7 @@ use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
-use crate::threads::{ReboToStream, StreamToRebo};
+use crate::threads::{ArchipelagoToRebo, ReboToArchipelago, ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
@@ -84,6 +85,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(move_on_server)
         .add_function(press_platform_on_server)
         .add_function(press_button_on_server)
+        .add_function(archipelago_connect)
+        .add_function(archipelago_disconnect)
         .add_function(new_game_pressed)
         .add_function(get_level)
         .add_function(set_level)
@@ -149,6 +152,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(player_pressed_new_game)
         .add_required_rebo_function(start_new_game_at)
         .add_required_rebo_function(disconnected)
+        .add_required_rebo_function(archipelago_disconnected)
         .add_required_rebo_function(on_level_state_change)
         .add_required_rebo_function(on_resolution_change)
         .add_required_rebo_function(on_menu_open)
@@ -276,6 +280,29 @@ fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -
             }
         }
 
+        // check archipelago
+        loop {
+            let res = STATE.lock().unwrap().as_mut().unwrap().archipelago_rebo_rx.try_recv();
+            match res {
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => panic!("archipelago_rebo_rx became disconnected"),
+                Ok(ArchipelagoToRebo::ConnectionAborted) => archipelago_disconnected(vm)?,
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::RoomInfo(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::ConnectionRefused(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::Connected(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::ReceivedItems(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::LocationInfo(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::RoomUpdate(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::Print(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::PrintJSON(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::DataPackage(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::Bounced(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::InvalidPacket(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::Retrieved(_))) => {},
+                Ok(ArchipelagoToRebo::ServerMessage(ServerMessage::SetReply(_))) => {},
+            }
+        }
+
         match to_be_returned {
             Some(ret) => {
                 // call level-state event function
@@ -306,6 +333,7 @@ extern "rebo" {
     fn player_pressed_new_game(id: u32);
     fn start_new_game_at(timestamp: u64);
     fn disconnected(reason: Disconnected);
+    fn archipelago_disconnected();
     fn on_level_state_change(old: LevelState, new: LevelState);
     fn on_resolution_change();
     fn on_menu_open();
@@ -704,6 +732,9 @@ fn pawn_location(pawn_id: u32) -> Location {
     let (x, y, z) = my_character.location();
     Location { x, y, z }
 }
+
+// SERVER / WEBSOCKET
+
 #[derive(rebo::ExternalType)]
 enum Server {
     Localhost,
@@ -845,6 +876,22 @@ fn press_button_on_server(button_id: u8) {
 fn new_game_pressed() {
     send_to_server(vm, "new game pressed", Request::NewGamePressed)?;
 }
+
+// ARCHIPELAGO
+
+#[rebo::function(raw("Tas::archipelago_connect"))]
+fn archipelago_connect(server_and_port: String, game: String, slot: String, password: Option<String>) {
+    STATE.lock().unwrap().as_ref().unwrap().rebo_archipelago_tx.send(ReboToArchipelago::Connect {
+        server_and_port, game, slot, password,
+        items_handling: Some(7),
+        tags: vec![],
+    }).unwrap();
+}
+#[rebo::function(raw("Tas::archipelago_disconnect"))]
+fn archipelago_disconnect() {
+    STATE.lock().unwrap().as_ref().unwrap().rebo_archipelago_tx.send(ReboToArchipelago::Disconnect).unwrap();
+}
+
 #[rebo::function("Tas::get_level")]
 fn get_level() -> i32 {
     LevelState::get_level()

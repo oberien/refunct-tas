@@ -12,6 +12,7 @@ include "tas.re";
 include "timer.re";
 include "minimap.re";
 include "multiplayer.re";
+include "archipelago.re";
 include "movement.re";
 include "misc.re";
 include "mapeditor.re";
@@ -82,6 +83,10 @@ fn create_base_menu() -> Ui {
 //            label: Text { text: "Multiplayer" },
 //            onclick: fn(label: Text) { enter_ui(create_multiplayer_menu()); },
 //        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Archipelago" },
+            onclick: fn(label: Text) { enter_ui(create_archipelago_menu()); },
+        }),
         UiElement::Button(UiButton {
             label: Text { text: "Map Editor" },
             onclick: fn(label: Text) { enter_ui(create_map_editor_menu()); },
