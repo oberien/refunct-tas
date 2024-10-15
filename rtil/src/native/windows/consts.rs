@@ -12,7 +12,6 @@ pub const UKISMETSYSTEMLIBRARY_LINETRACESINGLE: usize = 0xc7ed60;
 pub const UGAMEPLAYSTATICS_GETACCURATEREALTIME: usize = 0xbfc960;
 pub const AHUD_GETTEXTSIZE: usize = 0xc54e00;
 pub const AHUD_DRAWTEXT: usize = 0xc4b600;
-pub const AHUD_DRAWRECT: usize = 0xc4b570;
 pub const AHUD_DRAWLINE: usize = 0xc4b1c0;
 pub const AHUD_DRAWTEXTURE: usize = 0xc4b790;
 pub const AHUD_DRAWTEXTURESIMPLE: usize = 0xc4b920;
