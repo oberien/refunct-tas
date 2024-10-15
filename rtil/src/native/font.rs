@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering;
 use std::mem;
 
 pub struct UFont(*mut UFontUE);
-pub(in crate::native) enum UFontUE {}
+pub enum UFontUE {}
 
 // WARNING: somewhat unsound - see AMyCharacter
 unsafe impl Send for UFont {}
