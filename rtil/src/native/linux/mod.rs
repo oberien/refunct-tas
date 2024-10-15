@@ -93,6 +93,8 @@ find! {
     AMYHUD_DRAWHUD, "^AMyHUD::DrawHUD()",
     AHUD_DRAWLINE, "^AHUD::DrawLine(float, float, float, float, FLinearColor, float)",
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
+    UKISMETSYSTEMLIBRARY_LAUNCHURL, "^UKismetSystemLibrary::LaunchURL(FString const&)",
+    AHUD_DRAWRECT, "^AHUD::DrawRect(FLinearColor, float, float, float, float)",
     AHUD_DRAWTEXTURESIMPLE, "^AHUD::DrawTextureSimple(UTexture*, float, float, float, bool)",
     AHUD_DRAWTEXTURE, "^AHUD::DrawTexture(UTexture*, float, float, float, float, float, float, float, float, FLinearColor, EBlendMode, float, bool, float, FVector2D)",
     AHUD_PROJECT, "^AHUD::Project(FVector)",
@@ -121,6 +123,7 @@ find! {
     ALIFTBASE_REMOVEBASEDCHARACTER, "^ALiftBase::RemoveBasedCharacter(AMyCharacter*)",
     AMYCHARACTER_UNDERWATERCHANGED, "^AMyCharacter::UnderwaterChanged(bool)",
     UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE, "^UMaterialInstanceDynamic::SetScalarParameterValue(FName, float)",
+    UFONTBULKDATA_INITIALIZE, "^UFontBulkData::Initialize(void const*, int)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

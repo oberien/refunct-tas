@@ -37,6 +37,7 @@ mod reflection;
 mod map_editor;
 mod kismet_system_library;
 mod engine;
+mod font;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
