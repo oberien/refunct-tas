@@ -155,7 +155,7 @@ fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // save registers and arguments
                 #PUSHALL_LINUX,
                 // setup `Args` argument
@@ -175,14 +175,13 @@ fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
                 #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
-                options(noreturn),
             )
         }
 
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // save registers (ecx = first argument = this*)
                 #PUSHALL_WINDOWS,
                 // setup `Args` argument
@@ -200,7 +199,6 @@ fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
                 #trampoline_name = sym #trampoline_name,
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
-                options(noreturn),
             )
         }
     }
@@ -217,7 +215,7 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // save registers and arguments
                 #PUSHALL_LINUX,
                 // setup `Args` argument
@@ -254,7 +252,6 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
-                options(noreturn),
             )
         }
 
@@ -288,7 +285,7 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // save registers (ecx = first argument = this*)
                 #PUSHALL_WINDOWS,
                 // setup `Args` argument
@@ -387,7 +384,6 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
                 #unhook_function_name = sym #unhook_function_name,
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
-                options(noreturn),
             )
         }
     }
@@ -414,7 +410,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         #[cfg(unix)]
         #[naked]
         unsafe extern "C" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // restore original function
                 #PUSHALL_LINUX,
                 #ALIGNSTACK_PRE_LINUX,
@@ -448,14 +444,13 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
                 #trampoline_name = sym #trampoline_name,
-                options(noreturn),
             )
         }
 
         #[cfg(windows)]
         #[naked]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
-            std::arch::asm!(
+            core::arch::naked_asm!(
                 // restore original function
                 #PUSHALL_WINDOWS,
                 concat!("call {", stringify!(#unhook_function_name), "}"),
@@ -483,7 +478,6 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
                 #original_function_address = sym crate::native::#original_function_address,
                 #hook_function_name = sym #hook_function_name,
                 #function_to_call = sym #function_to_call,
-                options(noreturn),
             )
         }
     }
