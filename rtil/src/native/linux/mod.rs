@@ -121,6 +121,7 @@ find! {
     ALIFTBASE_REMOVEBASEDCHARACTER, "^ALiftBase::RemoveBasedCharacter(AMyCharacter*)",
     AMYCHARACTER_UNDERWATERCHANGED, "^AMyCharacter::UnderwaterChanged(bool)",
     UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE, "^UMaterialInstanceDynamic::SetScalarParameterValue(FName, float)",
+    UFONTBULKDATA_INITIALIZE, "^UFontBulkData::Initialize(void const*, int)",
 }
 
 pub(in crate::native) fn make_rw(addr: usize) {

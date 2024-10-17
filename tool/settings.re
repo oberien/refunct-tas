@@ -157,7 +157,7 @@ impl Settings {
             }
         };
         Settings {
-            ui_scale: get_float("ui_scale", 2.),
+            ui_scale: get_float("ui_scale", 1.),
             show_character_stats: get_bool("show_character_stats", false),
             show_game_stats: get_bool("show_game_stats", false),
             minimap_enabled: get_bool("minimap_enabled", false),
