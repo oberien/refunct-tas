@@ -5,7 +5,10 @@ use crate::native::{ArrayWrapper, StructValueWrapper, UeScope, UFONTBULKDATA_INI
 use std::sync::atomic::Ordering;
 use std::mem;
 
-pub struct UFont(*mut UFontUE);
+pub struct UFont {
+    font: *mut UFontUE
+}
+
 pub enum UFontUE {}
 
 // WARNING: somewhat unsound - see AMyCharacter
@@ -17,17 +20,17 @@ struct UFontBulkData {
 }
 
 impl UFont {
-    pub fn get_font(name: &str) -> *mut UFontUE {
+    pub fn get_font(name: &str) -> UFont {
         UeScope::with(|scope| {
             let engine = scope.get(ENGINE_INDEX.get().unwrap());
             let font = engine.get_field(name).unwrap::<ObjectWrapper>();
-            font.as_ptr() as *mut UFontUE
+            UFont { font: font.as_ptr() as *mut UFontUE }
         })
     }
 
-    pub fn set_font(font: *mut UFontUE) {
+    pub fn set_font(font: UFont) {
         unsafe {
-            let font2 = ObjectWrapper::new(font as *mut UObject);
+            let font2 = ObjectWrapper::new(font.font as *mut UObject);
             let composite = font2.get_field("CompositeFont").unwrap::<StructValueWrapper>();
             let typefaces = composite.get_field("DefaultTypeface").unwrap::<StructValueWrapper>();
             let fonts = typefaces.get_field("Fonts").unwrap::<ArrayWrapper<StructValueWrapper>>();
