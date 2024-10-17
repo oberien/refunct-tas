@@ -221,7 +221,7 @@ impl Ui {
         }
     }
     fn draw(self) {
-        // This padding dictates how much space there will be between elements. Got no damn clue why it's done like this.
+        // This padding dictates how much space there will be between elements. Got no clue why it's done like this.
         let padding = 48.;
         match self.on_draw {
             Option::Some(f) => f(),

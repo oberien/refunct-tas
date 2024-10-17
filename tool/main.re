@@ -102,7 +102,6 @@ fn create_base_menu() -> Ui {
     ))
 }
 
-Tas::set_default_font();
 enter_ui(create_start_menu());
 
 loop {
