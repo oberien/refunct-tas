@@ -121,6 +121,10 @@ struct Settings {
     day_stars_brightness: float,
     night_stars_brightness: float,
     screen_percentage: float,
+    reticle_w: float,
+    reticle_h: float,
+    reticle_scale: float,
+    reticle_scale_position: bool,
 }
 static mut SETTINGS = Settings::load();
 
@@ -200,6 +204,10 @@ impl Settings {
             day_stars_brightness: get_float("day_stars_brightness", 0.),
             night_stars_brightness: get_float("night_stars_brightness", 5.),
             screen_percentage: get_float("screen_percentage", 100.),
+            reticle_w: get_float("reticle_w", 6.),
+            reticle_h: get_float("reticle_h", 6.),
+            reticle_scale: get_float("reticle_scale", 1.),
+            reticle_scale_position: get_bool("reticle_scale_position", false),
         }
     }
 
@@ -237,6 +245,10 @@ impl Settings {
         map.insert("day_stars_brightness", f"{SETTINGS.day_stars_brightness}");
         map.insert("night_stars_brightness", f"{SETTINGS.night_stars_brightness}");
         map.insert("screen_percentage", f"{SETTINGS.screen_percentage}");
+        map.insert("reticle_w", f"{SETTINGS.reticle_w}");
+        map.insert("reticle_h", f"{SETTINGS.reticle_h}");
+        map.insert("reticle_scale", f"{SETTINGS.reticle_scale}");
+        map.insert("reticle_scale_position", f"{SETTINGS.reticle_scale_position}");
         Tas::store_settings(map);
     }
 

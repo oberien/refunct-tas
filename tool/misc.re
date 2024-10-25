@@ -95,6 +95,12 @@ fn create_misc_menu() -> Ui {
             onchange: fn(index: int) { Tas::set_movement_mode(index); },
         }),
         UiElement::Button(UiButton {
+            label: Text { text: "Player" },
+            onclick: fn(label: Text) {
+                enter_ui(create_player_menu());
+            }
+        }),
+        UiElement::Button(UiButton {
             label: Text { text: "Minimap" },
             onclick: fn(label: Text) {
                 enter_ui(create_minimap_menu());

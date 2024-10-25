@@ -7,7 +7,7 @@ use bit_field::BitField;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector, FVector2D};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
 use crate::native::texture::UTexture2DUE;
 use crate::threads::ue;
 
@@ -116,6 +116,25 @@ fn draw_hud(args: &mut Args) {
     ue::draw_hud();
 }
 
+#[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
+fn draw_material_simple(args: &mut Args) {
+    let (
+        _this, material, screen_x, screen_y, screen_w, screen_h, scale, scale_position
+    ) = unsafe { args.with_this_pointer::<(*mut UObject, *mut UObject, f32, f32, f32, f32, f32, usize)>() };
+    unsafe {
+        let obj = ObjectWrapper::new(material);
+        if obj.name() == "M_Player_Crosshair" {
+            *screen_w = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_w;
+            *screen_h = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_h;
+            *scale = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_scale;
+            *scale_position = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_scale_position as usize;
+            let sw = *screen_w * *scale;
+            let sh = *screen_h * *scale;
+            *screen_x = (AMyCharacter::get_player().get_viewport_size().0 as f32 / 2.) - (sw / 2.);
+            *screen_y = (AMyCharacter::get_player().get_viewport_size().1 as f32 / 2.) - (sh / 2.);
+        }
+    }
+}
 #[allow(unused)]
 #[repr(i32)]
 pub enum EBlendMode {

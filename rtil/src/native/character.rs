@@ -127,6 +127,7 @@ impl AMyCharacter {
             fun.call(obj.as_ptr(), &params);
         }
     }
+
 }
 
 #[repr(C)]

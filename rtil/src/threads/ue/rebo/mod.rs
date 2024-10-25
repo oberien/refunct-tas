@@ -20,14 +20,14 @@ mod rebo_init;
 
 type Coroutine = corosensei::Coroutine<UeEvent, Suspend, ()>;
 
-static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
+pub static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
 
 thread_local! {
     static YIELDER: Cell<*const Yielder<UeEvent, Suspend>> = Cell::new(ptr::null());
     static COROUTINE: RefCell<Option<Coroutine>> = RefCell::new(None);
 }
 
-struct State {
+pub struct State {
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
 
@@ -46,6 +46,10 @@ struct State {
     player_minimap_image: RgbaImage,
     // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
     player_minimap_textures: HashMap<Rgba<u8>, UTexture2D>,
+    pub reticle_w: f32,
+    pub reticle_h: f32,
+    pub reticle_scale: f32,
+    pub reticle_scale_position: bool,
 }
 
 pub(super) fn poll(event: UeEvent) {
@@ -155,6 +159,10 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
         minimap_image,
         player_minimap_image,
         player_minimap_textures: HashMap::new(),
+        reticle_w: 6.,
+        reticle_h: 6.,
+        reticle_scale: 3.,
+        reticle_scale_position: false,
     });
 }
 
