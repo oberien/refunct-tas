@@ -106,7 +106,7 @@ impl AMyHud {
 
 #[rtil_derive::hook_before(AMyHUD::DrawHUD)]
 fn draw_hud(args: &mut Args) {
-    let this = unsafe { args.nth_integer_arg(0) } as *mut AMyHud;
+    let this = unsafe { args.with_this_pointer::<*mut AMyHud>() };
     if AMYHUD.load(Ordering::SeqCst).is_null() {
         AMYHUD.store(this, Ordering::SeqCst);
         log!("Got AMyHUD: {:p}", this);
