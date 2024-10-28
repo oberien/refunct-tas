@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -17,7 +18,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
+use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay, hud::RETICLE_W, hud::RETICLE_H};
 use opener;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -135,7 +136,6 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_screen_percentage)
         .add_function(set_reticle_width)
         .add_function(set_reticle_height)
-        .add_function(set_reticle_scale)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1388,13 +1388,9 @@ fn set_screen_percentage(percentage: f32) {
 }
 #[rebo::function("Tas::set_reticle_width")]
 fn set_reticle_width(width: f32) {
-    STATE.lock().unwrap().as_mut().unwrap().reticle_w = width;
+    RETICLE_W.store(width, Ordering::Relaxed);
 }
 #[rebo::function("Tas::set_reticle_height")]
 fn set_reticle_height(height: f32) {
-    STATE.lock().unwrap().as_mut().unwrap().reticle_h = height;
-}
-#[rebo::function("Tas::set_reticle_scale")]
-fn set_reticle_scale(scale: f32) {
-    STATE.lock().unwrap().as_mut().unwrap().reticle_scale = scale;
+    RETICLE_H.store(height, Ordering::Relaxed);
 }

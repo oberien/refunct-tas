@@ -2,6 +2,7 @@ use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use bit_field::BitField;
+use atomic_float::AtomicF32;
 
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
@@ -116,6 +117,9 @@ fn draw_hud(args: &mut Args) {
     ue::draw_hud();
 }
 
+pub static RETICLE_W: AtomicF32 = AtomicF32::new(6.);
+pub static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
+
 #[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
 fn draw_material_simple(args: &mut Args) {
     let (
@@ -124,10 +128,8 @@ fn draw_material_simple(args: &mut Args) {
     unsafe {
         let obj = ObjectWrapper::new(material);
         if obj.name() == "M_Player_Crosshair" {
-            *screen_w = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_w;
-            *screen_h = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_h;
-            *scale = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_scale;
-            *scale_position = ue::rebo::STATE.lock().unwrap().as_mut().unwrap().reticle_scale_position as usize;
+            *screen_w = RETICLE_W.load(Ordering::Relaxed);
+            *screen_h = RETICLE_H.load(Ordering::Relaxed);
             let sw = *screen_w * *scale;
             let sh = *screen_h * *scale;
             *screen_x = (AMyCharacter::get_player().get_viewport_size().0 as f32 / 2.) - (sw / 2.);

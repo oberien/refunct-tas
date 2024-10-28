@@ -1,6 +1,5 @@
 Tas::set_reticle_width(SETTINGS.reticle_w);
 Tas::set_reticle_height(SETTINGS.reticle_h);
-Tas::set_reticle_scale(SETTINGS.reticle_scale);
 
 fn create_reticle_menu() -> Ui {
     static mut PLAYER_RETICLE_WIDTH_INPUT_LABEL = Text { text: "Reticle Width" };
@@ -39,24 +38,6 @@ fn create_reticle_menu() -> Ui {
                     },
                     Result::Err(e) => {
                         PLAYER_RETICLE_HEIGHT_INPUT_LABEL.text = f"Reticle Height (invalid value)";
-                    },
-                }
-            },
-        }),
-        UiElement::FloatInput(FloatInput {
-            label: PLAYER_RETICLE_SCALE_INPUT_LABEL,
-            input: f"{SETTINGS.reticle_scale}",
-            onclick: fn(input: string) {},
-            onchange: fn(input: string) {
-                PLAYER_RETICLE_SCALE_INPUT_LABEL.text = "Reticle Scale";
-                match input.parse_float() {
-                    Result::Ok(num) => {
-                        Tas::set_reticle_scale(num);
-                        SETTINGS.reticle_scale = num;
-                        SETTINGS.store();
-                    },
-                    Result::Err(e) => {
-                        PLAYER_RETICLE_SCALE_INPUT_LABEL.text = f"Reticle Scale (invalid value)";
                     },
                 }
             },
