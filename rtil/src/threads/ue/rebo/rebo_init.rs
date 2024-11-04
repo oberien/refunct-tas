@@ -18,7 +18,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay, hud::RETICLE_W, hud::RETICLE_H};
+use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -1388,9 +1388,9 @@ fn set_screen_percentage(percentage: f32) {
 }
 #[rebo::function("Tas::set_reticle_width")]
 fn set_reticle_width(width: f32) {
-    RETICLE_W.store(width, Ordering::Relaxed);
+    AMyHud::set_reticle_width(width);
 }
 #[rebo::function("Tas::set_reticle_height")]
 fn set_reticle_height(height: f32) {
-    RETICLE_H.store(height, Ordering::Relaxed);
+    AMyHud::set_reticle_height(height);
 }

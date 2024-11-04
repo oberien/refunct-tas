@@ -103,6 +103,14 @@ impl AMyHud {
     pub fn show_hud() {
         unsafe { (*get_amyhud!("show_hud")).bitfield.set_bit(1, true); }
     }
+
+    pub fn set_reticle_width(width: f32) {
+        RETICLE_W.store(width, Ordering::Relaxed);
+    }
+
+    pub fn set_reticle_height(height: f32) {
+        RETICLE_H.store(height, Ordering::Relaxed);
+    }
 }
 
 #[rtil_derive::hook_before(AMyHUD::DrawHUD)]

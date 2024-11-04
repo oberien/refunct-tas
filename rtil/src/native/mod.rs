@@ -26,7 +26,7 @@ mod slateapp;
 mod tick;
 mod app;
 mod memory;
-pub mod hud;
+mod hud;
 mod uworld;
 mod level_state;
 mod gameinstance;
