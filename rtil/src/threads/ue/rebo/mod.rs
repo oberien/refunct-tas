@@ -20,14 +20,14 @@ mod rebo_init;
 
 type Coroutine = corosensei::Coroutine<UeEvent, Suspend, ()>;
 
-pub static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
+static STATE: Lazy<Mutex<Option<State>>> = Lazy::new(|| Mutex::new(None));
 
 thread_local! {
     static YIELDER: Cell<*const Yielder<UeEvent, Suspend>> = Cell::new(ptr::null());
     static COROUTINE: RefCell<Option<Coroutine>> = RefCell::new(None);
 }
 
-pub struct State {
+struct State {
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
 
