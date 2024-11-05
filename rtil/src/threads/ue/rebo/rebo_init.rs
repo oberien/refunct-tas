@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -133,6 +134,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_kill_z)
         .add_function(set_gamma)
         .add_function(set_screen_percentage)
+        .add_function(set_reticle_width)
+        .add_function(set_reticle_height)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1382,4 +1385,12 @@ fn set_gamma(value: f32) {
 #[rebo::function("Tas::set_screen_percentage")]
 fn set_screen_percentage(percentage: f32) {
     UWorld::set_screen_percentage(percentage);
+}
+#[rebo::function("Tas::set_reticle_width")]
+fn set_reticle_width(width: f32) {
+    AMyHud::set_reticle_width(width);
+}
+#[rebo::function("Tas::set_reticle_height")]
+fn set_reticle_height(height: f32) {
+    AMyHud::set_reticle_height(height);
 }

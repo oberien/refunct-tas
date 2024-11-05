@@ -15,6 +15,7 @@ pub const AHUD_DRAWTEXT: usize = 0xc4b600;
 pub const AHUD_DRAWLINE: usize = 0xc4b1c0;
 pub const AHUD_DRAWTEXTURE: usize = 0xc4b790;
 pub const AHUD_DRAWTEXTURESIMPLE: usize = 0xc4b920;
+pub const AHUD_DRAWMATERIALSIMPLE: usize = 0xc4b3d0;
 pub const AHUD_PROJECT: usize = 0xc5a680;
 pub const UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS: usize = 0xc1e780;
 pub const UWORLD_DESTROYACTOR: usize = 0xc93d60;

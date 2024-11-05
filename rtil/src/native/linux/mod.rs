@@ -95,6 +95,7 @@ find! {
     AHUD_DRAWTEXT, "^AHUD::DrawText(FString const&, FLinearColor, float, float, UFont*, float, bool)",
     AHUD_DRAWTEXTURESIMPLE, "^AHUD::DrawTextureSimple(UTexture*, float, float, float, bool)",
     AHUD_DRAWTEXTURE, "^AHUD::DrawTexture(UTexture*, float, float, float, float, float, float, float, float, FLinearColor, EBlendMode, float, bool, float, FVector2D)",
+    AHUD_DRAWMATERIALSIMPLE, "^AHUD::DrawMaterialSimple(UMaterialInterface*, float, float, float, float, float, bool)",
     AHUD_PROJECT, "^AHUD::Project(FVector)",
     AHUD_GETTEXTSIZE, "^AHUD::GetTextSize(FString const&, float&, float&, UFont*, float)",
     GWORLD, "^GWorld",

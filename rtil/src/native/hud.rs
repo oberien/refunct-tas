@@ -2,12 +2,13 @@ use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use bit_field::BitField;
+use atomic_float::AtomicF32;
 
 #[cfg(unix)] use libc::c_void;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector, FVector2D};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
 use crate::native::texture::UTexture2DUE;
 use crate::threads::ue;
 
@@ -102,6 +103,14 @@ impl AMyHud {
     pub fn show_hud() {
         unsafe { (*get_amyhud!("show_hud")).bitfield.set_bit(1, true); }
     }
+
+    pub fn set_reticle_width(width: f32) {
+        RETICLE_W.store(width, Ordering::Relaxed);
+    }
+
+    pub fn set_reticle_height(height: f32) {
+        RETICLE_H.store(height, Ordering::Relaxed);
+    }
 }
 
 #[rtil_derive::hook_before(AMyHUD::DrawHUD)]
@@ -116,6 +125,26 @@ fn draw_hud(args: &mut Args) {
     ue::draw_hud();
 }
 
+static RETICLE_W: AtomicF32 = AtomicF32::new(6.);
+static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
+
+#[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
+fn draw_material_simple(args: &mut Args) {
+    let (
+        _this, material, screen_x, screen_y, screen_w, screen_h, scale, scale_position
+    ) = unsafe { args.with_this_pointer::<(*mut UObject, *mut UObject, f32, f32, f32, f32, f32, usize)>() };
+    unsafe {
+        let obj = ObjectWrapper::new(material);
+        if obj.name() == "M_Player_Crosshair" {
+            *screen_w = RETICLE_W.load(Ordering::Relaxed);
+            *screen_h = RETICLE_H.load(Ordering::Relaxed);
+            let sw = *screen_w * *scale;
+            let sh = *screen_h * *scale;
+            *screen_x = (AMyCharacter::get_player().get_viewport_size().0 as f32 / 2.) - (sw / 2.);
+            *screen_y = (AMyCharacter::get_player().get_viewport_size().1 as f32 / 2.) - (sh / 2.);
+        }
+    }
+}
 #[allow(unused)]
 #[repr(i32)]
 pub enum EBlendMode {

@@ -94,6 +94,7 @@ pub fn init() {
     tick::hook_aliftbase_addbasedcharacter();
     tick::hook_aliftbase_removebasedcharacter();
     hud::hook_amyhud_drawhud();
+    hud::hook_ahud_drawmaterialsimple();
     character::hook_amycharacter_tick();
     gameusersettings::hook_ugameusersettings_applyresolutionsettings();
     uworld::hook_uuserwidget_addtoscreen();
