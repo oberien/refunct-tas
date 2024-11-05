@@ -114,6 +114,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(disable_collision)
         .add_function(exit_water)
         .add_function(open_maps_folder)
+        .add_function(open_recordings_folder)
         .add_function(set_lighting_casts_shadows)
         .add_function(set_sky_light_enabled)
         .add_function(set_time_dilation)
@@ -1304,6 +1305,12 @@ fn exit_water() {
 fn open_maps_folder() {
     if let Err(err) = opener::open(&map_path()) {
         log!("Error opening maps folder in file manager: {}", err);
+    }
+}
+#[rebo::function("Tas::open_recordings_folder")]
+fn open_recordings_folder() {
+    if let Err(err) = opener::open(&recording_path()) {
+        log!("Error opening recordings folder in file manager: {}", err);
     }
 }
 #[rebo::function("Tas::set_lighting_casts_shadows")]
