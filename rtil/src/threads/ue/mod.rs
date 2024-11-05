@@ -2,7 +2,7 @@ use crossbeam_channel::{Receiver, Sender};
 use crate::native::{ElementIndex, try_find_element_index, UObject};
 use crate::threads::{ReboToStream, StreamToRebo};
 
-pub(crate) mod rebo;
+mod rebo;
 
 #[derive(Debug, Clone)]
 enum UeEvent {

@@ -125,8 +125,8 @@ fn draw_hud(args: &mut Args) {
     ue::draw_hud();
 }
 
-pub static RETICLE_W: AtomicF32 = AtomicF32::new(6.);
-pub static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
+static RETICLE_W: AtomicF32 = AtomicF32::new(6.);
+static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
 
 #[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
 fn draw_material_simple(args: &mut Args) {
