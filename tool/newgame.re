@@ -75,6 +75,9 @@ static mut NEW_GAME_100_PERCENT_COMPONENT = Component {
         Tas::set_level(30);
     },
     on_level_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
@@ -105,6 +108,9 @@ static NEW_GAME_ALL_BUTTONS_COMPONENT = Component {
         Tas::set_level(29);
     },
     on_level_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::set_level(0);
     },
@@ -138,6 +144,9 @@ static NEW_GAME_NGG_COMPONENT = Component {
         }
     },
     on_level_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         let level = Tas::get_level();
         if level < 29 {
@@ -218,6 +227,24 @@ fn on_level_state_change(old: LevelState, new: LevelState) {
         for comp in CURRENT_COMPONENTS {
             let on_reset = comp.on_reset;
             on_reset(old.resets, new.resets);
+        }
+    }
+    if old.buttons != new.buttons {
+        for comp in CURRENT_COMPONENTS {
+            let on_buttons_change = comp.on_buttons_change;
+            on_buttons_change(old.buttons, new.buttons);
+        }
+    }
+    if old.cubes != new.cubes {
+        for comp in CURRENT_COMPONENTS {
+            let on_cubes_change = comp.on_cubes_change;
+            on_cubes_change(old.cubes, new.cubes);
+        }
+    }
+    if old.platforms != new.platforms {
+        for comp in CURRENT_COMPONENTS {
+            let on_platforms_change = comp.on_platforms_change;
+            on_platforms_change(old.platforms, new.platforms);
         }
     }
 }

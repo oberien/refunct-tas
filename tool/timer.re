@@ -53,6 +53,9 @@ static TIMER_COMPONENT = Component {
             _ => {},
         }
     },
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
     on_element_pressed: fn(index: ElementIndex) {},
     on_element_released: fn(index: ElementIndex) {},

@@ -173,6 +173,9 @@ static mut MULTIPLAYER_COMPONENT = Component {
         }
         MULTIPLAYER_STATE.risen_clusters.insert(new, current_time_millis());
     },
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {},
     on_element_pressed: fn(index: ElementIndex) {
     },

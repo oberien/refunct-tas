@@ -73,6 +73,9 @@ static PRACTICE_COMPONENT = Component {
         Tas::set_acceleration(Acceleration { x: 0., y: 0., z: 0. });
     },
     on_level_change: fn(old: int, new: int) {},
+    on_buttons_change: fn(old: int, new: int) {},
+    on_cubes_change: fn(old: int, new: int) {},
+    on_platforms_change: fn(old: int, new: int) {},
     on_reset: fn(old: int, new: int) {
         Tas::exit_water();
         press_buttons_until(CURRENT_PRACTICE.button);
