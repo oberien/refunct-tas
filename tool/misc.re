@@ -63,6 +63,10 @@ fn create_misc_menu() -> Ui {
             }
         }),
         UiElement::Button(UiButton {
+           label: Text { text: "Open Recordings Folder" },
+           onclick: fn(label: Text) { Tas::open_recordings_folder(); },
+        }),
+        UiElement::Button(UiButton {
             label: TAS_LABEL,
             onclick: fn(label: Text) {
                 if CURRENT_COMPONENTS.contains(TAS_COMPONENT) {
