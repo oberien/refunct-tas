@@ -129,12 +129,10 @@ impl AMyCharacter {
         }
     }
     pub fn camera_mode() -> u8 {
-        unsafe {
-            UeScope::with(|scope| {
-                let cam = scope.get(CAMERA_INDEX.get().unwrap());
-                cam.get_field("ProjectionMode").unwrap::<u8>()
-            })
-        }
+        UeScope::with(|scope| {
+            let cam = scope.get(CAMERA_INDEX.get().unwrap());
+            cam.get_field("ProjectionMode").unwrap::<u8>()
+        })
     }
     pub fn set_camera_mode(mode: u8) {
         unsafe {
