@@ -49,11 +49,33 @@ fn create_reticle_menu() -> Ui {
     ))
 }
 
+fn create_camera_menu() -> Ui {
+    Ui::new("Camera:", List::of(
+        UiElement::Chooser(Chooser {
+            label: Text { text: "Camera Mode" },
+            options: List::of(
+                Text { text: "Perspective" },
+                Text { text: "Orthographic" },
+            ),
+            selected: Tas::get_camera_mode(),
+            onchange: fn(index: int) { Tas::set_camera_mode(index); },
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Back" },
+            onclick: fn(label: Text) { leave_ui() },
+        }),
+    ))
+}
+
 fn create_player_menu() -> Ui {
     Ui::new("Player:", List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Reticle" },
             onclick: fn(label: Text) { enter_ui(create_reticle_menu()); }
+        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Camera" },
+            onclick: fn(label: Text) { enter_ui(create_camera_menu()); }
         }),
         UiElement::Button(UiButton {
             label: Text { text: "Back" },

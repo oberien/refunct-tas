@@ -3,8 +3,9 @@ use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject};
+use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope};
 use crate::native::reflection::UClass;
+use crate::native::uworld::CAMERA_INDEX;
 
 static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null_mut());
 
@@ -125,6 +126,25 @@ impl AMyCharacter {
             let fun = obj.class().find_function("StopFootstepEffect").unwrap();
             let params = fun.create_argument_struct();
             fun.call(obj.as_ptr(), &params);
+        }
+    }
+    pub fn camera_mode() -> u8 {
+        unsafe {
+            UeScope::with(|scope| {
+                let cam = scope.get(CAMERA_INDEX.get().unwrap());
+                cam.get_field("ProjectionMode").unwrap::<u8>()
+            })
+        }
+    }
+    pub fn set_camera_mode(mode: u8) {
+        unsafe {
+            UeScope::with(|scope| {
+                let cam = scope.get(CAMERA_INDEX.get().unwrap());
+                let fun = cam.class().find_function("SetProjectionMode").unwrap();
+                let params = fun.create_argument_struct();
+                params.get_field("InProjectionMode").unwrap::<&Cell<u8>>().set(mode);
+                fun.call(cam.as_ptr(), &params);
+            });
         }
     }
 }
