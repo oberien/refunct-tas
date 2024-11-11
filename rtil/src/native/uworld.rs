@@ -18,6 +18,7 @@ pub(in crate::native) type ULevel = c_void;
 pub static CLOUDS_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static JUMP6_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 pub static ENGINE_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
+pub static CAMERA_INDEX: OnceLock<ObjectIndex<ObjectWrapperType>> = OnceLock::new();
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -393,6 +394,17 @@ pub fn init() {
             }
             if class_name == "GameEngine" && name != "Default__GameEngine" {
                 ENGINE_INDEX.set(scope.object_index(&object)).ok().unwrap();
+            }
+            if class_name == "CameraComponent" && name == "FirstPersonCamera" {
+                let fun = object.class().find_function("GetOwner").unwrap();
+                let params = fun.create_argument_struct();
+                unsafe {
+                    fun.call(object.as_ptr(), &params);
+                    let owner = params.get_field("ReturnValue").unwrap::<ObjectWrapper>();
+                    if owner.name() != "Default__MyCharacter" && owner.name() != "Default__BP_MyCharacter_C" {
+                        CAMERA_INDEX.set(scope.object_index(&object)).ok().unwrap();
+                    }
+                }
             }
         }
     })

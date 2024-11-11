@@ -137,6 +137,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_screen_percentage)
         .add_function(set_reticle_width)
         .add_function(set_reticle_height)
+        .add_function(get_camera_mode)
+        .add_function(set_camera_mode)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1400,4 +1402,12 @@ fn set_reticle_width(width: f32) {
 #[rebo::function("Tas::set_reticle_height")]
 fn set_reticle_height(height: f32) {
     AMyHud::set_reticle_height(height);
+}
+#[rebo::function("Tas::get_camera_mode")]
+fn get_camera_mode() -> u8 {
+    AMyCharacter::camera_mode()
+}
+#[rebo::function("Tas::set_camera_mode")]
+fn set_camera_mode(mode: u8) {
+    AMyCharacter::set_camera_mode(mode);
 }
