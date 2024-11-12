@@ -32,6 +32,7 @@ copy tool\minimap.re build\practice-windows
 copy tool\mapeditor.re build\practice-windows
 copy tool\world_options.re build\practice-windows
 copy tool\player.re build\practice-windows
+copy tool\log.re build\practice-windows
 echo Converting lf to crlf
 call :convert main.re
 call :convert prelude.re
@@ -53,6 +54,7 @@ call :convert minimap.re
 call :convert mapeditor.re
 call :convert world_options.re
 call :convert player.re
+call :convert log.re
 
 echo Don't forget to create a zip
 exit /b 0
