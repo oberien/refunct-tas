@@ -1,11 +1,9 @@
 static mut LOG = Log {
-    messages: List::new(),
-    message_expire_delay: 5000,
+    messages: List::new()
 };
 
 struct Log {
-    messages: List<LogMessage>,
-    message_expire_delay: int,
+    messages: List<LogMessage>
 }
 
 struct LogMessage {
@@ -21,9 +19,10 @@ fn log(content: string) {
     LOG.messages.push(message);
 }
 fn clean_expired_messages() {
+    let millis = current_time_millis();
     let mut i = 0;
     while i < LOG.messages.len() {
-        if (current_time_millis() - LOG.messages.get(i).unwrap().added_timestamp) > LOG.message_expire_delay {
+        if (millis.to_float() - LOG.messages.get(i).unwrap().added_timestamp.to_float()) > SETTINGS.log_message_duration {
             LOG.messages.remove(i);
         } else {
             i += 1;
@@ -32,21 +31,19 @@ fn clean_expired_messages() {
 }
 
 fn draw_log_messages() {
-    let mut i = 0;
-    while i < LOG.messages.len() {
-        let viewport = Tas::get_viewport_size();
-        let message = LOG.messages.get(i).unwrap();
-        Tas::draw_text(DrawText {
-            text: message.content,
-            color: Color { red: 1., green: 0., blue: 0., alpha: 1.},
-            x: 10.,
-            // 51 denotes the amount of vertical space from the bottom of the screen.
-            // 48 denotes the amount of vertical space between each log message.
-            y: viewport.height.to_float() - ((51. * SETTINGS.ui_scale) + ((48. * SETTINGS.ui_scale) * i.to_float())),
-            scale: SETTINGS.ui_scale,
-            scale_position: false,
-        });
-        i += 1;
-    }:
+    let viewport = Tas::get_viewport_size();
+    let mut messages = "";
+    for message in LOG.messages {
+        messages = f"{message.content}\n{messages}";
+    }
+    let txt_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
+    Tas::draw_text(DrawText {
+        text: messages,
+        color: COLOR_RED,
+        x: 10.,
+        y: viewport.height.to_float() - (txt_size.height * LOG.messages.len().to_float()),
+        scale: SETTINGS.ui_scale,
+        scale_position: false,
+    });
     clean_expired_messages();
 }
