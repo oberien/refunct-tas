@@ -1,9 +1,9 @@
 static mut LOG = Log {
-    messages: List::new()
+    messages: List::new(),
 };
 
 struct Log {
-    messages: List<LogMessage>
+    messages: List<LogMessage>,
 }
 
 struct LogMessage {
@@ -22,7 +22,7 @@ fn clean_expired_messages() {
     let millis = current_time_millis();
     let mut i = 0;
     while i < LOG.messages.len() {
-        if (millis.to_float() - LOG.messages.get(i).unwrap().added_timestamp.to_float()) > SETTINGS.log_message_duration {
+        if (millis - LOG.messages.get(i).unwrap().added_timestamp) > SETTINGS.log_message_duration {
             LOG.messages.remove(i);
         } else {
             i += 1;
@@ -36,12 +36,12 @@ fn draw_log_messages() {
     for message in LOG.messages {
         messages = f"{message.content}\n{messages}";
     }
-    let txt_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
+    let text_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
     Tas::draw_text(DrawText {
         text: messages,
         color: COLOR_RED,
         x: 10.,
-        y: viewport.height.to_float() - (txt_size.height * LOG.messages.len().to_float()),
+        y: viewport.height.to_float() - (text_size.height * LOG.messages.len().to_float()),
         scale: SETTINGS.ui_scale,
         scale_position: false,
     });

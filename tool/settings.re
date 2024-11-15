@@ -78,14 +78,15 @@ fn create_settings_menu() -> Ui {
             },
         }),
         UiElement::FloatInput(FloatInput {
-            label: Text { text: "Log Message Duration" },
-            input: f"{SETTINGS.log_message_duration}",
+            label: Text { text: "Log Message Duration (s)" },
+            input: f"{SETTINGS.log_message_duration.to_float() / 1000.}",
             onclick: fn(input: string) {},
             onchange: fn(input: string) {
                 match input.parse_float() {
                     Result::Ok(val) => {
                         if 0.0 <= val {
-                            SETTINGS.log_message_duration = val;
+                            let milliseconds = val * 1000.;
+                            SETTINGS.log_message_duration = milliseconds.round(3).to_int();
                             SETTINGS.store();
                         }
                     },
@@ -141,7 +142,7 @@ struct Settings {
     reticle_h: float,
     reticle_scale: float,
     reticle_scale_position: bool,
-    log_message_duration: float,
+    log_message_duration: int,
 }
 static mut SETTINGS = Settings::load();
 
@@ -225,7 +226,7 @@ impl Settings {
             reticle_h: get_float("reticle_h", 6.),
             reticle_scale: get_float("reticle_scale", 1.),
             reticle_scale_position: get_bool("reticle_scale_position", false),
-            log_message_duration: get_float("log_message_duration", 10000.),
+            log_message_duration: get_int("log_message_duration", 10000),
         }
     }
 
