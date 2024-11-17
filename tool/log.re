@@ -22,8 +22,15 @@ fn log(content: string) {
 fn draw_log_messages() {
     let viewport = Tas::get_viewport_size();
     let mut messages = "";
-    for message in LOG.messages {
-        messages = f"{message.content}\n{messages}";
+    let millis = current_time_millis();
+    let mut i = 0;
+    while i < LOG.messages.len() {
+        messages = f"{LOG.messages.get(i).unwrap().content}\n{messages}";
+        if (millis - LOG.messages.get(i).unwrap().added_timestamp) > SETTINGS.log_message_duration {
+            LOG.messages.remove(i);
+        } else {
+            i += 1;
+        }
     }
     // Tas::get_text_size ignores newlines (and every other escape sequence for that matter).
     let text_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
@@ -36,13 +43,4 @@ fn draw_log_messages() {
         scale: SETTINGS.ui_scale,
         scale_position: false,
     });
-    let millis = current_time_millis();
-    let mut i = 0;
-    while i < LOG.messages.len() {
-        if (millis - LOG.messages.get(i).unwrap().added_timestamp) > SETTINGS.log_message_duration {
-            LOG.messages.remove(i);
-        } else {
-            i += 1;
-        }
-    }
 }
