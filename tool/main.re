@@ -82,10 +82,10 @@ fn create_base_menu() -> Ui {
             label: Text { text: "New Game Actions" },
             onclick: fn(label: Text) { enter_ui(create_new_game_actions_menu()); },
         }),
-//        UiElement::Button(UiButton {
-//            label: Text { text: "Multiplayer" },
-//            onclick: fn(label: Text) { enter_ui(create_multiplayer_menu()); },
-//        }),
+        UiElement::Button(UiButton {
+            label: Text { text: "Multiplayer" },
+            onclick: fn(label: Text) { enter_ui(create_multiplayer_menu()); },
+        }),
         UiElement::Button(UiButton {
             label: Text { text: "Map Editor" },
             onclick: fn(label: Text) { enter_ui(create_map_editor_menu()); },
