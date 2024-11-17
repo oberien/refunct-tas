@@ -1,3 +1,4 @@
+include "log.re";
 include "settings.re";
 include "keys.re";
 include "component.re"
@@ -61,6 +62,7 @@ Platforms: {GAME_STATS.current_platforms} (Total: {GAME_STATS.total_platforms})
 Resets: {GAME_STATS.total_resets} | Any%: {GAME_STATS.total_runs_completed} | 100%: {GAME_STATS.total_100_runs_completed} | All Platforms: {GAME_STATS.total_all_platforms_runs_completed} | All Cubes: {GAME_STATS.total_all_cubes_runs_completed} | Lowest #Platforms: {GAME_STATS.fewest_platform_run}";
             }
             start_menu_text.text = text;
+            draw_log_messages();
         }),
         selected: 0,
     }

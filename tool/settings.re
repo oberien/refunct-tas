@@ -77,6 +77,23 @@ fn create_settings_menu() -> Ui {
                 }
             },
         }),
+        UiElement::FloatInput(FloatInput {
+            label: Text { text: "Log Message Duration (s)" },
+            input: f"{SETTINGS.log_message_duration.to_float() / 1000.}",
+            onclick: fn(input: string) {},
+            onchange: fn(input: string) {
+                match input.parse_float() {
+                    Result::Ok(val) => {
+                        if 0.0 <= val {
+                            let milliseconds = val * 1000.;
+                            SETTINGS.log_message_duration = milliseconds.round(0).to_int();
+                            SETTINGS.store();
+                        }
+                    },
+                    Result::Err(e) => (),
+                }
+            },
+        }),
         UiElement::Button(UiButton {
             label: Text { text: "Reset Game Stats" },
             onclick: fn(label: Text) { GAME_STATS.reset() },
@@ -125,6 +142,7 @@ struct Settings {
     reticle_h: float,
     reticle_scale: float,
     reticle_scale_position: bool,
+    log_message_duration: int,
 }
 static mut SETTINGS = Settings::load();
 
@@ -208,6 +226,7 @@ impl Settings {
             reticle_h: get_float("reticle_h", 6.),
             reticle_scale: get_float("reticle_scale", 1.),
             reticle_scale_position: get_bool("reticle_scale_position", false),
+            log_message_duration: get_int("log_message_duration", 10000),
         }
     }
 
@@ -249,6 +268,7 @@ impl Settings {
         map.insert("reticle_h", f"{SETTINGS.reticle_h}");
         map.insert("reticle_scale", f"{SETTINGS.reticle_scale}");
         map.insert("reticle_scale_position", f"{SETTINGS.reticle_scale_position}");
+        map.insert("log_message_duration", f"{SETTINGS.log_message_duration}");
         Tas::store_settings(map);
     }
 
