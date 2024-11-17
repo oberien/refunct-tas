@@ -8,8 +8,8 @@ include!("locations.in");
 
 fn main() {
     let name = std::env::args().nth(1).unwrap_or_else(|| "Test".to_string());
-    // let mut client = ClientBuilder::new("ws://localhost:8080/ws").unwrap().connect(None).unwrap();
-    let mut client = ClientBuilder::new("wss://refunct-tas.oberien.de/ws").unwrap().connect(None).unwrap();
+    let mut client = ClientBuilder::new("ws://localhost:8080/ws").unwrap().connect(None).unwrap();
+    // let mut client = ClientBuilder::new("wss://refunct-tas.oberien.de/ws").unwrap().connect(None).unwrap();
     // let mut client = ClientBuilder::new("wss://refunct-tas-test.oberien.de/ws").unwrap().connect(None).unwrap();
     let msg = Request::JoinRoom("Test".to_string(), name, 0., 0., 1., 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     client.send_message(&Message::text(serde_json::to_string(&msg).unwrap())).unwrap();
