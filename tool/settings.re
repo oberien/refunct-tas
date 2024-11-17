@@ -86,7 +86,7 @@ fn create_settings_menu() -> Ui {
                     Result::Ok(val) => {
                         if 0.0 <= val {
                             let milliseconds = val * 1000.;
-                            SETTINGS.log_message_duration = milliseconds.round(3).to_int();
+                            SETTINGS.log_message_duration = milliseconds.round(0).to_int();
                             SETTINGS.store();
                         }
                     },

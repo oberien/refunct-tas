@@ -18,7 +18,24 @@ fn log(content: string) {
     };
     LOG.messages.push(message);
 }
-fn clean_expired_messages() {
+
+fn draw_log_messages() {
+    let viewport = Tas::get_viewport_size();
+    let mut messages = "";
+    for message in LOG.messages {
+        messages = f"{message.content}\n{messages}";
+    }
+    // Tas::get_text_size ignores newlines (and every other escape sequence for that matter).
+    let text_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
+    let line_height = text_size.height;
+    Tas::draw_text(DrawText {
+        text: messages,
+        color: COLOR_RED,
+        x: 10.,
+        y: viewport.height.to_float() - (line_height * LOG.messages.len().to_float()),
+        scale: SETTINGS.ui_scale,
+        scale_position: false,
+    });
     let millis = current_time_millis();
     let mut i = 0;
     while i < LOG.messages.len() {
@@ -28,22 +45,4 @@ fn clean_expired_messages() {
             i += 1;
         }
     }
-}
-
-fn draw_log_messages() {
-    let viewport = Tas::get_viewport_size();
-    let mut messages = "";
-    for message in LOG.messages {
-        messages = f"{message.content}\n{messages}";
-    }
-    let text_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
-    Tas::draw_text(DrawText {
-        text: messages,
-        color: COLOR_RED,
-        x: 10.,
-        y: viewport.height.to_float() - (text_size.height * LOG.messages.len().to_float()),
-        scale: SETTINGS.ui_scale,
-        scale_position: false,
-    });
-    clean_expired_messages();
 }
