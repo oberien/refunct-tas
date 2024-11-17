@@ -20,7 +20,6 @@ fn log(content: string) {
 }
 
 fn draw_log_messages() {
-    let viewport = Tas::get_viewport_size();
     let mut messages = "";
     let millis = current_time_millis();
     let mut i = 0;
@@ -35,6 +34,7 @@ fn draw_log_messages() {
     // Tas::get_text_size ignores newlines (and every other escape sequence for that matter).
     let text_size = Tas::get_text_size(messages, SETTINGS.ui_scale);
     let line_height = text_size.height;
+    let viewport = Tas::get_viewport_size();
     Tas::draw_text(DrawText {
         text: messages,
         color: COLOR_RED,
