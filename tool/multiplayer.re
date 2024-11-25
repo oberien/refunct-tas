@@ -150,21 +150,21 @@ static mut MULTIPLAYER_COMPONENT = Component {
                             text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
                         },
                         ReadyState::Ready => {
-                            if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed
-                                && MULTIPLAYER_STATE.new_game_state != NewGameState::AnotherPlayerPressed
-                                && MULTIPLAYER_STATE.new_game_state != NewGameState::YouPressed {
-                                MULTIPLAYER_TEXT.text = "Starting New Game...";
-                            } else if MULTIPLAYER_STATE.new_game_state == NewGameState::YouPressed {
-                                MULTIPLAYER_TEXT.text = "You are in-game and ready. Please wait for others to ready up.";
+                            match MULTIPLAYER_STATE.new_game_state {
+                                NewGameState::YouPressed => {
+                                    MULTIPLAYER_TEXT.text = "You are in-game and ready. Please wait for others to ready up.";
+                                },
+                                NewGameState::StartingAt(_ts) => { MULTIPLAYER_TEXT.text = "Starting New Game..."; },
+                                _ => (),
                             }
                             text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
                         },
                     }
-                    return text;
                 }
-                text
+                return text;
             }
         }
+        text
     },
     draw_hud_always: fn() {
         match MULTIPLAYER_STATE.connection {
@@ -182,9 +182,6 @@ static mut MULTIPLAYER_COMPONENT = Component {
             }
         }
         match MULTIPLAYER_STATE.new_game_state {
-            NewGameState::NoonePressed => {},
-            NewGameState::AnotherPlayerPressed => {},
-            NewGameState::YouPressed => {},
             NewGameState::StartingAt(ts) => {
                 MULTIPLAYER_TEXT.text = "Starting New Game...";
                 let time = current_time_millis();
@@ -196,10 +193,19 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
                 }
                 let viewport = Tas::get_viewport_size();
-                let time_until_new_game_number = ((time.to_float() - ts.to_float()) * -1.) / 1000.;
-                let mut new_time = f"{time_until_new_game_number.to_int() % 60:01}.{float::to_int(time_until_new_game_number * 100.) % 100:02}";
+                let mut new_time = f"{(ts - time) / 1000:1}.{(ts - time) % 1000:03}";
                 let msg = "Starting new game in...";
-                let mut text_size = Tas::get_text_size(msg, 1.);
+                let mut text_size = Tas::get_text_size(new_time, 1.);
+                print(text_size.width);
+                Tas::draw_text(DrawText {
+                    text: new_time,
+                    color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
+                    x: (viewport.width.to_float() / 2.) - (text_size.width / 2.),
+                    y: ((viewport.height.to_float() / 2.) - (text_size.height / 2.) + 50.),
+                    scale: 1.,
+                    scale_position: false,
+                });
+                text_size = Tas::get_text_size(msg, 1.);
                 Tas::draw_text(DrawText {
                     text: msg,
                     color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
@@ -208,16 +214,8 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     scale: 1.,
                     scale_position: false,
                 });
-                text_size = Tas::get_text_size(new_time, 1.);
-                Tas::draw_text(DrawText {
-                    text: new_time,
-                    color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
-                    x: viewport.width.to_float() / 2. - (text_size.width / 2.),
-                    y: (viewport.height.to_float() / 2. - (text_size.height / 2.) + 50.),
-                    scale: 1.,
-                    scale_position: false,
-                });
             },
+            _ => return,
         }
     },
     on_new_game: fn() {
@@ -343,23 +341,12 @@ static mut MULTIPLAYER_COMPONENT = Component {
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
         let new_key = key.to_small();
         if new_key == KEY_R.to_small() {
-            let anyone_else_ready = match MULTIPLAYER_STATE.new_game_state {
-                NewGameState::NoonePressed => false,
-                NewGameState::AnotherPlayerPressed => true,
-                NewGameState::YouPressed => false,
-                NewGameState::StartingAt(ts) => false,
-            };
             MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
-            match MULTIPLAYER_STATE.ready_state {
-                ReadyState::NotReady => {
-                    if !anyone_else_ready {
-                        MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
-                    }
-                    MULTIPLAYER_STATE.ready_state = ReadyState::Ready;
-                    Tas::new_game_pressed();
-                },
-                ReadyState::Ready => {},
+            if MULTIPLAYER_STATE.new_game_state != NewGameState::AnotherPlayerPressed {
+                MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
             }
+            MULTIPLAYER_STATE.ready_state = ReadyState::Ready;
+            Tas::new_game_pressed();
         }
     },
     on_key_down_always: fn(key: KeyCode, is_repeat: bool) {},
@@ -530,9 +517,6 @@ fn player_moved(id: int, loc: Location, rot: Rotation) {
     player.rot = rot;
 }
 fn press_platform(id: int) {
-    if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
-        return;
-    }
     let platform = match PLATFORMS.get(id) {
         Option::Some(platform) => platform,
         Option::None => {
@@ -549,9 +533,6 @@ fn press_platform(id: int) {
     MULTIPLAYER_STATE.pressed_platforms.insert(id);
 }
 fn press_button(id: int) {
-    if MULTIPLAYER_STATE.new_game_state != NewGameState::NoonePressed {
-        return;
-    }
     let button = match BUTTONS.get(id) {
         Option::Some(button) => button,
         Option::None => {
