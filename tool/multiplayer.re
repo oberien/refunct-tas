@@ -1,5 +1,4 @@
 static mut JOIN_ROOM_LABEL = Text { text: "Join/Create Room" };
-static mut MULTIPLAYER_TEXT = Text { text: "" };
 
 fn create_multiplayer_menu() -> Ui {
     Ui::new("Multiplayer:", List::of(
