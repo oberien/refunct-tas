@@ -38,15 +38,15 @@ enum Connection {
     Error(string),
     Disconnected,
 }
-enum NewGameState {
-    NoonePressed,
-    AnotherPlayerPressed,
-    YouPressed,
-    StartingAt(int),
+enum InGameState {
+    NotInGame,
+    InGame,
 }
 enum ReadyState {
     NotReady,
+    NotReadySomeoneElseReady,
     Ready,
+    StartingAt(int),
 }
 struct MultiplayerState {
     connection: Connection,
@@ -59,9 +59,7 @@ struct MultiplayerState {
     current_buttons: int,
     /// custer-id -> timestamp
     risen_clusters: Map<int, int>,
-    new_game_state: NewGameState,
     ready_state: ReadyState,
-    in_game: bool,
 }
 struct Player {
     id: int,
@@ -100,9 +98,7 @@ static mut MULTIPLAYER_STATE = MultiplayerState {
     pressed_buttons: Set::new(),
     current_buttons: 0,
     risen_clusters: Map::new(),
-    new_game_state: NewGameState::NoonePressed,
     ready_state: ReadyState::NotReady,
-    in_game: false,
 };
 
 static mut MULTIPLAYER_COMPONENT = Component {
@@ -121,50 +117,15 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     Option::None => f"{text}\nMultiplayer connected to server",
                     Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
                 };
-                if !MULTIPLAYER_STATE.in_game {
-                    match MULTIPLAYER_STATE.new_game_state {
-                        NewGameState::NoonePressed => {
-                            MULTIPLAYER_TEXT.text = "You are not yet ready. Press <R> to ready up.";
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                        },
-                        NewGameState::AnotherPlayerPressed => {
-                            MULTIPLAYER_TEXT.text = "Other players are waiting for you to ready up. Press <R> to ready up.";
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                        },
-                        NewGameState::YouPressed => {
-                            MULTIPLAYER_STATE.ready_state = ReadyState::Ready;
-                            MULTIPLAYER_TEXT.text = "You are ready. Please wait for others to ready up.";
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                        },
-                        NewGameState::StartingAt(_ts) => {
-                            MULTIPLAYER_TEXT.text = "Starting New Game...";
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                            MULTIPLAYER_STATE.in_game = false;
-                        },
-                    }
-                    return text;
-                } else {
-                    match MULTIPLAYER_STATE.ready_state {
-                        ReadyState::NotReady => {
-                            MULTIPLAYER_TEXT.text = "You are in-game. Press <R> to ready up.";
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                        },
-                        ReadyState::Ready => {
-                            match MULTIPLAYER_STATE.new_game_state {
-                                NewGameState::YouPressed => {
-                                    MULTIPLAYER_TEXT.text = "You are in-game and ready. Please wait for others to ready up.";
-                                },
-                                NewGameState::StartingAt(_ts) => { MULTIPLAYER_TEXT.text = "Starting New Game..."; },
-                                _ => (),
-                            }
-                            text = f"{text}\n\n{MULTIPLAYER_TEXT.text}\n";
-                        },
-                    }
-                }
-                return text;
+                let message = match MULTIPLAYER_STATE.ready_state {
+                    ReadyState::NotReady => "You are not yet ready. Press <R> to ready up.",
+                    ReadyState::NotReadySomeoneElseReady => "Other players are waiting for you to ready up. Press <R> to ready up.",
+                    ReadyState::Ready => "You are ready. Please wait for others to ready up.",
+                    ReadyState::StartingAt(_ts) => "Starting New Game...",
+                };
+                f"{text}\n\n{message}\n"
             }
         }
-        text
     },
     draw_hud_always: fn() {
         match MULTIPLAYER_STATE.connection {
@@ -181,22 +142,18 @@ static mut MULTIPLAYER_COMPONENT = Component {
 //                }
             }
         }
-        match MULTIPLAYER_STATE.new_game_state {
-            NewGameState::StartingAt(ts) => {
-                MULTIPLAYER_TEXT.text = "Starting New Game...";
+        match MULTIPLAYER_STATE.ready_state {
+            ReadyState::StartingAt(ts) => {
                 let time = current_time_millis();
                 if time >= ts {
                     print(f"starting synchronized new game at {time} (expected {ts})");
                     Tas::restart_game();
-                    MULTIPLAYER_STATE.in_game = true;
-                    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
                     MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
                 }
                 let viewport = Tas::get_viewport_size();
                 let mut new_time = f"{(ts - time) / 1000:1}.{(ts - time) % 1000:03}";
                 let msg = "Starting new game in...";
                 let mut text_size = Tas::get_text_size(new_time, 1.);
-                print(text_size.width);
                 Tas::draw_text(DrawText {
                     text: new_time,
                     color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
@@ -341,10 +298,6 @@ static mut MULTIPLAYER_COMPONENT = Component {
     on_key_down: fn(key: KeyCode, is_repeat: bool) {
         let new_key = key.to_small();
         if new_key == KEY_R.to_small() {
-            MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
-            if MULTIPLAYER_STATE.new_game_state != NewGameState::AnotherPlayerPressed {
-                MULTIPLAYER_STATE.new_game_state = NewGameState::YouPressed;
-            }
             MULTIPLAYER_STATE.ready_state = ReadyState::Ready;
             Tas::new_game_pressed();
         }
@@ -551,11 +504,8 @@ fn player_pressed_new_game(id: int) {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
         return;
     }
-    match MULTIPLAYER_STATE.new_game_state {
-        NewGameState::NoonePressed => MULTIPLAYER_STATE.new_game_state = NewGameState::AnotherPlayerPressed,
-        NewGameState::AnotherPlayerPressed => (),
-        NewGameState::YouPressed => (),
-        NewGameState::StartingAt(_ts) => (),
+    if MULTIPLAYER_STATE.ready_state == ReadyState::NotReady {
+        MULTIPLAYER_STATE.ready_state = ReadyState::NotReadySomeoneElseReady;
     }
 }
 fn start_new_game_at(timestamp: int) {
@@ -563,10 +513,10 @@ fn start_new_game_at(timestamp: int) {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
         return;
     }
-    MULTIPLAYER_STATE.new_game_state = NewGameState::StartingAt(timestamp);
+    MULTIPLAYER_STATE.ready_state = ReadyState::StartingAt(timestamp);
 }
 fn disconnected(reason: Disconnected) {
-    MULTIPLAYER_STATE.new_game_state = NewGameState::NoonePressed;
+    MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
     MULTIPLAYER_COMPONENT.tick_mode = TickMode::DontCare;
     match reason {
         Disconnected::Closed => MULTIPLAYER_STATE.connection = Connection::Error("Connection Closed"),
