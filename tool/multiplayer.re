@@ -37,10 +37,6 @@ enum Connection {
     Error(string),
     Disconnected,
 }
-enum InGameState {
-    NotInGame,
-    InGame,
-}
 enum ReadyState {
     NotReady,
     NotReadySomeoneElseReady,
@@ -112,7 +108,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
             Connection::Disconnected => return text,
             Connection::Error(err_msg) => return f"{text}\nMultiplayer error: {err_msg}",
             Connection::Connected => {
-                let mut text = match MULTIPLAYER_STATE.current_room {
+                let room = match MULTIPLAYER_STATE.current_room {
                     Option::None => f"{text}\nMultiplayer connected to server",
                     Option::Some(room) => f"{text}\nMultiplayer Room: {room}",
                 };
@@ -122,7 +118,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     ReadyState::Ready => "You are ready. Please wait for others to ready up.",
                     ReadyState::StartingAt(_ts) => "Starting New Game...",
                 };
-                f"{text}\n\n{message}\n"
+                f"{room}\n\n{message}\n"
             }
         }
     },
@@ -152,7 +148,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                 let viewport = Tas::get_viewport_size();
                 let mut new_time = f"{(ts - time) / 1000:1}.{(ts - time) % 1000:03}";
                 let msg = "Starting new game in...";
-                let mut text_size = Tas::get_text_size(new_time, 1.);
+                let text_size = Tas::get_text_size(new_time, 1.);
                 Tas::draw_text(DrawText {
                     text: new_time,
                     color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
@@ -161,7 +157,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     scale: 1.,
                     scale_position: false,
                 });
-                text_size = Tas::get_text_size(msg, 1.);
+                let text_size = Tas::get_text_size(msg, 1.);
                 Tas::draw_text(DrawText {
                     text: msg,
                     color: Color { red: 0., green: 1., blue: 1., alpha: 1. },
@@ -390,7 +386,7 @@ fn multiplayer_connect() {
         MULTIPLAYER_STATE.risen_clusters.insert(i, 0);
         i += 1;
     }
-    Tas::connect_to_server(Server::Localhost);
+    Tas::connect_to_server(Server::Remote);
 }
 fn multiplayer_disconnect() {
     if MULTIPLAYER_STATE.connection != Connection::Connected {
