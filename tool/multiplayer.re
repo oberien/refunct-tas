@@ -146,7 +146,7 @@ static mut MULTIPLAYER_COMPONENT = Component {
                     MULTIPLAYER_STATE.ready_state = ReadyState::NotReady;
                 }
                 let viewport = Tas::get_viewport_size();
-                let mut new_time = f"{(ts - time) / 1000:1}.{(ts - time) % 1000:03}";
+                let new_time = f"{(ts - time) / 1000:1}.{(ts - time) % 1000:03}";
                 let msg = "Starting new game in...";
                 let text_size = Tas::get_text_size(new_time, 1.);
                 Tas::draw_text(DrawText {
