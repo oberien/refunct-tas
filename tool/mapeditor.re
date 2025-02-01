@@ -471,6 +471,26 @@ fn create_map_editor_element_ui(mut element: Element, index: ElementIndex, selec
             },
         }),
         UiElement::Button(UiButton {
+            label: Text { text: "Reset to original rotation" },
+            onclick: fn(label: Text) {
+                let original_map = Tas::original_map();
+                let cluster = original_map.clusters.get(index.cluster_index).unwrap();
+                let element_list = match index.element_type {
+                    ElementType::Platform => cluster.platforms,
+                    ElementType::Cube => cluster.cubes,
+                    ElementType::Button => cluster.buttons,
+                    ElementType::Lift => cluster.lifts,
+                    ElementType::Pipe => cluster.pipes,
+                    ElementType::Springpad => cluster.springpads,
+                };
+                let original_element = element_list.get(index.element_index).unwrap();
+                element.pitch = original_element.pitch;
+                element.yaw = original_element.yaw;
+                element.roll = original_element.roll;
+                submit();
+            },
+        }),
+        UiElement::Button(UiButton {
             label: Text { text: "Reset to original values" },
             onclick: fn(label: Text) {
                 let original_map = Tas::original_map();
