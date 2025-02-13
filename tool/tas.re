@@ -35,8 +35,7 @@ fn tas_save_recording(name: string) {
 }
 
 fn tas_load_recording(name: string) {
-    let recording = Tas::load_recording(name);
-    TAS_STATE.recording = recording.frames;
+    TAS_STATE.recording = Tas::load_recording(name);
 }
 
 impl TasState {
@@ -123,9 +122,6 @@ static mut TAS_COMPONENT = Component {
                 rotation: Tas::get_rotation(),
                 velocity: Tas::get_velocity(),
                 acceleration: Tas::get_acceleration(),
-                base_speed: Tas::get_base_speed(),
-                max_walk_speed: Tas::get_max_walk_speed(),
-                max_bonus_speed: Tas::get_max_bonus_speed(),
             });
         }
         TAS_STATE.events = List::new();

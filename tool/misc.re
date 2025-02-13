@@ -25,6 +25,10 @@ fn create_misc_menu() -> Ui {
             label: Text { text: "Save Recording" },
             onclick: fn(label: Text) {
                 enter_ui(Ui::new_filechooser("Save Recording", Tas::list_recordings(), fn(input: string) {
+                    if TAS_STATE.is_recording {
+                        log("[TAS Component] Error: You cannot save file whilst recording!");
+                        return;
+                    }
                     tas_save_recording(input);
                     leave_ui();
                 }));

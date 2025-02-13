@@ -4,7 +4,7 @@ use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
@@ -379,11 +379,15 @@ fn store_settings(settings: Map<String, String>) {
 struct Recording {
     version: i32,
     author: String,
+    steam_id: u64,
     filename: String,
     frame_count: i64,
     recording_start_timestamp: u64,
     recording_end_timestamp: u64,
     recording_save_timestamp: u64,
+    base_speed: f32,
+    max_walk_speed: f32,
+    max_bonus_speed: f32,
     frames: Vec<RecordFrame>,
 }
 #[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
@@ -394,9 +398,6 @@ struct RecordFrame {
     rotation: Rotation,
     velocity: Velocity,
     acceleration: Acceleration,
-    base_speed: f32,
-    max_walk_speed: f32,
-    max_bonus_speed: f32,
 }
 #[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
 enum InputEvent {
@@ -422,30 +423,33 @@ fn list_recordings() -> Vec<String> {
         }).collect()
 }
 #[rebo::function("Tas::save_recording")]
-fn save_recording(filename: String, recording: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
-    let file_name = filename.clone();
-    let new_recording = Recording {
+fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
+    let recording = Recording {
         version: 1,
         author: AMyCharacter::get_player().get_player_name(),
-        filename,
-        frame_count: recording.clone().len() as i64,
+        steam_id: AMyCharacter::get_player().get_steamid(),
+        filename: filename.clone(),
+        frame_count: frames.len() as i64,
         recording_start_timestamp,
         recording_end_timestamp,
-        recording_save_timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64,
-        frames: recording,
+        recording_save_timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
+        base_speed: AMyCharacter::get_base_speed(),
+        max_walk_speed: AMyCharacter::get_max_walk_speed(),
+        max_bonus_speed: AMyCharacter::get_max_bonus_speed(),
+        frames,
     };
-    let filename = sanitize_filename::sanitize(file_name.clone());
+    let filename = sanitize_filename::sanitize(filename.clone());
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
-    serde_json::to_writer_pretty(file, &new_recording).unwrap();
+    serde_json::to_writer_pretty(file, &recording).unwrap();
 }
 #[rebo::function("Tas::load_recording")]
-fn load_recording(filename: String) -> Recording {
+fn load_recording(filename: String) -> Vec<RecordFrame> {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let content = std::fs::read_to_string(path).unwrap();
-    let res = serde_json::from_str(&content).unwrap();
-    res
+    let res: Recording = serde_json::from_str(&content).unwrap();
+    res.frames
 }
 #[rebo::function("Tas::remove_recording")]
 fn remove_recording(filename: String) -> bool {
