@@ -105,6 +105,25 @@ impl AMyCharacter {
         unsafe { (*self.movement()).max_fly_speed = value };
     }
 
+    pub fn get_max_walk_speed() -> f32 {
+        unsafe {
+            let movement = ObjectWrapper::new(AMyCharacter::get_player().movement() as *mut UObject);
+            movement.get_field("MaxWalkSpeed").unwrap::<f32>()
+        }
+    }
+    pub fn get_base_speed() -> f32 {
+        unsafe {
+            let movement = ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject);
+            movement.get_field("BaseSpeed").unwrap::<f32>()
+        }
+    }
+    pub fn get_max_bonus_speed() -> f32 {
+        unsafe {
+            let movement = ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject);
+            movement.get_field("MaxBonusSpeed").unwrap::<f32>()
+        }
+    }
+    
     pub fn get_viewport_size(&self) -> (i32, i32) {
         let mut width: i32 = -1;
         let mut height: i32 = -1;

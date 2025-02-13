@@ -7,6 +7,8 @@ static mut TAS_STATE = TasState {
     events: List::new(),
     replay_index: 0,
     replay_keys_pressed: Set::new(),
+    recording_start_timestamp: 0,
+    recording_end_timestamp: 0,
 };
 
 struct TasState {
@@ -18,6 +20,8 @@ struct TasState {
     events: List<InputEvent>,
     replay_index: int,
     replay_keys_pressed: Set<int>,
+    recording_start_timestamp: int,
+    recording_end_timestamp: int,
 }
 enum Replaying {
     Nothing,
@@ -27,11 +31,12 @@ enum Replaying {
 }
 
 fn tas_save_recording(name: string) {
-    Tas::save_recording(name, TAS_STATE.recording);
+    Tas::save_recording(name, TAS_STATE.recording, TAS_STATE.recording_start_timestamp, TAS_STATE.recording_end_timestamp);
 }
 
 fn tas_load_recording(name: string) {
-    TAS_STATE.recording = Tas::load_recording(name);
+    let recording = Tas::load_recording(name);
+    TAS_STATE.recording = recording.frames;
 }
 
 impl TasState {
@@ -118,6 +123,9 @@ static mut TAS_COMPONENT = Component {
                 rotation: Tas::get_rotation(),
                 velocity: Tas::get_velocity(),
                 acceleration: Tas::get_acceleration(),
+                base_speed: Tas::get_base_speed(),
+                max_walk_speed: Tas::get_max_walk_speed(),
+                max_bonus_speed: Tas::get_max_bonus_speed(),
             });
         }
         TAS_STATE.events = List::new();
@@ -171,6 +179,9 @@ static mut TAS_COMPONENT = Component {
             TAS_STATE.is_recording = !TAS_STATE.is_recording;
             if TAS_STATE.is_recording {
                 TAS_STATE.recording = List::new();
+                TAS_STATE.recording_start_timestamp = current_time_millis();
+            } else {
+                TAS_STATE.recording_end_timestamp = current_time_millis();
             }
         } else if key == KEY_G.to_small() {
             if TAS_STATE.is_replaying == Replaying::Inputs {

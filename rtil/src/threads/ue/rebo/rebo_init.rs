@@ -61,6 +61,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_movement_mode)
         .add_function(get_max_fly_speed)
         .add_function(set_max_fly_speed)
+        .add_function(get_max_walk_speed)
+        .add_function(get_base_speed)
+        .add_function(get_max_bonus_speed)
         .add_function(get_level_state)
         .add_function(restart_game)
         .add_function(wait_for_new_game)
@@ -153,6 +156,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Server)
         .add_external_type(Step)
         .add_external_type(Disconnected)
+        .add_external_type(Recording)
         .add_external_type(RecordFrame)
         .add_external_type(InputEvent)
         .add_external_type(RefunctMap)
@@ -372,6 +376,17 @@ fn store_settings(settings: Map<String, String>) {
 }
 
 #[derive(rebo::ExternalType, Serialize, Deserialize)]
+struct Recording {
+    version: i32,
+    author: String,
+    filename: String,
+    frame_count: i64,
+    recording_start_timestamp: u64,
+    recording_end_timestamp: u64,
+    recording_save_timestamp: u64,
+    frames: Vec<RecordFrame>,
+}
+#[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
 struct RecordFrame {
     delta: f64,
     events: Vec<InputEvent>,
@@ -379,8 +394,11 @@ struct RecordFrame {
     rotation: Rotation,
     velocity: Velocity,
     acceleration: Acceleration,
+    base_speed: f32,
+    max_walk_speed: f32,
+    max_bonus_speed: f32,
 }
-#[derive(rebo::ExternalType, Serialize, Deserialize)]
+#[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
 enum InputEvent {
     KeyPressed(i32),
     KeyReleased(i32),
@@ -404,14 +422,25 @@ fn list_recordings() -> Vec<String> {
         }).collect()
 }
 #[rebo::function("Tas::save_recording")]
-fn save_recording(filename: String, recording: Vec<RecordFrame>) {
-    let filename = sanitize_filename::sanitize(filename);
+fn save_recording(filename: String, recording: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
+    let file_name = filename.clone();
+    let new_recording = Recording {
+        version: 1,
+        author: AMyCharacter::get_player().get_player_name(),
+        filename,
+        frame_count: recording.clone().len() as i64,
+        recording_start_timestamp,
+        recording_end_timestamp,
+        recording_save_timestamp: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64,
+        frames: recording,
+    };
+    let filename = sanitize_filename::sanitize(file_name.clone());
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
-    serde_json::to_writer_pretty(file, &recording).unwrap();
+    serde_json::to_writer_pretty(file, &new_recording).unwrap();
 }
 #[rebo::function("Tas::load_recording")]
-fn load_recording(filename: String) -> Vec<RecordFrame> {
+fn load_recording(filename: String) -> Recording {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let content = std::fs::read_to_string(path).unwrap();
@@ -551,6 +580,18 @@ fn get_max_fly_speed() -> f32 {
 #[rebo::function("Tas::set_max_fly_speed")]
 fn set_max_fly_speed(speed: f32) {
     AMyCharacter::get_player().set_max_fly_speed(speed);
+}
+#[rebo::function("Tas::get_max_walk_speed")]
+fn get_max_walk_speed() -> f32 {
+    AMyCharacter::get_max_walk_speed()
+}
+#[rebo::function("Tas::get_base_speed")]
+fn get_base_speed() -> f32 {
+    AMyCharacter::get_base_speed()
+}
+#[rebo::function("Tas::get_max_bonus_speed")]
+fn get_max_bonus_speed() -> f32 {
+    AMyCharacter::get_max_bonus_speed()
 }
 #[rebo::function("Tas::get_level_state")]
 fn get_level_state() -> LevelState {
