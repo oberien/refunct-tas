@@ -20,6 +20,7 @@ use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
+use chrono::DateTime;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -382,9 +383,9 @@ struct Recording {
     steam_id: u64,
     filename: String,
     frame_count: i64,
-    recording_start_timestamp: u64,
-    recording_end_timestamp: u64,
-    recording_save_timestamp: u64,
+    recording_start_timestamp: String,
+    recording_end_timestamp: String,
+    recording_save_timestamp: String,
     base_speed: f32,
     max_walk_speed: f32,
     max_bonus_speed: f32,
@@ -424,6 +425,10 @@ fn list_recordings() -> Vec<String> {
 }
 #[rebo::function("Tas::save_recording")]
 fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
+    let recording_start_timestamp = DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap().to_rfc3339().to_string();
+    let recording_end_timestamp = DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap().to_rfc3339().to_string();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
+    let recording_save_timestamp = DateTime::from_timestamp_millis(now as i64).unwrap().to_rfc3339().to_string();
     let recording = Recording {
         version: 1,
         author: AMyCharacter::get_player().get_player_name(),
@@ -432,13 +437,13 @@ fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_ti
         frame_count: frames.len() as i64,
         recording_start_timestamp,
         recording_end_timestamp,
-        recording_save_timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
+        recording_save_timestamp,
         base_speed: AMyCharacter::get_base_speed(),
         max_walk_speed: AMyCharacter::get_max_walk_speed(),
         max_bonus_speed: AMyCharacter::get_max_bonus_speed(),
         frames,
     };
-    let filename = sanitize_filename::sanitize(filename.clone());
+    let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
     serde_json::to_writer_pretty(file, &recording).unwrap();
