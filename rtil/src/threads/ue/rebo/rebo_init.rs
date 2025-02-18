@@ -20,7 +20,7 @@ use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
-use chrono::DateTime;
+use chrono::{DateTime, Local};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -157,7 +157,6 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Server)
         .add_external_type(Step)
         .add_external_type(Disconnected)
-        .add_external_type(Recording)
         .add_external_type(RecordFrame)
         .add_external_type(InputEvent)
         .add_external_type(RefunctMap)
@@ -376,16 +375,16 @@ fn store_settings(settings: Map<String, String>) {
     writeln!(file).unwrap();
 }
 
-#[derive(rebo::ExternalType, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Recording {
     version: i32,
     author: String,
     steam_id: u64,
     filename: String,
     frame_count: i64,
-    recording_start_timestamp: String,
-    recording_end_timestamp: String,
-    recording_save_timestamp: String,
+    recording_start_timestamp: DateTime<Local>,
+    recording_end_timestamp: DateTime<Local>,
+    recording_save_timestamp: DateTime<Local>,
     base_speed: f32,
     max_walk_speed: f32,
     max_bonus_speed: f32,
@@ -425,19 +424,19 @@ fn list_recordings() -> Vec<String> {
 }
 #[rebo::function("Tas::save_recording")]
 fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
-    let recording_start_timestamp = DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap().to_rfc3339().to_string();
-    let recording_end_timestamp = DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap().to_rfc3339().to_string();
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
-    let recording_save_timestamp = DateTime::from_timestamp_millis(now as i64).unwrap().to_rfc3339().to_string();
+    let recording_start_timestamp = DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap();
+    let recording_end_timestamp = DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+    let recording_save_timestamp = DateTime::from_timestamp_millis(now as i64).unwrap();
     let recording = Recording {
         version: 1,
         author: AMyCharacter::get_player().get_player_name(),
         steam_id: AMyCharacter::get_player().get_steamid(),
         filename: filename.clone(),
         frame_count: frames.len() as i64,
-        recording_start_timestamp,
-        recording_end_timestamp,
-        recording_save_timestamp,
+        recording_start_timestamp: DateTime::from(recording_start_timestamp),
+        recording_end_timestamp:  DateTime::from(recording_end_timestamp),
+        recording_save_timestamp:  DateTime::from(recording_save_timestamp),
         base_speed: AMyCharacter::get_base_speed(),
         max_walk_speed: AMyCharacter::get_max_walk_speed(),
         max_bonus_speed: AMyCharacter::get_max_bonus_speed(),
