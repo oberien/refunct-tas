@@ -424,19 +424,15 @@ fn list_recordings() -> Vec<String> {
 }
 #[rebo::function("Tas::save_recording")]
 fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
-    let recording_start_timestamp = DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap();
-    let recording_end_timestamp = DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap();
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-    let recording_save_timestamp = DateTime::from_timestamp_millis(now as i64).unwrap();
     let recording = Recording {
         version: 1,
         author: AMyCharacter::get_player().get_player_name(),
         steam_id: AMyCharacter::get_player().get_steamid(),
         filename: filename.clone(),
         frame_count: frames.len() as i64,
-        recording_start_timestamp: DateTime::from(recording_start_timestamp),
-        recording_end_timestamp:  DateTime::from(recording_end_timestamp),
-        recording_save_timestamp:  DateTime::from(recording_save_timestamp),
+        recording_start_timestamp: DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap().into(),
+        recording_end_timestamp: DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap().into(),
+        recording_save_timestamp: Local::now(),
         base_speed: AMyCharacter::get_base_speed(),
         max_walk_speed: AMyCharacter::get_max_walk_speed(),
         max_bonus_speed: AMyCharacter::get_max_bonus_speed(),
