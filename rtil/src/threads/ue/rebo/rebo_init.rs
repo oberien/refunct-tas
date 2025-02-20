@@ -4,7 +4,7 @@ use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
