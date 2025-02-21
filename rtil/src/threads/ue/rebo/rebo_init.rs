@@ -20,6 +20,7 @@ use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
+use chrono::{DateTime, Local};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -61,6 +62,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_movement_mode)
         .add_function(get_max_fly_speed)
         .add_function(set_max_fly_speed)
+        .add_function(get_max_walk_speed)
+        .add_function(get_base_speed)
+        .add_function(get_max_bonus_speed)
         .add_function(get_level_state)
         .add_function(restart_game)
         .add_function(wait_for_new_game)
@@ -371,7 +375,22 @@ fn store_settings(settings: Map<String, String>) {
     writeln!(file).unwrap();
 }
 
-#[derive(rebo::ExternalType, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+struct Recording {
+    version: i32,
+    author: String,
+    steam_id: u64,
+    filename: String,
+    frame_count: i64,
+    recording_start_timestamp: DateTime<Local>,
+    recording_end_timestamp: DateTime<Local>,
+    recording_save_timestamp: DateTime<Local>,
+    base_speed: f32,
+    max_walk_speed: f32,
+    max_bonus_speed: f32,
+    frames: Vec<RecordFrame>,
+}
+#[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
 struct RecordFrame {
     delta: f64,
     events: Vec<InputEvent>,
@@ -380,7 +399,7 @@ struct RecordFrame {
     velocity: Velocity,
     acceleration: Acceleration,
 }
-#[derive(rebo::ExternalType, Serialize, Deserialize)]
+#[derive(rebo::ExternalType, Serialize, Deserialize, Clone)]
 enum InputEvent {
     KeyPressed(i32),
     KeyReleased(i32),
@@ -404,7 +423,21 @@ fn list_recordings() -> Vec<String> {
         }).collect()
 }
 #[rebo::function("Tas::save_recording")]
-fn save_recording(filename: String, recording: Vec<RecordFrame>) {
+fn save_recording(filename: String, frames: Vec<RecordFrame>, recording_start_timestamp: u64, recording_end_timestamp: u64) {
+    let recording = Recording {
+        version: 1,
+        author: AMyCharacter::get_player().get_player_name(),
+        steam_id: AMyCharacter::get_player().get_steamid(),
+        filename: filename.clone(),
+        frame_count: frames.len() as i64,
+        recording_start_timestamp: DateTime::from_timestamp_millis(recording_start_timestamp as i64).unwrap().into(),
+        recording_end_timestamp: DateTime::from_timestamp_millis(recording_end_timestamp as i64).unwrap().into(),
+        recording_save_timestamp: Local::now(),
+        base_speed: AMyCharacter::get_base_speed(),
+        max_walk_speed: AMyCharacter::get_max_walk_speed(),
+        max_bonus_speed: AMyCharacter::get_max_bonus_speed(),
+        frames,
+    };
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let file = File::create(path).unwrap();
@@ -415,8 +448,8 @@ fn load_recording(filename: String) -> Vec<RecordFrame> {
     let filename = sanitize_filename::sanitize(filename);
     let path = recording_path().join(filename);
     let content = std::fs::read_to_string(path).unwrap();
-    let res = serde_json::from_str(&content).unwrap();
-    res
+    let res: Recording = serde_json::from_str(&content).unwrap();
+    res.frames
 }
 #[rebo::function("Tas::remove_recording")]
 fn remove_recording(filename: String) -> bool {
@@ -551,6 +584,18 @@ fn get_max_fly_speed() -> f32 {
 #[rebo::function("Tas::set_max_fly_speed")]
 fn set_max_fly_speed(speed: f32) {
     AMyCharacter::get_player().set_max_fly_speed(speed);
+}
+#[rebo::function("Tas::get_max_walk_speed")]
+fn get_max_walk_speed() -> f32 {
+    AMyCharacter::get_max_walk_speed()
+}
+#[rebo::function("Tas::get_base_speed")]
+fn get_base_speed() -> f32 {
+    AMyCharacter::get_base_speed()
+}
+#[rebo::function("Tas::get_max_bonus_speed")]
+fn get_max_bonus_speed() -> f32 {
+    AMyCharacter::get_max_bonus_speed()
 }
 #[rebo::function("Tas::get_level_state")]
 fn get_level_state() -> LevelState {

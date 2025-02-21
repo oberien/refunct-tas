@@ -170,6 +170,7 @@ fn draw_hud() {
         Option::Some(ui) => ui.draw(),
         Option::None => (),
     }
+    draw_log_messages();
 }
 
 fn on_resolution_change() {
