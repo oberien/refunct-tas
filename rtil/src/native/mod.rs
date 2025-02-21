@@ -38,6 +38,7 @@ mod map_editor;
 mod kismet_system_library;
 mod engine;
 mod font;
+mod livesplit;
 
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
