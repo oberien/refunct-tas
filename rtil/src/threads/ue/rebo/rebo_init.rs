@@ -12,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, livesplit};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::STATE;
@@ -143,6 +143,12 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_reticle_height)
         .add_function(get_camera_mode)
         .add_function(set_camera_mode)
+        .add_function(timer_start)
+        .add_function(timer_split)
+        .add_function(timer_reset)
+        .add_function(get_game_time)
+        .add_function(set_game_time)
+        .add_function(pause_game_time)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1455,4 +1461,28 @@ fn get_camera_mode() -> u8 {
 #[rebo::function("Tas::set_camera_mode")]
 fn set_camera_mode(mode: u8) {
     AMyCharacter::set_camera_mode(mode);
+}
+#[rebo::function("Tas::timer_start")]
+fn timer_start() {
+    livesplit::_Timer::start();
+}
+#[rebo::function("Tas::timer_split")]
+fn timer_split() {
+    livesplit::_Timer::split();
+}
+#[rebo::function("Tas::timer_reset")]
+fn timer_reset(update_splits: bool) {
+    livesplit::_Timer::reset(update_splits);
+}
+#[rebo::function("Tas::get_game_time")]
+fn get_game_time() -> f64 {
+    livesplit::_Timer::get_game_time()
+}
+#[rebo::function("Tas::set_game_time")]
+fn set_game_time(time: f64) {
+    livesplit::_Timer::set_game_time(time);
+}
+#[rebo::function("Tas::pause_game_time")]
+fn pause_game_time() {
+    livesplit::_Timer::pause_game_time();
 }
