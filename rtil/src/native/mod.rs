@@ -44,16 +44,16 @@ use crate::semaphore::Semaphore;
 #[cfg(windows)] use self::windows::*;
 
 #[cfg(unix)] pub use self::linux::INITIALIZE_CTOR;
-#[cfg(windows)] pub use self::windows::{resume_threads, suspend_threads, DllMain};
+#[cfg(windows)] pub use self::windows::{DllMain, suspend_threads, resume_threads};
 pub use self::character::AMyCharacter;
 pub use self::slateapp::{
-    hook_fslateapplication_onkeydown,
-    hook_fslateapplication_onkeyup,
-    hook_fslateapplication_onrawmousemove,
-    unhook_fslateapplication_onkeydown,
-    unhook_fslateapplication_onkeyup,
-    unhook_fslateapplication_onrawmousemove,
     FSlateApplication,
+    unhook_fslateapplication_onkeydown,
+    hook_fslateapplication_onkeydown,
+    unhook_fslateapplication_onkeyup,
+    hook_fslateapplication_onkeyup,
+    unhook_fslateapplication_onrawmousemove,
+    hook_fslateapplication_onrawmousemove,
 };
 pub use self::tick::{
     hook_aliftbase_addbasedcharacter,
@@ -64,7 +64,7 @@ pub use self::tick::{
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::{AMyHud, EBlendMode};
-pub use self::uworld::{APawn, TimeOfDay, UGameplayStatics, UWorld};
+pub use self::uworld::{APawn, UWorld, UGameplayStatics, TimeOfDay};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
@@ -74,7 +74,6 @@ pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
 pub use self::engine::UEngine;
 pub use self::font::UFont;
-pub use crate::threads::ue::rebo::livesplit::*;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.

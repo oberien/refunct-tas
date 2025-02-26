@@ -21,7 +21,7 @@ static TIMER_COMPONENT = Component {
     id: TIMER_COMPONENT_ID,
     conflicts_with: List::of(TIMER_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
-        let time = Tas::get_game_time();
+        let time = Tas::timer_get_game_time();
         let time = f"{time.to_int()/60}:{time.to_int() % 60:02}.{float::to_int(time * 100.) % 100:02}";
         let mut text = f"{time}\n{text}";
         text
@@ -31,7 +31,7 @@ static TIMER_COMPONENT = Component {
     requested_delta_time: Option::None,
     on_tick: fn() {
         if TIMER_STATE.is_timer_active {
-            Tas::set_game_time(Tas::get_accurate_real_time() - TimerState::get_start_time());
+            Tas::timer_set_game_time(Tas::get_accurate_real_time() - TimerState::get_start_time());
         }
     },
     on_yield: fn() {},
@@ -42,8 +42,8 @@ static TIMER_COMPONENT = Component {
     on_level_change: fn(old: int, new: int) {
         match new {
             31 => {
-                Tas::pause_game_time();
-                Tas::set_game_time(TimerState::get_end_time() - TimerState::get_start_time());
+                Tas::timer_pause_game_time();
+                Tas::timer_set_game_time(TimerState::get_end_time() - TimerState::get_start_time());
                 Tas::timer_split();
                 TIMER_STATE.is_timer_active = false;
             },
