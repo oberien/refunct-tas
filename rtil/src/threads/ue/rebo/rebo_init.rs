@@ -6,19 +6,19 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
-use clipboard::{ClipboardProvider, ClipboardContext};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use image::Rgba;
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
+use rebo::{DisplayValue, ExecError, IncludeDirectoryConfig, Map, Output, ReboConfig, Stdlib, Value, VmContext};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, livesplit};
+use crate::native::{character::USceneComponent, hook_fslateapplication_onkeydown, hook_fslateapplication_onkeyup, hook_fslateapplication_onrawmousemove, try_find_element_index, ue::FVector, unhook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, AActor, AMyCharacter, AMyHud, ActorWrapper, EBlendMode, FApp, FSlateApplication, KismetSystemLibrary, Level, LevelState, LevelWrapper, ObjectIndex, ObjectWrapper, UGameplayStatics, UMyGameInstance, UObject, UTexture2D, UWorld, UeObjectWrapperType, UeScope, LEVELS};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::STATE;
-use serde::{Serialize, Deserialize};
-use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
+use super::{livesplit, STATE};
+use serde::{Deserialize, Serialize};
+use crate::threads::ue::{rebo::YIELDER, Suspend, UeEvent};
+use crate::native::{ue::FRotator, ElementIndex, ElementType, TimeOfDay, UEngine};
 use opener;
 use chrono::{DateTime, Local};
 
@@ -1464,25 +1464,25 @@ fn set_camera_mode(mode: u8) {
 }
 #[rebo::function("Tas::timer_start")]
 fn timer_start() {
-    livesplit::_Timer::start();
+    livesplit::Timer::start();
 }
 #[rebo::function("Tas::timer_split")]
 fn timer_split() {
-    livesplit::_Timer::split();
+    livesplit::Timer::split();
 }
 #[rebo::function("Tas::timer_reset")]
 fn timer_reset(update_splits: bool) {
-    livesplit::_Timer::reset(update_splits);
+    livesplit::Timer::reset(update_splits);
 }
 #[rebo::function("Tas::get_game_time")]
 fn get_game_time() -> f64 {
-    livesplit::_Timer::get_game_time()
+    livesplit::Timer::get_game_time()
 }
 #[rebo::function("Tas::set_game_time")]
 fn set_game_time(time: f64) {
-    livesplit::_Timer::set_game_time(time);
+    livesplit::Timer::set_game_time(time);
 }
 #[rebo::function("Tas::pause_game_time")]
 fn pause_game_time() {
-    livesplit::_Timer::pause_game_time();
+    livesplit::Timer::pause_game_time();
 }

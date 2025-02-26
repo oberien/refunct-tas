@@ -1,22 +1,23 @@
 use std::{ptr, thread};
-use std::collections::{HashSet, HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
 use std::sync::Mutex;
 use std::time::Duration;
 use std::cell::{Cell, RefCell};
 use corosensei::{CoroutineResult, Yielder};
 
-use crossbeam_channel::{Sender, Receiver};
+use crossbeam_channel::{Receiver, Sender};
 use image::{Rgba, RgbaImage};
 use once_cell::sync::Lazy;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
-use crate::threads::{StreamToRebo, ReboToStream};
-use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslateapplication_onkeyup, REBO_DOESNT_START_SEMAPHORE, unhook_fslateapplication_onkeyup, UTexture2D, UWorld};
+use crate::threads::{ReboToStream, StreamToRebo};
+use crate::native::{hook_fslateapplication_onkeyup, unhook_fslateapplication_onkeyup, AMyCharacter, FPlatformMisc, FSlateApplication, LiveSplit, UTexture2D, UWorld, REBO_DOESNT_START_SEMAPHORE};
 use crate::threads::ue::{Suspend, UeEvent};
 
 mod rebo_init;
+pub mod livesplit;
 
 type Coroutine = corosensei::Coroutine<UeEvent, Suspend, ()>;
 
@@ -46,6 +47,7 @@ struct State {
     player_minimap_image: RgbaImage,
     // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
     player_minimap_textures: HashMap<Rgba<u8>, UTexture2D>,
+    livesplit_state: LiveSplit,
 }
 
 pub(super) fn poll(event: UeEvent) {
@@ -155,6 +157,7 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
         minimap_image,
         player_minimap_image,
         player_minimap_textures: HashMap::new(),
+        livesplit_state: LiveSplit::new(),
     });
 }
 

@@ -7,11 +7,11 @@ struct TimerState {
 }
 
 impl TimerState {
-    fn get_start_time(self) -> float {
+    fn get_start_time() -> float {
         let ls = Tas::get_level_state();
         ls.start_seconds.to_float() + ls.start_partial_seconds
     }
-    fn get_end_time(self) -> float {
+    fn get_end_time() -> float {
         let ls = Tas::get_level_state();
         ls.end_seconds.to_float() + ls.end_partial_seconds
     }
@@ -21,8 +21,8 @@ static TIMER_COMPONENT = Component {
     id: TIMER_COMPONENT_ID,
     conflicts_with: List::of(TIMER_COMPONENT_ID),
     draw_hud_text: fn(text: string) -> string {
-        let mut foo = Tas::get_game_time();
-        let mut time = f"{foo.to_int()/60}:{foo.to_int() % 60:02}.{float::to_int(foo * 100.) % 100:02}";
+        let time = Tas::get_game_time();
+        let time = f"{time.to_int()/60}:{time.to_int() % 60:02}.{float::to_int(time * 100.) % 100:02}";
         let mut text = f"{time}\n{text}";
         text
     },
@@ -31,7 +31,7 @@ static TIMER_COMPONENT = Component {
     requested_delta_time: Option::None,
     on_tick: fn() {
         if TIMER_STATE.is_timer_active {
-            Tas::set_game_time(Tas::get_accurate_real_time() - TIMER_STATE.get_start_time());
+            Tas::set_game_time(Tas::get_accurate_real_time() - TimerState::get_start_time());
         }
     },
     on_yield: fn() {},
@@ -43,7 +43,7 @@ static TIMER_COMPONENT = Component {
         match new {
             31 => {
                 Tas::pause_game_time();
-                Tas::set_game_time(TIMER_STATE.get_end_time() - TIMER_STATE.get_start_time());
+                Tas::set_game_time(TimerState::get_end_time() - TimerState::get_start_time());
                 Tas::timer_split();
                 TIMER_STATE.is_timer_active = false;
             },
