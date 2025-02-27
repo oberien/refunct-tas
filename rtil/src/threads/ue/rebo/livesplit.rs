@@ -8,6 +8,15 @@ pub struct LiveSplit {
     pub timer: LiveSplitTimer,
 }
 pub struct Timer {}
+pub struct Run {}
+
+#[derive(rebo::ExternalType)]
+pub enum Games {
+    Refunct,
+    RefunctCategoryExtensions,
+    RefunctMultiplayer,
+    RefunctRandomizer,
+}
 
 impl LiveSplit {
     pub fn new() -> LiveSplit {
@@ -41,5 +50,58 @@ impl Timer {
     }
     pub fn set_game_time(time: f64) {
         LIVESPLIT_STATE.lock().unwrap().timer.set_game_time(TimeSpan::from_seconds(time));
+    }
+}
+impl Run {
+    pub fn game_name() -> String {
+        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().game_name().to_string()
+    }
+    pub fn set_game_name(game: Games) {
+        let state = LIVESPLIT_STATE.lock().unwrap();
+        let mut run = state.timer.run().clone();
+        let game = match game {
+            Games::Refunct => "Refunct",
+            Games::RefunctCategoryExtensions => "Refunct Category Extensions",
+            Games::RefunctMultiplayer => "Refunct Multiplayer",
+            Games::RefunctRandomizer => "Refunct Randomizer",
+        };
+        run.set_game_name(game);
+        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
+    }
+    pub fn category_name() -> String {
+        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().category_name().to_string()
+    }
+    pub fn set_category_name(category_name: String) {
+        let state = LIVESPLIT_STATE.lock().unwrap();
+        let mut run = state.timer.run().clone();
+        run.set_category_name(category_name);
+        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
+    }
+    pub fn get_segments() -> Vec<Segment> {
+        Vec::from(LIVESPLIT_STATE.lock().unwrap().timer.run().segments())
+    }
+    pub fn create_segment(name: String) {
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        let mut run = state.timer.run().clone();
+        run.push_segment(Segment::new(name));
+        state.timer.set_run(run).unwrap();
+    }
+    pub fn remove_segment(index: i32) {
+        let state = LIVESPLIT_STATE.lock().unwrap();
+        let mut run = state.timer.run().clone();
+        if run.segments().len() < 2 {
+            return;
+        }
+        run.segments_mut().remove(index as usize);
+        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
+    }
+    pub fn attempt_count() -> u32 {
+        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
+    }
+    pub fn set_attempt_count(count: u32) {
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        let mut run = state.timer.run().clone();
+        run.set_attempt_count(count);
+        state.timer.set_run(run).unwrap();
     }
 }
