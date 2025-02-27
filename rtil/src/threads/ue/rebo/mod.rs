@@ -17,6 +17,7 @@ use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslatea
 use crate::threads::ue::{Suspend, UeEvent};
 
 mod rebo_init;
+mod livesplit;
 
 type Coroutine = corosensei::Coroutine<UeEvent, Suspend, ()>;
 

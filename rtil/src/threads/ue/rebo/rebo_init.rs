@@ -15,7 +15,7 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::STATE;
+use super::{STATE, livesplit::Timer};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
@@ -143,6 +143,12 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_reticle_height)
         .add_function(get_camera_mode)
         .add_function(set_camera_mode)
+        .add_function(timer_start)
+        .add_function(timer_split)
+        .add_function(timer_reset)
+        .add_function(timer_get_game_time)
+        .add_function(timer_set_game_time)
+        .add_function(timer_pause_game_time)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1455,4 +1461,28 @@ fn get_camera_mode() -> u8 {
 #[rebo::function("Tas::set_camera_mode")]
 fn set_camera_mode(mode: u8) {
     AMyCharacter::set_camera_mode(mode);
+}
+#[rebo::function("Tas::timer_start")]
+fn timer_start() {
+    Timer::start();
+}
+#[rebo::function("Tas::timer_split")]
+fn timer_split() {
+    Timer::split();
+}
+#[rebo::function("Tas::timer_reset")]
+fn timer_reset(update_splits: bool) {
+    Timer::reset(update_splits);
+}
+#[rebo::function("Tas::timer_get_game_time")]
+fn timer_get_game_time() -> f64 {
+    Timer::get_game_time()
+}
+#[rebo::function("Tas::timer_set_game_time")]
+fn timer_set_game_time(time: f64) {
+    Timer::set_game_time(time);
+}
+#[rebo::function("Tas::timer_pause_game_time")]
+fn timer_pause_game_time() {
+    Timer::pause_game_time();
 }
