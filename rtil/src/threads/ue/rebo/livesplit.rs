@@ -11,7 +11,7 @@ pub struct Timer {}
 pub struct Run {}
 
 #[derive(rebo::ExternalType)]
-pub enum Games {
+pub enum Game {
     Refunct,
     RefunctCategoryExtensions,
     RefunctMultiplayer,
@@ -33,8 +33,9 @@ impl LiveSplit {
 impl Timer {
     pub fn start() {
         Self::reset(true);
-        LIVESPLIT_STATE.lock().unwrap().timer.start();
-        LIVESPLIT_STATE.lock().unwrap().timer.initialize_game_time();
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        state.timer.start();
+        state.timer.initialize_game_time();
     }
     pub fn split() {
         LIVESPLIT_STATE.lock().unwrap().timer.split();
@@ -56,29 +57,34 @@ impl Run {
     pub fn game_name() -> String {
         LIVESPLIT_STATE.lock().unwrap().timer.run().clone().game_name().to_string()
     }
-    pub fn set_game_name(game: Games) {
-        let state = LIVESPLIT_STATE.lock().unwrap();
+    pub fn set_game_info(game: Game, category: String, new_game_glitch: bool) {
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
         let mut run = state.timer.run().clone();
         let game = match game {
-            Games::Refunct => "Refunct",
-            Games::RefunctCategoryExtensions => "Refunct Category Extensions",
-            Games::RefunctMultiplayer => "Refunct Multiplayer",
-            Games::RefunctRandomizer => "Refunct Randomizer",
+            Game::Refunct => "Refunct",
+            Game::RefunctCategoryExtensions => "Refunct Category Extensions",
+            Game::RefunctMultiplayer => "Refunct Multiplayer",
+            Game::RefunctRandomizer => "Refunct Randomizer",
         };
         run.set_game_name(game);
-        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
+        run.set_category_name(category);
+        let metadata = run.metadata_mut().clone();
+        for var in metadata.speedrun_com_variables.iter() {
+            if var.0 == "New Game Glitch" {
+                let cat = match new_game_glitch {
+                    true => "New Game Glitch",
+                    false => "Normal",
+                };
+                run.metadata_mut().set_speedrun_com_variable("New Game Glitch", cat);
+            }
+        }
+        state.timer.set_run(run).unwrap();
     }
     pub fn category_name() -> String {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().category_name().to_string()
-    }
-    pub fn set_category_name(category_name: String) {
-        let state = LIVESPLIT_STATE.lock().unwrap();
-        let mut run = state.timer.run().clone();
-        run.set_category_name(category_name);
-        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
+        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().category_name().to_owned()
     }
     pub fn get_segments() -> Vec<Segment> {
-        Vec::from(LIVESPLIT_STATE.lock().unwrap().timer.run().segments())
+        LIVESPLIT_STATE.lock().unwrap().timer.run().segments().to_owned()
     }
     pub fn create_segment(name: String) {
         let mut state = LIVESPLIT_STATE.lock().unwrap();
@@ -86,22 +92,7 @@ impl Run {
         run.push_segment(Segment::new(name));
         state.timer.set_run(run).unwrap();
     }
-    pub fn remove_segment(index: i32) {
-        let state = LIVESPLIT_STATE.lock().unwrap();
-        let mut run = state.timer.run().clone();
-        if run.segments().len() < 2 {
-            return;
-        }
-        run.segments_mut().remove(index as usize);
-        LIVESPLIT_STATE.lock().unwrap().timer.set_run(run).unwrap();
-    }
     pub fn attempt_count() -> u32 {
         LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
-    }
-    pub fn set_attempt_count(count: u32) {
-        let mut state = LIVESPLIT_STATE.lock().unwrap();
-        let mut run = state.timer.run().clone();
-        run.set_attempt_count(count);
-        state.timer.set_run(run).unwrap();
     }
 }
