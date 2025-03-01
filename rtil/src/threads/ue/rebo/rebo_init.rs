@@ -15,7 +15,7 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::{Timer, Run, Game}};
+use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
@@ -181,6 +181,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(TimeOfDay)
         .add_external_type(Game)
         .add_external_type(Segment)
+        .add_external_type(NewGameGlitch)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -1512,7 +1513,7 @@ fn timer_get_game_name() -> String {
     Run::game_name()
 }
 #[rebo::function("Tas::timer_set_game_info")]
-fn timer_set_game_info(game: Game, category: String, new_game_glitch: bool) {
+fn timer_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
     Run::set_game_info(game, category, new_game_glitch);
 }
 #[rebo::function("Tas::timer_get_category_name")]
@@ -1522,12 +1523,12 @@ fn timer_get_category_name() -> String {
 #[rebo::function("Tas::timer_get_segments")]
 fn timer_get_segments() -> Vec<Segment> {
     let mut segments = Vec::new();
-    for mut seg in Run::get_segments() {
+    for seg in Run::get_segments() {
         let segment = Segment {
             name: seg.name().to_owned(),
-            time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999999.)).total_seconds(),
-            pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(99999999.)).total_seconds(),
-            best_time: seg.best_segment_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(99999999.)).total_seconds(),
+            time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            best_time: seg.best_segment_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
         };
         segments.push(segment);
     }

@@ -17,6 +17,11 @@ pub enum Game {
     RefunctMultiplayer,
     RefunctRandomizer,
 }
+#[derive(rebo::ExternalType)]
+pub enum NewGameGlitch {
+    Yes,
+    No,
+}
 
 impl LiveSplit {
     pub fn new() -> LiveSplit {
@@ -55,9 +60,9 @@ impl Timer {
 }
 impl Run {
     pub fn game_name() -> String {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().game_name().to_string()
+        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().game_name().to_owned()
     }
-    pub fn set_game_info(game: Game, category: String, new_game_glitch: bool) {
+    pub fn set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
         let mut state = LIVESPLIT_STATE.lock().unwrap();
         let mut run = state.timer.run().clone();
         let game = match game {
@@ -68,20 +73,17 @@ impl Run {
         };
         run.set_game_name(game);
         run.set_category_name(category);
-        let metadata = run.metadata_mut().clone();
-        for var in metadata.speedrun_com_variables.iter() {
-            if var.0 == "New Game Glitch" {
-                let cat = match new_game_glitch {
-                    true => "New Game Glitch",
-                    false => "Normal",
-                };
-                run.metadata_mut().set_speedrun_com_variable("New Game Glitch", cat);
-            }
+        if run.metadata_mut().speedrun_com_variables.iter().any(|(name, value)| name == "New Game Glitch") {
+            let cat = match new_game_glitch {
+                NewGameGlitch::Yes => "New Game Glitch",
+                NewGameGlitch::No => "Normal",
+            };
+            run.metadata_mut().set_speedrun_com_variable("New Game Glitch", cat);
         }
         state.timer.set_run(run).unwrap();
     }
     pub fn category_name() -> String {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().category_name().to_owned()
+        LIVESPLIT_STATE.lock().unwrap().timer.run().category_name().to_owned()
     }
     pub fn get_segments() -> Vec<Segment> {
         LIVESPLIT_STATE.lock().unwrap().timer.run().segments().to_owned()
