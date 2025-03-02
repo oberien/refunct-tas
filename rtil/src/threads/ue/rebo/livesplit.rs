@@ -73,7 +73,7 @@ impl Run {
         };
         run.set_game_name(game);
         run.set_category_name(category);
-        if run.metadata_mut().speedrun_com_variables.iter().any(|(name, value)| name == "New Game Glitch") {
+        if run.metadata_mut().speedrun_com_variables.iter().any(|(name, _)| name == "New Game Glitch") {
             let cat = match new_game_glitch {
                 NewGameGlitch::Yes => "New Game Glitch",
                 NewGameGlitch::No => "Normal",
@@ -85,7 +85,7 @@ impl Run {
     pub fn category_name() -> String {
         LIVESPLIT_STATE.lock().unwrap().timer.run().category_name().to_owned()
     }
-    pub fn get_segments() -> Vec<Segment> {
+    pub fn segments() -> Vec<Segment> {
         LIVESPLIT_STATE.lock().unwrap().timer.run().segments().to_owned()
     }
     pub fn create_segment(name: String) {

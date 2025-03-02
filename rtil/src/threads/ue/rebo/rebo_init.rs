@@ -1523,7 +1523,7 @@ fn timer_get_category_name() -> String {
 #[rebo::function("Tas::timer_get_segments")]
 fn timer_get_segments() -> Vec<Segment> {
     let mut segments = Vec::new();
-    for seg in Run::get_segments() {
+    for seg in Run::segments() {
         let segment = Segment {
             name: seg.name().to_owned(),
             time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
