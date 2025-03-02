@@ -15,12 +15,13 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::Timer};
+use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
 use opener;
 use chrono::{DateTime, Local};
+use livesplit_core::TimeSpan;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -149,6 +150,12 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(timer_get_game_time)
         .add_function(timer_set_game_time)
         .add_function(timer_pause_game_time)
+        .add_function(timer_create_segment)
+        .add_function(timer_get_game_name)
+        .add_function(timer_set_game_info)
+        .add_function(timer_get_category_name)
+        .add_function(timer_get_segments)
+        .add_function(timer_get_attempt_count)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -172,6 +179,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(ElementIndex)
         .add_external_type(Bounds)
         .add_external_type(TimeOfDay)
+        .add_external_type(Game)
+        .add_external_type(Segment)
+        .add_external_type(NewGameGlitch)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -212,6 +222,14 @@ pub enum Disconnected {
     ConnectionRefused,
     LocalTimeOffsetTooManyTries,
     RoomNameTooLong,
+}
+
+#[derive(rebo::ExternalType)]
+pub struct Segment {
+    name: String,
+    time: f64,
+    pb_time: f64,
+    best_time: f64,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -1485,4 +1503,38 @@ fn timer_set_game_time(time: f64) {
 #[rebo::function("Tas::timer_pause_game_time")]
 fn timer_pause_game_time() {
     Timer::pause_game_time();
+}
+#[rebo::function("Tas::timer_create_segment")]
+fn timer_create_segment(name: String) {
+    Run::create_segment(name);
+}
+#[rebo::function("Tas::timer_get_game_name")]
+fn timer_get_game_name() -> String {
+    Run::game_name()
+}
+#[rebo::function("Tas::timer_set_game_info")]
+fn timer_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
+    Run::set_game_info(game, category, new_game_glitch);
+}
+#[rebo::function("Tas::timer_get_category_name")]
+fn timer_get_category_name() -> String {
+    Run::category_name()
+}
+#[rebo::function("Tas::timer_get_segments")]
+fn timer_get_segments() -> Vec<Segment> {
+    let mut segments = Vec::new();
+    for seg in Run::segments() {
+        let segment = Segment {
+            name: seg.name().to_owned(),
+            time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            best_time: seg.best_segment_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+        };
+        segments.push(segment);
+    }
+    segments
+}
+#[rebo::function("Tas::timer_get_attempt_count")]
+fn timer_get_attempt_count() -> u32 {
+    Run::attempt_count()
 }
