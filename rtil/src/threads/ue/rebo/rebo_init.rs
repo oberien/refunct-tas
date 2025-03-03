@@ -156,6 +156,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(timer_get_category_name)
         .add_function(timer_get_segments)
         .add_function(timer_get_attempt_count)
+        .add_function(timer_save_splits)
+        .add_function(timer_load_splits)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1537,4 +1539,12 @@ fn timer_get_segments() -> Vec<Segment> {
 #[rebo::function("Tas::timer_get_attempt_count")]
 fn timer_get_attempt_count() -> u32 {
     Run::attempt_count()
+}
+#[rebo::function("Tas::timer_save_splits")]
+fn timer_save_splits(path: String) {
+    Run::save_splits(path);
+}
+#[rebo::function("Tas::timer_load_splits")]
+fn timer_load_splits(path: String) {
+    Run::load_splits(path);
 }
