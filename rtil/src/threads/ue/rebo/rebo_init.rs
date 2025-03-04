@@ -15,7 +15,7 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch}};
+use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
@@ -184,6 +184,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(Game)
         .add_external_type(Segment)
         .add_external_type(NewGameGlitch)
+        .add_external_type(SplitsSaveError)
+        .add_external_type(SplitsLoadError)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
@@ -1541,10 +1543,10 @@ fn timer_get_attempt_count() -> u32 {
     Run::attempt_count()
 }
 #[rebo::function("Tas::timer_save_splits")]
-fn timer_save_splits(path: String) {
-    Run::save_splits(path);
+fn timer_save_splits(path: String) -> Result<(), SplitsSaveError> {
+    Run::save_splits(path)
 }
 #[rebo::function("Tas::timer_load_splits")]
-fn timer_load_splits(path: String) {
-    Run::load_splits(path);
+fn timer_load_splits(path: String) -> Result<(), SplitsLoadError> {
+    Run::load_splits(path)
 }

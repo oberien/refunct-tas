@@ -6,6 +6,31 @@ struct TimerState {
     is_timer_active: bool,
 }
 
+fn save_splits(path: string) {
+    match Tas::timer_save_splits(path) {
+        Result::Ok(foo) => return,
+        Result::Err(e) => {
+            let msg = match e {
+                SplitsSaveError::CreationError(msg) => msg,
+                SplitsSaveError::SaveError(msg) => msg,
+            };
+            log(f"{msg}");
+        }
+    }
+}
+fn load_splits(path: string) {
+    match Tas::timer_load_splits(path) {
+        Result::Ok(foo) => return,
+        Result::Err(e) => {
+            let msg = match e {
+                SplitsLoadError::OpenError(msg) => msg,
+                SplitsLoadError::ParseError(msg) => msg,
+            };
+            log(f"{msg}");
+        }
+    }
+}
+
 impl TimerState {
     fn get_start_time() -> float {
         let ls = Tas::get_level_state();

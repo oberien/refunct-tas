@@ -25,6 +25,16 @@ pub enum NewGameGlitch {
     Yes,
     No,
 }
+#[derive(rebo::ExternalType)]
+pub enum SplitsSaveError {
+    CreationError(String),
+    SaveError(String),
+}
+#[derive(rebo::ExternalType)]
+pub enum SplitsLoadError {
+    OpenError(String),
+    ParseError(String),
+}
 
 impl LiveSplit {
     pub fn new() -> LiveSplit {
@@ -100,27 +110,34 @@ impl Run {
     pub fn attempt_count() -> u32 {
         LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
     }
-    pub fn save_splits(path: String) {
+    pub fn save_splits(path: String) -> Result<(), SplitsSaveError> {
         let state = LIVESPLIT_STATE.lock().unwrap();
         let mut timer = state.timer.clone();
-        let file = File::create(path);
-        let writer = BufWriter::new(file.expect("Failed creating the file"));
-        livesplit_core::run::saver::livesplit::save_timer(&mut timer, IoWrite(writer)).expect("Couldn't save the splits file");
-    }
-    pub fn load_splits(path: String) {
-        let path = Path::new(&path);
-        match fs::read(path) {
-            Ok(file) => {
-                match composite::parse(&file, Some(path)) {
-                    Ok(parsed_run) => {
-                        let mut state = LIVESPLIT_STATE.lock().unwrap();
-                        state.timer.reset(true);
-                        state.timer.set_run(parsed_run.run).unwrap();
-                    },
-                    Err(_) => {}
-                };
-            }
-            Err(_) => {}
+        let filename = Path::new(&path).file_name().unwrap().to_str().unwrap().to_owned();
+        let file = match File::create(path) {
+            Ok(file) => file,
+            Err(_e) => return Err(SplitsSaveError::CreationError(format!("ERROR: Failed to create {}!", filename))),
         };
+        let writer = BufWriter::new(file);
+        match livesplit_core::run::saver::livesplit::save_timer(&mut timer, IoWrite(writer)) {
+            Ok(_) => Ok(()),
+            Err(_e) => Err(SplitsSaveError::SaveError(format!("ERROR: Failed to save {}!", filename))),
+        }
+    }
+    pub fn load_splits(path: String) -> Result<(), SplitsLoadError> {
+        let path = Path::new(&path);
+        let filename = Path::new(&path).file_name().unwrap().to_str().unwrap().to_owned();
+        let file = match fs::read(path) {
+            Ok(file) => file,
+            Err(_e) => return Err(SplitsLoadError::OpenError(format!("ERROR: Failed to open {}!", filename))),
+        };
+        let parsed_run = match composite::parse(&file, Some(path)) {
+            Ok(parsed_run) => parsed_run,
+            Err(_) => return Err(SplitsLoadError::ParseError(format!("ERROR: Failed to parse {}!", filename))),
+        };
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        state.timer.reset(true);
+        state.timer.set_run(parsed_run.run).unwrap();
+        Ok(())
     }
 }
