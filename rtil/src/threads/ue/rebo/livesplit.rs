@@ -27,11 +27,15 @@ pub enum NewGameGlitch {
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsSaveError {
+    /// There are 2 `String`s as arguments for both `CreationError` and `SaveError`.
+    /// These two strings are the filename of the file that the user attempted to save and the std::io:Error gotten from that attempt respectively.
     CreationError(String, String),
     SaveError(String, String),
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsLoadError {
+    /// There are 2 `String`s as arguments for both `OpenError` and `ParseError`.
+    /// These two strings are the filename of the file that the user attempted to load and the std::io:Error gotten from that attempt respectively.
     OpenError(String, String),
     ParseError(String, String),
 }
@@ -113,20 +117,27 @@ impl Run {
     pub fn save_splits(path: impl AsRef<Path>) -> Result<(), SplitsSaveError> {
         let state = LIVESPLIT_STATE.lock().unwrap();
         let path = path.as_ref();
-        let filename = path.file_name().expect("Could not get filename").to_str().expect("Could not convert filename to &str");
+        let filename = path
+            .file_name().expect("Could not get filename")
+            .to_str().expect("Could not convert filename to &str")
+            .to_owned();
         let file = match File::create(path) {
             Ok(file) => file,
-            Err(e) => return Err(SplitsSaveError::CreationError(filename.to_owned(), e.to_string())),
+            Err(e) => return Err(SplitsSaveError::CreationError(filename, e.to_string())),
         };
         let writer = BufWriter::new(file);
         match save_timer(&state.timer, IoWrite(writer)) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(SplitsSaveError::SaveError(filename.to_owned(), e.to_string())),
-        }
+            Ok(_) => (),
+            Err(e) => return Err(SplitsSaveError::SaveError(filename, e.to_string())),
+        };
+        Ok(())
     }
-    pub fn load_splits(path: String) -> Result<(), SplitsLoadError> {
-        let path = Path::new(&path);
-        let filename = Path::new(&path).file_name().unwrap().to_str().unwrap().to_owned();
+    pub fn load_splits(path: impl AsRef<Path>) -> Result<(), SplitsLoadError> {
+        let filename = path
+            .as_ref()
+            .file_name().expect("Could not get filename")
+            .to_str().expect("Could not convert filename to &str")
+            .to_owned();
         let file = match fs::read(path) {
             Ok(file) => file,
             Err(e) => return Err(SplitsLoadError::OpenError(filename.to_owned(), e.to_string())),

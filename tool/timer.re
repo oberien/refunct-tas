@@ -10,11 +10,10 @@ fn save_splits(path: string) {
     match Tas::timer_save_splits(path) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
-            let msg = match e {
-                SplitsSaveError::CreationError(filename, error) => f"ERROR: Failed to create {filename}: {error}",
-                SplitsSaveError::SaveError(filename, error) => f"ERROR: Failed to save {filename}: {error}",
-            };
-            log(f"{msg}");
+            match e {
+                SplitsSaveError::CreationError(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
+                SplitsSaveError::SaveError(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+            }
         }
     }
 }
@@ -22,11 +21,10 @@ fn load_splits(path: string) {
     match Tas::timer_load_splits(path) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
-            let msg = match e {
-                SplitsLoadError::OpenError(filename, error) => f"ERROR: Failed to open {filename}: {error}",
-                SplitsLoadError::ParseError(filename, error) => f"ERROR: Failed to parse {filename}: {error}",
-            };
-            log(f"{msg}");
+            match e {
+                SplitsLoadError::OpenError(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
+                SplitsLoadError::ParseError(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
+            }
         }
     }
 }
