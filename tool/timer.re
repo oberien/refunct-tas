@@ -11,8 +11,8 @@ fn save_splits(path: string) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
             let msg = match e {
-                SplitsSaveError::CreationError(msg) => msg,
-                SplitsSaveError::SaveError(msg) => msg,
+                SplitsSaveError::CreationError(filename, error) => f"ERROR: Failed to create {filename}: {error}",
+                SplitsSaveError::SaveError(filename, error) => f"ERROR: Failed to save {filename}: {error}",
             };
             log(f"{msg}");
         }
@@ -23,8 +23,8 @@ fn load_splits(path: string) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
             let msg = match e {
-                SplitsLoadError::OpenError(msg) => msg,
-                SplitsLoadError::ParseError(msg) => msg,
+                SplitsLoadError::OpenError(filename, error) => f"ERROR: Failed to open {filename}: {error}",
+                SplitsLoadError::ParseError(filename, error) => f"ERROR: Failed to parse {filename}: {error}",
             };
             log(f"{msg}");
         }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
@@ -1544,7 +1544,7 @@ fn timer_get_attempt_count() -> u32 {
 }
 #[rebo::function("Tas::timer_save_splits")]
 fn timer_save_splits(path: String) -> Result<(), SplitsSaveError> {
-    Run::save_splits(path)
+    Run::save_splits(Path::new(&path))
 }
 #[rebo::function("Tas::timer_load_splits")]
 fn timer_load_splits(path: String) -> Result<(), SplitsLoadError> {

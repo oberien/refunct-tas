@@ -2,7 +2,7 @@ use std::{fs, fs::File};
 use std::io::BufWriter;
 use std::path::Path;
 use std::sync::Mutex;
-use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit::IoWrite, parser::composite}};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit::{IoWrite, save_timer}, parser::composite}};
 use once_cell::sync::Lazy;
 
 static LIVESPLIT_STATE: Lazy<Mutex<LiveSplit>> = Lazy::new(|| Mutex::new(LiveSplit::new()));
@@ -27,13 +27,13 @@ pub enum NewGameGlitch {
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsSaveError {
-    CreationError(String),
-    SaveError(String),
+    CreationError(String, String),
+    SaveError(String, String),
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsLoadError {
-    OpenError(String),
-    ParseError(String),
+    OpenError(String, String),
+    ParseError(String, String),
 }
 
 impl LiveSplit {
@@ -110,18 +110,18 @@ impl Run {
     pub fn attempt_count() -> u32 {
         LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
     }
-    pub fn save_splits(path: String) -> Result<(), SplitsSaveError> {
+    pub fn save_splits(path: impl AsRef<Path>) -> Result<(), SplitsSaveError> {
         let state = LIVESPLIT_STATE.lock().unwrap();
-        let mut timer = state.timer.clone();
-        let filename = Path::new(&path).file_name().unwrap().to_str().unwrap().to_owned();
+        let path = path.as_ref();
+        let filename = path.file_name().expect("Could not get filename").to_str().expect("Could not convert filename to &str");
         let file = match File::create(path) {
             Ok(file) => file,
-            Err(_e) => return Err(SplitsSaveError::CreationError(format!("ERROR: Failed to create {}!", filename))),
+            Err(e) => return Err(SplitsSaveError::CreationError(filename.to_owned(), e.to_string())),
         };
         let writer = BufWriter::new(file);
-        match livesplit_core::run::saver::livesplit::save_timer(&mut timer, IoWrite(writer)) {
+        match save_timer(&state.timer, IoWrite(writer)) {
             Ok(_) => Ok(()),
-            Err(_e) => Err(SplitsSaveError::SaveError(format!("ERROR: Failed to save {}!", filename))),
+            Err(e) => Err(SplitsSaveError::SaveError(filename.to_owned(), e.to_string())),
         }
     }
     pub fn load_splits(path: String) -> Result<(), SplitsLoadError> {
@@ -129,11 +129,11 @@ impl Run {
         let filename = Path::new(&path).file_name().unwrap().to_str().unwrap().to_owned();
         let file = match fs::read(path) {
             Ok(file) => file,
-            Err(_e) => return Err(SplitsLoadError::OpenError(format!("ERROR: Failed to open {}!", filename))),
+            Err(e) => return Err(SplitsLoadError::OpenError(filename.to_owned(), e.to_string())),
         };
-        let parsed_run = match composite::parse(&file, Some(path)) {
+        let parsed_run = match composite::parse(&file, None) {
             Ok(parsed_run) => parsed_run,
-            Err(_) => return Err(SplitsLoadError::ParseError(format!("ERROR: Failed to parse {}!", filename))),
+            Err(e) => return Err(SplitsLoadError::ParseError(filename.to_owned(), e.to_string())),
         };
         let mut state = LIVESPLIT_STATE.lock().unwrap();
         state.timer.reset(true);
