@@ -378,7 +378,7 @@ fn config_path() -> PathBuf {
     }
     cfg_dir
 }
-pub fn data_path() -> PathBuf {
+pub(super) fn data_path() -> PathBuf {
     let cfg_dir = dirs::data_dir().unwrap()
         .join("refunct-tas");
     if !cfg_dir.is_dir() {
