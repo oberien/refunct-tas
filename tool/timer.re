@@ -11,8 +11,9 @@ fn save_splits(path: string) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
             match e {
-                SplitsSaveError::CreationError(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
-                SplitsSaveError::SaveError(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+                SplitsSaveError::CreationFailed(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
+                SplitsSaveError::SaveFailed(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+                SplitsSaveError::DisallowedFilePath(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
             }
         }
     }
@@ -22,8 +23,8 @@ fn load_splits(path: string) {
         Result::Ok(foo) => return,
         Result::Err(e) => {
             match e {
-                SplitsLoadError::OpenError(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
-                SplitsLoadError::ParseError(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
+                SplitsLoadError::OpenFailed(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
+                SplitsLoadError::ParseFailed(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
             }
         }
     }

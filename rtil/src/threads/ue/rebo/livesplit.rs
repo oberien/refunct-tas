@@ -1,11 +1,13 @@
 use std::{fs, fs::File};
+use std::collections::HashSet;
 use std::io::BufWriter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit::{IoWrite, save_timer}, parser::composite}};
 use once_cell::sync::Lazy;
 
 static LIVESPLIT_STATE: Lazy<Mutex<LiveSplit>> = Lazy::new(|| Mutex::new(LiveSplit::new()));
+static VALID_SPLITS: Lazy<Mutex<HashSet<PathBuf>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 pub struct LiveSplit {
     pub timer: LiveSplitTimer,
@@ -27,17 +29,19 @@ pub enum NewGameGlitch {
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsSaveError {
-    /// There are 2 `String`s as arguments for both `CreationError` and `SaveError`.
-    /// These two strings are the filename of the file that the user attempted to save and the std::io:Error gotten from that attempt respectively.
-    CreationError(String, String),
-    SaveError(String, String),
+    /// filename, io::Error.to_string()
+    CreationFailed(String, String),
+    /// filename, io::Error.to_string()
+    SaveFailed(String, String),
+    /// path, io::Error.to_string()
+    DisallowedFilePath(String, String),
 }
 #[derive(rebo::ExternalType)]
 pub enum SplitsLoadError {
-    /// There are 2 `String`s as arguments for both `OpenError` and `ParseError`.
-    /// These two strings are the filename of the file that the user attempted to load and the std::io:Error gotten from that attempt respectively.
-    OpenError(String, String),
-    ParseError(String, String),
+    /// filename, io::Error.to_string()
+    OpenFailed(String, String),
+    /// filename, io::Error.to_string()
+    ParseFailed(String, String),
 }
 
 impl LiveSplit {
@@ -50,6 +54,14 @@ impl LiveSplit {
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
         LiveSplit { timer }
+    }
+    fn splits_path() -> PathBuf {
+        let appdata_path = crate::threads::ue::rebo::rebo_init::data_path();
+        let splits_path = appdata_path.join("splits/");
+        if !splits_path.is_dir() {
+            fs::create_dir(&splits_path).unwrap();
+        }
+        splits_path
     }
 }
 impl Timer {
@@ -121,14 +133,29 @@ impl Run {
             .file_name().expect("Could not get filename")
             .to_str().expect("Could not convert filename to &str")
             .to_owned();
+        let splits_path = LiveSplit::splits_path();
+        let parent = match path.is_absolute() {
+            true => path.parent().expect("Could not get parent directory")
+                .to_str().expect("Could not convert parent dir to &str"),
+            false => splits_path
+                .to_str().expect("Could not convert filename to &str"),
+        };
+        let filename = sanitize_filename::sanitize(filename);
+        let path = match path.is_relative() {
+            true => LiveSplit::splits_path().join(&filename),
+            false => path.to_path_buf(),
+        };
+        if parent != LiveSplit::splits_path().to_str().unwrap() && !VALID_SPLITS.lock().unwrap().contains(&path.to_path_buf()) {
+            return Err(SplitsSaveError::DisallowedFilePath(filename, "Disallowed file path".to_owned()));
+        }
         let file = match File::create(path) {
             Ok(file) => file,
-            Err(e) => return Err(SplitsSaveError::CreationError(filename, e.to_string())),
+            Err(e) => return Err(SplitsSaveError::CreationFailed(filename, e.to_string())),
         };
         let writer = BufWriter::new(file);
         match save_timer(&state.timer, IoWrite(writer)) {
             Ok(_) => (),
-            Err(e) => return Err(SplitsSaveError::SaveError(filename, e.to_string())),
+            Err(e) => return Err(SplitsSaveError::SaveFailed(filename, e.to_string())),
         };
         Ok(())
     }
@@ -138,17 +165,18 @@ impl Run {
             .file_name().expect("Could not get filename")
             .to_str().expect("Could not convert filename to &str")
             .to_owned();
-        let file = match fs::read(path) {
+        let file = match fs::read(path.as_ref()) {
             Ok(file) => file,
-            Err(e) => return Err(SplitsLoadError::OpenError(filename.to_owned(), e.to_string())),
+            Err(e) => return Err(SplitsLoadError::OpenFailed(filename.to_owned(), e.to_string())),
         };
         let parsed_run = match composite::parse(&file, None) {
             Ok(parsed_run) => parsed_run,
-            Err(e) => return Err(SplitsLoadError::ParseError(filename.to_owned(), e.to_string())),
+            Err(e) => return Err(SplitsLoadError::ParseFailed(filename.to_owned(), e.to_string())),
         };
         let mut state = LIVESPLIT_STATE.lock().unwrap();
         state.timer.reset(true);
         state.timer.set_run(parsed_run.run).unwrap();
+        VALID_SPLITS.lock().unwrap().to_owned().insert(path.as_ref().to_path_buf());
         Ok(())
     }
 }
