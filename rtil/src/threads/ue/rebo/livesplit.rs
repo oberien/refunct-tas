@@ -134,20 +134,14 @@ impl Run {
             .to_owned();
         let filename = sanitize_filename::sanitize(filename);
         let valid_splits = VALID_SPLITS.lock().unwrap();
-        let path = match path.is_relative() || valid_splits.contains(&path.to_path_buf()) {
-            true => LiveSplit::splits_path().join(&filename),
-            false => {
-                if valid_splits.contains(&path.to_path_buf()) {
-                    path.to_path_buf()
-                } else {
-                    return Err(SplitsSaveError::DisallowedFilePath(filename, "Disallowed file path".to_owned()));
-                }
-            },
+        let joined_filename = LiveSplit::splits_path().join(&filename);
+        let path = match (path.is_relative(), valid_splits.contains(path)) {
+            (true, true) => joined_filename,
+            (true, false) => joined_filename,
+            (false, true) => path.to_path_buf(),
+            (false, false) => return Err(SplitsSaveError::DisallowedFilePath(filename, "Disallowed file path".to_owned())),
         };
-        let file = match File::create(path) {
-            Ok(file) => file,
-            Err(e) => return Err(SplitsSaveError::CreationFailed(filename, e.to_string())),
-        };
+        let file = File::create(path).map_err(|e| SplitsSaveError::CreationFailed(filename.clone(), e.to_string()))?;
         let writer = BufWriter::new(file);
         match save_timer(&state.timer, IoWrite(writer)) {
             Ok(_) => (),
