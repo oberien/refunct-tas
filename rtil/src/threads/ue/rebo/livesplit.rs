@@ -134,19 +134,14 @@ impl Run {
             .to_owned();
         let filename = sanitize_filename::sanitize(filename);
         let valid_splits = VALID_SPLITS.lock().unwrap();
-        let joined_filename = LiveSplit::splits_path().join(&filename);
         let path = match (path.is_relative(), valid_splits.contains(path)) {
-            (true, true) => joined_filename,
-            (true, false) => joined_filename,
+            (true, _) => LiveSplit::splits_path().join(&filename),
             (false, true) => path.to_path_buf(),
             (false, false) => return Err(SplitsSaveError::DisallowedFilePath(filename, "Disallowed file path".to_owned())),
         };
         let file = File::create(path).map_err(|e| SplitsSaveError::CreationFailed(filename.clone(), e.to_string()))?;
         let writer = BufWriter::new(file);
-        match save_timer(&state.timer, IoWrite(writer)) {
-            Ok(_) => (),
-            Err(e) => return Err(SplitsSaveError::SaveFailed(filename, e.to_string())),
-        };
+        save_timer(&state.timer, IoWrite(writer)).map_err(|e| SplitsSaveError::SaveFailed(filename, e.to_string()))?;
         Ok(())
     }
     pub fn load_splits(path: impl AsRef<Path>) -> Result<(), SplitsLoadError> {
@@ -155,14 +150,12 @@ impl Run {
             .file_name().expect("Could not get filename")
             .to_str().expect("Could not convert filename to &str")
             .to_owned();
-        let file = match fs::read(path) {
-            Ok(file) => file,
-            Err(e) => return Err(SplitsLoadError::OpenFailed(filename, e.to_string())),
+        let path = match path.is_relative() {
+            true => LiveSplit::splits_path().join(&filename),
+            false => path.to_path_buf(),
         };
-        let parsed_run = match composite::parse(&file, None) {
-            Ok(parsed_run) => parsed_run,
-            Err(e) => return Err(SplitsLoadError::ParseFailed(filename, e.to_string())),
-        };
+        let file = fs::read(&path).map_err(|e| SplitsLoadError::OpenFailed(filename.clone(), e.to_string()))?;
+        let parsed_run = composite::parse(&file, None).map_err(|e| SplitsLoadError::ParseFailed(filename.clone(), e.to_string()))?;
         let mut state = LIVESPLIT_STATE.lock().unwrap();
         state.timer.reset(true);
         state.timer.set_run(parsed_run.run).unwrap();

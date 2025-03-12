@@ -8,26 +8,24 @@ struct TimerState {
 
 fn save_splits(path: string) {
     match Tas::timer_save_splits(path) {
-        Result::Ok(_unit) => return,
-        Result::Err(e) => {
-            match e {
-                SplitsSaveError::CreationFailed(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
-                SplitsSaveError::SaveFailed(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
-                SplitsSaveError::DisallowedFilePath(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
-            }
-        }
+        Result::Ok(_unit) => (),
+        Result::Err(e) => match e {
+            SplitsSaveError::CreationFailed(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
+            SplitsSaveError::SaveFailed(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+            SplitsSaveError::DisallowedFilePath(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+        },
     }
+    Result::Ok(())
 }
 fn load_splits(path: string) {
     match Tas::timer_load_splits(path) {
-        Result::Ok(_unit) => return,
-        Result::Err(e) => {
-            match e {
-                SplitsLoadError::OpenFailed(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
-                SplitsLoadError::ParseFailed(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
-            }
-        }
+        Result::Ok(_unit) => (),
+        Result::Err(e) => match e {
+            SplitsLoadError::OpenFailed(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
+            SplitsLoadError::ParseFailed(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
+        },
     }
+    Result::Ok(())
 }
 
 impl TimerState {
