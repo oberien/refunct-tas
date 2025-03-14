@@ -12,7 +12,7 @@ fn save_splits(path: string) {
         Result::Err(e) => match e {
             SplitsSaveError::CreationFailed(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
             SplitsSaveError::SaveFailed(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
-            SplitsSaveError::DisallowedFilePath(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+            SplitsSaveError::DisallowedFilePath(filename) => log(f"ERROR: Failed to save {filename}: Disallowed file path"),
         },
     }
     Result::Ok(())

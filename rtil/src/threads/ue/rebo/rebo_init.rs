@@ -1544,9 +1544,9 @@ fn timer_get_attempt_count() -> u32 {
 }
 #[rebo::function("Tas::timer_save_splits")]
 fn timer_save_splits(path: String) -> Result<(), SplitsSaveError> {
-    Run::save_splits(path)
+    Run::save_splits(&path)
 }
 #[rebo::function("Tas::timer_load_splits")]
 fn timer_load_splits(path: String) -> Result<(), SplitsLoadError> {
-    Run::load_splits(path)
+    Run::load_splits(&path)
 }
