@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
-use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit::{IoWrite, save_timer}, parser::composite}};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit, parser::composite}};
 use sanitize_filename::sanitize;
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
@@ -132,7 +132,7 @@ impl Run {
         let path = Path::new(user_input);
         let (path, path_display) = match (path.is_relative(), valid_splits_paths.contains(path)) {
             (true, _) => {
-                let sanitized = sanitize(user_input);
+                let sanitized = sanitize_filename::sanitize(user_input);
                 (LiveSplit::splits_path().join(&sanitized), sanitized)
             },
             (false, true) => (path.to_owned(), user_input.to_owned()),
@@ -140,20 +140,24 @@ impl Run {
         };
         let file = File::create(&path)
             .map_err(|e| SplitsSaveError::CreationFailed(path_display.clone(), e.to_string()))?;
-        save_timer(&state.timer, IoWrite(BufWriter::new(file)))
+        livesplit::save_timer(&state.timer, livesplit::IoWrite(BufWriter::new(file)))
             .map_err(|e| SplitsSaveError::SaveFailed(path_display.clone(), e.to_string()))?;
         Ok(())
     }
     pub fn load_splits(user_input: &str) -> Result<(), SplitsLoadError> {
         let path = Path::new(user_input);
+        let sanitized = sanitize_filename::sanitize(user_input);
+        let joined_splits_path = LiveSplit::splits_path().join(sanitized);
         let (path, path_display) = match path.is_relative() {
-            true => (LiveSplit::splits_path().join(user_input), LiveSplit::splits_path().
-                join(user_input)
-                .to_str().expect("Could not convert to &str")
-                .to_owned()),
-            false => (path.to_path_buf(), path
-                .to_str().expect("Could not convert to &str")
-                .to_owned()),
+            true => (
+                joined_splits_path.to_owned(),
+                joined_splits_path.to_owned()
+                    .to_str().expect("Could not convert to &str").to_owned(),
+            ),
+            false => (
+                path.to_path_buf(),
+                user_input.to_owned(),
+            ),
         };
         let file = fs::read(&path).map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
         let parsed_run = composite::parse(&file, None)
