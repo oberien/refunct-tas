@@ -27,6 +27,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?DrawTextureSimple@AHUD@@QAEXPAVUTexture@@MMM_N@Z", "AHUD_DRAWTEXTURESIMPLE"),
     ("?DrawTexture@AHUD@@QAEXPAVUTexture@@MMMMMMMMUFLinearColor@@W4EBlendMode@@M_NMUFVector2D@@@Z", "AHUD_DRAWTEXTURE"),
     ("?DrawMaterialSimple@AHUD@@QAEXPAVUMaterialInterface@@MMMMM_N@Z", "AHUD_DRAWMATERIALSIMPLE"),
+    ("?DrawRect@AHUD@@QAEXUFLinearColor@@MMMM@Z", "AHUD_DRAWRECT"),
     ("?Project@AHUD@@QBE?AUFVector@@U2@@Z", "AHUD_PROJECT"),
     ("?GetTextSize@AHUD@@QBEXABVFString@@AAM1PAVUFont@@M@Z", "AHUD_GETTEXTSIZE"),
     ("=GWorld", "GWORLD"),

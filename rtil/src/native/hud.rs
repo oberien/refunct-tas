@@ -8,7 +8,7 @@ use atomic_float::AtomicF32;
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector, FVector2D};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_DRAWRECT, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
 use crate::native::texture::UTexture2DUE;
 use crate::threads::ue;
 
@@ -74,6 +74,15 @@ impl AMyHud {
             )) = mem::transmute(AHUD_DRAWTEXTURE.load(Ordering::SeqCst));
             fun(get_amyhud!("draw_texture"), texture.as_ptr(), x, y, width, height, u, v, uwidth, vheight,
                 tint_color.into(), blend_mode, scale, scale_position, rotation, FVector2D { x: rot_pivot_x, y: rot_pivot_y })
+        }
+    }
+
+    pub fn draw_rect(color: FLinearColor, x: f32, y: f32, width: f32, height: f32) {
+        unsafe {
+            let fun: extern_fn!(fn(this: *mut AMyHud, color: FLinearColor, screen_x: f32, screen_y: f32,
+                screen_w: f32, screen_h: f32))
+                = mem::transmute(AHUD_DRAWRECT.load(Ordering::SeqCst));
+            fun(get_amyhud!("draw_rect"), color, x, y, width, height);
         }
     }
 
