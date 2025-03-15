@@ -1,8 +1,12 @@
-use std::sync::Mutex;
-use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun};
-use once_cell::sync::Lazy;
+use std::{fs, fs::File};
+use std::collections::HashSet;
+use std::io::BufWriter;
+use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit, parser::composite}};
 
-static LIVESPLIT_STATE: Lazy<Mutex<LiveSplit>> = Lazy::new(|| Mutex::new(LiveSplit::new()));
+static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
+static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
 pub struct LiveSplit {
     pub timer: LiveSplitTimer,
@@ -22,6 +26,22 @@ pub enum NewGameGlitch {
     Yes,
     No,
 }
+#[derive(rebo::ExternalType)]
+pub enum SplitsSaveError {
+    /// filename, error description
+    CreationFailed(String, String),
+    /// filename, error description
+    SaveFailed(String, String),
+    /// path
+    DisallowedFilePath(String),
+}
+#[derive(rebo::ExternalType)]
+pub enum SplitsLoadError {
+    /// filename, error description
+    OpenFailed(String, String),
+    /// filename, error description
+    ParseFailed(String, String),
+}
 
 impl LiveSplit {
     pub fn new() -> LiveSplit {
@@ -33,6 +53,14 @@ impl LiveSplit {
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
         LiveSplit { timer }
+    }
+    fn splits_path() -> PathBuf {
+        let appdata_path = super::rebo_init::data_path();
+        let splits_path = appdata_path.join("splits/");
+        if !splits_path.is_dir() {
+            fs::create_dir(&splits_path).unwrap();
+        }
+        splits_path
     }
 }
 impl Timer {
@@ -96,5 +124,44 @@ impl Run {
     }
     pub fn attempt_count() -> u32 {
         LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
+    }
+    pub fn save_splits(user_input: &str) -> Result<(), SplitsSaveError> {
+        let state = LIVESPLIT_STATE.lock().unwrap();
+        let valid_splits_paths = VALID_SPLITS_PATHS.lock().unwrap();
+        let path = Path::new(user_input);
+        let (path, path_display) = match (path.is_relative(), valid_splits_paths.contains(path)) {
+            (true, _) => {
+                let sanitized = sanitize_filename::sanitize(user_input);
+                (LiveSplit::splits_path().join(&sanitized), sanitized)
+            },
+            (false, true) => (path.to_owned(), user_input.to_owned()),
+            (false, false) => return Err(SplitsSaveError::DisallowedFilePath(user_input.to_string())),
+        };
+        let file = File::create(&path)
+            .map_err(|e| SplitsSaveError::CreationFailed(path_display.clone(), e.to_string()))?;
+        livesplit::save_timer(&state.timer, livesplit::IoWrite(BufWriter::new(file)))
+            .map_err(|e| SplitsSaveError::SaveFailed(path_display.clone(), e.to_string()))?;
+        Ok(())
+    }
+    pub fn load_splits(user_input: &str) -> Result<(), SplitsLoadError> {
+        let path = Path::new(user_input);
+        let (path, path_display) = match path.is_relative() {
+            true => {
+                let sanitized = sanitize_filename::sanitize(user_input);
+                let path = LiveSplit::splits_path().join(sanitized);
+                let path_display = path.to_str().expect("Could not convert to &str").to_owned();
+                (path, path_display)
+            },
+            false => (path.to_owned(), user_input.to_owned()),
+        };
+        let file = fs::read(&path)
+            .map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
+        let parsed_run = composite::parse(&file, None)
+            .map_err(|e| SplitsLoadError::ParseFailed(path_display.to_owned(), e.to_string()))?;
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        state.timer.reset(true);
+        state.timer.set_run(parsed_run.run).unwrap();
+        VALID_SPLITS_PATHS.lock().unwrap().insert(path);
+        Ok(())
     }
 }

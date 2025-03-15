@@ -6,6 +6,28 @@ struct TimerState {
     is_timer_active: bool,
 }
 
+fn save_splits(path: string) {
+    match Tas::timer_save_splits(path) {
+        Result::Ok(_unit) => (),
+        Result::Err(e) => match e {
+            SplitsSaveError::CreationFailed(filename, error) => log(f"ERROR: Failed to create {filename}: {error}"),
+            SplitsSaveError::SaveFailed(filename, error) => log(f"ERROR: Failed to save {filename}: {error}"),
+            SplitsSaveError::DisallowedFilePath(filename) => log(f"ERROR: Failed to save {filename}: Disallowed file path"),
+        },
+    }
+    Result::Ok(())
+}
+fn load_splits(path: string) {
+    match Tas::timer_load_splits(path) {
+        Result::Ok(_unit) => (),
+        Result::Err(e) => match e {
+            SplitsLoadError::OpenFailed(filename, error) => log(f"ERROR: Failed to open {filename}: {error}"),
+            SplitsLoadError::ParseFailed(filename, error) => log(f"ERROR: Failed to parse {filename}: {error}"),
+        },
+    }
+    Result::Ok(())
+}
+
 impl TimerState {
     fn get_start_time() -> float {
         let ls = Tas::get_level_state();
