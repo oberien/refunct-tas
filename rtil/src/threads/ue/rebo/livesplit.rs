@@ -145,7 +145,6 @@ impl Run {
     }
     pub fn load_splits(user_input: &str) -> Result<(), SplitsLoadError> {
         let path = Path::new(user_input);
-
         let (path, path_display) = match path.is_relative() {
             true => {
                 let sanitized = sanitize_filename::sanitize(user_input);
@@ -155,7 +154,8 @@ impl Run {
             },
             false => (path.to_owned(), user_input.to_owned()),
         };
-        let file = fs::read(&path).map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
+        let file = fs::read(&path)
+            .map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
         let parsed_run = composite::parse(&file, None)
             .map_err(|e| SplitsLoadError::ParseFailed(path_display.to_owned(), e.to_string()))?;
         let mut state = LIVESPLIT_STATE.lock().unwrap();
