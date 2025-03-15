@@ -18,7 +18,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::FRotator, UEngine, TimeOfDay};
+use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay};
 use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
@@ -71,6 +71,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(wait_for_new_game)
         .add_function(draw_line)
         .add_function(draw_text)
+        .add_function(draw_rect)
         .add_function(draw_minimap)
         .add_function(set_minimap_alpha)
         .add_function(draw_player_minimap)
@@ -677,6 +678,11 @@ struct DrawText {
 fn draw_text(text: DrawText) {
     let color = (text.color.red, text.color.green, text.color.blue, text.color.alpha);
     AMyHud::draw_text(text.text, color, text.x, text.y, text.scale, text.scale_position);
+}
+#[rebo::function("Tas::draw_rect")]
+fn draw_rect(color: Color, x: f32, y: f32, width: f32, height: f32) {
+    let color = FLinearColor { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha };
+    AMyHud::draw_rect(color, x, y, width, height);
 }
 #[rebo::function("Tas::draw_minimap")]
 fn draw_minimap(x: f32, y: f32, scale: f32, scale_position: bool) {
