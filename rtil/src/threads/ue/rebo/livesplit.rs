@@ -145,18 +145,15 @@ impl Run {
     }
     pub fn load_splits(user_input: &str) -> Result<(), SplitsLoadError> {
         let path = Path::new(user_input);
-        let sanitized = sanitize_filename::sanitize(user_input);
-        let joined_splits_path = LiveSplit::splits_path().join(sanitized);
+
         let (path, path_display) = match path.is_relative() {
-            true => (
-                joined_splits_path.to_owned(),
-                joined_splits_path.to_owned()
-                    .to_str().expect("Could not convert to &str").to_owned(),
-            ),
-            false => (
-                path.to_path_buf(),
-                user_input.to_owned(),
-            ),
+            true => {
+                let sanitized = sanitize_filename::sanitize(user_input);
+                let path = LiveSplit::splits_path().join(sanitized);
+                let path_display = path.to_str().expect("Could not convert to &str").to_owned();
+                (path, path_display)
+            },
+            false => (path.to_owned(), user_input.to_owned()),
         };
         let file = fs::read(&path).map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
         let parsed_run = composite::parse(&file, None)
