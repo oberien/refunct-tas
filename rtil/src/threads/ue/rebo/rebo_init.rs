@@ -15,13 +15,13 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
+use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError, Layout}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay};
 use opener;
 use chrono::{DateTime, Local};
-use livesplit_core::TimeSpan;
+use livesplit_core::{TimeSpan, settings::Color as LiveSplitColor};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -159,6 +159,22 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(timer_get_attempt_count)
         .add_function(timer_save_splits)
         .add_function(timer_load_splits)
+        .add_function(layout_get_best_segment_color)
+        .add_function(layout_set_best_segment_color)
+        .add_function(layout_get_ahead_gaining_time_color)
+        .add_function(layout_set_ahead_gaining_time_color)
+        .add_function(layout_get_behind_gaining_time_color)
+        .add_function(layout_set_behind_gaining_time_color)
+        .add_function(layout_get_behind_losing_time_color)
+        .add_function(layout_set_behind_losing_time_color)
+        .add_function(layout_get_not_running_color)
+        .add_function(layout_set_not_running_color)
+        .add_function(layout_get_personal_best_color)
+        .add_function(layout_set_personal_best_color)
+        .add_function(layout_get_paused_color)
+        .add_function(layout_set_paused_color)
+        .add_function(layout_get_text_color)
+        .add_function(layout_set_text_color)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1555,4 +1571,84 @@ fn timer_save_splits(path: String) -> Result<(), SplitsSaveError> {
 #[rebo::function("Tas::timer_load_splits")]
 fn timer_load_splits(path: String) -> Result<(), SplitsLoadError> {
     Run::load_splits(&path)
+}
+#[rebo::function("Tas::layout_get_best_segment_color")]
+fn layout_get_best_segment_color() -> Color {
+    let color = Layout::best_segment_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_best_segment_color")]
+fn layout_set_best_segment_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_best_segment_color(color);
+}
+#[rebo::function("Tas::layout_get_ahead_gaining_time_color")]
+fn layout_get_ahead_gaining_time_color() -> Color {
+    let color = Layout::ahead_gaining_time_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_ahead_gaining_time_color")]
+fn layout_set_ahead_gaining_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_ahead_gaining_time_color(color);
+}
+#[rebo::function("Tas::layout_get_behind_gaining_time_color")]
+fn layout_get_behind_gaining_time_color() -> Color {
+    let color = Layout::behind_gaining_time_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_behind_gaining_time_color")]
+fn layout_set_behind_gaining_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_behind_gaining_time_color(color);
+}
+#[rebo::function("Tas::layout_get_behind_losing_time_color")]
+fn layout_get_behind_losing_time_color() -> Color {
+    let color = Layout::behind_losing_time_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_behind_losing_time_color")]
+fn layout_set_behind_losing_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_behind_losing_time_color(color);
+}
+#[rebo::function("Tas::layout_get_not_running_color")]
+fn layout_get_not_running_color() -> Color {
+    let color = Layout::not_running_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_not_running_color")]
+fn layout_set_not_running_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_not_running_color(color);
+}
+#[rebo::function("Tas::layout_get_personal_best_color")]
+fn layout_get_personal_best_color() -> Color {
+    let color = Layout::personal_best_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_personal_best_color")]
+fn layout_set_personal_best_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_personal_best_color(color);
+}
+#[rebo::function("Tas::layout_get_paused_color")]
+fn layout_get_paused_color() -> Color {
+    let color = Layout::paused_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_paused_color")]
+fn layout_set_paused_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_paused_color(color);
+}
+#[rebo::function("Tas::layout_get_text_color")]
+fn layout_get_text_color() -> Color {
+    let color = Layout::text_color();
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::layout_set_text_color")]
+fn layout_set_text_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::set_text_color(color);
 }
