@@ -2,17 +2,22 @@ use std::{fs, fs::File};
 use std::collections::HashSet;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
-use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, run::{saver::livesplit, parser::composite}};
+use std::sync::{LazyLock, MappedMutexGuard, Mutex, MutexGuard};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component};
+use livesplit_core::component::{CurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
+use livesplit_core::layout::GeneralSettings;
+use livesplit_core::settings::Color;
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
 static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
 pub struct LiveSplit {
     pub timer: LiveSplitTimer,
+    pub layout: LiveSplitLayout,
 }
 pub struct Timer {}
 pub struct Run {}
+pub struct Layout {}
 
 #[derive(rebo::ExternalType)]
 pub enum Game {
@@ -46,13 +51,14 @@ pub enum SplitsLoadError {
 impl LiveSplit {
     pub fn new() -> LiveSplit {
         let mut run = LiveSplitRun::new();
+        let layout = Layout::new();
         run.set_game_name("Refunct");
         run.set_category_name("Any%");
         run.push_segment(Segment::new("1"));
         run.metadata_mut().set_speedrun_com_variable("New Game Glitch", "Normal");
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
-        LiveSplit { timer }
+        LiveSplit { timer, layout }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -163,5 +169,73 @@ impl Run {
         state.timer.set_run(parsed_run.run).unwrap();
         VALID_SPLITS_PATHS.lock().unwrap().insert(path);
         Ok(())
+    }
+}
+impl Layout {
+    pub fn new() -> LiveSplitLayout {
+        let mut layout = LiveSplitLayout::new();
+        layout.push(Component::Title(Title::new()));
+        layout.push(Component::Splits(Splits::new()));
+        layout.push(Component::DetailedTimer(Box::new(DetailedTimer::new())));
+        layout.push(Component::PreviousSegment(PreviousSegment::new()));
+        layout.push(Component::PossibleTimeSave(PossibleTimeSave::new()));
+        layout.push(Component::CurrentPace(CurrentPace::new()));
+        layout.push(Component::PbChance(PbChance::new()));
+        layout.push(Component::SumOfBest(SumOfBest::new()));
+        layout
+    }
+    pub fn settings() -> GeneralLayoutSettings {
+        LIVESPLIT_STATE.lock().unwrap().layout.general_settings().to_owned()
+    }
+    pub fn settings_mut() -> MappedMutexGuard<'static, GeneralSettings> {
+        MutexGuard::map(LIVESPLIT_STATE.lock().unwrap(), |x| x.layout.general_settings_mut())
+    }
+    pub fn best_segment_color() -> Color {
+        Self::settings().best_segment_color
+    }
+    pub fn set_best_segment_color(color: Color) {
+        Self::settings_mut().best_segment_color = color;
+    }
+    pub fn ahead_gaining_time_color() -> Color {
+        Self::settings().ahead_gaining_time_color
+    }
+    pub fn set_ahead_gaining_time_color(color: Color) {
+        Self::settings_mut().ahead_gaining_time_color = color;
+    }
+    pub fn behind_gaining_time_color() -> Color {
+        Self::settings().behind_gaining_time_color
+    }
+    pub fn set_behind_gaining_time_color(color: Color) {
+        Self::settings_mut().behind_gaining_time_color = color;
+    }
+    pub fn behind_losing_time_color() -> Color {
+        Self::settings().behind_losing_time_color
+    }
+    pub fn set_behind_losing_time_color(color: Color) {
+        Self::settings_mut().behind_losing_time_color = color;
+    }
+    pub fn not_running_color() -> Color {
+        Self::settings().not_running_color
+    }
+    pub fn set_not_running_color(color: Color) {
+        Self::settings_mut().not_running_color = color;
+    }
+    pub fn personal_best_color() -> Color {
+        Self::settings().personal_best_color
+    }
+    pub fn set_personal_best_color(color: Color) {
+        Self::settings_mut().personal_best_color = color;
+    }
+    pub fn paused_color() -> Color {
+        Self::settings().paused_color
+    }
+    pub fn set_paused_color(color: Color) {
+        Self::settings_mut().paused_color = color;
+    }
+    pub fn text_color() -> Color {
+        Self::settings().text_color
+    }
+    pub fn set_text_color(color: Color) {
+        Self::settings_mut().text_color = color;
     }
 }
