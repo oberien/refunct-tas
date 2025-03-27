@@ -6,7 +6,8 @@ use std::sync::{LazyLock, MappedMutexGuard, Mutex, MutexGuard};
 use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component};
 use livesplit_core::component::{CurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::layout::GeneralSettings;
-use livesplit_core::settings::Color;
+use livesplit_core::settings::Color as LiveSplitColor;
+use super::rebo_init::Color;
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
 static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
@@ -184,58 +185,90 @@ impl Layout {
         layout.push(Component::SumOfBest(SumOfBest::new()));
         layout
     }
-    pub fn settings() -> GeneralLayoutSettings {
-        LIVESPLIT_STATE.lock().unwrap().layout.general_settings().to_owned()
+    fn settings() -> GeneralLayoutSettings {
+        LIVESPLIT_STATE.lock().unwrap().layout.general_settings().clone()
     }
-    pub fn settings_mut() -> MappedMutexGuard<'static, GeneralSettings> {
+    fn settings_mut() -> MappedMutexGuard<'static, GeneralSettings> {
         MutexGuard::map(LIVESPLIT_STATE.lock().unwrap(), |x| x.layout.general_settings_mut())
     }
-    pub fn best_segment_color() -> Color {
-        Self::settings().best_segment_color
-    }
-    pub fn set_best_segment_color(color: Color) {
-        Self::settings_mut().best_segment_color = color;
-    }
-    pub fn ahead_gaining_time_color() -> Color {
-        Self::settings().ahead_gaining_time_color
-    }
-    pub fn set_ahead_gaining_time_color(color: Color) {
-        Self::settings_mut().ahead_gaining_time_color = color;
-    }
-    pub fn behind_gaining_time_color() -> Color {
-        Self::settings().behind_gaining_time_color
-    }
-    pub fn set_behind_gaining_time_color(color: Color) {
-        Self::settings_mut().behind_gaining_time_color = color;
-    }
-    pub fn behind_losing_time_color() -> Color {
-        Self::settings().behind_losing_time_color
-    }
-    pub fn set_behind_losing_time_color(color: Color) {
-        Self::settings_mut().behind_losing_time_color = color;
-    }
-    pub fn not_running_color() -> Color {
-        Self::settings().not_running_color
-    }
-    pub fn set_not_running_color(color: Color) {
-        Self::settings_mut().not_running_color = color;
-    }
-    pub fn personal_best_color() -> Color {
-        Self::settings().personal_best_color
-    }
-    pub fn set_personal_best_color(color: Color) {
-        Self::settings_mut().personal_best_color = color;
-    }
-    pub fn paused_color() -> Color {
-        Self::settings().paused_color
-    }
-    pub fn set_paused_color(color: Color) {
-        Self::settings_mut().paused_color = color;
-    }
-    pub fn text_color() -> Color {
-        Self::settings().text_color
-    }
-    pub fn set_text_color(color: Color) {
-        Self::settings_mut().text_color = color;
-    }
+}
+#[rebo::function("Tas::timer_layout_get_best_segment_color")]
+pub fn timer_layout_get_best_segment_color() -> Color {
+    let color = Layout::settings().best_segment_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_best_segment_color")]
+pub fn timer_layout_set_best_segment_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().best_segment_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_ahead_gaining_time_color")]
+pub fn timer_layout_get_ahead_gaining_time_color() -> Color {
+    let color = Layout::settings().ahead_gaining_time_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_ahead_gaining_time_color")]
+pub fn timer_layout_set_ahead_gaining_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().ahead_gaining_time_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_behind_gaining_time_color")]
+pub fn timer_layout_get_behind_gaining_time_color() -> Color {
+    let color = Layout::settings().behind_gaining_time_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_behind_gaining_time_color")]
+pub fn timer_layout_set_behind_gaining_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().behind_gaining_time_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_behind_losing_time_color")]
+pub fn timer_layout_get_behind_losing_time_color() -> Color {
+    let color = Layout::settings().behind_losing_time_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_behind_losing_time_color")]
+pub fn timer_layout_set_behind_losing_time_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().behind_losing_time_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_not_running_color")]
+pub fn timer_layout_get_not_running_color() -> Color {
+    let color = Layout::settings().not_running_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_not_running_color")]
+pub fn timer_layout_set_not_running_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().not_running_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_personal_best_color")]
+pub fn timer_layout_get_personal_best_color() -> Color {
+    let color = Layout::settings().personal_best_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_personal_best_color")]
+pub fn timer_layout_set_personal_best_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().personal_best_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_paused_color")]
+pub fn timer_layout_get_paused_color() -> Color {
+    let color = Layout::settings().paused_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_paused_color")]
+pub fn timer_layout_set_paused_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().paused_color = color;
+}
+#[rebo::function("Tas::timer_layout_get_text_color")]
+pub fn timer_layout_get_text_color() -> Color {
+    let color = Layout::settings().text_color;
+    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+}
+#[rebo::function("Tas::timer_layout_set_text_color")]
+pub fn timer_layout_set_text_color(color: Color) {
+    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+    Layout::settings_mut().text_color = color;
 }
