@@ -15,7 +15,7 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
+use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}, livesplit};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay};
@@ -159,6 +159,22 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(timer_get_attempt_count)
         .add_function(timer_save_splits)
         .add_function(timer_load_splits)
+        .add_function(livesplit::timer_layout_get_best_segment_color)
+        .add_function(livesplit::timer_layout_set_best_segment_color)
+        .add_function(livesplit::timer_layout_get_ahead_gaining_time_color)
+        .add_function(livesplit::timer_layout_set_ahead_gaining_time_color)
+        .add_function(livesplit::timer_layout_get_behind_gaining_time_color)
+        .add_function(livesplit::timer_layout_set_behind_gaining_time_color)
+        .add_function(livesplit::timer_layout_get_behind_losing_time_color)
+        .add_function(livesplit::timer_layout_set_behind_losing_time_color)
+        .add_function(livesplit::timer_layout_get_not_running_color)
+        .add_function(livesplit::timer_layout_set_not_running_color)
+        .add_function(livesplit::timer_layout_get_personal_best_color)
+        .add_function(livesplit::timer_layout_set_personal_best_color)
+        .add_function(livesplit::timer_layout_get_paused_color)
+        .add_function(livesplit::timer_layout_set_paused_color)
+        .add_function(livesplit::timer_layout_get_text_color)
+        .add_function(livesplit::timer_layout_set_text_color)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -654,11 +670,11 @@ struct Line {
     thickness: f32,
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
-struct Color {
-    red: f32,
-    green: f32,
-    blue: f32,
-    alpha: f32,
+pub struct Color {
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
+    pub alpha: f32,
 }
 #[rebo::function("Tas::draw_line")]
 fn draw_line(line: Line) {
