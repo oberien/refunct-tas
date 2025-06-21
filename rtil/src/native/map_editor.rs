@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::fmt::{Formatter, Pointer};
 use std::ops::Deref;
 use std::sync::Mutex;
-use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope, UObject};
+use crate::native::{ArrayWrapper, ObjectIndex, StructValueWrapper, UeObjectWrapperType, UeScope, UObject, ObjectWrapper};
 use crate::native::reflection::{AActor, ActorWrapper, UeObjectWrapper};
 
 pub static LEVELS: Mutex<Vec<Level>> = Mutex::new(Vec::new());
@@ -396,6 +396,17 @@ pub fn init() {
             if class_name == "BP_Jumppad_C" && name != "Default__BP_Jumppad_C" {
                 let springpad: SpringpadWrapper = object.upcast();
                 springpads.push(springpad);
+            }
+            if class_name == "BP_PowerCore_C" && name != "Default__BP_PowerCore_C" {
+                let mesh = object.get_field("Mesh").unwrap::<ObjectWrapper>();
+                let trigger = object.get_field("Trigger").unwrap::<ObjectWrapper>();
+                let fun = mesh.class().find_function("SetCollisionResponseToChannel").unwrap();
+                let params = fun.create_argument_struct();
+                params.get_field("Channel").unwrap::<&Cell<u8>>().set(3); // Visibility channel
+                params.get_field("NewResponse").unwrap::<&Cell<u8>>().set(2); // 'Block' response
+                unsafe {
+                    fun.call(trigger.as_ptr(), &params);
+                }
             }
         }
         assert_eq!(levels.len(), 31);
