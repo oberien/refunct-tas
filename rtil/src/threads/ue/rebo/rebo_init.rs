@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::{ErrorKind, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::atomic::Ordering;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
@@ -22,6 +21,7 @@ use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEn
 use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
+use crate::threads::ue::rebo::livesplit::{livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -145,20 +145,36 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(set_reticle_height)
         .add_function(get_camera_mode)
         .add_function(set_camera_mode)
-        .add_function(timer_start)
-        .add_function(timer_split)
-        .add_function(timer_reset)
-        .add_function(timer_get_game_time)
-        .add_function(timer_set_game_time)
-        .add_function(timer_pause_game_time)
-        .add_function(timer_create_segment)
-        .add_function(timer_get_game_name)
-        .add_function(timer_set_game_info)
-        .add_function(timer_get_category_name)
-        .add_function(timer_get_segments)
-        .add_function(timer_get_attempt_count)
-        .add_function(timer_save_splits)
-        .add_function(timer_load_splits)
+        .add_function(livesplit_start)
+        .add_function(livesplit_split)
+        .add_function(livesplit_reset)
+        .add_function(livesplit_get_game_time)
+        .add_function(livesplit_set_game_time)
+        .add_function(livesplit_pause_game_time)
+        .add_function(livesplit_create_segment)
+        .add_function(livesplit_get_game_name)
+        .add_function(livesplit_set_game_info)
+        .add_function(livesplit_get_category_name)
+        .add_function(livesplit_get_segments)
+        .add_function(livesplit_get_attempt_count)
+        .add_function(livesplit_save_splits)
+        .add_function(livesplit_load_splits)
+        .add_function(livesplit_get_best_segment_color)
+        .add_function(livesplit_set_best_segment_color)
+        .add_function(livesplit_get_ahead_gaining_time_color)
+        .add_function(livesplit_set_ahead_gaining_time_color)
+        .add_function(livesplit_get_behind_gaining_time_color)
+        .add_function(livesplit_set_behind_gaining_time_color)
+        .add_function(livesplit_get_behind_losing_time_color)
+        .add_function(livesplit_set_behind_losing_time_color)
+        .add_function(livesplit_get_not_running_color)
+        .add_function(livesplit_set_not_running_color)
+        .add_function(livesplit_get_personal_best_color)
+        .add_function(livesplit_set_personal_best_color)
+        .add_function(livesplit_get_paused_color)
+        .add_function(livesplit_set_paused_color)
+        .add_function(livesplit_get_text_color)
+        .add_function(livesplit_set_text_color)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -654,11 +670,11 @@ struct Line {
     thickness: f32,
 }
 #[derive(Debug, Clone, Copy, rebo::ExternalType)]
-struct Color {
-    red: f32,
-    green: f32,
-    blue: f32,
-    alpha: f32,
+pub struct Color {
+    pub red: f32,
+    pub green: f32,
+    pub blue: f32,
+    pub alpha: f32,
 }
 #[rebo::function("Tas::draw_line")]
 fn draw_line(line: Line) {
@@ -1490,48 +1506,48 @@ fn get_camera_mode() -> u8 {
 fn set_camera_mode(mode: u8) {
     AMyCharacter::set_camera_mode(mode);
 }
-#[rebo::function("Tas::timer_start")]
-fn timer_start() {
+#[rebo::function("LiveSplit::start")]
+fn livesplit_start() {
     Timer::start();
 }
-#[rebo::function("Tas::timer_split")]
-fn timer_split() {
+#[rebo::function("LiveSplit::split")]
+fn livesplit_split() {
     Timer::split();
 }
-#[rebo::function("Tas::timer_reset")]
-fn timer_reset(update_splits: bool) {
+#[rebo::function("LiveSplit::reset")]
+fn livesplit_reset(update_splits: bool) {
     Timer::reset(update_splits);
 }
-#[rebo::function("Tas::timer_get_game_time")]
-fn timer_get_game_time() -> f64 {
+#[rebo::function("LiveSplit::get_game_time")]
+fn livesplit_get_game_time() -> f64 {
     Timer::get_game_time()
 }
-#[rebo::function("Tas::timer_set_game_time")]
-fn timer_set_game_time(time: f64) {
+#[rebo::function("LiveSplit::set_game_time")]
+fn livesplit_set_game_time(time: f64) {
     Timer::set_game_time(time);
 }
-#[rebo::function("Tas::timer_pause_game_time")]
-fn timer_pause_game_time() {
+#[rebo::function("LiveSplit::pause_game_time")]
+fn livesplit_pause_game_time() {
     Timer::pause_game_time();
 }
-#[rebo::function("Tas::timer_create_segment")]
-fn timer_create_segment(name: String) {
+#[rebo::function("LiveSplit::create_segment")]
+fn livesplit_create_segment(name: String) {
     Run::create_segment(name);
 }
-#[rebo::function("Tas::timer_get_game_name")]
-fn timer_get_game_name() -> String {
+#[rebo::function("LiveSplit::get_game_name")]
+fn livesplit_get_game_name() -> String {
     Run::game_name()
 }
-#[rebo::function("Tas::timer_set_game_info")]
-fn timer_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
+#[rebo::function("LiveSplit::set_game_info")]
+fn livesplit_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
     Run::set_game_info(game, category, new_game_glitch);
 }
-#[rebo::function("Tas::timer_get_category_name")]
-fn timer_get_category_name() -> String {
+#[rebo::function("LiveSplit::get_category_name")]
+fn livesplit_get_category_name() -> String {
     Run::category_name()
 }
-#[rebo::function("Tas::timer_get_segments")]
-fn timer_get_segments() -> Vec<Segment> {
+#[rebo::function("LiveSplit::get_segments")]
+fn livesplit_get_segments() -> Vec<Segment> {
     let mut segments = Vec::new();
     for seg in Run::segments() {
         let segment = Segment {
@@ -1544,15 +1560,15 @@ fn timer_get_segments() -> Vec<Segment> {
     }
     segments
 }
-#[rebo::function("Tas::timer_get_attempt_count")]
-fn timer_get_attempt_count() -> u32 {
+#[rebo::function("LiveSplit::get_attempt_count")]
+fn livesplit_get_attempt_count() -> u32 {
     Run::attempt_count()
 }
-#[rebo::function("Tas::timer_save_splits")]
-fn timer_save_splits(path: String) -> Result<(), SplitsSaveError> {
+#[rebo::function("LiveSplit::save_splits")]
+fn livesplit_save_splits(path: String) -> Result<(), SplitsSaveError> {
     Run::save_splits(&path)
 }
-#[rebo::function("Tas::timer_load_splits")]
-fn timer_load_splits(path: String) -> Result<(), SplitsLoadError> {
+#[rebo::function("LiveSplit::load_splits")]
+fn livesplit_load_splits(path: String) -> Result<(), SplitsLoadError> {
     Run::load_splits(&path)
 }
