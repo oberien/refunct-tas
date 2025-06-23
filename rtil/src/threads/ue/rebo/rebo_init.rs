@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
@@ -990,11 +991,28 @@ fn trigger_element(index: ElementIndex) {
         crate::native::hook_aliftbase_removebasedcharacter();
         crate::native::hook_aliftbase_addbasedcharacter();
     }
+    fn collect_cube(actor: &ActorWrapper<'_>) {
+        let trigger_fn = actor
+            .class()
+            .find_function("BndEvt__Trigger_K2Node_ComponentBoundEvent_24_ComponentBeginOverlapSignature__DelegateSignature")
+            .unwrap();
+        let params = trigger_fn.create_argument_struct();
+        let movement = unsafe { ObjectWrapper::new(AMyCharacter::get_player().movement() as *mut UObject) };
+        let updated_primitive = movement.get_field("UpdatedPrimitive").unwrap::<ObjectWrapper>();
+        let trigger = actor.get_field("Trigger").unwrap::<ObjectWrapper>();
+        params.get_field("OverlappedComponent").set_object(&updated_primitive);
+        params.get_field("OtherComp").set_object(&trigger);
+        params.get_field("OtherActor").set_object(&actor);
+        params.get_field("OtherBodyIndex").unwrap::<&Cell<i32>>().set(0);
+        unsafe {
+            trigger_fn.call(actor.as_ptr(), &params);
+        }
+    }
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
         match index.element_type {
             ElementType::Platform => add_remove_based_character(&*scope.get(levels[index.cluster_index].platforms[index.element_index])),
-            ElementType::Cube => (),
+            ElementType::Cube => collect_cube(&*scope.get(levels[index.cluster_index].cubes[index.element_index])),
             ElementType::Button => add_remove_based_character(&*scope.get(levels[index.cluster_index].buttons[index.element_index])),
             ElementType::Lift => add_remove_based_character(&*scope.get(levels[index.cluster_index].lifts[index.element_index])),
             ElementType::Pipe => (),
