@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Write};
@@ -11,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, BoolValueWrapper};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
@@ -990,11 +991,28 @@ fn trigger_element(index: ElementIndex) {
         crate::native::hook_aliftbase_removebasedcharacter();
         crate::native::hook_aliftbase_addbasedcharacter();
     }
+    fn trigger_cube(object: &ObjectWrapper<'_>) {
+        let trigger_fun = object.class()
+            .find_function("BndEvt__Trigger_K2Node_ComponentBoundEvent_24_ComponentBeginOverlapSignature__DelegateSignature")
+            .unwrap();
+        let params = trigger_fun.create_argument_struct();
+        let movement = unsafe { ObjectWrapper::new(AMyCharacter::get_player().movement() as *mut UObject) };
+        let updated_primitive = movement.get_field("UpdatedPrimitive").unwrap::<ObjectWrapper>();
+        let trigger = object.get_field("Trigger").unwrap::<ObjectWrapper>();
+        params.get_field("OverlappedComponent").set_object(&updated_primitive);
+        params.get_field("OtherActor").set_object(&object);
+        params.get_field("OtherComp").set_object(&trigger);
+        params.get_field("OtherBodyIndex").unwrap::<&Cell<i32>>().set(0);
+        params.get_field("bFromSweep").unwrap::<BoolValueWrapper>().set(false);
+        unsafe {
+            trigger_fun.call(object.as_ptr(), &params);
+        }
+    }
     UeScope::with(|scope| {
         let levels = LEVELS.lock().unwrap();
         match index.element_type {
             ElementType::Platform => add_remove_based_character(&*scope.get(levels[index.cluster_index].platforms[index.element_index])),
-            ElementType::Cube => (),
+            ElementType::Cube => trigger_cube(&*scope.get(levels[index.cluster_index].cubes[index.element_index])),
             ElementType::Button => add_remove_based_character(&*scope.get(levels[index.cluster_index].buttons[index.element_index])),
             ElementType::Lift => add_remove_based_character(&*scope.get(levels[index.cluster_index].lifts[index.element_index])),
             ElementType::Pipe => (),
