@@ -29,7 +29,7 @@ impl AMyCharacter {
     fn controller(&self) -> *mut APlayerController {
         unsafe { (*self.0).controller }
     }
-    fn movement(&self) -> *mut UCharacterMovementComponent {
+    pub fn movement(&self) -> *mut UCharacterMovementComponent {
         unsafe { (*self.0).movement }
     }
     fn player_state(&self) -> *mut APlayerState {
@@ -221,7 +221,7 @@ impl USceneComponent {
 }
 
 #[repr(C)]
-struct UCharacterMovementComponent {
+pub struct UCharacterMovementComponent {
     #[cfg(unix)] _pad: [u8; 0x104],
     #[cfg(windows)] _pad: [u8; 0xb4],
     velocity: FVector,
