@@ -72,7 +72,7 @@ pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
 pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
-pub use self::engine::UEngine;
+pub use self::engine::{UEngine, FViewport};
 pub use self::font::UFont;
 
 /// Rebo code must only be executed once all `this*` have been found.
