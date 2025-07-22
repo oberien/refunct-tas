@@ -212,16 +212,17 @@ fn cleanup_after_rebo() {
 
 fn check_for_new_version() -> Option<String> {
     const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-    let res = ureq::AgentBuilder::new()
-        .redirects(0)
-        .timeout(Duration::from_secs(3))
-        .build()
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .max_redirects(0)
+        .timeout_global(Some(Duration::from_secs(3)))
+        .build().into();
+    let res = agent
         .get("https://github.com/oberien/refunct-tas/releases/latest")
         .call();
     match res {
         Ok(response) => {
             assert_eq!(response.status(), 302);
-            let loc = response.header("Location").unwrap();
+            let loc = response.headers().get("Location").unwrap().to_str().unwrap();
             let pos = loc.rfind("/v").unwrap();
             let version = &loc[pos+2..];
             if version != CURRENT_VERSION {
@@ -236,19 +237,14 @@ fn check_for_new_version() -> Option<String> {
         Err(err) => {
             log!("VERSION: Error checking for new version: err");
             match err {
-                ureq::Error::Status(status, _) => {
+                ureq::Error::StatusCode(status) => {
                     Some(format!("Error checking for new version: Got status {status}"))
                 },
-                ureq::Error::Transport(transport) => {
-                    let kind = transport.kind().to_string();
-                    let message = transport.message().map(|m| format!(": {m}"));
-                    let source = transport.source().map(|s| format!(": {s}"));
-                    let mut res = kind;
-                    if let Some(message) = message {
-                        res += &message;
-                    }
-                    if let Some(source) = source {
-                        res += &source;
+                e => {
+                    let message = format!("{e}");
+                    let mut res = message;
+                    if let Some(source) = e.source() {
+                        res += &format!("{source}");
                     }
                     Some(format!("Error checking for new version: {res}"))
                 }

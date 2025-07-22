@@ -1,5 +1,3 @@
-#![feature(naked_functions)]
-
 #[cfg(all(target_os = "linux", not(target_pointer_width = "64")))]
 compile_error!("must be compiled as 64bit on Linux (e.g. with `--target x86_64-unknown-linux-gnu`");
 #[cfg(all(target_os = "windows", not(target_pointer_width = "32")))]
@@ -49,7 +47,7 @@ pub extern "C" fn initialize() {
                 log!("Starting initialize");
                 // on Linux we need to wait for the packer to finish
                 if cfg!(unix) {
-                    ::std::thread::sleep(::std::time::Duration::from_secs(5));
+                    ::std::thread::sleep(::std::time::Duration::from_secs(7));
                 }
                 // start threads
                 threads::start();

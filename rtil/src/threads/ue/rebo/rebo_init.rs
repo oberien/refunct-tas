@@ -8,7 +8,7 @@ use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, IncludeDirectoryConfig, Map};
+use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, Map, IncludeConfig};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
@@ -224,7 +224,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_required_rebo_function(on_menu_open)
     ;
     if let Some(working_dir) = &STATE.lock().unwrap().as_ref().unwrap().working_dir {
-        cfg = cfg.include_directory(IncludeDirectoryConfig::Path(PathBuf::from(working_dir)));
+        cfg = cfg.include_config(IncludeConfig::InDirectory(PathBuf::from(working_dir)));
     }
     cfg
 }
@@ -256,7 +256,7 @@ pub struct Segment {
 }
 
 /// Check internal state and channels to see if we should stop.
-fn interrupt_function<'a, 'i>(_vm: &mut VmContext<'a, '_, '_, 'i>) -> Result<(), ExecError<'a, 'i>> {
+fn interrupt_function<'i>(_vm: &mut VmContext<'i, '_, '_>) -> Result<(), ExecError<'i>> {
     loop {
         let result = STATE.lock().unwrap().as_ref().unwrap().stream_rebo_rx.try_recv();
         match result {
@@ -299,11 +299,11 @@ fn print(..: _) {
 fn step() -> Step {
     step_internal(vm, Suspend::Return)?
 }
-#[rebo::function(raw("Tas::yield"))]
+#[rebo::function(raw("Tas::yield_"))]
 fn step_yield() -> Step {
     step_internal(vm, Suspend::Yield)?
 }
-fn step_internal<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, suspend: Suspend) -> Result<Step, ExecError<'a, 'i>> {
+fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result<Step, ExecError<'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let old_level_state = LevelState::get();
 
@@ -417,7 +417,7 @@ fn load_settings() -> Option<Map<String, String>> {
 fn store_settings(settings: Map<String, String>) {
     let path = config_path().join("settings.json");
     let mut file = File::create(path).unwrap();
-    let map = settings.clone_btreemap();
+    let map: HashMap<_, _> = settings.clone_map();
     serde_json::to_writer_pretty(&mut file, &map).unwrap();
     writeln!(file).unwrap();
 }
@@ -894,7 +894,7 @@ fn disconnect_from_server() {
     STATE.lock().unwrap().as_mut().unwrap().websocket.take();
     disconnected(vm, Disconnected::ManualDisconnect)?;
 }
-fn send_to_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, desc: &str, request: Request) -> Result<(), ExecError<'a, 'i>> {
+fn send_to_server<'i>(vm: &mut VmContext<'i, '_, '_>, desc: &str, request: Request) -> Result<(), ExecError<'i>> {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     if state.websocket.is_none() {
@@ -911,16 +911,16 @@ fn send_to_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, desc: &str, reques
     }
     Ok(())
 }
-enum ReceiveError<'a, 'i> {
-    ExecError(ExecError<'a, 'i>),
+enum ReceiveError<'i> {
+    ExecError(ExecError<'i>),
     Error,
 }
-impl<'a, 'i> From<ExecError<'a, 'i>> for ReceiveError<'a, 'i> {
-    fn from(e: ExecError<'a, 'i>) -> Self {
+impl<'i> From<ExecError<'i>> for ReceiveError<'i> {
+    fn from(e: ExecError<'i>) -> Self {
         ReceiveError::ExecError(e)
     }
 }
-fn receive_from_server<'a, 'i>(vm: &mut VmContext<'a, '_, '_, 'i>, nonblocking: bool) -> Result<Response, ReceiveError<'a, 'i>> {
+fn receive_from_server<'i>(vm: &mut VmContext<'i, '_, '_>, nonblocking: bool) -> Result<Response, ReceiveError<'i>> {
     if STATE.lock().unwrap().as_ref().unwrap().websocket.is_none() {
         return Err(ReceiveError::Error);
     }

@@ -153,7 +153,7 @@ fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
 
     quote! {
         #[cfg(unix)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "C" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // save registers and arguments
@@ -179,7 +179,7 @@ fn generate_hook_once(attrs: &Attrs) -> TokenStream2 {
         }
 
         #[cfg(windows)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // save registers (ecx = first argument = this*)
@@ -213,7 +213,7 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
 
     quote! {
         #[cfg(unix)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "C" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // save registers and arguments
@@ -283,7 +283,7 @@ fn generate_hook_before(attrs: &Attrs) -> TokenStream2 {
 //        }
 
         #[cfg(windows)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // save registers (ecx = first argument = this*)
@@ -408,7 +408,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         }
 
         #[cfg(unix)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "C" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // restore original function
@@ -448,7 +448,7 @@ fn generate_hook_after(attrs: &Attrs, function_to_call: &Ident) -> TokenStream2 
         }
 
         #[cfg(windows)]
-        #[naked]
+        #[unsafe(naked)]
         unsafe extern "thiscall" fn #interceptor_name() -> ! {
             core::arch::naked_asm!(
                 // restore original function
