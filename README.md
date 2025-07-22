@@ -9,8 +9,7 @@ Refunct-tas is supported on Linux and Windows.
 
 ## Linux
 
-Make sure to have rust installed either with [rustup](https://www.rustup.rs/)
-containing the latest nightly compiler.
+Make sure to have rust installed e.g. via [rustup](https://www.rustup.rs/).
 Execute `make`.
 This will create the directory `build/linux/` containing `refunct-tas`,
 `librtil.so` and some rebo script files.
@@ -18,7 +17,7 @@ This will create the directory `build/linux/` containing `refunct-tas`,
 ## Windows
 
 Make sure to have Rust installed with [rustup](https://www.rustup.rs/) and
-installed the latest nightly-i686-pc-windows-msvc.
+installed the latest stable-i686-pc-windows-msvc.
 Execute the file `make.bat` either with a double-click, or preferably in cmd.
 It will create a directory `build\practice-windows\ ` containing `refunct-tas.exe`,
 `rtil.dll`, `Cargo.toml` and some rebo script files.

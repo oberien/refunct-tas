@@ -13,7 +13,7 @@ fn step_frame(tick_mode: TickMode) {
     Tas::set_delta(delta);
     let tick_fn = match tick_mode {
         TickMode::DontCare => Tas::step,
-        TickMode::Yield => Tas::yield,
+        TickMode::Yield => Tas::yield_,
     };
     match tick_fn() {
         Step::Tick => (),

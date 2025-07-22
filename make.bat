@@ -5,7 +5,7 @@ md build\practice-windows
 del /Q build\practice-windows\*
 echo Building
 cd rtil
-cargo +nightly build --release --target=i686-pc-windows-msvc || exit /b
+cargo build --release --target=i686-pc-windows-msvc || exit /b
 cd ..\tool
 cargo build --target=i686-pc-windows-msvc || exit /b
 cd ..

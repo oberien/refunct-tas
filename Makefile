@@ -26,7 +26,7 @@ $(TOOL): $(BUILDDIR)
 
 .PHONY: $(LIB) # always execute cargo
 $(LIB): $(BUILDDIR)
-	cd rtil && cargo +nightly build --release
+	cd rtil && cargo build --release
 	cp rtil/target/release/librtil.so $(LIB)
 
 $(BUILDDIR):

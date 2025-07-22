@@ -17,10 +17,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v2
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
+            toolchain: stable
             default: true
       - name: Install libxcb components
         run: sudo apt-get install libxcb-render0-dev libxcb-xfixes0-dev

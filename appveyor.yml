@@ -4,7 +4,7 @@ environment:
   CARGO_HTTP_CHECK_REVOKE: false
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-toolchain nightly --default-host i686-pc-windows-msvc
+  - rustup-init -yv --default-toolchain stable --default-host i686-pc-windows-msvc
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
