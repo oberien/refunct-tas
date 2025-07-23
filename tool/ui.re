@@ -409,23 +409,11 @@ impl IntInput {
         }
         self.input = "";
         let mut i = 0;
-        while i < input.len_utf8() {
-            let chr = match input.slice(i, i+1) {
-                "0" => "0",
-                "1" => "1",
-                "2" => "2",
-                "3" => "3",
-                "4" => "4",
-                "5" => "5",
-                "6" => "6",
-                "7" => "7",
-                "8" => "8",
-                "9" => "9",
-                _ => "",
-            };
-            self.input = f"{self.input}{chr}";
-            i += 1;
-        }
+        let mut chr = match input.parse_int() {
+            Result::Ok(chr) => chr,
+            Result::Err(e) => return,
+        };
+        self.input = f"{self.input}{chr}";
         let onchange = self.onchange;
         onchange(self.input);
     }

@@ -68,16 +68,13 @@ fn create_custom_practice_menu() -> Ui {
                         return;
                     }
                     let level_state = Tas::get_level_state();
-                    let loc = Tas::get_location();
-                    let rot = Tas::get_rotation();
-                    let vel = Tas::get_velocity();
                     Tas::save_practice_state(input, Practice {
                         name: input,
                         cluster: level_state.level,
                         button: level_state.buttons,
-                        location: Location { x: loc.x, y: loc.y, z: loc.z },
-                        rotation: Rotation { pitch: rot.pitch, yaw: rot.yaw, roll: rot.roll },
-                        velocity: Velocity { x: vel.x, y: vel.y, z: vel.z }
+                        location: Tas::get_location(),
+                        rotation: Tas::get_rotation(),
+                        velocity: Tas::get_velocity()
                     });
                     leave_ui();
                     leave_ui();
@@ -100,7 +97,7 @@ fn create_custom_practice_menu() -> Ui {
             label: Text { text: "Load Custom Practice State" },
             onclick: fn(label: Text) {
                 let practice_list = Tas::list_practice_states();
-                enter_ui(Ui::new_filechooser("Load Custom Practice State", Tas::list_practice_states(), fn(input: string) {
+                enter_ui(Ui::new_filechooser("Load Custom Practice State", practice_list, fn(input: string) {
                     if !practice_list.contains(input) {
                         return;
                     }
@@ -122,10 +119,7 @@ fn create_custom_practice_menu() -> Ui {
 
 fn create_edit_practice_state_ui(mut practice: Practice) -> Ui {
     let submit = fn() {
-        let selected = match UI_STACK.last() {
-            Option::Some(ui) => ui.selected,
-            Option::None => panic("we are currently in a UI"),
-        };
+        let selected = UI_STACK.last().unwrap().selected;
         Tas::save_practice_state(practice.name, practice);
         leave_ui();
         CURRENT_PRACTICE = practice;
