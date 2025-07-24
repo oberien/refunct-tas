@@ -64,7 +64,7 @@ pub use self::tick::{
 pub use self::app::FApp;
 pub use self::memory::FMemory;
 pub use self::hud::{AMyHud, EBlendMode};
-pub use self::uworld::{APawn, UWorld, UGameplayStatics, TimeOfDay};
+pub use self::uworld::{UWorld, UGameplayStatics, TimeOfDay};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
 pub use self::texture::UTexture2D;
@@ -73,7 +73,6 @@ pub use self::reflection::*;
 pub use self::map_editor::*;
 pub use self::kismet_system_library::KismetSystemLibrary;
 pub use self::engine::{UEngine, FViewport};
-pub use self::font::UFont;
 
 /// Rebo code must only be executed once all `this*` have been found.
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.

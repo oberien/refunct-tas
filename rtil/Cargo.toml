@@ -41,7 +41,7 @@ winapi = { version = "0.3.9", features = ["winnt", "tlhelp32", "handleapi", "pro
 
 [lib]
 name = "rtil"
-crate_type = ["dylib"]
+crate-type = ["dylib"]
 
 [profile.dev]
 panic = 'abort'

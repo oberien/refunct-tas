@@ -216,6 +216,7 @@ pub struct FName {
 #[repr(C)]
 #[allow(non_camel_case_types)]
 enum EFindName {
+    #[expect(unused)]
     FNAME_FIND,
     FNAME_ADD,
 }
@@ -284,6 +285,7 @@ impl From<(f32, f32, f32, f32)> for FLinearColor {
     }
 }
 
+#[expect(unused)]
 #[derive(Debug)]
 #[repr(C)]
 pub struct FColor {
@@ -310,6 +312,7 @@ impl From<(u8, u8, u8, u8)> for FColor {
     }
 }
 
+#[expect(unused)]
 #[derive(Debug)]
 #[repr(C)]
 pub struct FQuat {
@@ -334,10 +337,7 @@ macro_rules! fuck_alignment {
             #[allow(unused)]
             impl $name {
                 pub const fn new(val: $t) -> Self {
-                    // amazing!!! https://github.com/rust-lang/rust/issues/72447
-                    unsafe {
-                        Self { val: std::mem::transmute::<$t, [u8; 8]>(val) }
-                    }
+                    Self { val: val.to_ne_bytes() }
                 }
                 pub fn get(&self) -> $t {
                     <$t>::from_ne_bytes(self.val.clone())

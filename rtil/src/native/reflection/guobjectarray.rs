@@ -1,10 +1,7 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr;
 use std::sync::atomic::Ordering;
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
 use crate::native::{FUOBJECTARRAY_ALLOCATESERIALNUMBER, GUOBJECTARRAY, UeObjectWrapper, UeObjectWrapperType};
 use crate::native::reflection::{ObjectWrapper, UObject};
 
@@ -29,11 +26,9 @@ struct UntypedObjectIndex {
     internal_index: i32,
     serial_number: i32,
 }
-static BUFFER: Lazy<Mutex<HashMap<u32, UntypedObjectIndex>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Copy, Clone)]
-pub enum GetBufferedItemError {
-    NotBuffered,
+pub enum GetUeObjectError {
     Invalidated,
 }
 
@@ -74,29 +69,17 @@ impl UeScope {
             _marker: PhantomData,
         }
     }
-    fn resolve_untyped_object_index<'a>(&'a self, index: UntypedObjectIndex) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
+    fn resolve_untyped_object_index<'a>(&'a self, index: UntypedObjectIndex) -> Result<ObjectWrapper<'a>, GetUeObjectError> {
         let item = self.object_array().try_get(index.internal_index)
-            .ok_or(GetBufferedItemError::Invalidated)?;
+            .ok_or(GetUeObjectError::Invalidated)?;
         if item.serial_number() != index.serial_number {
-            return Err(GetBufferedItemError::Invalidated);
+            return Err(GetUeObjectError::Invalidated);
         }
         Ok(item.object())
     }
     pub fn get<'a, T: UeObjectWrapperType>(&'a self, index: impl Borrow<ObjectIndex<T>>) -> T::UeObjectWrapper<'a> {
         let object = self.resolve_untyped_object_index(index.borrow().index).unwrap();
         object.upcast()
-    }
-    pub fn try_get<'a, T: UeObjectWrapper<'a>>(&'a self, index: &ObjectIndex<T::UeObjectWrapperType>) -> Result<T, GetBufferedItemError> {
-        let object = self.resolve_untyped_object_index(index.index)?;
-        Ok(object.upcast())
-    }
-    pub fn buffer_item<'a>(&'a self, ident: impl Into<u32>, item: &ObjectItemWrapper<'a>) {
-        BUFFER.lock().unwrap().insert(ident.into(), self.untyped_object_index(item));
-    }
-    pub fn get_buffered<'a>(&'a self, ident: impl Into<u32>) -> Result<ObjectWrapper<'a>, GetBufferedItemError> {
-        let index = BUFFER.lock().unwrap().get(&ident.into()).copied()
-            .ok_or(GetBufferedItemError::NotBuffered)?;
-        self.resolve_untyped_object_index(index)
     }
 }
 

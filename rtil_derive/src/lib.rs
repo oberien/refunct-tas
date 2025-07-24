@@ -3,17 +3,9 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use proc_macro2::{TokenStream as TokenStream2, Span};
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{parse_macro_input, ItemFn, Ident, token::Colon2, Result, Abi, LitStr, token::Extern};
 use syn::parse::{Parse, ParseStream};
-
-struct StrTokens<'a>(&'a str);
-
-impl<'a> ToTokens for StrTokens<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
-        tokens.extend(self.0.parse::<TokenStream2>().unwrap())
-    }
-}
 
 struct Attrs {
     /// demangled name of the original function

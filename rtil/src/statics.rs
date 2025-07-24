@@ -47,8 +47,8 @@ impl<T> Static<T> {
     pub fn set(&self, val: T) {
         *self.val.lock().unwrap() = Some(val);
     }
-    
-    pub fn get(&self) -> MutexGuardWrapper<T> {
+
+    pub fn get(&self) -> MutexGuardWrapper<'_, T> {
         MutexGuardWrapper::new(self.val.lock().unwrap())
     }
 
@@ -66,7 +66,7 @@ pub struct MutexGuardWrapper<'a, T: 'a> {
 }
 
 impl<'a, T> MutexGuardWrapper<'a, T> {
-    fn new(guard: MutexGuard<'a, Option<T>>) -> MutexGuardWrapper<T> {
+    fn new(guard: MutexGuard<'a, Option<T>>) -> MutexGuardWrapper<'a, T> {
         MutexGuardWrapper { guard }
     }
 }

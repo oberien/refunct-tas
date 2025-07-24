@@ -140,7 +140,7 @@ static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
 #[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
 fn draw_material_simple(args: &mut Args) {
     let (
-        _this, material, screen_x, screen_y, screen_w, screen_h, scale, scale_position
+        _this, material, screen_x, screen_y, screen_w, screen_h, scale, _scale_position
     ) = unsafe { args.with_this_pointer::<(*mut UObject, *mut UObject, f32, f32, f32, f32, f32, usize)>() };
     unsafe {
         let obj = ObjectWrapper::new(material);

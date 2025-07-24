@@ -12,7 +12,7 @@ pub(in crate::native) enum UTexture2DUE {}
 unsafe impl Send for UTexture2D {}
 
 impl UTexture2D {
-    fn as_object(&self) -> ObjectWrapper {
+    fn as_object(&self) -> ObjectWrapper<'_> {
         unsafe { ObjectWrapper::new(self.0 as *mut UObject) }
     }
     fn create_transient(width: i32, height: i32, format: EPixelFormat) -> *mut UTexture2DUE {
@@ -52,7 +52,7 @@ impl UTexture2D {
         assert_eq!(self.height() as u32, image.height());
         unsafe {
             let platform_data = self.get_running_platform_data();
-            let mip_map = (**platform_data).mips[0];
+            let mip_map = (&(**platform_data).mips)[0];
             let bulk_data = ptr::addr_of_mut!((*mip_map).bulk_data) as *mut FByteBulkData;
             let ptr = FByteBulkData::lock(bulk_data, EBulkDataLockFlags::LockReadWrite);
             ptr::copy_nonoverlapping(image.as_raw().as_ptr(), ptr, image.as_raw().len());
