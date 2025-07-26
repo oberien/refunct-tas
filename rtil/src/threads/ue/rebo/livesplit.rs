@@ -1,11 +1,13 @@
 use std::{fs, fs::File};
 use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
-use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
 use livesplit_core::component::{CurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
+use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::{Fraction, FractionInner, Time, TimeInner}};
 use super::rebo_init::Color;
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
@@ -14,10 +16,107 @@ static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| 
 pub struct LiveSplit {
     pub timer: LiveSplitTimer,
     pub layout: LiveSplitLayout,
+    time: LiveSplitTime,
 }
 pub struct Timer {}
 pub struct Run {}
 pub struct Layout {}
+pub struct TotalPlaytime {}
+
+struct LiveSplitTime {
+    time: Time,
+    fraction: Fraction,
+}
+struct LiveSplitTimeInner {
+    time: TimeInner,
+    fraction: FractionInner,
+}
+
+#[derive(rebo::ExternalType)]
+pub enum DigitsFormat {
+    SingleDigitSeconds,
+    DoubleDigitSeconds,
+    SingleDigitMinutes,
+    DoubleDigitMinutes,
+    SingleDigitHours,
+    DoubleDigitHours,
+}
+#[derive(rebo::ExternalType)]
+pub enum Accuracy {
+    Seconds,
+    Tenths,
+    Hundredths,
+    Milliseconds,
+}
+
+impl TimeFormatter<'_> for LiveSplitTime {
+    type Inner = LiveSplitTimeInner;
+
+    fn format<T>(&'_ self, time: T) -> Self::Inner where T: Into<Option<TimeSpan>> {
+        let time = time.into();
+        LiveSplitTimeInner {
+            time: self.time.format(time.clone()),
+            fraction: self.fraction.format(time),
+        }
+    }
+}
+
+impl Display for LiveSplitTimeInner {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.time, f)?;
+        Display::fmt(&self.fraction, f)?;
+        Ok(())
+    }
+}
+
+impl From<DigitsFormat> for LiveSplitDigitsFormat {
+    fn from(format: DigitsFormat) -> LiveSplitDigitsFormat {
+        let digits = match format {
+            DigitsFormat::SingleDigitSeconds => LiveSplitDigitsFormat::SingleDigitSeconds,
+            DigitsFormat::DoubleDigitSeconds => LiveSplitDigitsFormat::DoubleDigitSeconds,
+            DigitsFormat::SingleDigitMinutes => LiveSplitDigitsFormat::SingleDigitMinutes,
+            DigitsFormat::DoubleDigitMinutes => LiveSplitDigitsFormat::DoubleDigitMinutes,
+            DigitsFormat::SingleDigitHours => LiveSplitDigitsFormat::SingleDigitHours,
+            DigitsFormat::DoubleDigitHours => LiveSplitDigitsFormat::DoubleDigitHours,
+        };
+        digits.into()
+    }
+}
+impl From<LiveSplitDigitsFormat> for DigitsFormat {
+    fn from(format: LiveSplitDigitsFormat) -> Self {
+        let digits = match format {
+            LiveSplitDigitsFormat::SingleDigitSeconds => DigitsFormat::SingleDigitSeconds,
+            LiveSplitDigitsFormat::DoubleDigitSeconds => DigitsFormat::DoubleDigitSeconds,
+            LiveSplitDigitsFormat::SingleDigitMinutes => DigitsFormat::SingleDigitMinutes,
+            LiveSplitDigitsFormat::DoubleDigitMinutes => DigitsFormat::DoubleDigitMinutes,
+            LiveSplitDigitsFormat::SingleDigitHours => DigitsFormat::SingleDigitHours,
+            LiveSplitDigitsFormat::DoubleDigitHours => DigitsFormat::DoubleDigitHours,
+        };
+        digits.into()
+    }
+}
+impl From<Accuracy> for LiveSplitAccuracy {
+    fn from(accuracy: Accuracy) -> LiveSplitAccuracy {
+        let accuracy = match accuracy {
+            Accuracy::Seconds => LiveSplitAccuracy::Seconds,
+            Accuracy::Tenths => LiveSplitAccuracy::Tenths,
+            Accuracy::Hundredths => LiveSplitAccuracy::Hundredths,
+            Accuracy::Milliseconds => LiveSplitAccuracy::Milliseconds,
+        };
+        accuracy.into()
+    }
+}
+impl From<LiveSplitAccuracy> for Accuracy {
+    fn from(accuracy: LiveSplitAccuracy) -> Self {
+        let accuracy = match accuracy {
+            LiveSplitAccuracy::Seconds => Accuracy::Seconds,
+            LiveSplitAccuracy::Tenths => Accuracy::Tenths,
+            LiveSplitAccuracy::Hundredths => Accuracy::Hundredths,
+            LiveSplitAccuracy::Milliseconds => Accuracy::Milliseconds,
+        };
+        accuracy.into()
+    }
+}
 
 #[derive(rebo::ExternalType)]
 pub enum Game {
@@ -58,7 +157,11 @@ impl LiveSplit {
         run.metadata_mut().set_speedrun_com_variable("New Game Glitch", "Normal");
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
-        LiveSplit { timer, layout }
+        let time = LiveSplitTime {
+            time: Time::with_digits_format(LiveSplitDigitsFormat::SingleDigitSeconds),
+            fraction: Fraction::with_accuracy(LiveSplitAccuracy::Hundredths),
+        };
+        LiveSplit { timer, layout, time }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -188,6 +291,26 @@ impl Layout {
         LIVESPLIT_STATE.lock().unwrap().layout.general_settings().clone()
     }
 }
+impl LiveSplitTime {
+    pub fn get_digits_format() -> LiveSplitDigitsFormat {
+        LIVESPLIT_STATE.lock().unwrap().time.time.get_digits_format()
+    }
+    pub fn set_digits_format(digits_format: LiveSplitDigitsFormat) {
+        LIVESPLIT_STATE.lock().unwrap().time.time.set_digits_format(digits_format);
+    }
+    pub fn get_accuracy() -> LiveSplitAccuracy {
+        LIVESPLIT_STATE.lock().unwrap().time.fraction.get_accuracy()
+    }
+    pub fn set_accuracy(accuracy: LiveSplitAccuracy) {
+        LIVESPLIT_STATE.lock().unwrap().time.fraction.set_accuracy(accuracy);
+    }
+}
+impl TotalPlaytime {
+    pub fn total_playtime() -> String {
+        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
+        livesplit_state.time.format(livesplit_state.timer.total_playtime()).to_string()
+    }
+}
 #[rebo::function("LiveSplit::get_best_segment_color")]
 pub fn livesplit_get_best_segment_color() -> Color {
     let color = Layout::settings().best_segment_color;
@@ -275,4 +398,24 @@ pub fn livesplit_set_text_color(color: Color) {
     let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
     let mut state = LIVESPLIT_STATE.lock().unwrap();
     state.layout.general_settings_mut().text_color = color;
+}
+#[rebo::function("LiveSplit::get_total_playtime")]
+pub fn livesplit_get_total_playtime() -> String {
+    TotalPlaytime::total_playtime()
+}
+#[rebo::function("LiveSplit::get_digits_format")]
+pub fn livesplit_get_digits_format() -> DigitsFormat {
+    LiveSplitTime::get_digits_format().into()
+}
+#[rebo::function("LiveSplit::set_digits_format")]
+pub fn livesplit_set_digits_format(digits_format: DigitsFormat) {
+    LiveSplitTime::set_digits_format(digits_format.into());
+}
+#[rebo::function("LiveSplit::get_accuracy")]
+pub fn livesplit_get_accuracy() -> Accuracy {
+    LiveSplitTime::get_accuracy().into()
+}
+#[rebo::function("LiveSplit::set_accuracy")]
+pub fn livesplit_set_accuracy(accuracy: Accuracy) {
+    LiveSplitTime::set_accuracy(accuracy.into());
 }
