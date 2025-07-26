@@ -16,8 +16,6 @@ static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| 
 pub struct LiveSplit {
     pub timer: LiveSplitTimer,
     pub layout: LiveSplitLayout,
-    pub digits_format: LiveSplitDigitsFormat,
-    pub accuracy: LiveSplitAccuracy,
     time: LiveSplitTime,
 }
 pub struct Timer {}
@@ -159,13 +157,11 @@ impl LiveSplit {
         run.metadata_mut().set_speedrun_com_variable("New Game Glitch", "Normal");
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
-        let digits_format = LiveSplitDigitsFormat::SingleDigitSeconds;
-        let accuracy = LiveSplitAccuracy::Hundredths;
         let time = LiveSplitTime {
-            time: Time::with_digits_format(digits_format),
-            fraction: Fraction::with_accuracy(accuracy),
+            time: Time::with_digits_format(LiveSplitDigitsFormat::SingleDigitSeconds),
+            fraction: Fraction::with_accuracy(LiveSplitAccuracy::Hundredths),
         };
-        LiveSplit { timer, layout, digits_format, accuracy, time }
+        LiveSplit { timer, layout, time }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -297,28 +293,16 @@ impl Layout {
 }
 impl LiveSplitTime {
     pub fn get_digits_format() -> LiveSplitDigitsFormat {
-        LIVESPLIT_STATE.lock().unwrap().digits_format
+        LIVESPLIT_STATE.lock().unwrap().time.time.get_digits_format()
     }
     pub fn set_digits_format(digits_format: LiveSplitDigitsFormat) {
-        let mut livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        let time = LiveSplitTime {
-            time: Time::with_digits_format(digits_format),
-            fraction: Fraction::with_accuracy(livesplit_state.accuracy),
-        };
-        livesplit_state.digits_format = digits_format;
-        livesplit_state.time = time;
+        LIVESPLIT_STATE.lock().unwrap().time.time.set_digits_format(digits_format);
     }
     pub fn get_accuracy() -> LiveSplitAccuracy {
-        LIVESPLIT_STATE.lock().unwrap().accuracy
+        LIVESPLIT_STATE.lock().unwrap().time.fraction.get_accuracy()
     }
     pub fn set_accuracy(accuracy: LiveSplitAccuracy) {
-        let mut livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        let time = LiveSplitTime {
-            time: Time::with_digits_format(livesplit_state.digits_format),
-            fraction: Fraction::with_accuracy(accuracy),
-        };
-        livesplit_state.accuracy = accuracy;
-        livesplit_state.time = time;
+        LIVESPLIT_STATE.lock().unwrap().time.fraction.set_accuracy(accuracy);
     }
 }
 impl TotalPlaytime {
