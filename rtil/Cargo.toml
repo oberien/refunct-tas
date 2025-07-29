@@ -52,4 +52,4 @@ debug-assertions = true
 panic = 'abort'
 
 [patch.crates-io]
-livesplit-core = { git = "https://github.com/LukeSaward1/livesplit-core.git", rev = "aaecd2641f6f20c1fc7107ec151c793ec68117df" }
+livesplit-core = { git = "https://github.com/LukeSaward1/livesplit-core.git", rev = "0da4378743b810024cf2dedf6f57abff049b4c99" }
