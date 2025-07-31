@@ -6,7 +6,7 @@ use std::sync::{LazyLock, Mutex};
 use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
 use livesplit_core::component::{CurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
-use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::{Fraction, Time, TimeWithFraction}};
+use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::TimeWithFraction};
 use super::rebo_init::Color;
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
@@ -50,7 +50,7 @@ impl From<DigitsFormat> for LiveSplitDigitsFormat {
             DigitsFormat::SingleDigitHours => LiveSplitDigitsFormat::SingleDigitHours,
             DigitsFormat::DoubleDigitHours => LiveSplitDigitsFormat::DoubleDigitHours,
         };
-        digits.into()
+        digits
     }
 }
 impl From<LiveSplitDigitsFormat> for DigitsFormat {
@@ -63,7 +63,7 @@ impl From<LiveSplitDigitsFormat> for DigitsFormat {
             LiveSplitDigitsFormat::SingleDigitHours => DigitsFormat::SingleDigitHours,
             LiveSplitDigitsFormat::DoubleDigitHours => DigitsFormat::DoubleDigitHours,
         };
-        digits.into()
+        digits
     }
 }
 impl From<Accuracy> for LiveSplitAccuracy {
@@ -74,7 +74,7 @@ impl From<Accuracy> for LiveSplitAccuracy {
             Accuracy::Hundredths => LiveSplitAccuracy::Hundredths,
             Accuracy::Milliseconds => LiveSplitAccuracy::Milliseconds,
         };
-        accuracy.into()
+        accuracy
     }
 }
 impl From<LiveSplitAccuracy> for Accuracy {
@@ -85,7 +85,7 @@ impl From<LiveSplitAccuracy> for Accuracy {
             LiveSplitAccuracy::Hundredths => Accuracy::Hundredths,
             LiveSplitAccuracy::Milliseconds => Accuracy::Milliseconds,
         };
-        accuracy.into()
+        accuracy
     }
 }
 
@@ -128,10 +128,7 @@ impl LiveSplit {
         run.metadata_mut().set_speedrun_com_variable("New Game Glitch", "Normal");
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
-        let time = TimeWithFraction {
-            time: Time::with_digits_format(LiveSplitDigitsFormat::SingleDigitSeconds),
-            fraction: Fraction::with_accuracy(LiveSplitAccuracy::Hundredths),
-        };
+        let time = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
         LiveSplit { timer, layout, time }
     }
     fn splits_path() -> PathBuf {
@@ -166,13 +163,13 @@ impl Timer {
         LIVESPLIT_STATE.lock().unwrap().timer.set_game_time(TimeSpan::from_seconds(time));
     }
     pub fn digits_format() -> LiveSplitDigitsFormat {
-        LIVESPLIT_STATE.lock().unwrap().time.time.get_digits_format()
+        LIVESPLIT_STATE.lock().unwrap().time.time.digits_format()
     }
     pub fn set_digits_format(digits_format: LiveSplitDigitsFormat) {
         LIVESPLIT_STATE.lock().unwrap().time.time.set_digits_format(digits_format);
     }
     pub fn accuracy() -> LiveSplitAccuracy {
-        LIVESPLIT_STATE.lock().unwrap().time.fraction.get_accuracy()
+        LIVESPLIT_STATE.lock().unwrap().time.fraction.accuracy()
     }
     pub fn set_accuracy(accuracy: LiveSplitAccuracy) {
         LIVESPLIT_STATE.lock().unwrap().time.fraction.set_accuracy(accuracy);

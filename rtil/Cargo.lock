@@ -1491,7 +1491,7 @@ checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 [[package]]
 name = "livesplit-core"
 version = "0.13.0"
-source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=0da4378743b810024cf2dedf6f57abff049b4c99#0da4378743b810024cf2dedf6f57abff049b4c99"
+source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=ce82fe622a64e8094cd0fcc42c9d33aa6e84204e#ce82fe622a64e8094cd0fcc42c9d33aa6e84204e"
 dependencies = [
  "base64-simd",
  "bytemuck",
@@ -1523,7 +1523,7 @@ dependencies = [
 [[package]]
 name = "livesplit-hotkey"
 version = "0.8.0"
-source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=0da4378743b810024cf2dedf6f57abff049b4c99#0da4378743b810024cf2dedf6f57abff049b4c99"
+source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=ce82fe622a64e8094cd0fcc42c9d33aa6e84204e#ce82fe622a64e8094cd0fcc42c9d33aa6e84204e"
 dependencies = [
  "bitflags 2.9.1",
  "cfg-if 1.0.1",
@@ -1540,7 +1540,7 @@ dependencies = [
 [[package]]
 name = "livesplit-title-abbreviations"
 version = "0.3.0"
-source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=0da4378743b810024cf2dedf6f57abff049b4c99#0da4378743b810024cf2dedf6f57abff049b4c99"
+source = "git+https://github.com/LukeSaward1/livesplit-core.git?rev=ce82fe622a64e8094cd0fcc42c9d33aa6e84204e#ce82fe622a64e8094cd0fcc42c9d33aa6e84204e"
 
 [[package]]
 name = "lock_api"
