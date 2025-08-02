@@ -1,6 +1,6 @@
 use std::arch::{global_asm, naked_asm};
 use std::slice;
-use iced_x86::{Decoder, DecoderOptions, FlowControl, Formatter, Instruction, NasmFormatter, OpKind, Register};
+use iced_x86::{BlockEncoder, BlockEncoderOptions, Decoder, DecoderOptions, FlowControl, Formatter, Instruction, InstructionBlock, NasmFormatter, OpKind, Register};
 use memmap2::{MmapMut, MmapOptions};
 
 #[cfg(target_pointer_width = "64")]
@@ -167,7 +167,7 @@ struct Hook {
 global_asm!(
     ".global interceptor",
     "interceptor:",
-    "push eax",
+    "xor eax, eax",
     ".global end_interceptor",
     "end_interceptor:",
     "ret",
@@ -236,15 +236,14 @@ fn main() {
 
 
     println!("fn-addr: {:#x?}", test_function as usize);
-    println!("{}: {push:#x?}", push.nasm());
-    println!("{}: {mov:#x?}", mov.nasm());
+    push.print();
+    mov.print();
     mov.set_memory_displ_size(DISPL_SIZE);
-    println!("{}: {mov:#x?}", mov.nasm());
+    mov.print();
     mov.set_memory_base(Register::None);
-    println!("{}: {mov:#x?}", mov.nasm());
-    println!("{}: {mov:#x?}", mov.nasm());
+    mov.print();
 
-    println!("{}", unsafe { MyDecoder::new(thiscall_function as usize) }.stack_argument_size());
+    // println!("{}", unsafe { MyDecoder::new(thiscall_function as usize) }.stack_argument_size());
     println!("{}", unsafe { MyDecoder::new(print as usize) }.stack_argument_size());
 
     // Instruction::with1(mov.code(), MemoryOperand::new(
@@ -299,6 +298,8 @@ extern "C" fn test_function() {
 
 trait InstructionFormat {
     fn nasm(&self) -> String;
+    fn bytes(&self) -> String;
+    fn print(&self);
 }
 impl InstructionFormat for Instruction {
     fn nasm(&self) -> String {
@@ -306,5 +307,25 @@ impl InstructionFormat for Instruction {
         let mut formatter = NasmFormatter::new();
         formatter.format(self, &mut s);
         s
+    }
+
+    fn bytes(&self) -> String {
+        let instructions = [self.clone()];
+        let block = InstructionBlock::new(&instructions, self.ip());
+        let mut s = String::new();
+        match BlockEncoder::encode(BITNESS, block, BlockEncoderOptions::NONE) {
+            Ok(result) => {
+                for byte in result.code_buffer {
+                    s.push_str(&format!("{byte:02x} "));
+                }
+                s.pop();
+            }
+            Err(e) => s = format!("invalid opcode: {e}"),
+        }
+        s
+    }
+
+    fn print(&self) {
+        println!("{:<36}    {}: {:#?}", self.bytes(), self.nasm(), self);
     }
 }
