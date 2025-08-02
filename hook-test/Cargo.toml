@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-iced-x86 = "1.21.0"
+iced-x86 = { version = "1.21.0", features = ["code_asm"] }
 region = "3.0.2"
 memmap2 = "0.9.7"

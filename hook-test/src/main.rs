@@ -1,18 +1,13 @@
-use std::arch::{global_asm, naked_asm};
-use std::slice;
-use iced_x86::{BlockEncoder, BlockEncoderOptions, Decoder, DecoderOptions, FlowControl, Formatter, Instruction, InstructionBlock, NasmFormatter, OpKind, Register};
-use memmap2::{MmapMut, MmapOptions};
+use std::arch::naked_asm;
+use iced_x86::{BlockEncoder, BlockEncoderOptions, Formatter, IcedError, Instruction, InstructionBlock, NasmFormatter, Register};
+use crate::function_decoder::FunctionDecoder;
+use crate::hook_memory_page::HookMemoryPageBuilder;
+use crate::isa_abi::{IsaAbi, X86_64_SystemV};
 
-#[cfg(target_pointer_width = "64")]
-const BITNESS: u32 = 64;
-#[cfg(target_pointer_width = "32")]
-const BITNESS: u32 = 32;
-
-const DISPL_SIZE: u32 = BITNESS / 8;
-#[cfg(target_pointer_width = "64")]
-const JMP_INTERCEPTOR_BYTE_LEN: usize = 12;
-#[cfg(target_pointer_width = "32")]
-const JMP_INTERCEPTOR_BYTE_LEN: usize = 7;
+mod function_decoder;
+mod trampoline;
+mod isa_abi;
+mod hook_memory_page;
 
 // +------------+
 // | caller of  |    +-------------------+
@@ -88,67 +83,9 @@ const JMP_INTERCEPTOR_BYTE_LEN: usize = 7;
 // 27: 48 b8 0e 00 00 00 00    movabs rax,0xe
 // 2e: 00 00 00
 // 31: ff e0                   jmp    rax
-//
-//
 
-
-#[derive(Clone)]
-struct MyDecoder {
-    addr: usize,
-    read: usize,
-}
-impl MyDecoder {
-    /// # Safety
-    /// * `addr` must point to a valid address
-    /// * `addr` must live at least as long as this struct
-    /// * `addr` must have at least as many bytes after it as needed for all
-    ///    calls to `decode`, i.e., the memory region can't end prematurely
-    pub unsafe fn new(addr: usize) -> Self {
-        Self {
-            addr,
-            read: 0,
-        }
-    }
-
-    unsafe fn decoder(&self) -> Decoder<'static> {
-        // non-contrived x86_64 instructions are max 15 bytes
-        let slice = unsafe { slice::from_raw_parts(self.addr as *const u8, 15) };
-        Decoder::with_ip(BITNESS, slice, self.addr as u64, DecoderOptions::NONE)
-    }
-
-    pub fn decode(&mut self) -> Instruction {
-        let instruction = unsafe { self.decoder() }.decode();
-        if instruction.is_invalid() {
-            panic!("decoded invalid instruction");
-        }
-        self.addr += instruction.len();
-        self.read += instruction.len();
-        instruction
-    }
-
-    /// Number of bytes of arguments passed via the stack
-    /// 
-    /// Gotten by decoding until the first `ret` instruction and taking its immediate
-    /// if it exists, e.g. `retn 16`, or `0` if there isn't any, e.g. `ret`.
-    /// Resets the Decoder afterwards.
-    pub fn stack_argument_size(&self) -> u16 {
-        let mut decoder = self.clone();
-        loop {
-            let instruction = decoder.decode();
-            if instruction.flow_control() != FlowControl::Return {
-                continue;
-            }
-            if instruction.op_count() == 0 {
-                return 0;
-            }
-            assert_eq!(instruction.op_count(), 1);
-            assert_eq!(instruction.op0_kind(), OpKind::Immediate16);
-            return instruction.immediate16();
-        }
-    }
-}
-
-struct Hook {
+#[repr(C)]
+struct Hook<IA: IsaAbi> {
     /// address of the original function that we hooked
     orig_addr: usize,
     /// address of the trampoline, which we can call to call the original function
@@ -157,71 +94,80 @@ struct Hook {
     /// calls the hook
     interceptor_addr: usize,
     /// address of the hook function that should be called instead of the original function
-    hook_addr: usize,
+    hook_fn_addr: usize,
     /// original bytes of the original function that are overwritten when enabling the hook
-    orig_bytes: [u8; JMP_INTERCEPTOR_BYTE_LEN],
+    orig_bytes: IA::JmpInterceptorBytesArray,
     /// argument-bytes passed to the original function via the stack
     orig_stack_arg_size: u16,
 }
-
-global_asm!(
-    ".global interceptor",
-    "interceptor:",
-    "xor eax, eax",
-    ".global end_interceptor",
-    "end_interceptor:",
-    "ret",
-);
-unsafe extern "C" {
-    fn interceptor();
-    fn end_interceptor();
+impl<IA: IsaAbi> Default for Hook<IA> {
+    fn default() -> Self {
+        Self {
+            orig_addr: Default::default(),
+            trampoline_addr: Default::default(),
+            interceptor_addr: Default::default(),
+            hook_fn_addr: Default::default(),
+            orig_bytes: Default::default(),
+            orig_stack_arg_size: Default::default(),
+        }
+    }
 }
 
-fn hook_function(orig_addr: usize, hook: for<'a> fn(&'static Hook, ArgsRef<'a>)) -> &'static Hook {
-    // The jump to the interceptor overwrites up to 12 bytes.
-    // The overwritten code can have 11 bytes instructions, then a 15-byte instruction.
-    // Then follows the jump to the next instruction of the original function, another 12 bytes.
-    // -> the max size of the trampoline is 12 + 11 + 15 + 12 = 50 bytes
-    let trampoline_size = 64;
-    let interceptor_size = end_interceptor as usize - interceptor as usize;
-    let mut page = MmapMut::map_anon(trampoline_size + interceptor_size).unwrap();
+impl<IA: IsaAbi> Hook<IA> {
+    pub fn enable(&self) {
+        let _jmp = IA::create_jmp_to_interceptor(self.interceptor_addr);
+        todo!()
+    }
+    pub fn disable(&self) {
+        todo!()
+    }
+}
 
-    let hook_addr = hook as usize;
-    let orig_stack_arg_size = unsafe { MyDecoder::new(orig_addr) }.stack_argument_size();
-    let trampoline_addr = create_trampoline(orig_addr, &mut page);
-    let interceptor_addr = copy_interceptor(&mut page);
-    let orig_bytes = get_orig_bytes(orig_addr);
-    let hook = Box::leak(Box::new(Hook {
+pub struct Interceptor {
+    pub instructions: Vec<Instruction>,
+}
+
+fn assemble<IA: IsaAbi>(instructions: &[Instruction], ip: u64) -> Result<Vec<u8>, IcedError> {
+    let block = InstructionBlock::new(&instructions, ip);
+    BlockEncoder::encode(IA::BITNESS, block, BlockEncoderOptions::NONE)
+        .map(|res| res.code_buffer)
+}
+
+unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a>)) -> &'static Hook<IA> {
+    let hook_fn_addr = hook_fn as usize;
+    let orig_stack_arg_size = unsafe { FunctionDecoder::<IA>::new(orig_addr) }.stack_argument_size();
+
+    let builder = HookMemoryPageBuilder::<IA>::new();
+
+    let trampoline = unsafe { trampoline::create_trampoline::<IA>(orig_addr) };
+    let builder = builder.trampoline(trampoline);
+
+    let interceptor = unsafe { IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size) };
+    let mut builder = builder.interceptor(interceptor);
+
+    let orig_bytes = get_orig_bytes::<IA>(orig_addr);
+    let hook = Hook {
         orig_addr,
-        trampoline_addr,
-        interceptor_addr,
-        hook_addr,
+        trampoline_addr: builder.trampoline_addr(),
+        interceptor_addr: builder.interceptor_addr(),
+        hook_fn_addr,
         orig_bytes,
         orig_stack_arg_size,
-    }));
-    modify_interceptor(&mut page, hook);
-    hook
+    };
+    builder.set_hook_struct(hook);
+
+    builder.finalize()
 }
 
-fn create_trampoline(orig_addr: usize, map: &mut MmapMut) -> usize {
-    todo!()
-}
-
-fn copy_interceptor(map: &mut MmapMut) -> usize {
-    todo!()
-}
-
-fn get_orig_bytes(orig_addr: usize) -> [u8; JMP_INTERCEPTOR_BYTE_LEN] {
+fn get_orig_bytes<IA: IsaAbi>(_orig_addr: usize) -> IA::JmpInterceptorBytesArray {
    todo!() 
 }
 
-fn modify_interceptor(map: &mut MmapMut, hook: &Hook) {
-    todo!()
-}
-
+#[expect(unused)]
 struct ArgsRef<'a> {
     args: &'a Args,
 }
+#[expect(unused)]
 struct ArgsBoxed {
     args: Box<Args>,
 }
@@ -230,21 +176,20 @@ struct Args {
 }
 
 fn main() {
-    let mut decoder = unsafe { MyDecoder::new(test_function as usize) };
+    let mut decoder = unsafe { FunctionDecoder::<X86_64_SystemV>::new(test_function as usize) };
     let push = decoder.decode();
     let mut mov = decoder.decode();
-
 
     println!("fn-addr: {:#x?}", test_function as usize);
     push.print();
     mov.print();
-    mov.set_memory_displ_size(DISPL_SIZE);
+    mov.set_memory_displ_size(X86_64_SystemV::DISPL_SIZE);
     mov.print();
     mov.set_memory_base(Register::None);
     mov.print();
 
-    // println!("{}", unsafe { MyDecoder::new(thiscall_function as usize) }.stack_argument_size());
-    println!("{}", unsafe { MyDecoder::new(print as usize) }.stack_argument_size());
+    // println!("{}", unsafe { FunctionDecoder::new(thiscall_function as usize) }.stack_argument_size());
+    println!("{}", unsafe { FunctionDecoder::<X86_64_SystemV>::new(print as usize) }.stack_argument_size());
 
     // Instruction::with1(mov.code(), MemoryOperand::new(
     //     Register::None,
@@ -254,6 +199,9 @@ fn main() {
     //
     // ))
     test_function();
+
+    let hook = unsafe { hook_function(test_function as usize, custom_hook::<X86_64_SystemV>) };
+    hook.enable();
 }
 
 #[cfg(target_pointer_width = "32")]
@@ -296,6 +244,10 @@ extern "C" fn test_function() {
     )
 }
 
+fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, _args: ArgsRef) {
+    hook.disable();
+}
+
 trait InstructionFormat {
     fn nasm(&self) -> String;
     fn bytes(&self) -> String;
@@ -310,19 +262,17 @@ impl InstructionFormat for Instruction {
     }
 
     fn bytes(&self) -> String {
-        let instructions = [self.clone()];
-        let block = InstructionBlock::new(&instructions, self.ip());
-        let mut s = String::new();
-        match BlockEncoder::encode(BITNESS, block, BlockEncoderOptions::NONE) {
-            Ok(result) => {
-                for byte in result.code_buffer {
+        match assemble::<X86_64_SystemV>(&[self.clone()], self.ip()) {
+            Ok(bytes) => {
+                let mut s = String::new();
+                for byte in bytes {
                     s.push_str(&format!("{byte:02x} "));
                 }
                 s.pop();
+                s
             }
-            Err(e) => s = format!("invalid opcode: {e}"),
+            Err(e) => format!("invalid opcode: {e}"),
         }
-        s
     }
 
     fn print(&self) {
