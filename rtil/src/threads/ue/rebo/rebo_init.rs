@@ -22,7 +22,7 @@ use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEn
 use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
-use crate::threads::ue::rebo::livesplit::{livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color};
+use crate::threads::ue::rebo::livesplit::{livesplit_get_total_playtime_accuracy, livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_total_playtime_digits_format, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_get_total_playtime, livesplit_set_total_playtime_accuracy, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_total_playtime_digits_format, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color, Accuracy, DigitsFormat};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -176,6 +176,11 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(livesplit_set_paused_color)
         .add_function(livesplit_get_text_color)
         .add_function(livesplit_set_text_color)
+        .add_function(livesplit_get_total_playtime)
+        .add_function(livesplit_get_total_playtime_digits_format)
+        .add_function(livesplit_set_total_playtime_digits_format)
+        .add_function(livesplit_get_total_playtime_accuracy)
+        .add_function(livesplit_set_total_playtime_accuracy)
         .add_function(set_game_rendering_enabled)
         .add_external_type(Location)
         .add_external_type(Rotation)
@@ -205,6 +210,8 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(NewGameGlitch)
         .add_external_type(SplitsSaveError)
         .add_external_type(SplitsLoadError)
+        .add_external_type(DigitsFormat)
+        .add_external_type(Accuracy)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
