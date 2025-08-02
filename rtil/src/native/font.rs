@@ -4,6 +4,7 @@ use crate::native::uworld::ENGINE_INDEX;
 use crate::native::{ArrayWrapper, StructValueWrapper, UeScope, UFONTBULKDATA_INITIALIZE};
 use std::sync::atomic::Ordering;
 use std::mem;
+use crate::native;
 
 pub fn init() {
     UFont::set_font(UFont::get_font("LargeFont"));
@@ -22,6 +23,7 @@ struct UFontBulkData {
 
 impl UFont {
     pub fn get_font(name: &str) -> UFont {
+        native::imgui::main();
         UeScope::with(|scope| {
             let engine = scope.get(ENGINE_INDEX.get().unwrap());
             let font = engine.get_field(name).unwrap::<ObjectWrapper>();
