@@ -1418,7 +1418,7 @@ struct Practice {
     button: i32,
     location: Location,
     rotation: Rotation,
-    velocity: Velocity
+    velocity: Velocity,
 }
 
 #[rebo::function("Tas::save_practice_state")]

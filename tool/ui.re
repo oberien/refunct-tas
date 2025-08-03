@@ -69,7 +69,7 @@ struct FloatInput {
 struct IntInput {
     label: Text,
     input: string,
-    error: string,
+    error: Text,
     onclick: fn(int),
     onchange: fn(int),
 }
@@ -392,36 +392,39 @@ impl FloatInput {
 impl IntInput {
     fn onclick(self) {
         let f = self.onclick;
-        f(self.input);
+        if self.input.len_utf8() > 0 {
+            f(self.input.parse_int().unwrap());
+        }
     }
     fn onkey(mut self, key: KeyCode, chr: Option<string>) {
         let mut input = self.input;
+        let mut character = "";
         if key.to_small() == KEY_BACKSPACE.to_small() {
-            input = self.input.slice(0, -1);
+            self.input = self.input.slice(0, -1);
         } else if key.to_small() == KEY_V.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
-            input = f"{self.input}{Tas::get_clipboard()}";
+            self.input = f"{self.input}{Tas::get_clipboard()}";
         } else if key.to_small() == KEY_D.to_small() && (LCTRL_PRESSED || RCTRL_PRESSED) {
-            input = "";
+            self.input = "";
         } else {
             match chr {
-                Option::Some(s) => input = f"{self.input}{s}",
+                Option::Some(s) => {
+                    character = s;
+                },
                 Option::None => (),
             }
         }
-        let mut chr = match input.is_digit() {
-            true => {
-                self.error = "";
-                input
+        match character.parse_int() {
+            Result::Ok(chr) => {
+                self.input = f"{self.input}{character}";
+                let onchange = self.onchange;
+                onchange(self.input.parse_int().unwrap());
             },
-            false => self.error = " (ERROR: invalid character)",
-        };
-        self.input = f"{input}{chr}";
-        let onchange = self.onchange;
-        onchange(self.input);
+            Result::Err(err) => (),
+        }
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
-            text: f"    {self.label.text}{self.error}: {self.input}",
+            text: f"    {self.label.text}{self.error.text}: {self.input}",
             color: color,
             x: 0.,
             y: y,
