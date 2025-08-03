@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::{mem, ptr};
 use std::ops::Deref;
 use memmap2::MmapMut;
-use crate::{assemble, Hook, Interceptor};
+use crate::{assemble, CallTrampoline, Hook, Interceptor};
 use crate::isa_abi::IsaAbi;
 use crate::trampoline::Trampoline;
 
@@ -11,7 +11,6 @@ pub struct HookMemoryPageBuilder<IA: IsaAbi> {
     map: MmapMut,
     _marker: PhantomData<IA>,
 }
-
 impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
     pub fn new() -> Self {
         Self {
@@ -48,6 +47,8 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
     }
 }
 
+// --------------------------------
+
 #[must_use]
 pub struct HookMemoryPageBuilderWithTrampoline<IA: IsaAbi> {
     builder: HookMemoryPageBuilder<IA>,
@@ -60,14 +61,13 @@ impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithTrampoline<IA> {
         &self.builder
     }
 }
-
 impl<IA: IsaAbi> HookMemoryPageBuilderWithTrampoline<IA> {
-    pub fn interceptor(mut self, interceptor: Interceptor) -> HookMemoryPageBuilderFinished<IA> {
+    pub fn interceptor(mut self, interceptor: Interceptor) -> HookMemoryPageBuilderWithInterceptor<IA> {
         let addr = self.interceptor_addr();
         let offset = self.interceptor_offset();
         let code = assemble::<IA>(&interceptor.instructions, addr as u64).unwrap();
         self.builder.map[offset..][..code.len()].copy_from_slice(&code);
-        HookMemoryPageBuilderFinished {
+        HookMemoryPageBuilderWithInterceptor {
             builder: self,
             interceptor_len: code.len(),
         }
@@ -85,13 +85,53 @@ impl<IA: IsaAbi> HookMemoryPageBuilderWithTrampoline<IA> {
     }
 }
 
+// --------------------------------
+
 #[must_use]
-pub struct HookMemoryPageBuilderFinished<IA: IsaAbi> {
+pub struct HookMemoryPageBuilderWithInterceptor<IA: IsaAbi> {
     builder: HookMemoryPageBuilderWithTrampoline<IA>,
     interceptor_len: usize,
 }
-impl<IA: IsaAbi> Deref for HookMemoryPageBuilderFinished<IA> {
+impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithInterceptor<IA> {
     type Target = HookMemoryPageBuilderWithTrampoline<IA>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.builder
+    }
+}
+impl<IA: IsaAbi> HookMemoryPageBuilderWithInterceptor<IA> {
+    pub fn call_trampoline(mut self, call_trampoline: CallTrampoline) -> HookMemoryPageBuilderFinished<IA> {
+        let addr = self.call_trampoline_addr();
+        let offset = self.call_trampoline_offset();
+        let code = assemble::<IA>(&call_trampoline.instructions, addr as u64).unwrap();
+        self.builder.builder.map[offset..][..code.len()].copy_from_slice(&code);
+        HookMemoryPageBuilderFinished {
+            builder: self,
+            call_trampoline_len: code.len(),
+        }
+    }
+
+    #[expect(unused)]
+    pub fn interceptor_len(&self) -> usize {
+        self.interceptor_len
+    }
+    pub fn call_trampoline_offset(&self) -> usize {
+        ((self.interceptor_offset() + self.interceptor_len + 15) / 16) * 16
+    }
+    pub fn call_trampoline_addr(&self) -> usize {
+        self.page_addr() + self.call_trampoline_offset()
+    }
+}
+
+// --------------------------------
+
+#[must_use]
+pub struct HookMemoryPageBuilderFinished<IA: IsaAbi> {
+    builder: HookMemoryPageBuilderWithInterceptor<IA>,
+    call_trampoline_len: usize,
+}
+impl<IA: IsaAbi> Deref for HookMemoryPageBuilderFinished<IA> {
+    type Target = HookMemoryPageBuilderWithInterceptor<IA>;
 
     fn deref(&self) -> &Self::Target {
         &self.builder
@@ -100,12 +140,12 @@ impl<IA: IsaAbi> Deref for HookMemoryPageBuilderFinished<IA> {
 
 impl<IA: IsaAbi> HookMemoryPageBuilderFinished<IA> {
     #[expect(unused)]
-    pub fn interceptor_len(&self) -> usize {
-        self.interceptor_len
+    pub fn call_trampoline_len(&self) -> usize {
+        self.call_trampoline_len
     }
     pub fn finalize(mut self, hook_struct: Hook<IA>) -> &'static Hook<IA> {
         unsafe {
-            let ptr = self.builder.builder.map.as_mut_ptr();
+            let ptr = self.builder.builder.builder.map.as_mut_ptr();
             // make sure the map is Hook-aligned
             assert_eq!(ptr.addr() % align_of::<Hook<IA>>(), 0);
             let hook_struct_ptr = ptr as *mut Hook<IA>;
@@ -115,7 +155,7 @@ impl<IA: IsaAbi> HookMemoryPageBuilderFinished<IA> {
             // * `dst` is currently uninitialized and thus doesn't need to be dropped
             ptr::write(hook_struct_ptr, hook_struct)
         }
-        let map = self.builder.builder.map.make_exec().unwrap();
+        let map = self.builder.builder.builder.map.make_exec().unwrap();
         unsafe {
             let ptr = map.as_ptr() as *const Hook<IA>;
             mem::forget(map);
