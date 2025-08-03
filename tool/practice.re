@@ -6,6 +6,11 @@ struct PracticeState {
     mode: PracticeMode
 }
 
+enum PracticeMode {
+    Practicing,
+    Editing
+}
+
 fn create_practice_menu() -> Ui {
     let mut buttons = List::of(
         UiElement::Button(UiButton {
@@ -74,7 +79,7 @@ fn create_custom_practice_menu() -> Ui {
                         button: level_state.buttons,
                         location: Tas::get_location(),
                         rotation: Tas::get_rotation(),
-                        velocity: Tas::get_velocity()
+                        velocity: Tas::get_velocity(),
                     });
                     leave_ui();
                     leave_ui();
@@ -418,11 +423,6 @@ fn collect_cubes_until(cubes: int) {
         }
         level_index += 1;
     }
-}
-
-enum PracticeMode {
-    Practicing,
-    Editing
 }
 
 static PRACTICE_COMPONENT = Component {

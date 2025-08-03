@@ -69,8 +69,9 @@ struct FloatInput {
 struct IntInput {
     label: Text,
     input: string,
-    onclick: fn(string),
-    onchange: fn(string),
+    error: string,
+    onclick: fn(int),
+    onchange: fn(int),
 }
 struct Text {
     text: string,
@@ -407,19 +408,20 @@ impl IntInput {
                 Option::None => (),
             }
         }
-        self.input = "";
-        let mut i = 0;
-        let mut chr = match input.parse_int() {
-            Result::Ok(chr) => chr,
-            Result::Err(e) => return,
+        let mut chr = match input.is_digit() {
+            true => {
+                self.error = "";
+                input
+            },
+            false => self.error = " (ERROR: invalid character)",
         };
-        self.input = f"{self.input}{chr}";
+        self.input = f"{input}{chr}";
         let onchange = self.onchange;
         onchange(self.input);
     }
     fn draw(self, y: float, color: Color) {
         Tas::draw_text(DrawText {
-            text: f"    {self.label.text}: {self.input}",
+            text: f"    {self.label.text}{self.error}: {self.input}",
             color: color,
             x: 0.,
             y: y,
