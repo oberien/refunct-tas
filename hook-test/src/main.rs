@@ -101,24 +101,12 @@ struct Hook<IA: IsaAbi> {
     /// address of the function we jump to from the original function, that
     /// calls the hook
     interceptor_addr: usize,
-    /// address of the hook function that should be called instead of the original function
-    hook_fn_addr: usize,
+    /// function pointer of the hook function that should be called instead of the original function
+    hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a>),
     /// original bytes of the original function that are overwritten when enabling the hook
     orig_bytes: IA::JmpInterceptorBytesArray,
     /// argument-bytes passed to the original function via the stack
     orig_stack_arg_size: u16,
-}
-impl<IA: IsaAbi> Default for Hook<IA> {
-    fn default() -> Self {
-        Self {
-            orig_addr: Default::default(),
-            trampoline_addr: Default::default(),
-            interceptor_addr: Default::default(),
-            hook_fn_addr: Default::default(),
-            orig_bytes: Default::default(),
-            orig_stack_arg_size: Default::default(),
-        }
-    }
 }
 
 impl<IA: IsaAbi> Hook<IA> {
@@ -151,7 +139,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
     let builder = builder.trampoline(trampoline);
 
     let interceptor = unsafe { IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size) };
-    let mut builder = builder.interceptor(interceptor);
+    let builder = builder.interceptor(interceptor);
 
     let orig_bytes = get_orig_bytes::<IA>(orig_addr);
     let hook = Hook {
@@ -162,9 +150,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
         orig_bytes,
         orig_stack_arg_size,
     };
-    builder.set_hook_struct(hook);
-
-    builder.finalize()
+    builder.finalize(hook)
 }
 
 fn get_orig_bytes<IA: IsaAbi>(_orig_addr: usize) -> IA::JmpInterceptorBytesArray {

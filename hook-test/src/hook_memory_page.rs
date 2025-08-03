@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::{mem, ptr};
+use std::ops::Deref;
 use memmap2::MmapMut;
 use crate::{assemble, Hook, Interceptor};
 use crate::isa_abi::IsaAbi;
@@ -13,21 +14,8 @@ pub struct HookMemoryPageBuilder<IA: IsaAbi> {
 
 impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
     pub fn new() -> Self {
-        let mut map = MmapMut::map_anon(8192).unwrap();
-
-        let hook_struct = Hook::default();
-        unsafe {
-            // make sure the map is Hook-aligned
-            assert_eq!(map.as_ptr() as usize % align_of::<Hook<IA>>(), 0);
-            let hook_struct_ptr = map.as_mut_ptr() as *mut Hook<IA>;
-            // SAFETY:
-            // * `dst` is valid for writes: we have MmapMut
-            // * `dst` is properly aligned: see above alignment check
-            *hook_struct_ptr = hook_struct;
-        }
-
         Self {
-            map,
+            map: MmapMut::map_anon(8192).unwrap(),
             _marker: PhantomData,
         }
     }
@@ -42,15 +30,8 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
         }
     }
 
-    pub fn set_hook_struct(&mut self, hook_struct: Hook<IA>) {
-        unsafe {
-            let ptr = self.map.as_mut_ptr() as *mut Hook<IA>;
-            // SAFETY: the struct was initialized properly at that address in Self::new
-            *ptr = hook_struct
-        }
-    }
     pub fn page_addr(&self) -> usize {
-        self.map.as_ptr() as usize
+        self.map.as_ptr().addr()
     }
     pub fn hook_struct_offset(&self) -> usize {
         0
@@ -77,11 +58,6 @@ impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithTrampoline<IA> {
 
     fn deref(&self) -> &Self::Target {
         &self.builder
-    }
-}
-impl<IA: IsaAbi> DerefMut for HookMemoryPageBuilderWithTrampoline<IA> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.builder
     }
 }
 
@@ -120,25 +96,32 @@ impl<IA: IsaAbi> Deref for HookMemoryPageBuilderFinished<IA> {
         &self.builder
     }
 }
-impl<IA: IsaAbi> DerefMut for HookMemoryPageBuilderFinished<IA> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.builder
-    }
-}
 
 impl<IA: IsaAbi> HookMemoryPageBuilderFinished<IA> {
     #[expect(unused)]
     pub fn interceptor_len(&self) -> usize {
         self.interceptor_len
     }
-    pub fn finalize(self) -> &'static Hook<IA> {
+    pub fn finalize(mut self, hook_struct: Hook<IA>) -> &'static Hook<IA> {
+        unsafe {
+            let ptr = self.builder.builder.map.as_mut_ptr();
+            // make sure the map is Hook-aligned
+            assert_eq!(ptr.addr() % align_of::<Hook<IA>>(), 0);
+            let hook_struct_ptr = ptr as *mut Hook<IA>;
+            // SAFETY:
+            // * `dst` is valid for writes: we have MmapMut
+            // * `dst` is properly aligned: see previous alignment check
+            // * `dst` is currently uninitialized and thus doesn't need to be dropped
+            ptr::write(hook_struct_ptr, hook_struct)
+        }
         let map = self.builder.builder.map.make_exec().unwrap();
         unsafe {
             let ptr = map.as_ptr() as *const Hook<IA>;
+            mem::forget(map);
             // SAFETY:
-            // * the struct was initialized properly at that address in HookMemoryPageBuilder::new
-            // * we consume all references to the Mmap / MmapMut, leaking it and making the
-            //   memory unmodifiable and static
+            // * the struct was just initialized properly at that address
+            // * we leak the Mmap, making the memory static
+            // * we converted the MmapMut into an Mmap, making the memory unmodifiable
             &*ptr
         }
     }
