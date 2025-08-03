@@ -141,6 +141,8 @@ fn create_edit_practice_state_ui(mut practice: Practice) -> Ui {
     static mut PRACTICE_VELX_LABEL = Text { text: "VelX" };
     static mut PRACTICE_VELY_LABEL = Text { text: "VelY" };
     static mut PRACTICE_VELZ_LABEL = Text { text: "VelZ" };
+    static mut PRACTICE_CLUSTER_ERROR = Text { text: "" };
+    static mut PRACTICE_BUTTON_ERROR = Text { text: "" };
     Ui::new(f"Practice - Edit {practice.name}", List::of(
         UiElement::Button(UiButton {
             label: Text { text: "Set to player + game stats" },
@@ -197,42 +199,36 @@ fn create_edit_practice_state_ui(mut practice: Practice) -> Ui {
         UiElement::IntInput(IntInput {
             label: PRACTICE_CLUSTER_LABEL,
             input: f"{practice.cluster}",
-            onclick: fn(input: string) {
+            error: PRACTICE_CLUSTER_ERROR,
+            onclick: fn(input: int) {
                 CURRENT_PRACTICE = practice;
                 Tas::save_practice_state(practice.name, practice);
             },
-            onchange: fn(input: string) {
+            onchange: fn(input: int) {
                 PRACTICE_CLUSTER_LABEL.text = "Cluster";
-                match input.parse_int() {
-                    Result::Ok(num) => {
-                        if num > 30 {
-                            PRACTICE_CLUSTER_LABEL.text = f"Cluster (invalid value)";
-                        } else {
-                            practice.cluster = num;
-                        }
-                    },
-                    Result::Err(e) => PRACTICE_CLUSTER_LABEL.text = f"Cluster (invalid value)",
+                if input > 30 {
+                    PRACTICE_CLUSTER_ERROR.text = f" (ERROR: invalid value)";
+                } else {
+                    PRACTICE_CLUSTER_ERROR.text = f"";
+                    practice.cluster = input;
                 }
             },
         }),
         UiElement::IntInput(IntInput {
             label: PRACTICE_BUTTON_LABEL,
             input: f"{practice.button}",
-            onclick: fn(input: string) {
+            error: PRACTICE_BUTTON_ERROR,
+            onclick: fn(input: int) {
                 CURRENT_PRACTICE = practice;
                 Tas::save_practice_state(practice.name, practice);
             },
-            onchange: fn(input: string) {
+            onchange: fn(input: int) {
                 PRACTICE_BUTTON_LABEL.text = "Button";
-                match input.parse_int() {
-                    Result::Ok(num) => {
-                        if num > 30 {
-                            PRACTICE_BUTTON_LABEL.text = f"Button (invalid value)";
-                        } else {
-                            practice.button = num;
-                        }
-                    },
-                    Result::Err(e) => PRACTICE_BUTTON_LABEL.text = f"Button (invalid value)",
+                if input > 36 {
+                    PRACTICE_BUTTON_ERROR.text = f" (ERROR: invalid value)";
+                } else {
+                    PRACTICE_BUTTON_ERROR.text = f"";
+                    practice.button = input;
                 }
             },
         }),
