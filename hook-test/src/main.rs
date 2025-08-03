@@ -16,33 +16,42 @@ mod hook_memory_page;
 // +------------+      • (0)
 //   ^     | (1)       •  first few instructions get overwritten
 //   |     | call      •  now immediately jumps to our interceptor
-//   |     '----.      •  it becomes the overwritten function     .-------------.
-//   |          |      •                                          |             |
-//   |          v      v                                          |             v
-//   |     +-------------+  (2) immediately jump to interceptor   |      +-------------+
-//   |     | overwritten |----------------------------------------'      | interceptor |
-//   |     |  function   |<-.                                            +-------------+
-//   |     +-------------+  |                                               (3) | store registers & arguments
-//   |            | (6)     |                                                   | create the Args-struct
-//   |            |         |                                                   | jump to the hook
-//   |            |         |            can call the trampoline in order       v
-//   |            |         |             to call the original function  (4) +------+
-//   |            |         |        .---------------------------------------| hook |
-//   |            |         |        |                                    .->+------+
-//   |            |         |        v                                    |     | (7)
-//   |            |         |  +------------+ contains the overwritten    |     |
-//   |            |         |  | trampoline | instructions from the       |     |
-//   |            |         |  +------------+ original function           |     |
-//   |            |         |        | (5)                                |     |
-//   |            |         |        |  jump to the hooked function       |     |
-//   |            |         |        |  behind the hook-instructions      |     |
-//   |            |         '--------'                                    |     |
-//   |            |                                                       |     |
-//   |            |    return to its caller, i.e. return into the hook    |     |
-//   |            '-------------------------------------------------------'     |
-//   |                                                                          |
-//   '--------------------------------------------------------------------------'
-//             return to its caller, i.e. return to the original caller
+//   |     '----.      •  it becomes the overwritten function        .-------------.
+//   |          |      •                                             |             |
+//   |          v      v                                             |             v
+//   |     +-------------+  (2) immediately jump to interceptor      |      +-------------+
+//   |     | overwritten |-------------------------------------------'      | interceptor |
+//   |     |  function   |<-.                                               +-------------+  (10)
+//   |     +-------------+  |                                             (3) |   ^     '---------.
+//   |            | (7)     |                    store registers & arguments  |   |               |
+//   |            |         |                         create the Args-struct  |   |  return to    |
+//   |            |         |        call the abi_fixer using extern "C" ABI  |   |  interceptor  |
+//   |            |         |                                                 v   | (9)           |
+//   |            |         |                                             +-----------+           |
+//   |            |         |                                             | abi_fixer |           |
+//   |            |         |                                             +-----------+           |
+//   |            |         |                                             (4) |   ^               |
+//   |            |         |              call hook using extern "Rust" ABI  |   |               |
+//   |            |         |                                                 |   '----.          |
+//   |            |         |                                                 |        |          |
+//   |            |         |            can call the trampoline in order     v        |          |
+//   |            |         |             to call the original function  (5) +------+  |          |
+//   |            |         |         .--------------------------------------| hook |  |          |
+//   |            |         |         |                                   .->+------+  |          |
+//   |            |         |         v                                   |     | (8)  |          |
+//   |            |         |   +------------+ contains the overwritten   |     '------'          |
+//   |            |         |   | trampoline | instructions from the      |    return to          |
+//   |            |         |   +------------+ original function          |    abi_fixer          |
+//   |            |         |         | (6)                               |                       |
+//   |            |         |         |  jump to the hooked function      |                       |
+//   |            |         |         |  behind the hook-instructions     |                       |
+//   |            |         '---------'                                   |                       |
+//   |            |                                                       |                       |
+//   |            | return to its caller, i.e. return into the hook       |                       |
+//   |            '-------------------------------------------------------'                       |
+//   |                                                                                            |
+//   '--------------------------------------------------------------------------------------------'
+//                                                                  return to the original caller
 //
 //
 //
@@ -58,9 +67,8 @@ mod hook_memory_page;
 // 0:  48 b8 ef cd ab 89 67    movabs rax,0x123456789abcdef <interceptor_address>
 // 7:  45 23 01
 // a:  ff e0                   jmp    rax
-// ; nop the rest of the last instruction we overwrote
-// c:  90                      nop
-// d:  90                      nop
+// ; keep the rest of the last instruction we overwrote
+// c:  00 00
 // 00000000000000 e <end>:
 // e:  c3                      ret
 //
