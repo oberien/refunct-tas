@@ -130,7 +130,6 @@ fn assemble<IA: IsaAbi>(instructions: &[Instruction], ip: u64) -> Result<Vec<u8>
 }
 
 unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a>)) -> &'static Hook<IA> {
-    let hook_fn_addr = hook_fn as usize;
     let orig_stack_arg_size = unsafe { FunctionDecoder::<IA>::new(orig_addr) }.stack_argument_size();
 
     let builder = HookMemoryPageBuilder::<IA>::new();
@@ -138,7 +137,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
     let trampoline = unsafe { trampoline::create_trampoline::<IA>(orig_addr) };
     let builder = builder.trampoline(trampoline);
 
-    let interceptor = unsafe { IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size) };
+    let interceptor = IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size);
     let builder = builder.interceptor(interceptor);
 
     let orig_bytes = get_orig_bytes::<IA>(orig_addr);
@@ -146,7 +145,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
         orig_addr,
         trampoline_addr: builder.trampoline_addr(),
         interceptor_addr: builder.interceptor_addr(),
-        hook_fn_addr,
+        hook_fn,
         orig_bytes,
         orig_stack_arg_size,
     };
@@ -157,10 +156,11 @@ fn get_orig_bytes<IA: IsaAbi>(_orig_addr: usize) -> IA::JmpInterceptorBytesArray
    todo!() 
 }
 
-#[expect(unused)]
+#[repr(transparent)]
 struct ArgsRef<'a> {
     args: &'a Args,
 }
+#[repr(transparent)]
 #[expect(unused)]
 struct ArgsBoxed {
     args: Box<Args>,

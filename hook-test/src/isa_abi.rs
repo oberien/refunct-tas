@@ -1,21 +1,27 @@
-use std::mem::offset_of;
 use iced_x86::code_asm::{CodeAssembler, ptr, r10, r11, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
-use crate::{assemble, Interceptor, Hook};
+use crate::{assemble, Interceptor, Hook, ArgsRef};
 
-pub trait IsaAbi {
+pub unsafe trait IsaAbi: 'static {
     const BITNESS: u32;
     const DISPL_SIZE: u32 = Self::BITNESS / 8;
     const JMP_INTERCEPTOR_BYTE_LEN: usize;
-    type JmpInterceptorBytesArray: Default;
+    /// SAFETY: must be [u8; Self::JMP_INTERCEPTOR_BYTE_LEN]
+    type JmpInterceptorBytesArray;
 
+    /// SAFETY: must be correct and valid for the ISA
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray;
-    unsafe fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor;
+    /// SAFETY: must be correct and valid for the ISA & ABI
+    fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor;
+}
+
+extern "C" fn abi_fixer<IA: IsaAbi>(hook: &'static Hook<IA>, args_ref: ArgsRef<'_>) {
+    (hook.hook_fn)(hook, args_ref)
 }
 
 #[allow(non_camel_case_types)]
 pub struct X86_64_SystemV;
 
-impl IsaAbi for X86_64_SystemV {
+unsafe impl IsaAbi for X86_64_SystemV {
     const BITNESS: u32 = 64;
     const JMP_INTERCEPTOR_BYTE_LEN: usize = 12;
     type JmpInterceptorBytesArray = [u8; Self::JMP_INTERCEPTOR_BYTE_LEN];
@@ -28,7 +34,7 @@ impl IsaAbi for X86_64_SystemV {
         buffer.try_into().unwrap()
     }
 
-    unsafe fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {
+    fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {
         let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
 
         // function prologue with frame pointer
@@ -38,10 +44,11 @@ impl IsaAbi for X86_64_SystemV {
         a.push(rax).unwrap();
         // store all registers
         pushall_x86_64_system_v(&mut a);
-        // setup `Args` argument struct
-        a.mov(rdi, rsp).unwrap();
+        // setup `Hook` and `Args` arguments
+        a.mov(rdi, hook_struct_addr as u64).unwrap();
+        a.mov(rsi, rsp).unwrap();
         // call interceptor
-        a.mov(rax, ptr(hook_struct_addr + offset_of!(Hook<Self>, hook_fn_addr))).unwrap();
+        a.mov(rax, abi_fixer::<X86_64_SystemV> as u64).unwrap();
         align_stack_pre_x86_64_system_v(&mut a);
         a.call(rax).unwrap();
         align_stack_post_x86_64_system_v(&mut a);
