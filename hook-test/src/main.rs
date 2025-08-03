@@ -1,10 +1,12 @@
 use std::arch::naked_asm;
 use std::slice;
 use iced_x86::{BlockEncoder, BlockEncoderOptions, Formatter, IcedError, Instruction, InstructionBlock, NasmFormatter, Register};
+use crate::args::ArgsRef;
 use crate::function_decoder::FunctionDecoder;
 use crate::hook_memory_page::HookMemoryPageBuilder;
 use crate::isa_abi::{Array, IsaAbi, X86_64_SystemV};
 
+mod args;
 mod function_decoder;
 mod trampoline;
 mod isa_abi;
@@ -103,7 +105,7 @@ struct Hook<IA: IsaAbi> {
     /// calls the hook
     interceptor_addr: usize,
     /// function pointer of the hook function that should be called instead of the original function
-    hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a>),
+    hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a, IA>),
     /// original bytes of the original function that are overwritten when enabling the hook
     orig_bytes: IA::JmpInterceptorBytesArray,
     /// argument-bytes passed to the original function via the stack
@@ -136,7 +138,7 @@ fn assemble<IA: IsaAbi>(instructions: &[Instruction], ip: u64) -> Result<Vec<u8>
         .map(|res| res.code_buffer)
 }
 
-unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a>)) -> &'static Hook<IA> {
+unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a, IA>)) -> &'static Hook<IA> {
     let orig_stack_arg_size = unsafe { FunctionDecoder::<IA>::new(orig_addr) }.stack_argument_size();
 
     let builder = HookMemoryPageBuilder::<IA>::new();
@@ -164,19 +166,6 @@ unsafe fn get_orig_bytes<IA: IsaAbi>(orig_addr: usize) -> IA::JmpInterceptorByte
     IA::JmpInterceptorBytesArray::load_from(slice)
 }
 
-#[repr(transparent)]
-struct ArgsRef<'a> {
-    args: &'a Args,
-}
-#[repr(transparent)]
-#[expect(unused)]
-struct ArgsBoxed {
-    args: Box<Args>,
-}
-struct Args {
-    
-}
-
 fn main() {
     let mut decoder = unsafe { FunctionDecoder::<X86_64_SystemV>::new(test_function as usize) };
     let push = decoder.decode();
@@ -200,10 +189,19 @@ fn main() {
     //     offset,
     //
     // ))
-    test_function();
+
+    test_function(1337);
 
     let hook = unsafe { hook_function(test_function as usize, custom_hook::<X86_64_SystemV>) };
     hook.enable();
+    test_function(42);
+    test_function(21);
+}
+
+fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, mut args: ArgsRef<'_, IA>) {
+    let arg = args.without_this_pointer::<u32>();
+    println!("from inside the hook; original argument: {arg}");
+    hook.disable();
 }
 
 #[cfg(target_pointer_width = "32")]
@@ -213,19 +211,19 @@ extern "thiscall" fn thiscall_function(this: *const (), _: u8, _: u16, _: u32) {
 
 #[cfg(target_pointer_width = "64")]
 extern "C" fn print(val: u64) {
-    println!("{val:x}");
+    println!("from inside hooked function: {val}");
 }
 #[cfg(target_pointer_width = "32")]
 extern "C" fn print(val: u32) {
     println!("{val:x}");
 }
 
+#[unsafe(link_section = ".custom_section")]
 #[cfg(target_pointer_width = "64")]
 #[unsafe(naked)]
-extern "C" fn test_function() {
+extern "C" fn test_function(_arg: u32) {
     naked_asm!(
         "push rax",
-        "mov rdi, [rip-12]",
         "call {print}",
         "pop rax",
         "ret",
@@ -244,10 +242,6 @@ extern "C" fn test_function() {
         test_function = sym test_function,
         print = sym print,
     )
-}
-
-fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, _args: ArgsRef) {
-    hook.disable();
 }
 
 trait InstructionFormat {
