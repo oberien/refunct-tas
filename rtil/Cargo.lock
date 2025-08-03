@@ -4435,7 +4435,7 @@ dependencies = [
 [[package]]
 name = "rebo"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=a6543573f0660fee80c1058d502cb0fc5ae534fd#a6543573f0660fee80c1058d502cb0fc5ae534fd"
+source = "git+https://github.com/oberien/rebo?rev=4b8a35eb76ea9785ee2406d827fd7f1178d202c3#4b8a35eb76ea9785ee2406d827fd7f1178d202c3"
 dependencies = [
  "bitflags 2.9.1",
  "clap",
@@ -4471,7 +4471,7 @@ dependencies = [
 [[package]]
 name = "rebo_derive"
 version = "0.1.0"
-source = "git+https://github.com/oberien/rebo?rev=a6543573f0660fee80c1058d502cb0fc5ae534fd#a6543573f0660fee80c1058d502cb0fc5ae534fd"
+source = "git+https://github.com/oberien/rebo?rev=4b8a35eb76ea9785ee2406d827fd7f1178d202c3#4b8a35eb76ea9785ee2406d827fd7f1178d202c3"
 dependencies = [
  "itertools 0.10.5",
  "proc-macro-error",
