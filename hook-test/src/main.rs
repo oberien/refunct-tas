@@ -114,15 +114,15 @@ struct Hook<IA: IsaAbi> {
 
 impl<IA: IsaAbi> Hook<IA> {
     pub fn enable(&self) {
-        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         let jmp = IA::create_jmp_to_interceptor(self.interceptor_addr);
+        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
         jmp.store_to(slice);
         unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
     pub fn disable(&self) {
-        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
+        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         slice.copy_from_slice(self.orig_bytes.as_slice());
         unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
@@ -146,7 +146,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
     let trampoline = unsafe { trampoline::create_trampoline::<IA>(orig_addr) };
     let builder = builder.trampoline(trampoline);
 
-    let interceptor = IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size);
+    let interceptor = IA::create_interceptor(builder.hook_struct_addr(), orig_stack_arg_size);
     let builder = builder.interceptor(interceptor);
 
     let orig_bytes = unsafe { get_orig_bytes::<IA>(orig_addr) };

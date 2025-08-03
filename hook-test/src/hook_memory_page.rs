@@ -22,8 +22,9 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
 
     pub fn trampoline(mut self, trampoline: Trampoline) -> HookMemoryPageBuilderWithTrampoline<IA> {
         let addr = self.trampoline_addr();
+        let offset = self.trampoline_offset();
         let code = assemble::<IA>(&trampoline.instructions, addr as u64).unwrap();
-        self.map[addr..][..code.len()].copy_from_slice(&code);
+        self.map[offset..][..code.len()].copy_from_slice(&code);
         HookMemoryPageBuilderWithTrampoline {
             builder: self,
             trampoline_len: code.len(),
@@ -36,7 +37,6 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
     pub fn hook_struct_offset(&self) -> usize {
         0
     }
-    #[expect(unused)]
     pub fn hook_struct_addr(&self) -> usize {
         self.page_addr() + self.hook_struct_offset()
     }
@@ -64,8 +64,9 @@ impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithTrampoline<IA> {
 impl<IA: IsaAbi> HookMemoryPageBuilderWithTrampoline<IA> {
     pub fn interceptor(mut self, interceptor: Interceptor) -> HookMemoryPageBuilderFinished<IA> {
         let addr = self.interceptor_addr();
+        let offset = self.interceptor_offset();
         let code = assemble::<IA>(&interceptor.instructions, addr as u64).unwrap();
-        self.builder.map[addr..][..code.len()].copy_from_slice(&code);
+        self.builder.map[offset..][..code.len()].copy_from_slice(&code);
         HookMemoryPageBuilderFinished {
             builder: self,
             interceptor_len: code.len(),

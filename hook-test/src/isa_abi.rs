@@ -129,14 +129,14 @@ unsafe impl IsaAbi for X86_64_SystemV {
 
     unsafe fn make_rw(addr: usize, len: usize) {
         let start_page = addr & !0xfff;
-        let end_page = (addr + len) & !0xffff;
+        let end_page = (addr + len) & !0xfff;
         let len = end_page - start_page + 0x1000;
         let page = start_page as *mut c_void;
         unsafe { libc::mprotect(page, len, libc::PROT_READ | libc::PROT_WRITE); }
     }
     unsafe fn make_rx(addr: usize, len: usize) {
         let start_page = addr & !0xfff;
-        let end_page = (addr + len) & !0xffff;
+        let end_page = (addr + len) & !0xfff;
         let len = end_page - start_page + 0x1000;
         let page = start_page as *mut c_void;
         unsafe { libc::mprotect(page, len, libc::PROT_READ | libc::PROT_EXEC); }
