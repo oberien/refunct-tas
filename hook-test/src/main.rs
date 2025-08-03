@@ -1,6 +1,6 @@
 use std::arch::naked_asm;
 use std::{mem, slice};
-use iced_x86::{BlockEncoder, BlockEncoderOptions, Formatter, IcedError, Instruction, InstructionBlock, NasmFormatter, Register};
+use iced_x86::{BlockEncoder, BlockEncoderOptions, IcedError, Instruction, InstructionBlock};
 use crate::args::ArgsRef;
 use crate::function_decoder::FunctionDecoder;
 use crate::hook_memory_page::HookMemoryPageBuilder;
@@ -186,32 +186,9 @@ unsafe fn get_orig_bytes<IA: IsaAbi>(orig_addr: usize) -> IA::JmpInterceptorByte
 }
 
 fn main() {
-    let mut decoder = unsafe { FunctionDecoder::<X86_64_SystemV>::new(test_function as usize) };
-    let push = decoder.decode();
-    let mut mov = decoder.decode();
-
-    println!("fn-addr: {:#x?}", test_function as usize);
-    push.print();
-    mov.print();
-    mov.set_memory_displ_size(X86_64_SystemV::DISPL_SIZE);
-    mov.print();
-    mov.set_memory_base(Register::None);
-    mov.print();
-
-    // println!("{}", unsafe { FunctionDecoder::new(thiscall_function as usize) }.stack_argument_size());
-    println!("{}", unsafe { FunctionDecoder::<X86_64_SystemV>::new(print as usize) }.stack_argument_size());
-
-    // Instruction::with1(mov.code(), MemoryOperand::new(
-    //     Register::None,
-    //     Register::None,
-    //     0,
-    //     offset,
-    //
-    // ))
+    let hook = unsafe { hook_function(test_function as usize, custom_hook::<X86_64_SystemV>) };
 
     test_function(1337);
-
-    let hook = unsafe { hook_function(test_function as usize, custom_hook::<X86_64_SystemV>) };
     hook.enable();
     test_function(42);
     test_function(21);
@@ -225,23 +202,13 @@ fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, mut args: ArgsRef<'_, IA>) {
     println!("setting argument to 314");
     *arg = 314;
     hook.call_original_function(args.as_args());
+    println!("disabling the hook within the hook");
     hook.disable();
 }
-
-#[cfg(target_pointer_width = "32")]
-extern "thiscall" fn thiscall_function(this: *const (), _: u8, _: u16, _: u32) {
-
-}
-
 #[cfg(target_pointer_width = "64")]
 extern "C" fn print(val: u64) {
     println!("from inside hooked function: {val}");
 }
-#[cfg(target_pointer_width = "32")]
-extern "C" fn print(val: u32) {
-    println!("{val:x}");
-}
-
 #[unsafe(link_section = ".custom_section")]
 #[cfg(target_pointer_width = "64")]
 #[unsafe(naked)]
@@ -254,6 +221,18 @@ extern "C" fn test_function(_arg: u32) {
         print = sym print,
     )
 }
+
+
+#[cfg(target_pointer_width = "32")]
+extern "thiscall" fn thiscall_function(this: *const (), _: u8, _: u16, _: u32) {
+
+}
+
+#[cfg(target_pointer_width = "32")]
+extern "C" fn print(val: u32) {
+    println!("{val:x}");
+}
+
 #[cfg(target_pointer_width = "32")]
 #[unsafe(naked)]
 extern "C" fn test_function() {
@@ -266,36 +245,4 @@ extern "C" fn test_function() {
         test_function = sym test_function,
         print = sym print,
     )
-}
-
-trait InstructionFormat {
-    fn nasm(&self) -> String;
-    fn bytes(&self) -> String;
-    fn print(&self);
-}
-impl InstructionFormat for Instruction {
-    fn nasm(&self) -> String {
-        let mut s = String::new();
-        let mut formatter = NasmFormatter::new();
-        formatter.format(self, &mut s);
-        s
-    }
-
-    fn bytes(&self) -> String {
-        match assemble::<X86_64_SystemV>(&[self.clone()], self.ip()) {
-            Ok(bytes) => {
-                let mut s = String::new();
-                for byte in bytes {
-                    s.push_str(&format!("{byte:02x} "));
-                }
-                s.pop();
-                s
-            }
-            Err(e) => format!("invalid opcode: {e}"),
-        }
-    }
-
-    fn print(&self) {
-        println!("{:<36}    {}: {:#?}", self.bytes(), self.nasm(), self);
-    }
 }
