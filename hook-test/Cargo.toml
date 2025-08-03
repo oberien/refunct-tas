@@ -7,3 +7,4 @@ edition = "2024"
 iced-x86 = { version = "1.21.0", features = ["code_asm"] }
 region = "3.0.2"
 memmap2 = "0.9.7"
+libc = "0.2.172"

@@ -1,8 +1,9 @@
 use std::arch::naked_asm;
+use std::slice;
 use iced_x86::{BlockEncoder, BlockEncoderOptions, Formatter, IcedError, Instruction, InstructionBlock, NasmFormatter, Register};
 use crate::function_decoder::FunctionDecoder;
 use crate::hook_memory_page::HookMemoryPageBuilder;
-use crate::isa_abi::{IsaAbi, X86_64_SystemV};
+use crate::isa_abi::{Array, IsaAbi, X86_64_SystemV};
 
 mod function_decoder;
 mod trampoline;
@@ -111,11 +112,17 @@ struct Hook<IA: IsaAbi> {
 
 impl<IA: IsaAbi> Hook<IA> {
     pub fn enable(&self) {
-        let _jmp = IA::create_jmp_to_interceptor(self.interceptor_addr);
-        todo!()
+        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        let jmp = IA::create_jmp_to_interceptor(self.interceptor_addr);
+        let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
+        jmp.store_to(slice);
+        unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
     pub fn disable(&self) {
-        todo!()
+        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
+        slice.copy_from_slice(self.orig_bytes.as_slice());
+        unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
 }
 
@@ -140,7 +147,7 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
     let interceptor = IA::create_interceptor(builder.hook_struct_offset(), orig_stack_arg_size);
     let builder = builder.interceptor(interceptor);
 
-    let orig_bytes = get_orig_bytes::<IA>(orig_addr);
+    let orig_bytes = unsafe { get_orig_bytes::<IA>(orig_addr) };
     let hook = Hook {
         orig_addr,
         trampoline_addr: builder.trampoline_addr(),
@@ -152,8 +159,9 @@ unsafe fn hook_function<IA: IsaAbi>(orig_addr: usize, hook_fn: for<'a> fn(&'stat
     builder.finalize(hook)
 }
 
-fn get_orig_bytes<IA: IsaAbi>(_orig_addr: usize) -> IA::JmpInterceptorBytesArray {
-   todo!() 
+unsafe fn get_orig_bytes<IA: IsaAbi>(orig_addr: usize) -> IA::JmpInterceptorBytesArray {
+    let slice = unsafe { slice::from_raw_parts(orig_addr as *const u8, IA::JmpInterceptorBytesArray::LEN) };
+    IA::JmpInterceptorBytesArray::load_from(slice)
 }
 
 #[repr(transparent)]

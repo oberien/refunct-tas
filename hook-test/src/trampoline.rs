@@ -1,6 +1,6 @@
 use iced_x86::Instruction;
 use crate::function_decoder::FunctionDecoder;
-use crate::isa_abi::IsaAbi;
+use crate::isa_abi::{Array, IsaAbi};
 
 pub struct Trampoline {
     pub instructions: Vec<Instruction>,
@@ -14,7 +14,7 @@ pub unsafe fn create_trampoline<IA: IsaAbi>(orig_addr: usize) -> Trampoline {
         let inst = decoder.decode();
         total_bytes += inst.len();
         instructions.push(inst);
-        if total_bytes >= IA::JMP_INTERCEPTOR_BYTE_LEN {
+        if total_bytes >= IA::JmpInterceptorBytesArray::LEN {
             break;
         }
     }
