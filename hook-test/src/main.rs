@@ -214,9 +214,13 @@ extern "C" fn print(val: u64) {
 #[unsafe(naked)]
 extern "C" fn test_function(_arg: u32) {
     naked_asm!(
-        "push rax",
+        "push rbp",
+        "mov rbp, rsp",
         "call {print}",
-        "pop rax",
+        "add rax, 0x50000000",
+        "add rax, 0x50000000",
+        "add rax, 0x50000000",
+        "pop rbp",
         "ret",
         print = sym print,
     )

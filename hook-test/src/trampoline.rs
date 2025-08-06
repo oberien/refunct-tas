@@ -1,4 +1,5 @@
 use iced_x86::{Formatter, Instruction, NasmFormatter, Register};
+use iced_x86::code_asm::{rax, CodeAssembler};
 use crate::{assemble, print, test_function};
 use crate::function_decoder::FunctionDecoder;
 use crate::isa_abi::{Array, IsaAbi, X86_64_SystemV};
@@ -19,6 +20,10 @@ pub unsafe fn create_trampoline<IA: IsaAbi>(orig_addr: usize) -> Trampoline {
             break;
         }
     }
+    let mut a = CodeAssembler::new(IA::BITNESS).unwrap();
+    a.mov(rax, (orig_addr + total_bytes) as u64).unwrap();
+    a.jmp(rax).unwrap();
+    instructions.extend(a.take_instructions());
 
     let instructions = rewrite_relative_instructions(instructions);
 
