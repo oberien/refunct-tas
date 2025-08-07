@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::mem::offset_of;
-use iced_x86::code_asm::{CodeAssembler, ptr, r10, r11, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
+use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
+use iced_x86::Register;
 use crate::{assemble, Interceptor, Hook, CallTrampoline};
 use crate::args::{Args, ArgsContext, ArgsRef};
 
@@ -61,8 +62,6 @@ pub struct X86_64_SystemV_Args {
     xmm: [u128; 8],
     /// rdi, rsi, rdx, rcx, r8, r9
     args: [u64; 6],
-    r10: u64,
-    r11: u64,
     /// return value to be returned to the original caller
     return_value: u64,
 }
@@ -113,7 +112,7 @@ unsafe impl IsaAbi for X86_64_SystemV {
         a.call(rax).unwrap();
         align_stack_post_x86_64_system_v(&mut a);
         // cleanup the stack
-        a.add(rsp, 0x80 + 0x40).unwrap();
+        a.add(rsp, 0x80 + 0x30).unwrap();
         // restore the return value if the original function was called
         a.pop(rax).unwrap();
         // function epilogue
@@ -150,8 +149,6 @@ unsafe impl IsaAbi for X86_64_SystemV {
         a.mov(rcx, ptr(rdi + offset_of!(Self::Args, args) + 0x18)).unwrap();
         a.mov(r8, ptr(rdi + offset_of!(Self::Args, args) + 0x20)).unwrap();
         a.mov(r9, ptr(rdi + offset_of!(Self::Args, args) + 0x28)).unwrap();
-        a.mov(r10, ptr(rdi + offset_of!(Self::Args, r10))).unwrap();
-        a.mov(r11, ptr(rdi + offset_of!(Self::Args, r11))).unwrap();
         // restore rdi last to not overwrite our pointer
         a.mov(rdi, ptr(rdi + offset_of!(Self::Args, args) + 0x0)).unwrap();
         // call original function
@@ -186,8 +183,6 @@ unsafe impl IsaAbi for X86_64_SystemV {
 }
 
 fn pushall_x86_64_system_v(a: &mut CodeAssembler) {
-    a.push(r11).unwrap();
-    a.push(r10).unwrap();
     a.push(r9).unwrap();
     a.push(r8).unwrap();
     a.push(rcx).unwrap();
