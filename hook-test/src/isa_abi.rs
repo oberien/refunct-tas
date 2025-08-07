@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::mem::offset_of;
-use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
-use iced_x86::Register;
+use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, AsmRegister64, r10, r11};
+use iced_x86::{Instruction, Register};
 use crate::{assemble, Interceptor, Hook, CallTrampoline};
 use crate::args::{Args, ArgsContext, ArgsRef};
 
@@ -11,16 +11,26 @@ pub unsafe trait IsaAbi: 'static {
     /// SAFETY: must be [u8; Self::JMP_INTERCEPTOR_BYTE_LEN]
     type JmpInterceptorBytesArray: Array;
     type Args: Args;
+    type AsmRegister: Into<Register> + Copy;
 
-    /// SAFETY: must be correct and valid for the ISA
+    /// List of unused caller-saved general purpose pointer-sized scratch registers
+    ///
+    /// SAFETY: implementation must be correct for the ISA & ABI
+    fn free_registers() -> &'static [Self::AsmRegister];
+    fn create_mov_reg_addr(reg: Self::AsmRegister, addr: usize) -> Instruction;
+    fn create_jmp_reg(reg: Self::AsmRegister) -> Instruction;
+    
+    /// SAFETY: implementation must be correct and valid for the ISA
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray;
-    /// SAFETY: must be correct and valid for the ISA & ABI
+    /// SAFETY: mplementation must be correct and valid for the ISA & ABI
     fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor;
-    /// SAFETY: must be correct and valid for the ISA & ABI
+    /// SAFETY: implementation must be correct and valid for the ISA & ABI
     fn create_call_trampoline(trampoline_addr: usize) -> CallTrampoline;
+    /// SAFETY: implementation must be correct for the OS
     /// # Safety
     /// * code on the memory pages containing the requested bytes must not be executed while this function is running
     unsafe fn make_rw(addr: usize, len: usize);
+    /// SAFETY: implementation must be correct for the OS
     /// # Safety
     /// * the memory pages containing the requested bytes must not be written to while this function is running
     unsafe fn make_rx(addr: usize, len: usize);
@@ -84,13 +94,27 @@ unsafe impl IsaAbi for X86_64_SystemV {
     const BITNESS: u32 = 64;
     type JmpInterceptorBytesArray = [u8; 12];
     type Args = X86_64_SystemV_Args;
+    type AsmRegister = AsmRegister64;
+
+    fn free_registers() -> &'static [Self::AsmRegister] {
+        &[rax, r10, r11]
+    }
+    fn create_mov_reg_addr(reg: Self::AsmRegister, addr: usize) -> Instruction {
+        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
+        a.mov(reg, addr as u64).unwrap();
+        a.take_instructions()[0]
+    }
+    fn create_jmp_reg(reg: Self::AsmRegister) -> Instruction {
+        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
+        a.jmp(reg).unwrap();
+        a.take_instructions()[0]
+    }
 
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray {
-        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
-        a.mov(rax, interceptor_addr as u64).unwrap();
-        a.jmp(rax).unwrap();
-        let buffer = assemble::<Self>(a.instructions(), 0).unwrap();
-        buffer.try_into().unwrap()
+        assemble::<Self>(&[
+            Self::create_mov_reg_addr(rax, interceptor_addr),
+            Self::create_jmp_reg(rax),
+        ], 0).unwrap().try_into().unwrap()
     }
 
     fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {

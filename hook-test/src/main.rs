@@ -59,45 +59,6 @@ mod hook_memory_page;
 //   |                                                                                            |
 //   '--------------------------------------------------------------------------------------------'
 //                                                                  return to the original caller
-//
-//
-//
-// Original Function:
-// 0:  48 8b 3d 04 00 00 00    mov    rdi, [rip+0x4]        # b <0xb>
-// 7:  74 05                   je     e <end>
-// 9:  e8 00 00 00 00          call   e <end>
-// 000000000000000e <end>:
-// e:  c3                      ret
-//
-// Overwritten Function:
-// ; jump to our interceptor
-// 0:  48 b8 ef cd ab 89 67    movabs rax,0x123456789abcdef <interceptor_address>
-// 7:  45 23 01
-// a:  ff e0                   jmp    rax
-// ; keep the rest of the last instruction we overwrote
-// c:  00 00
-// 00000000000000 e <end>:
-// e:  c3                      ret
-//
-// Trampoline:
-// ; mov rdi, [rip+0x4]
-// 0:  48 b8 0b 00 00 00 00    movabs rax,0xb
-// 7:  00 00 00
-// a:  48 8b 38                mov    rdi,QWORD PTR [rax]
-// ; je e
-// d:  75 0c                   jne    1b <skipped>
-// f:  48 b8 0e 00 00 00 00    movabs rax,0xe
-// 16: 00 00 00
-// 19: ff e0                   jmp    rax
-// 000000000000001b <skipped>:
-// ; call e
-// 1b: 48 b8 0e 00 00 00 00    movabs rax,0xe
-// 22: 00 00 00
-// 25: ff d0                   call   rax
-// ; jump to original function
-// 27: 48 b8 0e 00 00 00 00    movabs rax,0xe
-// 2e: 00 00 00
-// 31: ff e0                   jmp    rax
 
 #[repr(C)]
 struct Hook<IA: IsaAbi> {
@@ -215,11 +176,14 @@ extern "C" fn print(val: u64) {
 extern "C" fn test_function(_arg: u32) {
     naked_asm!(
         "push rbp",
+        "mov rax,[rip+12]",
         "mov rbp, rsp",
         "call {print}",
+        "mov rax, [rip+12]",
         "add rax, 0x50000000",
         "add rax, 0x50000000",
         "add rax, 0x50000000",
+        "mov rax, [rip+12]",
         "pop rbp",
         "ret",
         print = sym print,
