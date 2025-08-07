@@ -5,6 +5,7 @@ use crate::isa_abi::IsaAbi;
 
 pub struct FunctionDecoder<IA: IsaAbi> {
     addr: usize,
+    ip: u64,
     read: usize,
     _marker: PhantomData<IA>,
 }
@@ -12,6 +13,7 @@ impl<IA: IsaAbi> Clone for FunctionDecoder<IA> {
     fn clone(&self) -> Self {
         Self {
             addr: self.addr,
+            ip: self.ip,
             read: self.read,
             _marker: self._marker,
         }
@@ -26,6 +28,16 @@ impl<IA: IsaAbi> FunctionDecoder<IA> {
     pub unsafe fn new(addr: usize) -> Self {
         Self {
             addr,
+            ip: addr as u64,
+            read: 0,
+            _marker: PhantomData,
+        }
+    }
+    /// for Safety see Self::new
+    pub unsafe fn with_ip(addr: usize, ip: u64) -> Self {
+        Self {
+            addr,
+            ip,
             read: 0,
             _marker: PhantomData,
         }
@@ -34,7 +46,7 @@ impl<IA: IsaAbi> FunctionDecoder<IA> {
     unsafe fn decoder(&self) -> Decoder<'static> {
         // non-contrived x86_64 instructions are max 15 bytes
         let slice = unsafe { slice::from_raw_parts(self.addr as *const u8, 15) };
-        Decoder::with_ip(IA::BITNESS, slice, self.addr as u64, DecoderOptions::NONE)
+        Decoder::with_ip(IA::BITNESS, slice, self.ip, DecoderOptions::NONE)
     }
 
     pub fn decode(&mut self) -> Instruction {
@@ -43,6 +55,7 @@ impl<IA: IsaAbi> FunctionDecoder<IA> {
             panic!("decoded invalid instruction");
         }
         self.addr += instruction.len();
+        self.ip += instruction.len() as u64;
         self.read += instruction.len();
         instruction
     }

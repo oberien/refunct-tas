@@ -176,12 +176,15 @@ extern "C" fn print(val: u64) {
 extern "C" fn test_function(_arg: u32) {
     naked_asm!(
         "push rbp",
-        "mov rax,[rip+12]",
+        "jmp 5f",
+        "mov rax,[rip-12]",
         "mov rbp, rsp",
         "call {print}",
         "mov rax, [rip+12]",
         "add rax, 0x50000000",
         "add rax, 0x50000000",
+        "5:",
+        "call {print}",
         "add rax, 0x50000000",
         "mov rax, [rip+12]",
         "pop rbp",
