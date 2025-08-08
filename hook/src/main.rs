@@ -1,5 +1,5 @@
 use std::arch::naked_asm;
-use hook_test::{ArgsRef, Hook, IsaAbi, X86_64_SystemV};
+use hook::{ArgsRef, Hook, IsaAbi, X86_64_SystemV};
 
 fn main() {
     let hook = unsafe { Hook::create(test_function as usize, custom_hook::<X86_64_SystemV>) };
