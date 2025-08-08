@@ -151,23 +151,27 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                 assert_eq!(instruction.op_count(), 1);
                 match instruction.op0_kind() {
                     OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                        // handle branch-targets into code copied into the trampoline
-                        if self.orig_addr_range.contains(&instruction.near_branch_target()) {
-                            let label = *self.labels.get(&instruction.near_branch_target())
-                                .expect("jump to inside an instruction in the trampoline");
-                            self.a.jmp(label).unwrap();
-                            return Some(());
-                        }
+                        let jmp_into_trampoline = self.orig_addr_range.contains(&instruction.near_branch_target());
 
-                        // `jmp <label>` becomes `mov rax, <label>; jmp rax`
-                        if instruction.flow_control() == FlowControl::UnconditionalBranch {
-                            IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
-                            IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
-                            return Some(());
+                        match (instruction.flow_control(), jmp_into_trampoline) {
+                            // branch targets code copied into the trampoline
+                            (FlowControl::UnconditionalBranch, true) => {
+                                let label = *self.labels.get(&instruction.near_branch_target())
+                                    .expect("jump to inside an instruction in the trampoline");
+                                self.a.jmp(label).unwrap();
+                                return Some(());
+                            }
+                            // `jmp <label>` becomes `mov rax, <label>; jmp rax`
+                            (FlowControl::UnconditionalBranch, false) => {
+                                IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
+                                IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
+                                return Some(());
+                            }
+                            _ => (),
                         }
 
                         // `je <label>` becomes `jne skip; mov rax, <label>; jmp rax; skip:
-                        let mut skip_label = self.a.create_label();
+                        let skip_label = self.labels[&instruction.next_ip()];
                         // invert condition
                         match instruction.condition_code() {
                             ConditionCode::None => unreachable!("we're checking ConditionalBranch, there must be a cc"),
@@ -188,9 +192,15 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                             ConditionCode::le => self.a.jg(skip_label).unwrap(),
                             ConditionCode::g => self.a.jle(skip_label).unwrap(),
                         };
-                        IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
-                        IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
-                        self.a.set_label(&mut skip_label).unwrap();
+                        if jmp_into_trampoline {
+                            let label = *self.labels.get(&instruction.near_branch_target())
+                                .expect("jump to inside an instruction in the trampoline");
+                            self.a.jmp(label).unwrap();
+                            return Some(());
+                        } else {
+                            IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
+                            IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
+                        }
                         return Some(())
                     }
                     // far branch jumps to a different segment -> not IP-relative
@@ -485,17 +495,13 @@ mod test {
         test!(X86_64_SystemV,
             r#"
                 jmp 2f
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
+                mov rdi, 0x42
                 2:
             "#,
             r#"
-               1: mov rax, 0x1020
+               1: mov rax, 0x1009
                0: jmp rax
-               2: mov rdi, 0x1234567890abc
-               3: mov rdi, 0x1234567890abc
-               4: mov rdi, 0x1234567890abc
+               2: mov rdi, 0x42
             "#,
         );
     }
@@ -504,25 +510,52 @@ mod test {
         test!(X86_64_SystemV,
             r#"
                 jmp 2f
-                mov rdi, 0x1234567890abc
+                mov rdi, 0x42
                 2:
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
+                mov rdi, 0x1337
             "#,
             r#"
                1: jmp short 3
-               2: mov rdi, 0x1234567890abc
-               3: mov rdi, 0x1234567890abc
-               4: mov rdi, 0x1234567890abc
+               2: mov rdi, 0x42
+               3: mov rdi, 0x1337
             "#,
         );
     }
 
-// +--------------------------+---------------------------+
-// | je <rel32>               | jne skip                  |
-// |                          | mov rax, <absolute_addr>  |
-// |                          | jmp rax                   |
-// |                          | skip:                     |
+    #[test]
+    fn test_jcc_rel_outside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                jb 2f
+                mov rdi, 0x42
+                2:
+            "#,
+            r#"
+               1: jae short 2
+               0: mov rax, 0x1009
+               0: jmp rax
+               2: mov rdi, 0x42
+            "#,
+        );
+    }
+    #[test]
+    fn test_jcc_rel_inside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                jg 2f
+                mov rdi, 0x42
+                2:
+                mov rdi, 0x1337
+            "#,
+            r#"
+               1: jle short 2
+               0: jmp short 3
+               2: mov rdi, 0x42
+               3: mov rdi, 0x1337
+            "#,
+        );
+    }
+
 // +--------------------------+---------------------------+
 // | call [rip + disp]        | mov rax, <absolute_addr>  |
 // | or call rel32            | call rax                  |
