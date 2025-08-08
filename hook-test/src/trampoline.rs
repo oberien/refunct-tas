@@ -258,11 +258,13 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
     }
 }
 
+#[allow(unused)]
 fn print_instructions(instructions: &[Instruction], mut ip: u64, indent: u8) {
     for instruction in instructions {
         ip = instruction.print(ip, indent);
     }
 }
+#[allow(unused)]
 fn debug_instructions(instructions: &[Instruction], mut ip: u64){
     for instruction in instructions {
         ip = instruction.debug(ip);
@@ -270,9 +272,13 @@ fn debug_instructions(instructions: &[Instruction], mut ip: u64){
 }
 
 trait InstructionFormat {
+    #[allow(unused)]
     fn nasm(&self) -> String;
+    #[allow(unused)]
     fn bytes(&self, ip: u64) -> (u64, String);
+    #[allow(unused)]
     fn print(&self, ip: u64, indent: u8) -> u64;
+    #[allow(unused)]
     fn debug(&self, ip: u64) -> u64;
 }
 impl InstructionFormat for Instruction {
