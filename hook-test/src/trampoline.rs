@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 use iced_x86::{ConditionCode, FlowControl, Formatter, Instruction, IntelFormatter, MemorySizeOptions, OpKind};
-use iced_x86::code_asm::CodeAssembler;
+use iced_x86::code_asm::{CodeAssembler, CodeLabel};
 use crate::assemble;
 use crate::function_decoder::FunctionDecoder;
 use crate::isa_abi::{Array, IsaAbi, X86_64_SystemV};
@@ -25,11 +26,12 @@ pub unsafe fn create_trampoline<IA: IsaAbi>(orig_addr: usize) -> Trampoline {
     let free_reg = get_free_register::<IA>(&instructions);
 
     print_instructions(&instructions, orig_addr as u64, 0);
-    let mut instructions = rewrite_relative_instructions::<IA>(instructions, free_reg);
-    instructions.push(IA::create_mov_reg_addr(free_reg, orig_addr + total_bytes));
-    instructions.push(IA::create_jmp_reg(free_reg));
+    let rewriter = TrampolineRewriter::<IA>::new(instructions, free_reg);
+    let mut a = rewriter.rewrite_relative_instructions();
+    IA::create_mov_reg_addr(&mut a, free_reg, orig_addr + total_bytes).unwrap();
+    IA::create_jmp_reg(&mut a, free_reg).unwrap();
 
-    Trampoline { instructions }
+    Trampoline { instructions: a.take_instructions() }
 }
 
 fn get_free_register<IA: IsaAbi>(instructions: &[Instruction]) -> IA::AsmRegister {
@@ -56,164 +58,153 @@ fn get_free_register<IA: IsaAbi>(instructions: &[Instruction]) -> IA::AsmRegiste
         .expect("no free usable register found")
 }
 
-// +--------------------------+---------------------------+
-// | RIP-Relative Instruction | Absolute Equivalent       |
-// +--------------------------+---------------------------+
-// | mov rax, [rip + disp]    | mov rax, <absolute_addr>  |
-// |                          | mov rax, [rax]            |
-// +--------------------------+---------------------------+
-// | lea rax, [rip + disp]    | mov rax, <absolute_addr>  |
-// +--------------------------+---------------------------+
-// | jmp [rip + disp]         | mov rax, <absolute_addr>  |
-// | or jmp rel32             | jmp rax                   |
-// +--------------------------+---------------------------+
-// | call [rip + disp]        | mov rax, <absolute_addr>  |
-// | or call rel32            | call rax                  |
-// +--------------------------+---------------------------+
-// | mov [rip + disp], rax    | mov rbx, <absolute_addr>  |
-// |                          | mov [rbx], rax            |
-// +--------------------------+---------------------------+
-// | cmp rax, [rip + disp]    | mov rbx, <absolute_addr>  |
-// |                          | cmp rax, [rbx]            |
-// +--------------------------+---------------------------+
-// | add rax, [rip + disp]    | mov rbx, <absolute_addr>  |
-// |                          | add rax, [rbx]            |
-// +--------------------------+---------------------------+
-// | sub rax, [rip + disp]    | mov rbx, <absolute_addr>  |
-// |                          | sub rax, [rbx]            |
-// +--------------------------+---------------------------+
-// | push [rip + disp]        | mov rax, <absolute_addr>  |
-// |                          | push qword [rax]          |
-// +--------------------------+---------------------------+
-// | pop [rip + disp]         | mov rax, <absolute_addr>  |
-// |                          | pop qword [rax]           |
-// +--------------------------+---------------------------+
-// | je <rel32>               | jne skip                  |
-// |                          | mov rax, <absolute_addr>  |
-// |                          | jmp rax                   |
-// |                          | skip:                     |
-// +--------------------------+---------------------------+
+struct TrampolineRewriter<IA: IsaAbi> {
+    orig_instructions: Vec<Instruction>,
+    orig_addr_range: Range<u64>,
+    free_reg: IA::AsmRegister,
+    a: CodeAssembler,
+    /// one label per original code instruction
+    labels: HashMap<u64, CodeLabel>,
+}
 
-fn rewrite_relative_instructions<IA: IsaAbi>(instructions: Vec<Instruction>, free_reg: IA::AsmRegister) -> Vec<Instruction> {
-    // println!("{}", unsafe { FunctionDecoder::new(thiscall_function as usize) }.stack_argument_size());
-    // println!("{}", unsafe { FunctionDecoder::<X86_64_SystemV>::new(print as usize) }.stack_argument_size());
+impl<IA: IsaAbi> TrampolineRewriter<IA> {
+    pub fn new(orig_instructions: Vec<Instruction>, free_reg: IA::AsmRegister) -> Self {
+        let orig_addr_range = orig_instructions.first().unwrap().ip()..orig_instructions.last().unwrap().next_ip();
+        let mut a = CodeAssembler::new(IA::BITNESS).unwrap();
+        let labels = orig_instructions.iter()
+            .map(|i| (i.ip(), a.create_label()))
+            .collect();
 
-    let mut new_instructions = Vec::new();
-
-    for instruction in instructions {
-        println!("rewriting `{}`", instruction.nasm());
-        let replacement = rewrite_memory_access::<IA>(instruction, free_reg)
-            .or_else(|| rewrite_jump::<IA>(instruction, free_reg))
-            .or_else(|| rewrite_call::<IA>(instruction, free_reg));
-        if let Some(instructions) = replacement {
-            println!("replaced");
-            print_instructions(&[instruction], instruction.ip(), 4);
-            println!("with");
-            print_instructions(&instructions, instruction.ip(), 4);
-            new_instructions.extend(instructions);
-        } else {
-            println!("no replacement needed for");
-            print_instructions(&[instruction], instruction.ip(), 4);
-            new_instructions.push(instruction);
+        Self {
+            orig_instructions,
+            orig_addr_range,
+            free_reg,
+            a,
+            labels,
         }
     }
 
-    new_instructions
-}
+    pub fn rewrite_relative_instructions(mut self) -> CodeAssembler {
+        for i in 0..self.orig_instructions.len() {
+            let instruction = self.orig_instructions[i];
+            self.a.set_label(self.labels.get_mut(&instruction.ip()).unwrap()).unwrap();
 
-fn rewrite_memory_access<IA: IsaAbi>(mut instruction: Instruction, free_reg: IA::AsmRegister) -> Option<Vec<Instruction>> {
-    for op_num in 0..instruction.op_count() {
-        match instruction.op_kind(op_num) {
-            OpKind::Register if instruction.op_register(op_num).is_ip() => todo!(),
-            OpKind::MemorySegSI | OpKind::MemorySegESI | OpKind::MemorySegRSI | OpKind::MemorySegDI
-            | OpKind::MemorySegEDI | OpKind::MemorySegRDI | OpKind::MemoryESDI | OpKind::MemoryESEDI
-            | OpKind::MemoryESRDI => panic!("segmented memory not supported"),
-            OpKind::Memory if instruction.memory_base().is_ip() || instruction.memory_index().is_ip() => {
-                if instruction.memory_base().is_ip() {
-                    instruction.set_memory_base(free_reg.into());
-                    instruction.set_memory_displacement64(instruction.memory_displacement64().wrapping_sub(instruction.next_ip()));
-                }
-                if instruction.memory_index().is_ip() {
-                    instruction.set_memory_index(free_reg.into());
-                }
-                return Some(vec![
-                    IA::create_mov_reg_addr(free_reg, instruction.next_ip().try_into().unwrap()),
-                    instruction,
-                ])
+            println!("rewriting `{}`", instruction.nasm());
+            let before = self.a.instructions().len();
+            let replacement = self.rewrite_memory_access(instruction)
+                .or_else(|| self.rewrite_jump(instruction))
+                .or_else(|| self.rewrite_call(instruction));
+            if let Some(()) = replacement {
+                println!("replaced");
+                print_instructions(&[instruction], instruction.ip(), 4);
+                println!("with");
+                let added_instructions = &self.a.instructions()[before..];
+                assert!(!added_instructions.is_empty());
+                print_instructions(added_instructions, instruction.ip(), 4);
+            } else {
+                println!("no replacement needed for");
+                print_instructions(&[instruction], instruction.ip(), 4);
+                self.a.add_instruction(instruction).unwrap();
             }
-            _ => (),
         }
-    }
-    None
-}
-fn rewrite_jump<IA: IsaAbi>(instruction: Instruction, free_reg: IA::AsmRegister) -> Option<Vec<Instruction>> {
-    match instruction.flow_control() {
-        // no branch
-        FlowControl::Next
-        | FlowControl::Return
-        // branch to register or memory; rip-relative memory handled in rewrite_memory_access
-        | FlowControl::IndirectBranch
-        // handled by rewrite_call
-        | FlowControl::Call
-        | FlowControl::IndirectCall
-            => {}
-        FlowControl::UnconditionalBranch | FlowControl::ConditionalBranch => {
-            assert_eq!(instruction.op_count(), 1);
-            match instruction.op0_kind() {
-                OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                    // TODO: check if the branch-target is also moved to the trampoline
 
-                    // `jmp <label>` becomes `mov rax, <label>; jmp rax`
-                    if instruction.flow_control() == FlowControl::UnconditionalBranch {
-                        return Some(vec![
-                            IA::create_mov_reg_addr(free_reg, instruction.near_branch_target() as usize),
-                            IA::create_jmp_reg(free_reg),
-                        ])
+        self.a
+    }
+
+    fn rewrite_memory_access(&mut self, mut instruction: Instruction) -> Option<()> {
+        for op_num in 0..instruction.op_count() {
+            match instruction.op_kind(op_num) {
+                OpKind::Register if instruction.op_register(op_num).is_ip() => todo!(),
+                OpKind::MemorySegSI | OpKind::MemorySegESI | OpKind::MemorySegRSI | OpKind::MemorySegDI
+                | OpKind::MemorySegEDI | OpKind::MemorySegRDI | OpKind::MemoryESDI | OpKind::MemoryESEDI
+                | OpKind::MemoryESRDI => panic!("segmented memory not supported"),
+                OpKind::Memory if instruction.memory_base().is_ip() || instruction.memory_index().is_ip() => {
+                    if instruction.memory_base().is_ip() {
+                        instruction.set_memory_base(self.free_reg.into());
+                        instruction.set_memory_displacement64(instruction.memory_displacement64().wrapping_sub(instruction.next_ip()));
                     }
-
-                    // `je <label>` becomes `jne skip; mov rax, <label>; jmp rax; skip:
-                    let mut a = CodeAssembler::new(IA::BITNESS).unwrap();
-                    let mut skip_label = a.create_label();
-                    match instruction.condition_code() {
-                        ConditionCode::None => unreachable!("we're checking ConditionalBranch, there must be a cc"),
-                        ConditionCode::o => a.jno(skip_label).unwrap(),
-                        ConditionCode::no => a.jo(skip_label).unwrap(),
-                        ConditionCode::b => a.jae(skip_label).unwrap(),
-                        ConditionCode::ae => a.jb(skip_label).unwrap(),
-                        ConditionCode::e => a.jne(skip_label).unwrap(),
-                        ConditionCode::ne => a.je(skip_label).unwrap(),
-                        ConditionCode::be => a.ja(skip_label).unwrap(),
-                        ConditionCode::a => a.jbe(skip_label).unwrap(),
-                        ConditionCode::s => a.jns(skip_label).unwrap(),
-                        ConditionCode::ns => a.js(skip_label).unwrap(),
-                        ConditionCode::p => a.jnp(skip_label).unwrap(),
-                        ConditionCode::np => a.jp(skip_label).unwrap(),
-                        ConditionCode::l => a.jge(skip_label).unwrap(),
-                        ConditionCode::ge => a.jl(skip_label).unwrap(),
-                        ConditionCode::le => a.jg(skip_label).unwrap(),
-                        ConditionCode::g => a.jle(skip_label).unwrap(),
-                    };
-                    a.add_instruction(IA::create_mov_reg_addr(free_reg, instruction.near_branch_target() as usize)).unwrap();
-                    a.add_instruction(IA::create_jmp_reg(free_reg)).unwrap();
-                    a.set_label(&mut skip_label).unwrap();
-                    return Some(a.take_instructions())
+                    if instruction.memory_index().is_ip() {
+                        instruction.set_memory_index(self.free_reg.into());
+                    }
+                    IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.next_ip().try_into().unwrap()).unwrap();
+                    self.a.add_instruction(instruction).unwrap();
+                    return Some(());
                 }
-                // far branch jumps to a different segment -> not IP-relative
-                OpKind::FarBranch16 | OpKind::FarBranch32 => {}
-                kind => unreachable!("(un)conditional branch to {:?}", kind),
+                _ => (),
             }
         }
-        // unsupported
-        FlowControl::Interrupt | FlowControl::XbeginXabortXend | FlowControl::Exception => {
-            unimplemented!("no support for rewriting {:?}", instruction.flow_control())
-        }
+        None
     }
-    None
+
+    fn rewrite_jump(&mut self, instruction: Instruction) -> Option<()> {
+        match instruction.flow_control() {
+            // no branch
+            FlowControl::Next
+            | FlowControl::Return
+            // branch to register or memory; rip-relative memory handled in rewrite_memory_access
+            | FlowControl::IndirectBranch
+            // handled by rewrite_call
+            | FlowControl::Call
+            | FlowControl::IndirectCall
+            => {}
+            FlowControl::UnconditionalBranch | FlowControl::ConditionalBranch => {
+                assert_eq!(instruction.op_count(), 1);
+                match instruction.op0_kind() {
+                    OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
+                        // TODO: check if the branch-target is also moved to the trampoline
+
+                        // `jmp <label>` becomes `mov rax, <label>; jmp rax`
+                        if instruction.flow_control() == FlowControl::UnconditionalBranch {
+                            IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
+                            IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
+                            return Some(());
+                        }
+
+                        // `je <label>` becomes `jne skip; mov rax, <label>; jmp rax; skip:
+                        let mut skip_label = self.a.create_label();
+                        // invert condition
+                        match instruction.condition_code() {
+                            ConditionCode::None => unreachable!("we're checking ConditionalBranch, there must be a cc"),
+                            ConditionCode::o => self.a.jno(skip_label).unwrap(),
+                            ConditionCode::no => self.a.jo(skip_label).unwrap(),
+                            ConditionCode::b => self.a.jae(skip_label).unwrap(),
+                            ConditionCode::ae => self.a.jb(skip_label).unwrap(),
+                            ConditionCode::e => self.a.jne(skip_label).unwrap(),
+                            ConditionCode::ne => self.a.je(skip_label).unwrap(),
+                            ConditionCode::be => self.a.ja(skip_label).unwrap(),
+                            ConditionCode::a => self.a.jbe(skip_label).unwrap(),
+                            ConditionCode::s => self.a.jns(skip_label).unwrap(),
+                            ConditionCode::ns => self.a.js(skip_label).unwrap(),
+                            ConditionCode::p => self.a.jnp(skip_label).unwrap(),
+                            ConditionCode::np => self.a.jp(skip_label).unwrap(),
+                            ConditionCode::l => self.a.jge(skip_label).unwrap(),
+                            ConditionCode::ge => self.a.jl(skip_label).unwrap(),
+                            ConditionCode::le => self.a.jg(skip_label).unwrap(),
+                            ConditionCode::g => self.a.jle(skip_label).unwrap(),
+                        };
+                        IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
+                        IA::create_jmp_reg(&mut self.a, self.free_reg).unwrap();
+                        self.a.set_label(&mut skip_label).unwrap();
+                        return Some(())
+                    }
+                    // far branch jumps to a different segment -> not IP-relative
+                    OpKind::FarBranch16 | OpKind::FarBranch32 => {}
+                    kind => unreachable!("(un)conditional branch to {:?}", kind),
+                }
+            }
+            // unsupported
+            FlowControl::Interrupt | FlowControl::XbeginXabortXend | FlowControl::Exception => {
+                unimplemented!("no support for rewriting {:?}", instruction.flow_control())
+            }
+        }
+        None
+    }
+    fn rewrite_call(&mut self, instruction: Instruction) -> Option<()> {
+        // TODO
+        None
+    }
 }
-fn rewrite_call<IA: IsaAbi>(instruction: Instruction, free_reg: IA::AsmRegister) -> Option<Vec<Instruction>> {
-    // TODO
-    None
-}
+
 // Original Function:
 // 0:  48 8b 3d 04 00 00 00    mov    rdi, [rip+0x4]  # b <0xb>
 // 7:  74 05                   je     [rip+0x5]       # e <end>
@@ -348,9 +339,14 @@ mod test {
                 ip += instruction.len() as u64;
                 instructions.push(instruction);
             }
-            let instructions = rewrite_relative_instructions::<$isaabi>(instructions, <$isaabi>::free_registers()[0]);
+            let mut a = TrampolineRewriter::<$isaabi>::new(instructions, <$isaabi>::free_registers()[0])
+                .rewrite_relative_instructions();
+            let instructions = a.take_instructions();
             let mut result = String::new();
-            for instruction in instructions {
+            let mut addr = 0x4000;
+            for mut instruction in instructions {
+                instruction.set_ip(addr);
+                addr += instruction.len() as u64;
                 result.push_str(&instruction.nasm());
                 result.push('\n');
             }

@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::mem::offset_of;
 use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, AsmRegister64, r10, r11};
-use iced_x86::{Instruction, Register};
+use iced_x86::{IcedError, Register};
 use crate::{assemble, Interceptor, Hook, CallTrampoline};
 use crate::args::{Args, ArgsContext, ArgsRef};
 
@@ -17,8 +17,8 @@ pub unsafe trait IsaAbi: 'static {
     ///
     /// SAFETY: implementation must be correct for the ISA & ABI
     fn free_registers() -> &'static [Self::AsmRegister];
-    fn create_mov_reg_addr(reg: Self::AsmRegister, addr: usize) -> Instruction;
-    fn create_jmp_reg(reg: Self::AsmRegister) -> Instruction;
+    fn create_mov_reg_addr(a: &mut CodeAssembler, reg: Self::AsmRegister, addr: usize) -> Result<(), IcedError>;
+    fn create_jmp_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError>;
     
     /// SAFETY: implementation must be correct and valid for the ISA
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray;
@@ -99,22 +99,18 @@ unsafe impl IsaAbi for X86_64_SystemV {
     fn free_registers() -> &'static [Self::AsmRegister] {
         &[rax, r10, r11]
     }
-    fn create_mov_reg_addr(reg: Self::AsmRegister, addr: usize) -> Instruction {
-        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
-        a.mov(reg, addr as u64).unwrap();
-        a.take_instructions()[0]
+    fn create_mov_reg_addr(a: &mut CodeAssembler, reg: Self::AsmRegister, addr: usize) -> Result<(), IcedError> {
+        a.mov(reg, addr as u64)
     }
-    fn create_jmp_reg(reg: Self::AsmRegister) -> Instruction {
-        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
-        a.jmp(reg).unwrap();
-        a.take_instructions()[0]
+    fn create_jmp_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError> {
+        a.jmp(reg)
     }
 
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray {
-        assemble::<Self>(&[
-            Self::create_mov_reg_addr(rax, interceptor_addr),
-            Self::create_jmp_reg(rax),
-        ], 0).unwrap().try_into().unwrap()
+        let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
+        Self::create_mov_reg_addr(&mut a, rax, interceptor_addr).unwrap();
+        Self::create_jmp_reg(&mut a, rax).unwrap();
+        assemble::<Self>(a.instructions(), 0).unwrap().try_into().unwrap()
     }
 
     fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {

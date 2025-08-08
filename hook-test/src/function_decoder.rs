@@ -34,6 +34,7 @@ impl<IA: IsaAbi> FunctionDecoder<IA> {
         }
     }
     /// for Safety see Self::new
+    #[allow(unused)]
     pub unsafe fn with_ip(addr: usize, ip: u64) -> Self {
         Self {
             addr,
