@@ -19,8 +19,10 @@ impl<IA: IsaAbi> ArgsRef<'_, IA> {
     pub fn without_this_pointer<T: FromArgs>(&mut self) -> T::Output<'_> {
         load_args::<T>(&mut self.args, false)
     }
-    pub fn as_args(&self) -> &IA::Args {
-        self.args
+}
+impl<IA: IsaAbi> AsRef<IA::Args> for ArgsRef<'_, IA> {
+    fn as_ref(&self) -> &IA::Args {
+        &self.args
     }
 }
 impl<IA: IsaAbi> ArgsBoxed<IA> {
@@ -31,6 +33,11 @@ impl<IA: IsaAbi> ArgsBoxed<IA> {
         load_args::<T>(&mut *self.args, false)
     }
     pub fn as_args(&self) -> &IA::Args {
+        &self.args
+    }
+}
+impl<IA: IsaAbi> AsRef<IA::Args> for ArgsBoxed<IA> {
+    fn as_ref(&self) -> &IA::Args {
         &self.args
     }
 }

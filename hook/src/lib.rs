@@ -81,6 +81,7 @@ pub struct Hook<IA: IsaAbi> {
 }
 
 impl<IA: IsaAbi> Hook<IA> {
+    #[must_use]
     pub unsafe fn create(orig_addr: usize, hook_fn: for<'a> fn(&'static Hook<IA>, ArgsRef<'a, IA>)) -> &'static Hook<IA> {
         let orig_stack_arg_size = unsafe { FunctionDecoder::<IA>::new(orig_addr) }.stack_argument_size();
 
@@ -121,10 +122,10 @@ impl<IA: IsaAbi> Hook<IA> {
         slice.copy_from_slice(self.orig_bytes.as_slice());
         unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
-    pub fn call_original_function(&self, args: &IA::Args) {
+    pub fn call_original_function(&self, args: impl AsRef<IA::Args>) {
         unsafe {
             let function: extern "C" fn(&IA::Args) = mem::transmute(self.call_trampoline_addr);
-            function(args)
+            function(args.as_ref())
         }
     }
 }
