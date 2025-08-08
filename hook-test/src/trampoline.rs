@@ -143,13 +143,15 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
             | FlowControl::Return
             // branch to register or memory; rip-relative memory handled in rewrite_memory_access
             | FlowControl::IndirectBranch
+            | FlowControl::IndirectCall
             // handled by rewrite_call
             | FlowControl::Call
-            | FlowControl::IndirectCall
             => {}
             FlowControl::UnconditionalBranch | FlowControl::ConditionalBranch => {
                 assert_eq!(instruction.op_count(), 1);
                 match instruction.op0_kind() {
+                    // handled by rewrite_memory_access
+                    OpKind::Memory | OpKind::Register => return None,
                     OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
                         let jmp_into_trampoline = self.orig_addr_range.contains(&instruction.near_branch_target());
 
@@ -203,8 +205,7 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                         }
                         return Some(())
                     }
-                    // far branch jumps to a different segment -> not IP-relative
-                    OpKind::FarBranch16 | OpKind::FarBranch32 => {}
+                    OpKind::FarBranch16 | OpKind::FarBranch32 => unimplemented!("for branch not supported: {instruction:?}"),
                     kind => unreachable!("(un)conditional branch to {:?}", kind),
                 }
             }
@@ -216,47 +217,46 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
         None
     }
     fn rewrite_call(&mut self, instruction: Instruction) -> Option<()> {
-        // TODO
-        None
+        match instruction.flow_control() {
+            // no branch
+            FlowControl::Next
+            | FlowControl::Return
+            // branch to register or memory; rip-relative memory handled in rewrite_memory_access
+            | FlowControl::IndirectBranch
+            | FlowControl::IndirectCall
+            // handled by rewrite_jump
+            | FlowControl::UnconditionalBranch
+            | FlowControl::ConditionalBranch
+                => return None,
+            | FlowControl::Call => (),
+            // unsupported
+            FlowControl::Interrupt | FlowControl::XbeginXabortXend | FlowControl::Exception => {
+                unimplemented!("no support for rewriting {:?}", instruction.flow_control())
+            }
+        }
+        assert_eq!(instruction.op_count(), 1);
+        match instruction.op0_kind() {
+            OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => (),
+            // handled by rewrite_memory_access
+            OpKind::Memory | OpKind::Register => return None,
+            OpKind::FarBranch16 | OpKind::FarBranch32 => unimplemented!("for call not supported: {instruction:?}"),
+            kind => unreachable!("call to {:?}", kind),
+        }
+
+        let call_into_trampoline = self.orig_addr_range.contains(&instruction.near_branch_target());
+
+        if call_into_trampoline {
+            // call targets code copied into the trampoline
+            let label = *self.labels.get(&instruction.near_branch_target())
+                .expect("call to inside an instruction in the trampoline");
+            self.a.call(label).unwrap();
+        } else {
+            IA::create_mov_reg_addr(&mut self.a, self.free_reg, instruction.near_branch_target() as usize).unwrap();
+            IA::create_call_reg(&mut self.a, self.free_reg).unwrap();
+        }
+        Some(())
     }
 }
-
-// Original Function:
-// 0:  48 8b 3d 04 00 00 00    mov    rdi, [rip+0x4]  # b <0xb>
-// 7:  74 05                   je     [rip+0x5]       # e <end>
-// 9:  e8 00 00 00 00          call   [rip]           # e <end>
-// 000000000000000e <end>:
-// e:  c3                      ret
-//
-// Overwritten Function:
-// ; jump to our interceptor
-// 0:  48 b8 ef cd ab 89 67    movabs rax,0x123456789abcdef <interceptor_address>
-// 7:  45 23 01
-// a:  ff e0                   jmp    rax
-// ; keep the rest of the last instruction we overwrote
-// c:  00 00
-// 00000000000000 e <end>:
-// e:  c3                      ret
-//
-// Trampoline:
-// ; mov rdi, [rip+0x4]
-// 0:  48 b8 0b 00 00 00 00    movabs rax,0xb
-// 7:  00 00 00
-// a:  48 8b 38                mov    rdi,QWORD PTR [rax]
-// ; je e
-// d:  75 0c                   jne    1b <skipped>
-// f:  48 b8 0e 00 00 00 00    movabs rax,0xe
-// 16: 00 00 00
-// 19: ff e0                   jmp    rax
-// 000000000000001b <skipped>:
-// ; call e
-// 1b: 48 b8 0e 00 00 00 00    movabs rax,0xe
-// 22: 00 00 00
-// 25: ff d0                   call   rax
-// ; jump to original function
-// 27: 48 b8 0e 00 00 00 00    movabs rax,0xe
-// 2e: 00 00 00
-// 31: ff e0                   jmp    rax
 
 fn print_instructions(instructions: &[Instruction], mut ip: u64, indent: u8) {
     for instruction in instructions {
@@ -478,6 +478,21 @@ mod test {
     }
 
     #[test]
+    fn test_call_riprel() {
+        test!(X86_64_SystemV,
+            r#"
+                call [rip+0xc]
+                call rdi
+            "#,
+            r#"
+               1: mov rax, 0x1006
+            1000: call [rax+0xc]
+               2: call rdi
+            "#,
+        );
+    }
+
+    #[test]
     fn test_jmp_riprel() {
         test!(X86_64_SystemV,
             r#"
@@ -550,6 +565,38 @@ mod test {
             r#"
                1: jle short 2
                0: jmp short 3
+               2: mov rdi, 0x42
+               3: mov rdi, 0x1337
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_call_rel_outside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                call 2f
+                mov rdi, 0x42
+                2:
+            "#,
+            r#"
+               1: mov rax, 0x100c
+               0: call rax
+               2: mov rdi, 0x42
+            "#,
+        );
+    }
+    #[test]
+    fn test_call_rel_inside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                call 2f
+                mov rdi, 0x42
+                2:
+                mov rdi, 0x1337
+            "#,
+            r#"
+               1: call 3
                2: mov rdi, 0x42
                3: mov rdi, 0x1337
             "#,

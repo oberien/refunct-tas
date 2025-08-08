@@ -19,7 +19,8 @@ pub unsafe trait IsaAbi: 'static {
     fn free_registers() -> &'static [Self::AsmRegister];
     fn create_mov_reg_addr(a: &mut CodeAssembler, reg: Self::AsmRegister, addr: usize) -> Result<(), IcedError>;
     fn create_jmp_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError>;
-    
+    fn create_call_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError>;
+
     /// SAFETY: implementation must be correct and valid for the ISA
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray;
     /// SAFETY: mplementation must be correct and valid for the ISA & ABI
@@ -104,6 +105,9 @@ unsafe impl IsaAbi for X86_64_SystemV {
     }
     fn create_jmp_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError> {
         a.jmp(reg)
+    }
+    fn create_call_reg(a: &mut CodeAssembler, reg: Self::AsmRegister) -> Result<(), IcedError> {
+        a.call(reg)
     }
 
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray {
