@@ -102,9 +102,9 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                 assert!(!added_instructions.is_empty());
                 print_instructions(added_instructions, instruction.ip(), 4);
             } else {
-                println!("no replacement needed for");
-                print_instructions(&[instruction], instruction.ip(), 4);
                 self.a.add_instruction(instruction).unwrap();
+                println!("no replacement needed for");
+                print_instructions(&[*self.a.instructions().last().unwrap()], instruction.ip(), 4);
             }
         }
 
@@ -151,7 +151,13 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                 assert_eq!(instruction.op_count(), 1);
                 match instruction.op0_kind() {
                     OpKind::NearBranch16 | OpKind::NearBranch32 | OpKind::NearBranch64 => {
-                        // TODO: check if the branch-target is also moved to the trampoline
+                        // handle branch-targets into code copied into the trampoline
+                        if self.orig_addr_range.contains(&instruction.near_branch_target()) {
+                            let label = *self.labels.get(&instruction.near_branch_target())
+                                .expect("jump to inside an instruction in the trampoline");
+                            self.a.jmp(label).unwrap();
+                            return Some(());
+                        }
 
                         // `jmp <label>` becomes `mov rax, <label>; jmp rax`
                         if instruction.flow_control() == FlowControl::UnconditionalBranch {
@@ -289,7 +295,7 @@ impl InstructionFormat for Instruction {
 
     fn print(&self, ip: u64, indent: u8) -> u64 {
         let (new_ip, bytes) = self.bytes(ip);
-        println!("{:}{bytes:<36}    {}", " ".repeat(indent as usize), self.nasm());
+        println!("{}{:16x}: {bytes:<36}    {}", " ".repeat(indent as usize), self.ip(), self.nasm());
         new_ip
     }
     fn debug(&self, ip: u64) -> u64 {
@@ -343,10 +349,8 @@ mod test {
                 .rewrite_relative_instructions();
             let instructions = a.take_instructions();
             let mut result = String::new();
-            let mut addr = 0x4000;
-            for mut instruction in instructions {
-                instruction.set_ip(addr);
-                addr += instruction.len() as u64;
+            for instruction in instructions {
+                result.push_str(&format!("{:x}: ", instruction.ip()));
                 result.push_str(&instruction.nasm());
                 result.push('\n');
             }
@@ -362,9 +366,9 @@ mod test {
                 mov rdi, 0x1337
             "#,
             r#"
-                mov rax, 0x1007
-                mov rdi, [rax+0xc]
-                mov rdi, 0x1337
+               1: mov rax, 0x1007
+            1000: mov rdi, [rax+0xc]
+               2: mov rdi, 0x1337
             "#,
         );
     }
@@ -377,9 +381,9 @@ mod test {
                 mov rdi, rsi
             "#,
             r#"
-                mov rax, 0x1007
-                mov [rax+0xc], rdi
-                mov rdi, rsi
+               1: mov rax, 0x1007
+            1000: mov [rax+0xc], rdi
+               2: mov rdi, rsi
             "#,
         );
     }
@@ -392,9 +396,9 @@ mod test {
                 lea rdi, [0x1337]
             "#,
             r#"
-                mov rax, 0x1007
-                lea rdi, [rax+0xc]
-                lea rdi, [0x1337]
+               1: mov rax, 0x1007
+            1000: lea rdi, [rax+0xc]
+               2: lea rdi, [0x1337]
             "#,
         );
     }
@@ -408,11 +412,11 @@ mod test {
                 cmp rdi, rsi
             "#,
             r#"
-                mov rax, 0x1007
-                cmp rdi, [rax+0xc]
-                mov rax, 0x100e
-                cmp [rax+0xc], rdi
-                cmp rdi, rsi
+               1: mov rax, 0x1007
+            1000: cmp rdi, [rax+0xc]
+               2: mov rax, 0x100e
+            1007: cmp [rax+0xc], rdi
+               3: cmp rdi, rsi
             "#,
         );
     }
@@ -425,10 +429,10 @@ mod test {
                 add [rip+0xc], rdi
             "#,
             r#"
-                mov rax, 0x1007
-                add rdi, [rax+0xc]
-                mov rax, 0x100e
-                add [rax+0xc], rdi
+               1: mov rax, 0x1007
+            1000: add rdi, [rax+0xc]
+               2: mov rax, 0x100e
+            1007: add [rax+0xc], rdi
             "#,
         );
     }
@@ -441,9 +445,9 @@ mod test {
                 push rdi
             "#,
             r#"
-                mov rax, 0x1006
-                push [rax+0xc]
-                push rdi
+               1: mov rax, 0x1006
+            1000: push [rax+0xc]
+               2: push rdi
             "#,
         );
     }
@@ -456,9 +460,9 @@ mod test {
                 pop rdi
             "#,
             r#"
-                mov rax, 0x1006
-                pop [rax+0xc]
-                pop rdi
+               1: mov rax, 0x1006
+            1000: pop [rax+0xc]
+               2: pop rdi
             "#,
         );
     }
@@ -470,8 +474,8 @@ mod test {
                 jmp [rip+0xc]
             "#,
             r#"
-                mov rax, 0x1006
-                jmp [rax+0xc]
+               1: mov rax, 0x1006
+            1000: jmp [rax+0xc]
             "#,
         );
     }
@@ -487,11 +491,11 @@ mod test {
                 2:
             "#,
             r#"
-                mov rax, 0x1020
-                jmp rax
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
+               1: mov rax, 0x1020
+               0: jmp rax
+               2: mov rdi, 0x1234567890abc
+               3: mov rdi, 0x1234567890abc
+               4: mov rdi, 0x1234567890abc
             "#,
         );
     }
@@ -506,17 +510,14 @@ mod test {
                 mov rdi, 0x1234567890abc
             "#,
             r#"
-                jmp short 0x00000000000200c
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
-                mov rdi, 0x1234567890abc
+               1: jmp short 3
+               2: mov rdi, 0x1234567890abc
+               3: mov rdi, 0x1234567890abc
+               4: mov rdi, 0x1234567890abc
             "#,
         );
     }
 
-// +--------------------------+---------------------------+
-// | jmp [rip + disp]         | mov rax, <absolute_addr>  |
-// | or jmp rel32             | jmp rax                   |
 // +--------------------------+---------------------------+
 // | je <rel32>               | jne skip                  |
 // |                          | mov rax, <absolute_addr>  |
