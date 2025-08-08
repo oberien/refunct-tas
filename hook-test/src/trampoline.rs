@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use iced_x86::{ConditionCode, FlowControl, Formatter, Instruction, IntelFormatter, OpKind};
+use iced_x86::{ConditionCode, FlowControl, Formatter, Instruction, IntelFormatter, MemorySizeOptions, OpKind};
 use iced_x86::code_asm::CodeAssembler;
 use crate::assemble;
 use crate::function_decoder::FunctionDecoder;
@@ -273,6 +273,11 @@ impl InstructionFormat for Instruction {
         let mut s = String::new();
         let mut formatter = IntelFormatter::new();
         formatter.options_mut().set_rip_relative_addresses(true);
+        formatter.options_mut().set_hex_prefix("0x");
+        formatter.options_mut().set_hex_suffix("");
+        formatter.options_mut().set_uppercase_hex(false);
+        formatter.options_mut().set_space_after_operand_separator(true);
+        formatter.options_mut().set_memory_size_options(MemorySizeOptions::Never);
         formatter.format(self, &mut s);
         s
     }
@@ -354,13 +359,176 @@ mod test {
     }
 
     #[test]
-    fn test_mov_rdi_riprel() {
+    fn test_mov_reg_addr() {
         test!(X86_64_SystemV,
-            "mov rdi, [rip+0xc]",
             r#"
-                mov rax,1007h
-                mov rdi,[rax+0Ch]
+                mov rdi, [rip+0xc]
+                mov rdi, 0x1337
+            "#,
+            r#"
+                mov rax, 0x1007
+                mov rdi, [rax+0xc]
+                mov rdi, 0x1337
             "#,
         );
     }
+
+    #[test]
+    fn test_mov_addr_reg() {
+        test!(X86_64_SystemV,
+            r#"
+                mov [rip+0xc], rdi
+                mov rdi, rsi
+            "#,
+            r#"
+                mov rax, 0x1007
+                mov [rax+0xc], rdi
+                mov rdi, rsi
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_lea() {
+        test!(X86_64_SystemV,
+            r#"
+                lea rdi, [rip+0xc]
+                lea rdi, [0x1337]
+            "#,
+            r#"
+                mov rax, 0x1007
+                lea rdi, [rax+0xc]
+                lea rdi, [0x1337]
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_cmp() {
+        test!(X86_64_SystemV,
+            r#"
+                cmp rdi, [rip+0xc]
+                cmp [rip+0xc], rdi
+                cmp rdi, rsi
+            "#,
+            r#"
+                mov rax, 0x1007
+                cmp rdi, [rax+0xc]
+                mov rax, 0x100e
+                cmp [rax+0xc], rdi
+                cmp rdi, rsi
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_add() {
+        test!(X86_64_SystemV,
+            r#"
+                add rdi, [rip+0xc]
+                add [rip+0xc], rdi
+            "#,
+            r#"
+                mov rax, 0x1007
+                add rdi, [rax+0xc]
+                mov rax, 0x100e
+                add [rax+0xc], rdi
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_push() {
+        test!(X86_64_SystemV,
+            r#"
+                push [rip+0xc]
+                push rdi
+            "#,
+            r#"
+                mov rax, 0x1006
+                push [rax+0xc]
+                push rdi
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_pop() {
+        test!(X86_64_SystemV,
+            r#"
+                pop [rip+0xc]
+                pop rdi
+            "#,
+            r#"
+                mov rax, 0x1006
+                pop [rax+0xc]
+                pop rdi
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_jmp_riprel() {
+        test!(X86_64_SystemV,
+            r#"
+                jmp [rip+0xc]
+            "#,
+            r#"
+                mov rax, 0x1006
+                jmp [rax+0xc]
+            "#,
+        );
+    }
+
+    #[test]
+    fn test_jmp_rel_outside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                jmp 2f
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+                2:
+            "#,
+            r#"
+                mov rax, 0x1020
+                jmp rax
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+            "#,
+        );
+    }
+    #[test]
+    fn test_jmp_rel_inside_trampoline() {
+        test!(X86_64_SystemV,
+            r#"
+                jmp 2f
+                mov rdi, 0x1234567890abc
+                2:
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+            "#,
+            r#"
+                jmp short 0x00000000000200c
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+                mov rdi, 0x1234567890abc
+            "#,
+        );
+    }
+
+// +--------------------------+---------------------------+
+// | jmp [rip + disp]         | mov rax, <absolute_addr>  |
+// | or jmp rel32             | jmp rax                   |
+// +--------------------------+---------------------------+
+// | je <rel32>               | jne skip                  |
+// |                          | mov rax, <absolute_addr>  |
+// |                          | jmp rax                   |
+// |                          | skip:                     |
+// +--------------------------+---------------------------+
+// | call [rip + disp]        | mov rax, <absolute_addr>  |
+// | or call rel32            | call rax                  |
+// +--------------------------+---------------------------+
+
 }
