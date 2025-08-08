@@ -172,7 +172,6 @@ pub struct ArgsContext {
 }
 
 impl ArgsContext {
-    #[expect(unused)]
     pub fn has_this_pointer(&self) -> bool {
         self.has_this_pointer
     }
