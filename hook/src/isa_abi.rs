@@ -3,8 +3,9 @@ use std::mem::offset_of;
 use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, AsmRegister64, r10, r11};
 use iced_x86::{IcedError, Register};
 use crate::{assemble, Interceptor, Hook, CallTrampoline};
-use crate::args::{Args, ArgsAccessContext, ArgsRef};
+use crate::args::{Args, ArgsLoadContext, ArgsRef, ArgsStoreContext};
 
+#[allow(private_interfaces)]
 pub unsafe trait IsaAbi: 'static {
     const BITNESS: u32;
     const DISPL_SIZE: u32 = Self::BITNESS / 8;
@@ -67,7 +68,7 @@ pub struct X86_64_SystemV;
 
 #[allow(non_camel_case_types)]
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct X86_64_SystemV_Args {
     /// xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
     xmm: [u128; 8],
@@ -78,19 +79,33 @@ pub struct X86_64_SystemV_Args {
 }
 
 unsafe impl Args for X86_64_SystemV_Args {
-    fn next_int_arg(&mut self, ctx: &ArgsAccessContext) -> *mut usize {
-        &mut self.args[ctx.int_args_consumed()] as *mut u64 as *mut usize
+    type This = Self;
+    fn new() -> Self::This {
+        Self::default()
+    }
+    fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize {
+        &raw mut self.args[ctx.int_args_consumed()] as *mut usize
+    }
+    fn next_float_arg(&mut self, ctx: &ArgsLoadContext) -> *mut f32 {
+        &raw mut self.xmm[ctx.float_args_consumed()] as *mut f32
     }
 
-    fn next_float_arg(&mut self, ctx: &ArgsAccessContext) -> *mut f32 {
-        &mut self.xmm[ctx.float_args_consumed()] as *mut u128 as *mut f32
+    fn set_next_int_arg(&mut self, val: usize, ctx: &ArgsStoreContext) {
+        self.args[ctx.int_args_stored()] = val as u64;
+    }
+    fn set_next_float_arg(&mut self, val: f32, ctx: &ArgsStoreContext) {
+        self.xmm[ctx.float_args_stored()] = val.to_bits() as u128;
     }
 
+    fn return_value(&self) -> usize {
+        self.return_value.try_into().unwrap()
+    }
     fn set_return_value(&mut self, ret_val: usize) {
         self.return_value = ret_val as u64;
     }
 }
 
+#[allow(private_interfaces)]
 unsafe impl IsaAbi for X86_64_SystemV {
     const BITNESS: u32 = 64;
     type JmpInterceptorBytesArray = [u8; 12];

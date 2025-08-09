@@ -1,10 +1,12 @@
-use crate::args::access::AccessArgs;
+use crate::args::load::LoadArgs;
 use crate::isa_abi::IsaAbi;
 
-mod access;
-mod write;
+mod load;
+mod store;
 
-pub use access::{ArgsAccessContext, LoadFromArgs};
+pub use load::{ArgsLoadContext, LoadFromArgs};
+pub use store::{ArgsStoreContext, StoreToArgs};
+use crate::args::store::StoreArgs;
 
 #[repr(transparent)]
 pub struct ArgsRef<'a, IA: IsaAbi> {
@@ -25,6 +27,12 @@ impl<IA: IsaAbi> ArgsRef<'_, IA> {
     pub fn without_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
         load_args::<T>(&mut self.args, false)
     }
+    pub fn store_with_this_pointer<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut self.args, true, val)
+    }
+    pub fn store_without_this_pointer<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut self.args, false, val)
+    }
 }
 impl<IA: IsaAbi> AsRef<IA::Args> for ArgsRef<'_, IA> {
     fn as_ref(&self) -> &IA::Args {
@@ -37,6 +45,12 @@ impl<IA: IsaAbi> ArgsBoxed<IA> {
     }
     pub fn without_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
         load_args::<T>(&mut *self.args, false)
+    }
+    pub fn store_with_this_pointer<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut *self.args, true, val)
+    }
+    pub fn store_without_this_pointer<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut *self.args, false, val)
     }
     pub fn as_args(&self) -> &IA::Args {
         &self.args
@@ -51,28 +65,50 @@ impl<IA: IsaAbi> AsRef<IA::Args> for ArgsBoxed<IA> {
 fn load_args<T: LoadFromArgs>(args: &mut impl Args, has_this_pointer: bool) -> T::Output<'_> {
     // SAFETY: the lifetime is bound to &mut Args
     unsafe {
-        T::convert_pointer_to_arg(T::get_pointer_to_arg(&mut AccessArgs::new(args, has_this_pointer)))
+        T::convert_pointer_to_arg(T::get_pointer_to_arg(&mut LoadArgs::new(args, has_this_pointer)))
     }
+}
+fn store_args<T: StoreToArgs>(args: &mut impl Args, has_this_pointer: bool, val: T) {
+    val.store_to_args(&mut StoreArgs::new(args, has_this_pointer));
 }
 
 pub unsafe trait Args {
+    type This;
+    fn new() -> Self::This;
     /// if `ctx.has_this_pointer`, the first returned integer argument must be the this-pointer
     ///
     /// SAFETY: as long as different `ctx` are passed, each pointer returned by `next_int_arg` and
     ///        `next_float_arg` must point to a different memory location
-    fn next_int_arg(&mut self, ctx: &ArgsAccessContext) -> *mut usize;
+    fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize;
     /// SAFETY: as long as different `ctx` are passed, each pointer returned by `next_int_arg` and
     ///        `next_float_arg` must point to a different memory location
-    fn next_float_arg(&mut self, ctx: &ArgsAccessContext) -> *mut f32;
+    fn next_float_arg(&mut self, ctx: &ArgsLoadContext) -> *mut f32;
 
+    fn set_next_int_arg(&mut self, val: usize, ctx: &ArgsStoreContext);
+    fn set_next_float_arg(&mut self, val: f32, ctx: &ArgsStoreContext);
+
+    fn return_value(&self) -> usize;
     fn set_return_value(&mut self, ret_val: usize);
 }
-unsafe impl<T: Args + ?Sized> Args for &'_ mut T {
-    fn next_int_arg(&mut self, ctx: &ArgsAccessContext) -> *mut usize {
+unsafe impl<T: Args> Args for &'_ mut T {
+    type This = T::This;
+    fn new() -> Self::This {
+        T::new()
+    }
+    fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize {
         T::next_int_arg(self, ctx)
     }
-    fn next_float_arg(&mut self, ctx: &ArgsAccessContext) -> *mut f32 {
+    fn next_float_arg(&mut self, ctx: &ArgsLoadContext) -> *mut f32 {
         T::next_float_arg(self, ctx)
+    }
+    fn set_next_int_arg(&mut self, val: usize, ctx: &ArgsStoreContext) {
+        T::set_next_int_arg(self, val, ctx)
+    }
+    fn set_next_float_arg(&mut self, val: f32, ctx: &ArgsStoreContext) {
+        T::set_next_float_arg(self, val, ctx)
+    }
+    fn return_value(&self) -> usize {
+        T::return_value(self)
     }
     fn set_return_value(&mut self, ret_val: usize) {
         T::set_return_value(self, ret_val)

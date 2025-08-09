@@ -13,11 +13,11 @@ fn main() {
 fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, mut args: ArgsRef<'_, IA>) {
     let arg = args.without_this_pointer::<u32>();
     println!("from inside the hook; original argument: {arg}");
-    hook.call_original_function(args.as_args());
+    hook.call_original_function(&args);
     let arg = args.without_this_pointer::<u32>();
     println!("setting argument to 314");
     *arg = 314;
-    hook.call_original_function(args.as_args());
+    hook.call_original_function(&args);
     println!("disabling the hook within the hook");
     hook.disable();
 }
