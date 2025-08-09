@@ -116,6 +116,10 @@ impl<IA: IsaAbi> Hook<IA> {
         jmp.store_to(slice);
         unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
+    pub fn enabled(&self) -> &Self {
+        self.enable();
+        self
+    }
     pub fn disable(&self) {
         let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
         unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
