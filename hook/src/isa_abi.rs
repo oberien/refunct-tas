@@ -3,7 +3,7 @@ use std::mem::offset_of;
 use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, AsmRegister64, r10, r11};
 use iced_x86::{IcedError, Register};
 use crate::{assemble, Interceptor, Hook, CallTrampoline};
-use crate::args::{Args, ArgsContext, ArgsRef};
+use crate::args::{Args, ArgsAccessContext, ArgsRef};
 
 pub unsafe trait IsaAbi: 'static {
     const BITNESS: u32;
@@ -78,11 +78,11 @@ pub struct X86_64_SystemV_Args {
 }
 
 unsafe impl Args for X86_64_SystemV_Args {
-    fn next_int_arg(&mut self, ctx: &ArgsContext) -> *mut usize {
+    fn next_int_arg(&mut self, ctx: &ArgsAccessContext) -> *mut usize {
         &mut self.args[ctx.int_args_consumed()] as *mut u64 as *mut usize
     }
 
-    fn next_float_arg(&mut self, ctx: &ArgsContext) -> *mut f32 {
+    fn next_float_arg(&mut self, ctx: &ArgsAccessContext) -> *mut f32 {
         &mut self.xmm[ctx.float_args_consumed()] as *mut u128 as *mut f32
     }
 
