@@ -7,11 +7,11 @@ use crate::isa_abi::IsaAbi;
 use crate::trampoline::Trampoline;
 
 #[must_use]
-pub struct HookMemoryPageBuilder<IA: IsaAbi> {
+pub struct HookMemoryPageBuilder<IA: IsaAbi, T> {
     map: MmapMut,
-    _marker: PhantomData<IA>,
+    _marker: PhantomData<(IA, T)>,
 }
-impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
+impl<IA: IsaAbi, T: 'static> HookMemoryPageBuilder<IA, T> {
     pub fn new() -> Self {
         Self {
             map: MmapMut::map_anon(8192).unwrap(),
@@ -19,7 +19,7 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
         }
     }
 
-    pub fn trampoline(mut self, trampoline: Trampoline) -> HookMemoryPageBuilderWithTrampoline<IA> {
+    pub fn trampoline(mut self, trampoline: Trampoline) -> HookMemoryPageBuilderWithTrampoline<IA, T> {
         let addr = self.trampoline_addr();
         let offset = self.trampoline_offset();
         let code = assemble::<IA>(&trampoline.instructions, addr as u64).unwrap();
@@ -40,7 +40,7 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
         self.page_addr() + self.hook_struct_offset()
     }
     pub fn trampoline_offset(&self) -> usize {
-        ((self.hook_struct_offset() + size_of::<Hook<IA>>() + 15) / 16) * 16
+        ((self.hook_struct_offset() + size_of::<Hook<IA, T>>() + 15) / 16) * 16
     }
     pub fn trampoline_addr(&self) -> usize {
         self.page_addr() + self.trampoline_offset()
@@ -50,19 +50,19 @@ impl<IA: IsaAbi> HookMemoryPageBuilder<IA> {
 // --------------------------------
 
 #[must_use]
-pub struct HookMemoryPageBuilderWithTrampoline<IA: IsaAbi> {
-    builder: HookMemoryPageBuilder<IA>,
+pub struct HookMemoryPageBuilderWithTrampoline<IA: IsaAbi, T> {
+    builder: HookMemoryPageBuilder<IA, T>,
     trampoline_len: usize,
 }
-impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithTrampoline<IA> {
-    type Target = HookMemoryPageBuilder<IA>;
+impl<IA: IsaAbi, T: 'static> Deref for HookMemoryPageBuilderWithTrampoline<IA, T> {
+    type Target = HookMemoryPageBuilder<IA, T>;
 
     fn deref(&self) -> &Self::Target {
         &self.builder
     }
 }
-impl<IA: IsaAbi> HookMemoryPageBuilderWithTrampoline<IA> {
-    pub fn interceptor(mut self, interceptor: Interceptor) -> HookMemoryPageBuilderWithInterceptor<IA> {
+impl<IA: IsaAbi, T: 'static> HookMemoryPageBuilderWithTrampoline<IA, T> {
+    pub fn interceptor(mut self, interceptor: Interceptor) -> HookMemoryPageBuilderWithInterceptor<IA, T> {
         let addr = self.interceptor_addr();
         let offset = self.interceptor_offset();
         let code = assemble::<IA>(&interceptor.instructions, addr as u64).unwrap();
@@ -88,19 +88,19 @@ impl<IA: IsaAbi> HookMemoryPageBuilderWithTrampoline<IA> {
 // --------------------------------
 
 #[must_use]
-pub struct HookMemoryPageBuilderWithInterceptor<IA: IsaAbi> {
-    builder: HookMemoryPageBuilderWithTrampoline<IA>,
+pub struct HookMemoryPageBuilderWithInterceptor<IA: IsaAbi, T> {
+    builder: HookMemoryPageBuilderWithTrampoline<IA, T>,
     interceptor_len: usize,
 }
-impl<IA: IsaAbi> Deref for HookMemoryPageBuilderWithInterceptor<IA> {
-    type Target = HookMemoryPageBuilderWithTrampoline<IA>;
+impl<IA: IsaAbi, T> Deref for HookMemoryPageBuilderWithInterceptor<IA, T> {
+    type Target = HookMemoryPageBuilderWithTrampoline<IA, T>;
 
     fn deref(&self) -> &Self::Target {
         &self.builder
     }
 }
-impl<IA: IsaAbi> HookMemoryPageBuilderWithInterceptor<IA> {
-    pub fn call_trampoline(mut self, call_trampoline: CallTrampoline) -> HookMemoryPageBuilderFinished<IA> {
+impl<IA: IsaAbi, T: 'static> HookMemoryPageBuilderWithInterceptor<IA, T> {
+    pub fn call_trampoline(mut self, call_trampoline: CallTrampoline) -> HookMemoryPageBuilderFinished<IA, T> {
         let addr = self.call_trampoline_addr();
         let offset = self.call_trampoline_offset();
         let code = assemble::<IA>(&call_trampoline.instructions, addr as u64).unwrap();
@@ -126,29 +126,29 @@ impl<IA: IsaAbi> HookMemoryPageBuilderWithInterceptor<IA> {
 // --------------------------------
 
 #[must_use]
-pub struct HookMemoryPageBuilderFinished<IA: IsaAbi> {
-    builder: HookMemoryPageBuilderWithInterceptor<IA>,
+pub struct HookMemoryPageBuilderFinished<IA: IsaAbi, T> {
+    builder: HookMemoryPageBuilderWithInterceptor<IA, T>,
     call_trampoline_len: usize,
 }
-impl<IA: IsaAbi> Deref for HookMemoryPageBuilderFinished<IA> {
-    type Target = HookMemoryPageBuilderWithInterceptor<IA>;
+impl<IA: IsaAbi, T> Deref for HookMemoryPageBuilderFinished<IA, T> {
+    type Target = HookMemoryPageBuilderWithInterceptor<IA, T>;
 
     fn deref(&self) -> &Self::Target {
         &self.builder
     }
 }
 
-impl<IA: IsaAbi> HookMemoryPageBuilderFinished<IA> {
+impl<IA: IsaAbi, T> HookMemoryPageBuilderFinished<IA, T> {
     #[expect(unused)]
     pub fn call_trampoline_len(&self) -> usize {
         self.call_trampoline_len
     }
-    pub fn finalize(mut self, hook_struct: Hook<IA>) -> &'static Hook<IA> {
+    pub fn finalize(mut self, hook_struct: Hook<IA, T>) -> &'static Hook<IA, T> {
         unsafe {
             let ptr = self.builder.builder.builder.map.as_mut_ptr();
             // make sure the map is Hook-aligned
-            assert_eq!(ptr.addr() % align_of::<Hook<IA>>(), 0);
-            let hook_struct_ptr = ptr as *mut Hook<IA>;
+            assert_eq!(ptr.addr() % align_of::<Hook<IA, T>>(), 0);
+            let hook_struct_ptr = ptr as *mut Hook<IA, T>;
             // SAFETY:
             // * `dst` is valid for writes: we have MmapMut
             // * `dst` is properly aligned: see previous alignment check
@@ -157,7 +157,7 @@ impl<IA: IsaAbi> HookMemoryPageBuilderFinished<IA> {
         }
         let map = self.builder.builder.builder.map.make_exec().unwrap();
         unsafe {
-            let ptr = map.as_ptr() as *const Hook<IA>;
+            let ptr = map.as_ptr() as *const Hook<IA, T>;
             mem::forget(map);
             // SAFETY:
             // * the struct was just initialized properly at that address

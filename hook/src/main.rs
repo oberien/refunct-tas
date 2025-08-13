@@ -1,5 +1,5 @@
 use std::arch::naked_asm;
-use hook::{ArgsRef, Hook, IsaAbi, X86_64_SystemV};
+use hook::{ArgsRef, Hook, HookableFunction, IsaAbi, SafeHook, X86_64_SystemV};
 
 fn main() {
     let hook = unsafe { Hook::create(test_function as usize, custom_hook::<X86_64_SystemV>) };
@@ -10,7 +10,11 @@ fn main() {
     test_function(21);
 }
 
-fn custom_hook<IA: IsaAbi>(hook: &'static Hook<IA>, mut args: ArgsRef<'_, IA>) {
+fn custom_safe_hook<IA: IsaAbi, F: HookableFunction>(hook: &SafeHook<IA, F>, arg: u32) {
+
+}
+
+fn custom_hook<IA: IsaAbi, T>(hook: &'static Hook<IA, T>, mut args: ArgsRef<'_, IA>) {
     let arg = args.without_this_pointer::<u32>();
     println!("from inside the hook; original argument: {arg}");
     hook.call_original_function(&args);

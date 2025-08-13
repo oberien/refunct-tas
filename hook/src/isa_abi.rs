@@ -24,8 +24,10 @@ pub unsafe trait IsaAbi: 'static {
 
     /// SAFETY: implementation must be correct and valid for the ISA
     fn create_jmp_to_interceptor(interceptor_addr: usize) -> Self::JmpInterceptorBytesArray;
-    /// SAFETY: mplementation must be correct and valid for the ISA & ABI
-    fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor;
+    /// SAFETY: implementation must be correct and valid for the ISA & ABI
+    /// # Safety
+    /// * T must be the T that the `Hook` at `hook_struct_addr` uses
+    unsafe fn create_interceptor<T: 'static>(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor;
     /// SAFETY: implementation must be correct and valid for the ISA & ABI
     fn create_call_trampoline(trampoline_addr: usize) -> CallTrampoline;
     /// SAFETY: implementation must be correct for the OS
@@ -59,7 +61,7 @@ impl<const N: usize> Array for [u8; N] {
     }
 }
 
-extern "C" fn abi_fixer<IA: IsaAbi>(hook: &'static Hook<IA>, args_ref: ArgsRef<'_, IA>) {
+extern "C" fn abi_fixer<IA: IsaAbi, T>(hook: &'static Hook<IA, T>, args_ref: ArgsRef<'_, IA>) {
     (hook.hook_fn)(hook, args_ref)
 }
 
@@ -77,10 +79,14 @@ pub struct X86_64_SystemV_Args {
     /// return value to be returned to the original caller
     return_value: u64,
 }
+impl AsRef<X86_64_SystemV_Args> for X86_64_SystemV_Args {
+    fn as_ref(&self) -> &X86_64_SystemV_Args {
+        self
+    }
+}
 
 unsafe impl Args for X86_64_SystemV_Args {
-    type This = Self;
-    fn new() -> Self::This {
+    fn new() -> Self {
         Self::default()
     }
     fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize {
@@ -132,7 +138,7 @@ unsafe impl IsaAbi for X86_64_SystemV {
         assemble::<Self>(a.instructions(), 0).unwrap().try_into().unwrap()
     }
 
-    fn create_interceptor(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {
+    unsafe fn create_interceptor<T: 'static>(hook_struct_addr: usize, stack_arg_size: u16) -> Interceptor {
         let mut a = CodeAssembler::new(Self::BITNESS).unwrap();
 
         // function prologue with frame pointer
@@ -146,7 +152,7 @@ unsafe impl IsaAbi for X86_64_SystemV {
         a.mov(rdi, hook_struct_addr as u64).unwrap();
         a.mov(rsi, rsp).unwrap();
         // call interceptor
-        a.mov(rax, abi_fixer::<X86_64_SystemV> as u64).unwrap();
+        a.mov(rax, abi_fixer::<X86_64_SystemV, T> as u64).unwrap();
         align_stack_pre_x86_64_system_v(&mut a);
         a.call(rax).unwrap();
         align_stack_post_x86_64_system_v(&mut a);

@@ -18,8 +18,11 @@ pub struct ArgsBoxed<IA: IsaAbi> {
 }
 
 impl<IA: IsaAbi> ArgsRef<'_, IA> {
+    pub fn new(args: &mut IA::Args) -> ArgsRef<'_, IA> {
+        ArgsRef { args }
+    }
     pub fn boxed(&self) -> ArgsBoxed<IA> where IA::Args: Clone {
-        ArgsBoxed { args: Box::new(self.args.clone()) }
+        ArgsBoxed::new(self.args.clone())
     }
     pub fn with_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
         load_args::<T>(&mut self.args, true)
@@ -40,6 +43,11 @@ impl<IA: IsaAbi> AsRef<IA::Args> for ArgsRef<'_, IA> {
     }
 }
 impl<IA: IsaAbi> ArgsBoxed<IA> {
+    pub fn new(args: IA::Args) -> Self {
+        Self {
+            args: Box::new(args),
+        }
+    }
     pub fn with_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
         load_args::<T>(&mut *self.args, true)
     }
@@ -73,8 +81,7 @@ fn store_args<T: StoreToArgs>(args: &mut impl Args, has_this_pointer: bool, val:
 }
 
 pub unsafe trait Args {
-    type This;
-    fn new() -> Self::This;
+    fn new() -> Self;
     /// if `ctx.has_this_pointer`, the first returned integer argument must be the this-pointer
     ///
     /// SAFETY: as long as different `ctx` are passed, each pointer returned by `next_int_arg` and
@@ -91,9 +98,8 @@ pub unsafe trait Args {
     fn set_return_value(&mut self, ret_val: usize);
 }
 unsafe impl<T: Args> Args for &'_ mut T {
-    type This = T::This;
-    fn new() -> Self::This {
-        T::new()
+    fn new() -> Self {
+        panic!("can't call `<&mut impl Args>::new`")
     }
     fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize {
         T::next_int_arg(self, ctx)

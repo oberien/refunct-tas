@@ -52,6 +52,7 @@ pub trait LoadFromArgs {
     /// # Safety
     /// * lifetime must be bound to the `Args` lifetime
     unsafe fn convert_pointer_to_arg<'a>(ptr: Self::Pointer) -> Self::Output<'a>;
+    fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a;
 }
 
 macro_rules! impl_load_from_args_for_number {
@@ -64,6 +65,9 @@ macro_rules! impl_load_from_args_for_number {
             }
             unsafe fn convert_pointer_to_arg<'a>(ptr: Self::Pointer) -> Self::Output<'a> {
                 unsafe { &mut *ptr }
+            }
+            fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a {
+                *output
             }
         }
     };
@@ -86,6 +90,9 @@ impl<T> LoadFromArgs for *mut T {
     unsafe fn convert_pointer_to_arg<'a>(ptr: Self::Pointer) -> Self::Output<'a> where T: 'a {
         unsafe { *ptr }
     }
+    fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a {
+        output
+    }
 }
 impl LoadFromArgs for () {
     type Pointer = ();
@@ -95,6 +102,9 @@ impl LoadFromArgs for () {
     }
     unsafe fn convert_pointer_to_arg<'a>(_ptr: Self::Pointer) -> Self::Output<'a> {
         // noop
+    }
+    fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a {
+        output
     }
 }
 macro_rules! impl_load_from_args_for_tuple {
@@ -115,6 +125,13 @@ macro_rules! impl_load_from_args_for_tuple {
                         $($generic::convert_pointer_to_arg($generic)),*
                     )
                 }
+            }
+            fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a {
+                #[allow(non_snake_case)]
+                let ($($generic),*) = output;
+                (
+                    $($generic::convert_output_to_owned($generic)),*
+                )
             }
         }
     }
