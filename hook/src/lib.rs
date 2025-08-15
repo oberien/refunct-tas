@@ -144,7 +144,7 @@ impl<IA: IsaAbi, T> Hook<IA, T> {
     pub fn trampoline(&self) -> *const () {
         self.call_trampoline_addr as *const ()
     }
-    pub fn user_context(&self) -> &T {
+    pub fn context(&self) -> &T {
         &self.user_context
     }
 }
@@ -167,27 +167,48 @@ unsafe fn get_orig_bytes<IA: IsaAbi>(orig_addr: usize) -> IA::JmpInterceptorByte
     IA::JmpInterceptorBytesArray::load_from(slice)
 }
 
-pub struct SafeHook<IA: IsaAbi, F: HookableFunction<IA> + 'static> {
-    hook: &'static Hook<IA, (F, bool)>,
+struct SafeHookContext<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
+    safe_hook_function: F::BoxedFn,
+    has_this_pointer: bool,
+    user_context: T,
+}
+
+pub struct SafeHook<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
+    hook: &'static Hook<IA, SafeHookContext<IA, F, T>>,
     has_this_pointer: bool,
 }
-impl<IA: IsaAbi, F: HookableFunction<IA>> SafeHook<IA, F> {
+impl<IA: IsaAbi> SafeHook<IA, fn(), ()> {
     #[must_use]
-    pub unsafe fn create_with_this_pointer(orig_addr: usize, hook_fn: F) -> SafeHook<IA, F> {
-        unsafe { Self::create(orig_addr, hook_fn, true) }
+    pub unsafe fn with_this_pointer<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> SafeHook<IA, HF::RawFnWithoutHook, ()> {
+        unsafe { Self::create(orig_addr, hook_fn, true, ()) }
     }
     #[must_use]
-    pub unsafe fn create_without_this_pointer(orig_addr: usize, hook_fn: F) -> SafeHook<IA, F> {
-        unsafe { Self::create(orig_addr, hook_fn, false) }
+    pub unsafe fn without_this_pointer<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> SafeHook<IA, HF::RawFnWithoutHook, ()> {
+        unsafe { Self::create(orig_addr, hook_fn, false, ()) }
     }
     #[must_use]
-    unsafe fn create(orig_addr: usize, hook_fn: F, has_this_pointer: bool) -> SafeHook<IA, F> {
-        Self {
-            hook: unsafe { Hook::with_context(orig_addr, hook_fn_for_hookable_function::<IA, F>, (hook_fn, has_this_pointer)) },
+    pub unsafe fn with_this_pointer_and_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, context: T) -> SafeHook<IA, HF::RawFnWithoutHook, T> {
+        unsafe { Self::create(orig_addr, hook_fn, true, context) }
+    }
+    #[must_use]
+    pub unsafe fn without_this_pointer_and_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, context: T) -> SafeHook<IA, HF::RawFnWithoutHook, T> {
+        unsafe { Self::create(orig_addr, hook_fn, false, context) }
+    }
+    #[must_use]
+    unsafe fn create<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, has_this_pointer: bool, user_context: T) -> SafeHook<IA, HF::RawFnWithoutHook, T> {
+        let context = SafeHookContext {
+            safe_hook_function: hook_fn.into_boxed_fn(),
+            has_this_pointer,
+            user_context,
+        };
+        SafeHook {
+            hook: unsafe { Hook::with_context(orig_addr, hook_fn_for_hookable_function::<IA, HF::RawFnWithoutHook, T>, context) },
             has_this_pointer,
         }
     }
+}
 
+impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> SafeHook<IA, F, T> {
     pub fn enable(&self) {
         self.hook.enable()
     }
@@ -198,7 +219,10 @@ impl<IA: IsaAbi, F: HookableFunction<IA>> SafeHook<IA, F> {
     pub fn disable(&self) {
         self.hook.disable()
     }
-    pub fn call_original_function<R: HookableFunctionRet>(&self, args: F::Args) -> R {
+    pub fn context(&self) -> &T {
+        &self.hook.user_context.user_context
+    }
+    pub fn call_original_function(&self, args: F::Args) -> usize {
         let mut a = IA::Args::new();
         let mut a_ref = ArgsRef::<IA>::new(&mut a);
         if self.has_this_pointer {
@@ -207,12 +231,12 @@ impl<IA: IsaAbi, F: HookableFunction<IA>> SafeHook<IA, F> {
             a_ref.store_without_this_pointer(args);
         }
         self.hook.call_original_function(a_ref);
-        R::from_usize(a.return_value())
+        a.return_value()
     }
 }
 
-fn hook_fn_for_hookable_function<IA: IsaAbi, F: HookableFunction<IA>>(hook: &'static Hook<IA, (F, bool)>, mut args: ArgsRef<IA>) {
-    let (hook_fn, has_this_pointer) = hook.user_context();
+fn hook_fn_for_hookable_function<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static>(hook: &'static Hook<IA, SafeHookContext<IA, F, T>>, mut args: ArgsRef<IA>) {
+    let SafeHookContext { safe_hook_function, has_this_pointer, user_context: _ } = hook.context();
     let args = if *has_this_pointer {
         args.with_this_pointer::<F::Args>()
     } else {
@@ -222,30 +246,52 @@ fn hook_fn_for_hookable_function<IA: IsaAbi, F: HookableFunction<IA>>(hook: &'st
         hook,
         has_this_pointer: *has_this_pointer,
     };
-    hook_fn.call(&safe_hook, F::Args::convert_output_to_owned(args));
+    F::call(safe_hook_function, &safe_hook, F::Args::convert_output_to_owned(args));
 }
 
-pub trait HookableFunction<IA: IsaAbi> {
+pub trait HookableFunction<IA: IsaAbi, T, Args>: 'static + Sync {
+    type RawFnWithoutHook: RawFnWithoutHook<IA, T>;
+    fn into_boxed_fn(self) -> <Self::RawFnWithoutHook as RawFnWithoutHook<IA, T>>::BoxedFn;
+}
+pub trait RawFnWithoutHook<IA: IsaAbi, T>: Sized + 'static + Sync {
+    type BoxedFn;
     type Args: LoadFromArgs + StoreToArgs;
-    fn call(&self, hook: &SafeHook<IA, Self>, args: Self::Args);
+    fn call(function: &Self::BoxedFn, hook: &SafeHook<IA, Self, T>, args: Self::Args);
 }
 macro_rules! impl_hookable_function {
     (fn($($args:ident),*)) => {
         #[allow(unused_parens)]
-        impl<IA: IsaAbi, $($args),*> HookableFunction for fn(&SafeHook<IA, Self>, $($args),*)
+        impl<IA: IsaAbi, Ctx: 'static, Function, $($args),*> HookableFunction<IA, Ctx, ($($args,)*)> for Function
+        where
+            Function: Fn(&SafeHook<IA, fn($($args,)*), Ctx>, $($args),*) + 'static + Sync,
+            ($($args),*): LoadFromArgs,
+            ($($args),*): StoreToArgs,
+            $($args: 'static,)*
+        {
+            type RawFnWithoutHook = fn($($args),*);
+            fn into_boxed_fn(self) -> <Self::RawFnWithoutHook as RawFnWithoutHook<IA, Ctx>>::BoxedFn {
+                Box::new(self)
+            }
+        }
+
+        #[allow(unused_parens)]
+        impl<IA: IsaAbi, Ctx: 'static, $($args),*> RawFnWithoutHook<IA, Ctx> for fn($($args),*)
         where
             ($($args),*): LoadFromArgs,
             ($($args),*): StoreToArgs,
+            $($args: 'static,)*
         {
+            type BoxedFn = Box<dyn Fn(&SafeHook<IA, fn($($args),*), Ctx>, $($args),*)>;
             type Args = ($($args),*);
-            fn call(&self, hook: &SafeHook<IA, Self>, args: Self::Args) {
+            fn call(function: &Self::BoxedFn, hook: &SafeHook<IA, Self, Ctx>, args: Self::Args) {
                 #[allow(non_snake_case)]
                 let ($($args),*) = args;
-                (self)($($args,)*);
+                (function)(hook, $($args,)*);
             }
         }
     };
 }
+
 impl_hookable_function!(fn());
 impl_hookable_function!(fn(A));
 impl_hookable_function!(fn(A, B));
@@ -258,24 +304,3 @@ impl_hookable_function!(fn(A, B, C, D, E, F, G, H));
 impl_hookable_function!(fn(A, B, C, D, E, F, G, H, I));
 impl_hookable_function!(fn(A, B, C, D, E, F, G, H, I, J));
 impl_hookable_function!(fn(A, B, C, D, E, F, G, H, I, J, K));
-
-pub trait HookableFunctionRet {
-    fn from_usize(res: usize) -> Self;
-}
-macro_rules! impl_hookable_function_ret {
-    ($res:ident: $typ:ty => $conv:expr) => {
-        impl HookableFunctionRet for $typ {
-            fn from_usize($res: usize) -> Self {
-                $conv
-            }
-        }
-    };
-}
-impl_hookable_function_ret!(_res: () => ());
-impl_hookable_function_ret!(res: usize => res);
-impl_hookable_function_ret!(res: u8 => res as u8);
-impl_hookable_function_ret!(res: i8 => res as i8);
-impl_hookable_function_ret!(res: u16 => res as u16);
-impl_hookable_function_ret!(res: i16 => res as i16);
-impl_hookable_function_ret!(res: u32 => res as u32);
-impl_hookable_function_ret!(res: i32 => res as i32);

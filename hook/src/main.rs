@@ -1,17 +1,24 @@
 use std::arch::naked_asm;
-use hook::{ArgsRef, Hook, HookableFunction, IsaAbi, SafeHook, X86_64_SystemV};
+use hook::{ArgsRef, Hook, IsaAbi, SafeHook, X86_64_SystemV};
 
 fn main() {
-    let hook = unsafe { Hook::create(test_function as usize, custom_hook::<X86_64_SystemV>) };
+    // let hook = unsafe { Hook::create(test_function as usize, custom_hook::<X86_64_SystemV, ()>) };
+    let hook = unsafe { SafeHook::without_this_pointer(test_function as usize, custom_safe_hook::<X86_64_SystemV>) };
 
     test_function(1337);
     hook.enable();
+    hook.call_original_function(69);
     test_function(42);
     test_function(21);
 }
 
-fn custom_safe_hook<IA: IsaAbi, F: HookableFunction>(hook: &SafeHook<IA, F>, arg: u32) {
-
+fn custom_safe_hook<IA: IsaAbi>(hook: &SafeHook<IA, fn(u32), ()>, arg: u32) {
+    println!("from inside the hook; original argument: {arg}");
+    hook.call_original_function(arg);
+    println!("calling with argument 314");
+    hook.call_original_function(314);
+    println!("disabling the hook within the hook");
+    hook.disable();
 }
 
 fn custom_hook<IA: IsaAbi, T>(hook: &'static Hook<IA, T>, mut args: ArgsRef<'_, IA>) {
