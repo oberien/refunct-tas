@@ -55,6 +55,24 @@ pub trait LoadFromArgs {
     fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a;
 }
 
+impl LoadFromArgs for bool {
+    type Pointer = *mut usize;
+    type Output<'a> = &'a mut bool;
+    fn get_pointer_to_arg(load_args: &mut LoadArgs<impl Args>) -> Self::Pointer {
+        load_args.next_int_arg()
+    }
+    unsafe fn convert_pointer_to_arg<'a>(ptr: Self::Pointer) -> Self::Output<'a> {
+        unsafe {
+            let val = *ptr & 0xff != 0;
+            *ptr = val as usize;
+            &mut *(ptr as *mut bool)
+        }
+    }
+    fn convert_output_to_owned<'a>(output: Self::Output<'a>) -> Self where Self: 'a {
+        *output
+    }
+}
+
 macro_rules! impl_load_from_args_for_number {
     ($typ:ty => $function:ident) => {
         impl LoadFromArgs for $typ {

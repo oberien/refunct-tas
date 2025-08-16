@@ -56,6 +56,7 @@ macro_rules! impl_store_to_args_for_number {
         }
     };
 }
+impl_store_to_args_for_number!(bool => set_next_int_arg);
 impl_store_to_args_for_number!(u8 => set_next_int_arg);
 impl_store_to_args_for_number!(i8 => set_next_int_arg);
 impl_store_to_args_for_number!(u16 => set_next_int_arg);
