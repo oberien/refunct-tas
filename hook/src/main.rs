@@ -1,9 +1,9 @@
 use std::arch::naked_asm;
-use hook::{ArgsRef, Hook, IsaAbi, SafeHook, X86_64_SystemV};
+use hook::{ArgsRef, RawHook, IsaAbi, TypedHook, X86_64_SystemV};
 
 fn main() {
     // let hook = unsafe { Hook::create(test_function as usize, custom_hook::<X86_64_SystemV, ()>) };
-    let hook = unsafe { SafeHook::without_this_pointer(test_function as usize, custom_safe_hook::<X86_64_SystemV>) };
+    let hook = unsafe { TypedHook::without_this_pointer(test_function as usize, custom_safe_hook::<X86_64_SystemV>) };
 
     test_function(1337);
     hook.enable();
@@ -12,7 +12,7 @@ fn main() {
     test_function(21);
 }
 
-fn custom_safe_hook<IA: IsaAbi>(hook: &SafeHook<IA, fn(u32), ()>, arg: u32) {
+fn custom_safe_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(u32), ()>, arg: u32) {
     println!("from inside the hook; original argument: {arg}");
     hook.call_original_function(arg);
     println!("calling with argument 314");
@@ -21,7 +21,7 @@ fn custom_safe_hook<IA: IsaAbi>(hook: &SafeHook<IA, fn(u32), ()>, arg: u32) {
     hook.disable();
 }
 
-fn custom_hook<IA: IsaAbi, T>(hook: &'static Hook<IA, T>, mut args: ArgsRef<'_, IA>) {
+fn custom_hook<IA: IsaAbi, T>(hook: &'static RawHook<IA, T>, mut args: ArgsRef<'_, IA>) {
     let arg = args.without_this_pointer::<u32>();
     println!("from inside the hook; original argument: {arg}");
     hook.call_original_function(&args);

@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::{mem, ptr};
 use std::ops::Deref;
 use memmap2::MmapMut;
-use crate::{assemble, CallTrampoline, Hook, Interceptor};
+use crate::{assemble, CallTrampoline, RawHook, Interceptor};
 use crate::isa_abi::IsaAbi;
 use crate::trampoline::Trampoline;
 
@@ -40,7 +40,7 @@ impl<IA: IsaAbi, T: 'static> HookMemoryPageBuilder<IA, T> {
         self.page_addr() + self.hook_struct_offset()
     }
     pub fn trampoline_offset(&self) -> usize {
-        ((self.hook_struct_offset() + size_of::<Hook<IA, T>>() + 15) / 16) * 16
+        ((self.hook_struct_offset() + size_of::<RawHook<IA, T>>() + 15) / 16) * 16
     }
     pub fn trampoline_addr(&self) -> usize {
         self.page_addr() + self.trampoline_offset()
@@ -143,12 +143,12 @@ impl<IA: IsaAbi, T> HookMemoryPageBuilderFinished<IA, T> {
     pub fn call_trampoline_len(&self) -> usize {
         self.call_trampoline_len
     }
-    pub fn finalize(mut self, hook_struct: Hook<IA, T>) -> &'static Hook<IA, T> {
+    pub fn finalize(mut self, hook_struct: RawHook<IA, T>) -> &'static RawHook<IA, T> {
         unsafe {
             let ptr = self.builder.builder.builder.map.as_mut_ptr();
             // make sure the map is Hook-aligned
-            assert_eq!(ptr.addr() % align_of::<Hook<IA, T>>(), 0);
-            let hook_struct_ptr = ptr as *mut Hook<IA, T>;
+            assert_eq!(ptr.addr() % align_of::<RawHook<IA, T>>(), 0);
+            let hook_struct_ptr = ptr as *mut RawHook<IA, T>;
             // SAFETY:
             // * `dst` is valid for writes: we have MmapMut
             // * `dst` is properly aligned: see previous alignment check
@@ -157,7 +157,7 @@ impl<IA: IsaAbi, T> HookMemoryPageBuilderFinished<IA, T> {
         }
         let map = self.builder.builder.builder.map.make_exec().unwrap();
         unsafe {
-            let ptr = map.as_ptr() as *const Hook<IA, T>;
+            let ptr = map.as_ptr() as *const RawHook<IA, T>;
             mem::forget(map);
             // SAFETY:
             // * the struct was just initialized properly at that address

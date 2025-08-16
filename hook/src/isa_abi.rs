@@ -2,7 +2,7 @@ use std::ffi::c_void;
 use std::mem::offset_of;
 use iced_x86::code_asm::{CodeAssembler, ptr, r8, r9, rax, rbp, rcx, rdi, rdx, rsi, rsp, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, AsmRegister64, r10, r11};
 use iced_x86::{IcedError, Register};
-use crate::{assemble, Interceptor, Hook, CallTrampoline};
+use crate::{assemble, Interceptor, RawHook, CallTrampoline};
 use crate::args::{Args, ArgsLoadContext, ArgsRef, ArgsStoreContext};
 
 #[allow(private_interfaces)]
@@ -61,7 +61,7 @@ impl<const N: usize> Array for [u8; N] {
     }
 }
 
-extern "C" fn abi_fixer<IA: IsaAbi, T>(hook: &'static Hook<IA, T>, args_ref: ArgsRef<'_, IA>) {
+extern "C" fn abi_fixer<IA: IsaAbi, T>(hook: &'static RawHook<IA, T>, args_ref: ArgsRef<'_, IA>) {
     (hook.hook_fn)(hook, args_ref)
 }
 
