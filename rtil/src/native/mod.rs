@@ -39,6 +39,8 @@ mod kismet_system_library;
 mod engine;
 mod font;
 
+use std::sync::atomic::Ordering;
+use hook::{RawHook, X86_64_SystemV};
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -48,12 +50,6 @@ use crate::semaphore::Semaphore;
 pub use self::character::AMyCharacter;
 pub use self::slateapp::{
     FSlateApplication,
-    unhook_fslateapplication_onkeydown,
-    hook_fslateapplication_onkeydown,
-    unhook_fslateapplication_onkeyup,
-    hook_fslateapplication_onkeyup,
-    unhook_fslateapplication_onrawmousemove,
-    hook_fslateapplication_onrawmousemove,
 };
 pub use self::tick::{
     hook_aliftbase_addbasedcharacter,
@@ -78,25 +74,39 @@ pub use self::engine::{UEngine, FViewport};
 /// There are currently 3 such `this`-pointers - rebo starts once the semaphore reaches 1.
 pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 
-pub fn init() {
+#[cfg(unix)]
+type RefunctIsaAbi = X86_64_SystemV;
+#[cfg(windows)]
+type RefunctIsaAbi = I686_Thiscall;
+
+pub struct Hooks {
+    pub fslateapplication: FSlateApplication,
+    // ...
+    pub amycharacter_tick: &'static RawHook<RefunctIsaAbi, ()>,
+}
+
+pub fn init() -> Hooks {
     #[cfg(windows)] windows::init();
     #[cfg(unix)] linux::init();
     uworld::init();
     map_editor::init();
     font::init();
-    slateapp::hook_fslateapplication_tick();
-    slateapp::hook_fslateapplication_onkeydown();
-    slateapp::hook_fslateapplication_onkeyup();
-    slateapp::hook_fslateapplication_onrawmousemove();
-    newgame::hook_amycharacter_forceduncrouch();
-    tick::hook_uengine_updatetimeandhandlemaxtickrate();
-    tick::hook_aliftbase_addbasedcharacter();
-    tick::hook_aliftbase_removebasedcharacter();
-    hud::hook_amyhud_drawhud();
-    hud::hook_ahud_drawmaterialsimple();
-    character::hook_amycharacter_tick();
-    gameusersettings::hook_ugameusersettings_applyresolutionsettings();
-    uworld::hook_uuserwidget_addtoscreen();
+
+
+    unsafe {
+        newgame::hook_amycharacter_forceduncrouch();
+        tick::hook_uengine_updatetimeandhandlemaxtickrate();
+        tick::hook_aliftbase_addbasedcharacter();
+        tick::hook_aliftbase_removebasedcharacter();
+        hud::hook_amyhud_drawhud();
+        hud::hook_ahud_drawmaterialsimple();
+        gameusersettings::hook_ugameusersettings_applyresolutionsettings();
+        uworld::hook_uuserwidget_addtoscreen();
+        Hooks {
+            fslateapplication: FSlateApplication::hook(),
+            amycharacter_tick: RawHook::create(AMYCHARACTER_TICK.load(Ordering::Relaxed), character::tick_hook::<RefunctIsaAbi>).enabled(),
+        }
+    }
 }
 
 #[cfg(unix)]

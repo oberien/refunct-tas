@@ -1,5 +1,5 @@
 use crossbeam_channel::{Receiver, Sender};
-use crate::native::{ElementIndex, try_find_element_index, UObject};
+use crate::native::{ElementIndex, Hooks, try_find_element_index, UObject};
 use crate::threads::{ReboToStream, StreamToRebo};
 
 mod rebo;
@@ -27,8 +27,8 @@ enum Suspend {
     Return,
 }
 
-pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>) {
-    rebo::init(stream_rebo_rx, rebo_stream_tx);
+pub fn run(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>, hooks: Hooks) {
+    rebo::init(stream_rebo_rx, rebo_stream_tx, hooks);
     log!("\"starting\" ue thread");
 }
 

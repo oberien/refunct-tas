@@ -12,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, FSlateApplication, unhook_fslateapplication_onkeydown, hook_fslateapplication_onkeydown, unhook_fslateapplication_onkeyup, hook_fslateapplication_onkeyup, unhook_fslateapplication_onrawmousemove, hook_fslateapplication_onrawmousemove, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
@@ -528,27 +528,20 @@ fn key_down(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.insert(key_code);
-    // we don't want to trigger our keyevent handler for emulated presses
-    unhook_fslateapplication_onkeydown();
-    FSlateApplication::press_key(key_code, character_code, is_repeat);
-    hook_fslateapplication_onkeydown();
+    state.hooks.fslateapplication.press_key(key_code, character_code, is_repeat);
 }
 #[rebo::function("Tas::key_up")]
 fn key_up(key_code: i32, character_code: u32, is_repeat: bool) {
     let mut state = STATE.lock().unwrap();
     let state = state.as_mut().unwrap();
     state.pressed_keys.remove(&key_code);
-    // we don't want to trigger our keyevent handler for emulated presses
-    unhook_fslateapplication_onkeyup();
-    FSlateApplication::release_key(key_code, character_code, is_repeat);
-    hook_fslateapplication_onkeyup();
+    state.hooks.fslateapplication.release_key(key_code, character_code, is_repeat)
 }
 #[rebo::function("Tas::move_mouse")]
 fn move_mouse(x: i32, y: i32) {
-    // we don't want to trigger our mouseevent handler for emulated mouse movements
-    unhook_fslateapplication_onrawmousemove();
-    FSlateApplication::move_mouse(x, y);
-    hook_fslateapplication_onrawmousemove();
+    let mut state = STATE.lock().unwrap();
+    let state = state.as_mut().unwrap();
+    state.hooks.fslateapplication.move_mouse(x, y);
 }
 #[rebo::function("Tas::get_last_frame_delta")]
 fn get_last_frame_delta() -> f64 {

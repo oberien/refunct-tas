@@ -31,6 +31,7 @@ corosensei = "0.2.2"
 atomic_float = "1.1.0"
 chrono = {  version = "0.4.39", features = ["serde"] }
 livesplit-core = "0.13.0"
+hook = { path = "../hook" }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.119"

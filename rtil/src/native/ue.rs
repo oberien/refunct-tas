@@ -285,7 +285,6 @@ impl From<(f32, f32, f32, f32)> for FLinearColor {
     }
 }
 
-#[expect(unused)]
 #[derive(Debug)]
 #[repr(C)]
 pub struct FColor {

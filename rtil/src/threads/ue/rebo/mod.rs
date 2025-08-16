@@ -13,7 +13,7 @@ use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{StreamToRebo, ReboToStream};
-use crate::native::{AMyCharacter, FPlatformMisc, FSlateApplication, hook_fslateapplication_onkeyup, REBO_DOESNT_START_SEMAPHORE, unhook_fslateapplication_onkeyup, UTexture2D, UWorld};
+use crate::native::{AMyCharacter, FPlatformMisc, Hooks, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UWorld};
 use crate::threads::ue::{Suspend, UeEvent};
 
 mod rebo_init;
@@ -29,6 +29,8 @@ thread_local! {
 }
 
 struct State {
+    hooks: Hooks,
+
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
 
@@ -53,10 +55,13 @@ pub(super) fn poll(event: UeEvent) {
     // check if we have acquired the semaphore
     {
         let mut state = STATE.lock().unwrap();
+        if state.is_none() {
+            return;
+        }
         let state = state.as_mut().unwrap();
         if !state.is_semaphore_acquired {
             if !REBO_DOESNT_START_SEMAPHORE.try_acquire() {
-                return
+                return;
             }
             state.is_semaphore_acquired = true;
             state.minimap_texture = Some(UTexture2D::create(&state.minimap_image));
@@ -124,7 +129,7 @@ pub(super) fn poll(event: UeEvent) {
     }
 }
 
-pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>) {
+pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboToStream>, hooks: Hooks) {
     log!("init rebo state");
     log!("checking for a new refunct-tas release");
     let new_version = check_for_new_version();
@@ -140,6 +145,7 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
 
 
     *STATE.lock().unwrap() = Some(State {
+        hooks,
         is_semaphore_acquired: false,
         event_queue: VecDeque::new(),
         new_version_string: new_version.clone(),
@@ -199,12 +205,9 @@ fn cleanup_after_rebo() {
         UWorld::destroy_amycharaccter(my_character);
     }
     state.pawn_id = 0;
-    // we don't want to trigger our keyevent handler for emulated presses
-    unhook_fslateapplication_onkeyup();
     for key in state.pressed_keys.drain() {
-        FSlateApplication::release_key(key, key as u32, false);
+        state.hooks.fslateapplication.release_key(key, key as u32, false);
     }
-    hook_fslateapplication_onkeyup();
     rebo_init::apply_map_internal(&rebo_init::ORIGINAL_MAP);
     state.rebo_stream_tx.send(ReboToStream::MiDone).unwrap();
     log!("Cleanup finished.");

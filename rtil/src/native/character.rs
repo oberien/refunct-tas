@@ -2,8 +2,9 @@ use std::cell::Cell;
 use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
+use hook::{ArgsRef, RawHook, IsaAbi};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, Args, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope};
+use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope};
 use crate::native::reflection::UClass;
 use crate::native::uworld::CAMERA_INDEX;
 
@@ -269,9 +270,8 @@ struct FUniqueNetIdSteam {
     steamid: UeU64,
 }
 
-#[rtil_derive::hook_once(AMyCharacter::Tick)]
-fn save(args: &mut Args) {
-    let this = unsafe { args.with_this_pointer::<*mut AMyCharacterUE>() };
+pub fn tick_hook<IA: IsaAbi>(hook: &'static RawHook<IA, ()>, mut args: ArgsRef<'_, IA>) {
+    let this = args.with_this_pointer::<*mut AMyCharacterUE>();
     CURRENT_PLAYER.store(this, Ordering::SeqCst);
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:p}", this);
@@ -281,5 +281,7 @@ fn save(args: &mut Args) {
     log!("Got AMyCharacter::Movement::MovementMode: {:p}", unsafe { &(*my_character.movement()).movement_mode });
     log!("Got AMyCharacter::Movement::Acceleration: {:p}", unsafe { &(*my_character.movement()).acceleration });
     log!("Got AMyCharacter::Movement::MaxFlySpeed : {:p}", unsafe { &(*my_character.movement()).max_fly_speed });
+    hook.disable();
+    hook.call_original_function(args);
     REBO_DOESNT_START_SEMAPHORE.release();
 }

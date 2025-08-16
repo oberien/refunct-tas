@@ -49,14 +49,14 @@ pub extern "C" fn initialize() {
                 if cfg!(unix) {
                     ::std::thread::sleep(::std::time::Duration::from_secs(7));
                 }
-                // start threads
-                threads::start();
                 // hook stuff
                 #[cfg(windows)]
                 let handles = native::suspend_threads();
-                native::init();
+                let hooks = native::init();
                 #[cfg(windows)]
                 native::resume_threads(handles);
+                // start threads
+                threads::start(hooks);
             });
         }
     });
