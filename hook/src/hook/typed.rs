@@ -46,7 +46,7 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
     pub fn enable(&self) {
         self.hook.enable()
     }
-    pub fn enabled(&self) -> &Self {
+    pub fn enabled(self) -> Self {
         self.hook.enable();
         self
     }
@@ -56,7 +56,7 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
     pub fn context(&self) -> &T {
         &self.hook.context().user_context
     }
-    pub fn call_original_function(&self, args: F::Args) -> usize {
+    pub unsafe fn call_original_function(&self, args: F::Args) -> usize {
         let mut a = IA::Args::new();
         let mut a_ref = ArgsRef::<IA>::new(&mut a);
         if self.has_this_pointer {
@@ -115,7 +115,7 @@ macro_rules! impl_hookable_function {
             ($($args),*): StoreToArgs,
             $($args: 'static,)*
         {
-            type BoxedFn = Box<dyn Fn(&TypedHook<IA, fn($($args),*), Ctx>, $($args),*)>;
+            type BoxedFn = Box<dyn Fn(&TypedHook<IA, fn($($args),*), Ctx>, $($args),*) + Sync>;
             type Args = ($($args),*);
             fn call(function: &Self::BoxedFn, hook: &TypedHook<IA, Self, Ctx>, args: Self::Args) {
                 #[allow(non_snake_case)]
