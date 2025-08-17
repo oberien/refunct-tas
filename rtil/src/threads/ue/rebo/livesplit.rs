@@ -16,12 +16,13 @@ pub struct LiveSplit {
     pub timer: LiveSplitTimer,
     pub layout: LiveSplitLayout,
     total_playtime_formatter: TimeWithFraction,
+    sum_of_best_formatter: TimeWithFraction,
 }
 pub struct Timer {}
 pub struct Run {}
 pub struct Layout {}
 pub struct TotalPlaytime {}
-
+pub struct SumOfBestSegments {}
 
 #[derive(rebo::ExternalType)]
 pub enum DigitsFormat {
@@ -125,7 +126,8 @@ impl LiveSplit {
         let mut timer = LiveSplitTimer::new(run).unwrap();
         timer.set_current_timing_method(TimingMethod::GameTime);
         let total_playtime_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
-        LiveSplit { timer, layout, total_playtime_formatter }
+        let sum_of_best_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
+        LiveSplit { timer, layout, total_playtime_formatter, sum_of_best_formatter }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -169,6 +171,18 @@ impl Timer {
     }
     pub fn set_total_playtime_accuracy(accuracy: LiveSplitAccuracy) {
         LIVESPLIT_STATE.lock().unwrap().total_playtime_formatter.fraction.set_accuracy(accuracy);
+    }
+    pub fn sum_of_best_digits_format() -> LiveSplitDigitsFormat {
+        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.time.digits_format()
+    }
+    pub fn set_sum_of_best_digits_format(sum_of_best_digits_format: LiveSplitDigitsFormat) {
+        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.time.set_digits_format(sum_of_best_digits_format);
+    }
+    pub fn sum_of_best_accuracy() -> LiveSplitAccuracy {
+        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.fraction.accuracy()
+    }
+    pub fn set_sum_of_best_accuracy(accuracy: LiveSplitAccuracy) {
+        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.fraction.set_accuracy(accuracy);
     }
 }
 impl Run {
@@ -271,6 +285,15 @@ impl TotalPlaytime {
     pub fn total_playtime() -> String {
         let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
         livesplit_state.total_playtime_formatter.format(livesplit_state.timer.total_playtime()).to_string()
+    }
+}
+impl SumOfBestSegments {
+    pub fn sum_of_best() -> String {
+        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
+        let segments = livesplit_state.timer.run().segments();
+        let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(segments, true, true, TimingMethod::GameTime)
+            .unwrap_or(TimeSpan::zero());
+        livesplit_state.total_playtime_formatter.format(sum_of_best).to_string()
     }
 }
 #[rebo::function("LiveSplit::get_best_segment_color")]
@@ -380,4 +403,8 @@ pub fn livesplit_get_total_playtime_accuracy() -> Accuracy {
 #[rebo::function("LiveSplit::set_total_playtime_accuracy")]
 pub fn livesplit_set_total_playtime_accuracy(total_playtime_accuracy: Accuracy) {
     Timer::set_total_playtime_accuracy(total_playtime_accuracy.into());
+}
+#[rebo::function("LiveSplit::get_sum_of_best_segments")]
+pub fn livesplit_get_sum_of_best_segments() -> String {
+    SumOfBestSegments::sum_of_best()
 }
