@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
+use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
+use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::{comparison::{personal_best, best_segments, best_split_times, average_segments, median_segments, worst_segments, balanced_pb, latest_run}, Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
 use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
@@ -320,6 +322,23 @@ impl SumOfBestSegments {
         let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(segments, true, true, TimingMethod::GameTime)
             .unwrap_or(TimeSpan::zero());
         livesplit_state.sum_of_best_formatter.format(sum_of_best).to_string()
+    }
+}
+impl CurrentPace {
+    pub fn current_pace(comparison: Comparison) -> String {
+        let comparison = match comparison {
+            Comparison::PersonalBest => "Personal Best",
+            Comparison::BestSegments => "Best Segments",
+            Comparison::BestSplitTimes => "Best Split Times",
+            Comparison::AverageSegments => "Average Segments",
+            Comparison::MedianSegments => "Median Segments",
+            Comparison::WorstSegments => "Worst Segments",
+            Comparison::BalancedPB => "Balanced PB",
+            Comparison::LatestRun => "Latest Run",
+        };
+        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
+        let foo = livesplit_core::analysis::current_pace::calculate(&livesplit_state.timer.snapshot(), comparison);
+        livesplit_state.current_pace_formatter.format(foo.0.unwrap_or(TimeSpan::zero())).to_string()
     }
 }
 impl CurrentPace {
