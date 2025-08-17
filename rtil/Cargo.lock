@@ -1098,6 +1098,7 @@ dependencies = [
  "libc",
  "memmap2",
  "region",
+ "winapi 0.3.9",
 ]
 
 [[package]]

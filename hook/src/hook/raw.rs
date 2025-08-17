@@ -1,4 +1,5 @@
 use std::{mem, slice};
+use std::ffi::c_void;
 use crate::{ArgsRef, get_orig_bytes, IsaAbi, trampoline};
 use crate::function_decoder::FunctionDecoder;
 use crate::hook_memory_page::HookMemoryPageBuilder;
@@ -43,7 +44,7 @@ impl<IA: IsaAbi, T> RawHook<IA, T> {
         let interceptor = unsafe { IA::create_interceptor::<T>(builder.hook_struct_addr(), orig_stack_arg_size) };
         let builder = builder.interceptor(interceptor);
 
-        let call_trampoline = IA::create_call_trampoline(builder.trampoline_addr());
+        let call_trampoline = IA::create_call_trampoline(builder.trampoline_addr(), orig_stack_arg_size);
         let builder = builder.call_trampoline(call_trampoline);
 
         let orig_bytes = unsafe { get_orig_bytes::<IA>(orig_addr) };
@@ -62,10 +63,10 @@ impl<IA: IsaAbi, T> RawHook<IA, T> {
 
     pub fn enable(&self) {
         let jmp = IA::create_jmp_to_interceptor(self.interceptor_addr);
-        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        unsafe { make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
         jmp.store_to(slice);
-        unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        unsafe { make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
     pub fn enabled(&self) -> &Self {
         self.enable();
@@ -73,9 +74,9 @@ impl<IA: IsaAbi, T> RawHook<IA, T> {
     }
     pub fn disable(&self) {
         let slice = unsafe { slice::from_raw_parts_mut(self.orig_addr as *mut u8, IA::JmpInterceptorBytesArray::LEN) };
-        unsafe { IA::make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        unsafe { make_rw(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
         slice.copy_from_slice(self.orig_bytes.as_slice());
-        unsafe { IA::make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
+        unsafe { make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
     pub fn call_original_function(&self, args: impl AsRef<IA::Args>) {
         unsafe {
@@ -91,3 +92,35 @@ impl<IA: IsaAbi, T> RawHook<IA, T> {
     }
 }
 
+/// SAFETY: implementation must be correct for the OS
+/// # Safety
+/// * code on the memory pages containing the requested bytes must not be executed while this function is running
+unsafe fn make_rw(addr: usize, len: usize) {
+    let start_page = addr & !0xfff;
+    let end_page = (addr + len) & !0xfff;
+    let len = end_page - start_page + 0x1000;
+    let page = start_page as *mut c_void;
+    #[cfg(windows)] {
+        let mut out = 0;
+        unsafe { winapi::um::memoryapi::VirtualProtect(page, len, winapi::um::winnt::PAGE_READWRITE, &mut out); }
+    }
+    #[cfg(unix)] {
+        unsafe { libc::mprotect(page, len, libc::PROT_READ | libc::PROT_WRITE); }
+    }
+}
+/// SAFETY: implementation must be correct for the OS
+/// # Safety
+/// * the memory pages containing the requested bytes must not be written to while this function is running
+unsafe fn make_rx(addr: usize, len: usize) {
+    let start_page = addr & !0xfff;
+    let end_page = (addr + len) & !0xfff;
+    let len = end_page - start_page + 0x1000;
+    let page = start_page as *mut c_void;
+    #[cfg(windows)] {
+        let mut out = 0;
+        unsafe { winapi::um::memoryapi::VirtualProtect(page, len, winapi::um::winnt::PAGE_EXECUTE_READ, &mut out); }
+    }
+    #[cfg(unix)] {
+        unsafe { libc::mprotect(page, len, libc::PROT_READ | libc::PROT_EXEC); }
+    }
+}

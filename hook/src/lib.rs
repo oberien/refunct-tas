@@ -10,9 +10,11 @@ mod isa_abi;
 mod hook_memory_page;
 
 pub use args::{ArgsRef, ArgsBoxed};
-pub use isa_abi::{IsaAbi, X86_64_SystemV};
+pub use isa_abi::{IsaAbi, X86_64_SystemV, I686_MSVC_Thiscall};
 pub use hook::{RawHook, TypedHook};
 
+// # Design Overview
+//
 // +------------+
 // | caller of  |    +-------------------+
 // | now hooked |    | original function |
@@ -60,6 +62,49 @@ pub use hook::{RawHook, TypedHook};
 //   |                                                                                            |
 //   '--------------------------------------------------------------------------------------------'
 //                                                                  return to the original caller
+//
+// # Function ABIs
+//
+// +--------------------+---------------------+------------------+
+// | function           | i686 MSVC thiscall  | x86_64 System V  |
+// +--------------------+---------------------+------------------+
+// | original function  | "thiscall"          | "sysv64"         |
+// | interceptor        | "thiscall"          | "sysv64"         |
+// | abi_fixer          | "fastcall"          | "sysv64"         |
+// | hook               | "Rust"              | "Rust"           |
+// | call_trampoline    | "C" -> "cdecl"      | "C" -> "sysv64"  |
+// | trampoline         | "thiscall"          | "sysv64"         |
+// +--------------------+---------------------+------------------+
+//
+// # ABI Definitions
+//
+// References:
+// * <https://wiki.osdev.org/System_V_ABI>
+// * <https://en.wikipedia.org/wiki/X86_calling_conventions>
+// * <https://doc.rust-lang.org/reference/items/external-blocks.html#abi>
+//
+// +-----------------+-----------------+-------------------------+--------------------+------------------+
+// | Register        | x86 MSVC cdecl  | x86 MSVC thiscall       | x86 MSVC fastcall  | x86_64 System V  |
+// +-----------------+-----------------+-------------------------+--------------------+------------------+
+// | eax / rax       | Return value    | Return value            | Return value       | Return value     |
+// | ebx / rbx       | Callee-saved    | Callee-saved            | Callee-saved       | Callee-saved     |
+// | ecx / rcx       | scratch reg     | this-pointer (1st arg)  | 1st argument       | 4th int arg      |
+// | edx / rdx       | scratch reg     | 2nd arg (in some MSVC)  | 2nd argument       | 3rd int arg      |
+// | esi / rsi       | Callee-saved    | Callee-saved            | Callee-saved       | 2nd int arg      |
+// | edi / rdi       | Callee-saved    | Callee-saved            | Callee-saved       | 1st int arg      |
+// | ebp / rbp       | Callee-saved    | Callee-saved            | Callee-saved       | Callee-saved     |
+// | esp / rsp       | Stack pointer   | Stack pointer           | Stack pointer      | Stack pointer    |
+// | r8              |                 |                         |                    | 5th int arg      |
+// | r9              |                 |                         |                    | 6th int arg      |
+// | r10–r11         |                 |                         |                    | scratch reg      |
+// | r12–r15         |                 |                         |                    | Callee-saved     |
+// | xmm0-xmm7       |                 |                         |                    | float args       |
+// | xmm8–xmm15      |                 |                         |                    | scratch reg      |
+// | more args       | stack rtl       | stack rtl               | stack rtl          | stack rtl        |
+// | stack cleanup   | caller          | callee                  | callee             | caller           |
+// | stack align     | 4 bytes (GCC 16)| 4 bytes                 | 4 bytes            | 16 bytes         |
+// | frame pointers  | default yes     | default yes             | default yes        | default yes      |
+// +-----------------+-----------------+-------------------------+--------------------+------------------+
 
 struct Interceptor {
     pub instructions: Vec<Instruction>,

@@ -7,7 +7,7 @@ static SLATEAPP: AtomicPtr<FSlateApplicationUE> = AtomicPtr::new(std::ptr::null_
 pub enum FSlateApplicationUE {}
 
 pub struct FSlateApplication {
-    tick: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE), ()>,
+    _tick: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE), ()>,
     onkeydown: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
     onkeyup: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
     onrawmousemove: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, i32), ()>,
@@ -17,7 +17,7 @@ impl FSlateApplication {
     pub fn hook() -> FSlateApplication {
         unsafe {
             Self {
-                tick: TypedHook::with_this_pointer(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook::<RefunctIsaAbi>).enabled(),
+                _tick: TypedHook::with_this_pointer(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook::<RefunctIsaAbi>).enabled(),
                 onkeydown: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::Relaxed), on_key_down_hook::<RefunctIsaAbi>).enabled(),
                 onkeyup: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYUP.load(Ordering::Relaxed), on_key_up_hook::<RefunctIsaAbi>).enabled(),
                 onrawmousemove: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::Relaxed), on_raw_mouse_move_hook::<RefunctIsaAbi>).enabled(),

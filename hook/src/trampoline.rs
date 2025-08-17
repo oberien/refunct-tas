@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
-use iced_x86::{ConditionCode, FlowControl, Formatter, Instruction, IntelFormatter, MemorySizeOptions, OpKind};
-use iced_x86::code_asm::{CodeAssembler, CodeLabel};
+use iced_x86::{ConditionCode, FlowControl, Formatter, Instruction, IntelFormatter, MemorySizeOptions, Mnemonic, OpKind};
+use iced_x86::code_asm::{CodeAssembler, CodeLabel, get_gpr32, get_gpr64};
 use crate::assemble;
 use crate::function_decoder::FunctionDecoder;
 use crate::isa_abi::{Array, IsaAbi, X86_64_SystemV};
@@ -19,6 +19,15 @@ pub unsafe fn create_trampoline<IA: IsaAbi>(orig_addr: usize) -> Trampoline {
         total_bytes += inst.len();
         instructions.push(inst);
         if total_bytes >= IA::JmpInterceptorBytesArray::LEN {
+            // `call 0; pop <reg>` is a common way on x86 to get the IP
+            // -> also include the `pop <reg>` for easier rewriting
+            if inst.is_call_near() && inst.near_branch_target() == inst.next_ip() {
+                let inst = decoder.decode();
+                if inst.mnemonic() == Mnemonic::Pop {
+                    instructions.push(inst);
+                    total_bytes += inst.len();
+                }
+            }
             break;
         }
     }
@@ -93,7 +102,7 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
             let before = self.a.instructions().len();
             let replacement = self.rewrite_memory_access(instruction)
                 .or_else(|| self.rewrite_jump(instruction))
-                .or_else(|| self.rewrite_call(instruction));
+                .or_else(|| self.rewrite_call(instruction, i));
             if let Some(()) = replacement {
                 println!("replaced");
                 print_instructions(&[instruction], instruction.ip(), 4);
@@ -216,7 +225,7 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
         }
         None
     }
-    fn rewrite_call(&mut self, instruction: Instruction) -> Option<()> {
+    fn rewrite_call(&mut self, instruction: Instruction, orig_instruction_num: usize) -> Option<()> {
         match instruction.flow_control() {
             // no branch
             FlowControl::Next
@@ -246,7 +255,27 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
         let call_into_trampoline = self.orig_addr_range.contains(&instruction.near_branch_target());
 
         if call_into_trampoline {
-            // call targets code copied into the trampoline
+            // the `call`-instruction targets code which was copied into the trampoline
+
+            // special case: `call 0; pop <reg>` is a common pattern on x86 to get the IP
+            let next_instruction_is_pop = self.orig_instructions.get(orig_instruction_num+1)
+                .map(|i| i.mnemonic() == Mnemonic::Pop)
+                .unwrap_or_default();
+            if instruction.near_branch_target() == instruction.next_ip() && next_instruction_is_pop {
+                let next_instruction = self.orig_instructions[orig_instruction_num+1];
+                assert_eq!(next_instruction.op0_kind(), OpKind::Register);
+                let reg = next_instruction.op0_register();
+                if let Some(reg) = get_gpr64(reg) {
+                    self.a.mov(reg, instruction.next_ip()).unwrap();
+                } else if let Some(reg) = get_gpr32(reg) {
+                    self.a.mov(reg, instruction.next_ip() as u32).unwrap();
+                } else {
+                    unimplemented!("found `call 0; pop <reg>` with unsupported register {:?}", reg);
+                }
+                return Some(())
+            }
+
+            // otherwise call into the copied code
             let label = *self.labels.get(&instruction.near_branch_target())
                 .expect("call to inside an instruction in the trampoline");
             self.a.call(label).unwrap();

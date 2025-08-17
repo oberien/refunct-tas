@@ -1,9 +1,18 @@
 use std::arch::naked_asm;
-use hook::{ArgsRef, RawHook, IsaAbi, TypedHook, X86_64_SystemV};
+use hook::{ArgsRef, RawHook, IsaAbi, TypedHook};
+#[cfg(target_pointer_width = "64")]
+use hook::X86_64_SystemV;
+#[cfg(target_pointer_width = "32")]
+use hook::I686_MSVC_Thiscall;
+
+#[cfg(target_pointer_width = "64")]
+type CurrentIsaAbi = X86_64_SystemV;
+#[cfg(target_pointer_width = "32")]
+type CurrentIsaAbi = I686_MSVC_Thiscall;
 
 fn main() {
-    // let hook = unsafe { Hook::create(test_function as usize, custom_raw_hook::<X86_64_SystemV, ()>) };
-    let hook = unsafe { TypedHook::without_this_pointer(test_function as usize, custom_typed_hook::<X86_64_SystemV>) };
+    // let hook = unsafe { Hook::create(test_function as usize, custom_raw_hook::<CurrentIsaAbi, ()>) };
+    let hook = unsafe { TypedHook::with_this_pointer(test_function as usize, custom_typed_hook::<CurrentIsaAbi>) };
 
     test_function(1337);
     hook.enable();
@@ -36,8 +45,12 @@ fn custom_raw_hook<IA: IsaAbi, T>(hook: &'static RawHook<IA, T>, mut args: ArgsR
 extern "C" fn print(val: u64) {
     println!("from inside hooked function: {val}");
 }
-#[unsafe(link_section = ".custom_section")]
+#[cfg(target_pointer_width = "32")]
+extern "fastcall" fn print(val: u32) {
+    println!("from inside hooked function: {val}");
+}
 #[cfg(target_pointer_width = "64")]
+#[unsafe(link_section = ".custom_section")]
 #[unsafe(naked)]
 extern "C" fn test_function(_arg: u32) {
     naked_asm!(
@@ -58,28 +71,18 @@ extern "C" fn test_function(_arg: u32) {
         print = sym print,
     )
 }
-
-
 #[cfg(target_pointer_width = "32")]
-extern "thiscall" fn thiscall_function(this: *const (), _: u8, _: u16, _: u32) {
-
-}
-
-#[cfg(target_pointer_width = "32")]
-extern "C" fn print(val: u32) {
-    println!("{val:x}");
-}
-
-#[cfg(target_pointer_width = "32")]
+#[unsafe(link_section = ".custom_section")]
 #[unsafe(naked)]
-extern "C" fn test_function() {
+extern "thiscall" fn test_function(_arg: u32) {
     naked_asm!(
         "push eax",
-        "mov edi, [{test_function}+1-12]",
+        "jmp 5f",
+        "mov ecx, [eax+12]",
+        "5:",
         "call {print}",
         "pop eax",
         "ret",
-        test_function = sym test_function,
         print = sym print,
     )
 }

@@ -7,4 +7,9 @@ edition = "2024"
 iced-x86 = { version = "1.21.0", features = ["code_asm"] }
 region = "3.0.2"
 memmap2 = "0.9.7"
+
+[target.'cfg(unix)'.dependencies]
 libc = "0.2.172"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winnt", "memoryapi"] }
