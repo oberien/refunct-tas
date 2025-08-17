@@ -4,7 +4,7 @@ use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use livesplit_core::{Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
-use livesplit_core::component::{CurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
+use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
 use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::TimeWithFraction};
 use super::rebo_init::Color;
@@ -17,12 +17,14 @@ pub struct LiveSplit {
     pub layout: LiveSplitLayout,
     total_playtime_formatter: TimeWithFraction,
     sum_of_best_formatter: TimeWithFraction,
+    current_pace_formatter: TimeWithFraction,
 }
 pub struct Timer {}
 pub struct Run {}
 pub struct Layout {}
 pub struct TotalPlaytime {}
 pub struct SumOfBestSegments {}
+pub struct CurrentPace {}
 
 #[derive(rebo::ExternalType)]
 pub enum DigitsFormat {
@@ -39,6 +41,17 @@ pub enum Accuracy {
     Tenths,
     Hundredths,
     Milliseconds,
+}
+#[derive(rebo::ExternalType)]
+pub enum Comparison {
+    PersonalBest,
+    BestSegments,
+    BestSplitTimes,
+    AverageSegments,
+    MedianSegments,
+    WorstSegments,
+    BalancedPB,
+    LatestRun,
 }
 
 impl From<DigitsFormat> for LiveSplitDigitsFormat {
@@ -127,7 +140,8 @@ impl LiveSplit {
         timer.set_current_timing_method(TimingMethod::GameTime);
         let total_playtime_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
         let sum_of_best_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
-        LiveSplit { timer, layout, total_playtime_formatter, sum_of_best_formatter }
+        let current_pace_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
+        LiveSplit { timer, layout, total_playtime_formatter, sum_of_best_formatter, current_pace_formatter }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -183,6 +197,18 @@ impl Timer {
     }
     pub fn set_sum_of_best_accuracy(accuracy: LiveSplitAccuracy) {
         LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.fraction.set_accuracy(accuracy);
+    }
+    pub fn current_pace_digits_format() -> LiveSplitDigitsFormat {
+        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.time.digits_format()
+    }
+    pub fn set_current_pace_digits_format(current_pace_digits_format: LiveSplitDigitsFormat) {
+        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.time.set_digits_format(current_pace_digits_format);
+    }
+    pub fn current_pace_accuracy() -> LiveSplitAccuracy {
+        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.fraction.accuracy()
+    }
+    pub fn set_current_pace_accuracy(accuracy: LiveSplitAccuracy) {
+        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.fraction.set_accuracy(accuracy);
     }
 }
 impl Run {
@@ -272,7 +298,7 @@ impl Layout {
         layout.push(Component::DetailedTimer(Box::new(DetailedTimer::new())));
         layout.push(Component::PreviousSegment(PreviousSegment::new()));
         layout.push(Component::PossibleTimeSave(PossibleTimeSave::new()));
-        layout.push(Component::CurrentPace(CurrentPace::new()));
+        layout.push(Component::CurrentPace(LiveSplitCurrentPace::new()));
         layout.push(Component::PbChance(PbChance::new()));
         layout.push(Component::SumOfBest(SumOfBest::new()));
         layout
@@ -294,6 +320,23 @@ impl SumOfBestSegments {
         let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(segments, true, true, TimingMethod::GameTime)
             .unwrap_or(TimeSpan::zero());
         livesplit_state.sum_of_best_formatter.format(sum_of_best).to_string()
+    }
+}
+impl CurrentPace {
+    pub fn current_pace(comparison: Comparison) -> String {
+        let comparison = match comparison {
+            Comparison::PersonalBest => "Personal Best",
+            Comparison::BestSegments => "Best Segments",
+            Comparison::BestSplitTimes => "Best Split Times",
+            Comparison::AverageSegments => "Average Segments",
+            Comparison::MedianSegments => "Median Segments",
+            Comparison::WorstSegments => "Worst Segments",
+            Comparison::BalancedPB => "Balanced PB",
+            Comparison::LatestRun => "Latest Run",
+        };
+        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
+        let foo = livesplit_core::analysis::current_pace::calculate(&livesplit_state.timer.snapshot(), comparison);
+        livesplit_state.current_pace_formatter.format(foo.0.unwrap_or(TimeSpan::zero())).to_string()
     }
 }
 #[rebo::function("LiveSplit::get_best_segment_color")]
@@ -423,4 +466,24 @@ pub fn livesplit_get_sum_of_best_accuracy() -> Accuracy {
 #[rebo::function("LiveSplit::set_sum_of_best_accuracy")]
 pub fn livesplit_set_sum_of_best_accuracy(sum_of_best_accuracy: Accuracy) {
     Timer::set_sum_of_best_accuracy(sum_of_best_accuracy.into());
+}
+#[rebo::function("LiveSplit::get_current_pace")]
+pub fn livesplit_get_current_pace(comparison: Comparison) -> String {
+    CurrentPace::current_pace(comparison)
+}
+#[rebo::function("LiveSplit::get_current_pace_digits_format")]
+pub fn livesplit_get_current_pace_digits_format() -> DigitsFormat {
+    Timer::current_pace_digits_format().into()
+}
+#[rebo::function("LiveSplit::set_current_pace_digits_format")]
+pub fn livesplit_set_current_pace_digits_format(digits_format: DigitsFormat) {
+    Timer::set_current_pace_digits_format(digits_format.into());
+}
+#[rebo::function("LiveSplit::get_current_pace_accuracy")]
+pub fn livesplit_get_current_pace_accuracy() -> Accuracy {
+    Timer::current_pace_accuracy().into()
+}
+#[rebo::function("LiveSplit::set_current_pace_accuracy")]
+pub fn livesplit_set_current_pace_accuracy(current_pace_accuracy: Accuracy) {
+    Timer::set_current_pace_accuracy(current_pace_accuracy.into());
 }
