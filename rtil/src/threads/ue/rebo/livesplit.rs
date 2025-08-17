@@ -293,7 +293,7 @@ impl SumOfBestSegments {
         let segments = livesplit_state.timer.run().segments();
         let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(segments, true, true, TimingMethod::GameTime)
             .unwrap_or(TimeSpan::zero());
-        livesplit_state.total_playtime_formatter.format(sum_of_best).to_string()
+        livesplit_state.sum_of_best_formatter.format(sum_of_best).to_string()
     }
 }
 #[rebo::function("LiveSplit::get_best_segment_color")]
@@ -407,4 +407,20 @@ pub fn livesplit_set_total_playtime_accuracy(total_playtime_accuracy: Accuracy) 
 #[rebo::function("LiveSplit::get_sum_of_best_segments")]
 pub fn livesplit_get_sum_of_best_segments() -> String {
     SumOfBestSegments::sum_of_best()
+}
+#[rebo::function("LiveSplit::get_sum_of_best_digits_format")]
+pub fn livesplit_get_sum_of_best_digits_format() -> DigitsFormat {
+    Timer::sum_of_best_digits_format().into()
+}
+#[rebo::function("LiveSplit::set_sum_of_best_digits_format")]
+pub fn livesplit_set_sum_of_best_digits_format(digits_format: DigitsFormat) {
+    Timer::set_sum_of_best_digits_format(digits_format.into());
+}
+#[rebo::function("LiveSplit::get_sum_of_best_accuracy")]
+pub fn livesplit_get_sum_of_best_accuracy() -> Accuracy {
+    Timer::sum_of_best_accuracy().into()
+}
+#[rebo::function("LiveSplit::set_sum_of_best_accuracy")]
+pub fn livesplit_set_sum_of_best_accuracy(sum_of_best_accuracy: Accuracy) {
+    Timer::set_sum_of_best_accuracy(sum_of_best_accuracy.into());
 }
