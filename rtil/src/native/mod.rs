@@ -81,6 +81,7 @@ type RefunctIsaAbi = hook::I686_MSVC_Thiscall;
 
 pub struct Hooks {
     pub fslateapplication: FSlateApplication,
+    pub amycharacter_forceduncreouch: &'static RawHook<RefunctIsaAbi, ()>,
     // ...
     pub amycharacter_tick: &'static RawHook<RefunctIsaAbi, ()>,
 }
@@ -94,7 +95,6 @@ pub fn init() -> Hooks {
 
 
     unsafe {
-        newgame::hook_amycharacter_forceduncrouch();
         tick::hook_uengine_updatetimeandhandlemaxtickrate();
         tick::hook_aliftbase_addbasedcharacter();
         tick::hook_aliftbase_removebasedcharacter();
@@ -104,6 +104,7 @@ pub fn init() -> Hooks {
         uworld::hook_uuserwidget_addtoscreen();
         Hooks {
             fslateapplication: FSlateApplication::hook(),
+            amycharacter_forceduncreouch: RawHook::create(AMYCHARACTER_FORCEDUNCROUCH.load(Ordering::Relaxed), newgame::new_game::<RefunctIsaAbi>).enabled(),
             amycharacter_tick: RawHook::create(AMYCHARACTER_TICK.load(Ordering::Relaxed), character::tick_hook::<RefunctIsaAbi>).enabled(),
         }
     }
