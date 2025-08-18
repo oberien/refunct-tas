@@ -78,7 +78,7 @@ impl<IA: IsaAbi, T> RawHook<IA, T> {
         slice.copy_from_slice(self.orig_bytes.as_slice());
         unsafe { make_rx(self.orig_addr, IA::JmpInterceptorBytesArray::LEN) };
     }
-    pub fn call_original_function(&self, args: impl AsRef<IA::Args>) {
+    pub unsafe fn call_original_function(&self, args: impl AsRef<IA::Args>) {
         unsafe {
             let function: extern "C" fn(&IA::Args) = mem::transmute(self.call_trampoline_addr);
             function(args.as_ref())

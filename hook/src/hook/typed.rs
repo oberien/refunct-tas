@@ -64,7 +64,7 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
         } else {
             a_ref.store_without_this_pointer(args);
         }
-        self.hook.call_original_function(a_ref);
+        unsafe { self.hook.call_original_function(a_ref); }
         a.return_value()
     }
 }
