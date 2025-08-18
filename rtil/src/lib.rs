@@ -12,7 +12,7 @@ use std::thread;
 use std::panic;
 
 mod error;
-#[macro_use] mod statics;
+#[macro_use] mod log;
 mod native;
 mod threads;
 mod semaphore;

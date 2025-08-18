@@ -2712,7 +2712,6 @@ dependencies = [
  "opener",
  "protocol",
  "rebo",
- "rtil_derive",
  "sanitize-filename",
  "serde",
  "serde_json",
@@ -2806,15 +2805,6 @@ checksum = "45087cee619d316fa4bd1675494acff4a5eaa0892fa53bc364bd246f13e452e2"
 dependencies = [
  "lazy_static",
  "regex",
-]
-
-[[package]]
-name = "rtil_derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]

@@ -282,6 +282,6 @@ pub fn tick_hook<IA: IsaAbi>(hook: &'static RawHook<IA, ()>, mut args: ArgsRef<'
     log!("Got AMyCharacter::Movement::Acceleration: {:p}", unsafe { &(*my_character.movement()).acceleration });
     log!("Got AMyCharacter::Movement::MaxFlySpeed : {:p}", unsafe { &(*my_character.movement()).max_fly_speed });
     hook.disable();
-    hook.call_original_function(args);
+    unsafe { hook.call_original_function(args) };
     REBO_DOESNT_START_SEMAPHORE.release();
 }

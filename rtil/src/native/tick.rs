@@ -1,16 +1,18 @@
-use crate::native::Args;
-use crate::native::UObject;
+use hook::{ArgsRef, IsaAbi, RawHook, TypedHook};
+use crate::native::character::AMyCharacterUE;
+use crate::native::ALiftBaseUE;
 
-#[rtil_derive::hook_after(UEngine::UpdateTimeAndHandleMaxTickRate)]
-fn tick() {
+pub fn tick_hook<IA: IsaAbi>(hook: &'static RawHook<IA, ()>, args: ArgsRef<'_, IA>) {
+    unsafe { hook.call_original_function(args); }
     crate::threads::ue::tick();
 }
 
-#[rtil_derive::hook_before(ALiftBase::AddBasedCharacter)]
-fn add_based_player(args: &mut Args) {
-    crate::threads::ue::add_based_character(unsafe { args.with_this_pointer::<*mut UObject>() })
+pub fn add_based_character_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>, this: *mut ALiftBaseUE, character: *mut AMyCharacterUE) {
+    crate::threads::ue::add_based_character(this);
+    unsafe { hook.call_original_function((this, character)) };
 }
-#[rtil_derive::hook_before(ALiftBase::RemoveBasedCharacter)]
-fn remove_based_player(args: &mut Args) {
-    crate::threads::ue::remove_based_character(unsafe { args.with_this_pointer::<*mut UObject>() })
+
+pub fn remove_based_character_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>, this: *mut ALiftBaseUE, character: *mut AMyCharacterUE) {
+    crate::threads::ue::remove_based_character(this);
+    unsafe { hook.call_original_function((this, character)) };
 }

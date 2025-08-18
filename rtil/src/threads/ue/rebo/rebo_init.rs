@@ -12,7 +12,7 @@ use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport};
+use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport, ALiftBaseUE};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
@@ -991,17 +991,14 @@ fn set_level(level: i32) {
 #[rebo::function("Tas::trigger_element")]
 fn trigger_element(index: ElementIndex) {
     fn add_remove_based_character(actor: &ActorWrapper<'_>) {
-        crate::native::unhook_aliftbase_addbasedcharacter();
-        crate::native::unhook_aliftbase_removebasedcharacter();
-        let add_based_character = actor.class().find_function("AddBasedCharacter").unwrap();
-        let remove_based_character = actor.class().find_function("RemoveBasedCharacter").unwrap();
-        let args = add_based_character.create_argument_struct();
-        let character = unsafe { ObjectWrapper::new(AMyCharacter::get_player().as_ptr() as *mut UObject) };
-        args.get_field("BasedCharacter").set_object(&character);
-        unsafe { add_based_character.call(actor.as_ptr(), &args); }
-        unsafe { remove_based_character.call(actor.as_ptr(), &args); }
-        crate::native::hook_aliftbase_removebasedcharacter();
-        crate::native::hook_aliftbase_addbasedcharacter();
+        let state = STATE.lock().unwrap();
+        let state = state.as_ref().unwrap();
+        unsafe {
+            let liftbase = actor.as_ptr() as *mut ALiftBaseUE;
+            let character = AMyCharacter::get_player().as_ptr();
+            state.hooks.aliftbase.add_based_character(liftbase, character);
+            state.hooks.aliftbase.remove_based_character(liftbase, character);
+        }
     }
     fn collect_cube(actor: &ActorWrapper<'_>) {
         let trigger_fn = actor

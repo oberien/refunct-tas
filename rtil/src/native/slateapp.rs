@@ -14,13 +14,13 @@ pub struct FSlateApplication {
 }
 
 impl FSlateApplication {
-    pub fn hook() -> FSlateApplication {
+    pub(super) fn hook() -> FSlateApplication {
         unsafe {
             Self {
-                _tick: TypedHook::with_this_pointer(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook::<RefunctIsaAbi>).enabled(),
-                onkeydown: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::Relaxed), on_key_down_hook::<RefunctIsaAbi>).enabled(),
-                onkeyup: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYUP.load(Ordering::Relaxed), on_key_up_hook::<RefunctIsaAbi>).enabled(),
-                onrawmousemove: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::Relaxed), on_raw_mouse_move_hook::<RefunctIsaAbi>).enabled(),
+                _tick: TypedHook::with_this_pointer(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook).enabled(),
+                onkeydown: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::Relaxed), on_key_down_hook).enabled(),
+                onkeyup: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYUP.load(Ordering::Relaxed), on_key_up_hook).enabled(),
+                onrawmousemove: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::Relaxed), on_raw_mouse_move_hook).enabled(),
             }
         }
     }
@@ -48,7 +48,7 @@ impl FSlateApplication {
     }
 }
 
-pub fn tick_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE), ()>, this: *mut FSlateApplicationUE) {
+fn tick_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE), ()>, this: *mut FSlateApplicationUE) {
     #[cfg(unix)] { SLATEAPP.store(this, Ordering::SeqCst); }
     #[cfg(windows)] {
         let this_addr = this as usize;
@@ -64,7 +64,7 @@ pub fn tick_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE), 
     REBO_DOESNT_START_SEMAPHORE.release();
 }
 
-pub fn on_key_down_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE,i32,u32,bool), ()>, this: *mut FSlateApplicationUE, key_code: i32, character_code: u32, is_repeat: bool) {
+fn on_key_down_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE,i32,u32,bool), ()>, this: *mut FSlateApplicationUE, key_code: i32, character_code: u32, is_repeat: bool) {
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
         crate::threads::ue::key_down(key_code & !(1<<30), character_code, is_repeat);
@@ -75,7 +75,7 @@ pub fn on_key_down_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicati
     unsafe { hook.call_original_function((this, key_code, character_code, is_repeat)); }
 }
 
-pub fn on_key_up_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>, this: *mut FSlateApplicationUE, key_code: i32, character_code: u32, is_repeat: bool) {
+fn on_key_up_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>, this: *mut FSlateApplicationUE, key_code: i32, character_code: u32, is_repeat: bool) {
     #[cfg(unix)] {
         // on Linux UE applies a (1<<30) mask to mod keys
         crate::threads::ue::key_up(key_code & !(1 << 30), character_code, is_repeat);

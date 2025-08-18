@@ -2,8 +2,6 @@ use std::env;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use libc::{self, c_void, PROT_READ, PROT_WRITE, PROT_EXEC};
-
 // Shoutout to https://github.com/geofft/redhook/blob/master/src/ld_preload.rs#L18
 // Rust doesn't directly expose __attribute__((constructor)), but this
 // is how GNU implements it.
@@ -125,16 +123,4 @@ find! {
     UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE, "^UMaterialInstanceDynamic::SetScalarParameterValue(FName, float)",
     UFONTBULKDATA_INITIALIZE, "^UFontBulkData::Initialize(void const*, int)",
     FVIEWPORT_SETGAMERENDERINGENABLED, "^FViewport::SetGameRenderingEnabled(bool, int)",
-}
-
-pub(in crate::native) fn make_rw(addr: usize) {
-    let page = addr & !0xfff;
-    let page = page as *mut c_void;
-    unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_WRITE); }
-}
-
-pub(in crate::native) fn make_rx(addr: usize) {
-    let page = addr & !0xfff;
-    let page = page as *mut c_void;
-    unsafe { libc::mprotect(page, 0x1000, PROT_READ | PROT_EXEC); }
 }

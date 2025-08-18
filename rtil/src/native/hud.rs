@@ -5,10 +5,11 @@ use bit_field::BitField;
 use atomic_float::AtomicF32;
 
 #[cfg(unix)] use libc::c_void;
+use hook::{IsaAbi, TypedHook};
 #[cfg(windows)] use winapi::ctypes::c_void;
 
 use crate::native::ue::{FLinearColor, FString, FVector, FVector2D};
-use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_DRAWRECT, AHUD_PROJECT, AHUD_GETTEXTSIZE, Args, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
+use crate::native::{AHUD_DRAWLINE, AHUD_DRAWTEXT, AHUD_DRAWTEXTURESIMPLE, AHUD_DRAWTEXTURE, AHUD_DRAWRECT, AHUD_PROJECT, AHUD_GETTEXTSIZE, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UObject, ObjectWrapper, AMyCharacter};
 use crate::native::texture::UTexture2DUE;
 use crate::threads::ue;
 
@@ -26,6 +27,8 @@ macro_rules! get_amyhud {
     }}
 }
 
+pub enum AHudUE {}
+pub enum UMaterialInterfaceUE {}
 #[repr(C)]
 pub struct AMyHud {
     #[cfg(windows)] _pad: [u8; 0x2b8],
@@ -122,9 +125,7 @@ impl AMyHud {
     }
 }
 
-#[rtil_derive::hook_before(AMyHUD::DrawHUD)]
-fn draw_hud(args: &mut Args) {
-    let this = unsafe { args.with_this_pointer::<*mut AMyHud>() };
+pub fn draw_hud_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(*mut AMyHud), ()>, this: *mut AMyHud) {
     if AMYHUD.load(Ordering::SeqCst).is_null() {
         AMYHUD.store(this, Ordering::SeqCst);
         log!("Got AMyHUD: {:p}", this);
@@ -132,27 +133,27 @@ fn draw_hud(args: &mut Args) {
         REBO_DOESNT_START_SEMAPHORE.release();
     }
     ue::draw_hud();
+    unsafe { hook.call_original_function(this); }
 }
 
 static RETICLE_W: AtomicF32 = AtomicF32::new(6.);
 static RETICLE_H: AtomicF32 = AtomicF32::new(6.);
 
-#[rtil_derive::hook_before(AHUD::DrawMaterialSimple)]
-fn draw_material_simple(args: &mut Args) {
-    let (
-        _this, material, screen_x, screen_y, screen_w, screen_h, scale, _scale_position
-    ) = unsafe { args.with_this_pointer::<(*mut UObject, *mut UObject, f32, f32, f32, f32, f32, usize)>() };
-    unsafe {
-        let obj = ObjectWrapper::new(material);
-        if obj.name() == "M_Player_Crosshair" {
-            *screen_w = RETICLE_W.load(Ordering::Relaxed);
-            *screen_h = RETICLE_H.load(Ordering::Relaxed);
-            let sw = *screen_w * *scale;
-            let sh = *screen_h * *scale;
-            *screen_x = (AMyCharacter::get_player().get_viewport_size().0 as f32 / 2.) - (sw / 2.);
-            *screen_y = (AMyCharacter::get_player().get_viewport_size().1 as f32 / 2.) - (sh / 2.);
-        }
+pub fn draw_material_simple_hook<IA: IsaAbi>(
+    hook: &TypedHook<IA, fn(*mut AHudUE, *mut UMaterialInterfaceUE, f32, f32, f32, f32, f32, bool), ()>,
+    this: *mut AHudUE, material: *mut UMaterialInterfaceUE, mut screen_x: f32, mut screen_y: f32,
+    mut screen_w: f32, mut screen_h: f32, scale: f32, scale_position: bool,
+) {
+    let obj = unsafe { ObjectWrapper::new(material as *mut UObject) };
+    if obj.name() == "M_Player_Crosshair" {
+        screen_w = RETICLE_W.load(Ordering::Relaxed);
+        screen_h = RETICLE_H.load(Ordering::Relaxed);
+        let sw = screen_w * scale;
+        let sh = screen_h * scale;
+        screen_x = (AMyCharacter::get_player().get_viewport_size().0 as f32 / 2.) - (sw / 2.);
+        screen_y = (AMyCharacter::get_player().get_viewport_size().1 as f32 / 2.) - (sh / 2.);
     }
+    unsafe { hook.call_original_function((this, material, screen_x, screen_y, screen_w, screen_h, scale, scale_position)); }
 }
 #[allow(unused)]
 #[repr(i32)]

@@ -1,5 +1,5 @@
 use crossbeam_channel::{Receiver, Sender};
-use crate::native::{ElementIndex, Hooks, try_find_element_index, UObject};
+use crate::native::{ALiftBaseUE, ElementIndex, Hooks, try_find_element_index, UObject};
 use crate::threads::{ReboToStream, StreamToRebo};
 
 mod rebo;
@@ -41,17 +41,17 @@ pub fn tick() {
     handle(UeEvent::Tick);
 }
 
-pub fn add_based_character(ptr: *mut UObject) {
+pub fn add_based_character(ptr: *mut ALiftBaseUE) {
     // TODO: remove once we added pipes to the map editor
-    let element_index = match try_find_element_index(ptr) {
+    let element_index = match try_find_element_index(ptr as *mut UObject) {
         Some(i) => i,
         None => return,
     };
     handle(UeEvent::ElementPressed(element_index));
 }
-pub fn remove_based_character(ptr: *mut UObject) {
+pub fn remove_based_character(ptr: *mut ALiftBaseUE) {
     // TODO: remove once we added pipes to the map editor
-    let element_index = match try_find_element_index(ptr) {
+    let element_index = match try_find_element_index(ptr as *mut UObject) {
         Some(i) => i,
         None => return,
     };
