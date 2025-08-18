@@ -80,9 +80,11 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
     pub fn new(orig_instructions: Vec<Instruction>, free_reg: IA::AsmRegister) -> Self {
         let orig_addr_range = orig_instructions.first().unwrap().ip()..orig_instructions.last().unwrap().next_ip();
         let mut a = CodeAssembler::new(IA::BITNESS).unwrap();
-        let labels = orig_instructions.iter()
+        let mut labels: HashMap<_, _> = orig_instructions.iter()
             .map(|i| (i.ip(), a.create_label()))
             .collect();
+        // label to jump back to original function
+        labels.insert(orig_instructions.last().unwrap().next_ip(), a.create_label());
 
         Self {
             orig_instructions,
@@ -116,6 +118,8 @@ impl<IA: IsaAbi> TrampolineRewriter<IA> {
                 print_instructions(&[*self.a.instructions().last().unwrap()], instruction.ip(), 4);
             }
         }
+        // set label to jump back to original function
+        self.a.set_label(self.labels.get_mut(&self.orig_instructions.last().unwrap().next_ip()).unwrap()).unwrap();
 
         self.a
     }
