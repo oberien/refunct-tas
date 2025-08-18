@@ -4,10 +4,10 @@ use crate::{Interceptor, CallTrampoline};
 use crate::args::{Args};
 
 mod x86_64_systemv;
-mod i686_thiscall;
+mod i686_msvc_thiscall;
 
 pub use x86_64_systemv::X86_64_SystemV;
-pub use i686_thiscall::I686_MSVC_Thiscall;
+pub use i686_msvc_thiscall::I686_MSVC_Thiscall;
 
 #[allow(private_interfaces)]
 pub unsafe trait IsaAbi: 'static {
