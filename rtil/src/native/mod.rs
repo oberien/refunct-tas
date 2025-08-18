@@ -40,7 +40,7 @@ mod engine;
 mod font;
 
 use std::sync::atomic::Ordering;
-use hook::{RawHook, X86_64_SystemV};
+use hook::RawHook;
 use crate::semaphore::Semaphore;
 #[cfg(unix)] use self::linux::*;
 #[cfg(windows)] use self::windows::*;
@@ -75,9 +75,9 @@ pub use self::engine::{UEngine, FViewport};
 pub static REBO_DOESNT_START_SEMAPHORE: Semaphore = Semaphore::new(-2);
 
 #[cfg(unix)]
-type RefunctIsaAbi = X86_64_SystemV;
+type RefunctIsaAbi = hook::X86_64_SystemV;
 #[cfg(windows)]
-type RefunctIsaAbi = I686_Thiscall;
+type RefunctIsaAbi = hook::I686_MSVC_Thiscall;
 
 pub struct Hooks {
     pub fslateapplication: FSlateApplication,
