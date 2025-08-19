@@ -5,8 +5,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use livesplit_core::{comparison::{personal_best, best_segments, best_split_times, average_segments, median_segments, worst_segments, balanced_pb, latest_run}, Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
 use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
-use livesplit_core::{comparison::{personal_best, best_segments, best_split_times, average_segments, median_segments, worst_segments, balanced_pb, latest_run}, Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
-use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
 use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::TimeWithFraction};
 use super::rebo_init::Color;
@@ -15,18 +13,19 @@ static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new
 static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
 pub struct LiveSplit {
-    pub timer: LiveSplitTimer,
     pub layout: LiveSplitLayout,
+    pub timer: Timer,
+}
+pub struct Timer {
+    livesplit_timer: LiveSplitTimer,
     total_playtime_formatter: TimeWithFraction,
     sum_of_best_formatter: TimeWithFraction,
     current_pace_formatter: TimeWithFraction,
 }
-pub struct Timer {}
-pub struct Run {}
+pub struct Run<'a> {
+    timer: &'a mut LiveSplitTimer,
+}
 pub struct Layout {}
-pub struct TotalPlaytime {}
-pub struct SumOfBestSegments {}
-pub struct CurrentPace {}
 
 #[derive(rebo::ExternalType)]
 pub enum DigitsFormat {
@@ -138,12 +137,13 @@ impl LiveSplit {
         run.set_category_name("Any%");
         run.push_segment(Segment::new("1"));
         run.metadata_mut().set_speedrun_com_variable("New Game Glitch", "Normal");
-        let mut timer = LiveSplitTimer::new(run).unwrap();
-        timer.set_current_timing_method(TimingMethod::GameTime);
+        let mut livesplit_timer = LiveSplitTimer::new(run).unwrap();
+        livesplit_timer.set_current_timing_method(TimingMethod::GameTime);
         let total_playtime_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
         let sum_of_best_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
         let current_pace_formatter = TimeWithFraction::new(LiveSplitDigitsFormat::SingleDigitSeconds, LiveSplitAccuracy::Hundredths);
-        LiveSplit { timer, layout, total_playtime_formatter, sum_of_best_formatter, current_pace_formatter }
+        let timer = Timer { livesplit_timer, total_playtime_formatter, sum_of_best_formatter, current_pace_formatter };
+        LiveSplit { layout, timer }
     }
     fn splits_path() -> PathBuf {
         let appdata_path = super::rebo_init::data_path();
@@ -153,73 +153,96 @@ impl LiveSplit {
         }
         splits_path
     }
+    
 }
 impl Timer {
-    pub fn start() {
-        Self::reset(true);
-        let mut state = LIVESPLIT_STATE.lock().unwrap();
-        state.timer.start();
-        state.timer.initialize_game_time();
+    pub fn start(&mut self) {
+        let _ = self.livesplit_timer.reset(true);
+        let _ = self.livesplit_timer.start();
     }
-    pub fn split() {
-        LIVESPLIT_STATE.lock().unwrap().timer.split();
+    pub fn split(&mut self) {
+        let _ = self.livesplit_timer.split();
     }
-    pub fn reset(update_splits: bool) {
-        LIVESPLIT_STATE.lock().unwrap().timer.reset(update_splits);
+    pub fn reset(&mut self, update_splits: bool) {
+        let _ = self.livesplit_timer.reset(update_splits);
     }
-    pub fn get_game_time() -> f64 {
-        LIVESPLIT_STATE.lock().unwrap().timer.snapshot().current_time().game_time.unwrap().total_seconds()
+    pub fn get_game_time(&self) -> f64 {
+        self.livesplit_timer.snapshot().current_time().game_time.unwrap().total_seconds()
     }
-    pub fn pause_game_time() {
-        LIVESPLIT_STATE.lock().unwrap().timer.pause_game_time();
+    pub fn pause_game_time(&mut self) {
+        let _ = self.livesplit_timer.pause_game_time();
     }
-    pub fn set_game_time(time: f64) {
-        LIVESPLIT_STATE.lock().unwrap().timer.set_game_time(TimeSpan::from_seconds(time));
+    pub fn set_game_time(&mut self, time: f64) {
+        let _ = self.livesplit_timer.set_game_time(TimeSpan::from_seconds(time));
     }
-    pub fn total_playtime_digits_format() -> LiveSplitDigitsFormat {
-        LIVESPLIT_STATE.lock().unwrap().total_playtime_formatter.time.digits_format()
+    pub fn run(&mut self) -> Run {
+        Run { timer: &mut self.livesplit_timer }
     }
-    pub fn set_total_playtime_digits_format(total_playtime_digits_format: LiveSplitDigitsFormat) {
-        LIVESPLIT_STATE.lock().unwrap().total_playtime_formatter.time.set_digits_format(total_playtime_digits_format);
+    pub fn total_playtime_digits_format(&mut self) -> LiveSplitDigitsFormat {
+        self.total_playtime_formatter.time.digits_format()
     }
-    pub fn total_playtime_accuracy() -> LiveSplitAccuracy {
-        LIVESPLIT_STATE.lock().unwrap().total_playtime_formatter.fraction.accuracy()
+    pub fn set_total_playtime_digits_format(&mut self, total_playtime_digits_format: LiveSplitDigitsFormat) {
+        self.total_playtime_formatter.time.set_digits_format(total_playtime_digits_format);
     }
-    pub fn set_total_playtime_accuracy(accuracy: LiveSplitAccuracy) {
-        LIVESPLIT_STATE.lock().unwrap().total_playtime_formatter.fraction.set_accuracy(accuracy);
+    pub fn total_playtime_accuracy(&mut self) -> LiveSplitAccuracy {
+        self.total_playtime_formatter.fraction.accuracy()
     }
-    pub fn sum_of_best_digits_format() -> LiveSplitDigitsFormat {
-        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.time.digits_format()
+    pub fn set_total_playtime_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
+        self.total_playtime_formatter.fraction.set_accuracy(accuracy);
     }
-    pub fn set_sum_of_best_digits_format(sum_of_best_digits_format: LiveSplitDigitsFormat) {
-        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.time.set_digits_format(sum_of_best_digits_format);
+    pub fn sum_of_best_digits_format(&mut self) -> LiveSplitDigitsFormat {
+        self.sum_of_best_formatter.time.digits_format()
     }
-    pub fn sum_of_best_accuracy() -> LiveSplitAccuracy {
-        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.fraction.accuracy()
+    pub fn set_sum_of_best_digits_format(&mut self, sum_of_best_digits_format: LiveSplitDigitsFormat) {
+        self.sum_of_best_formatter.time.set_digits_format(sum_of_best_digits_format);
     }
-    pub fn set_sum_of_best_accuracy(accuracy: LiveSplitAccuracy) {
-        LIVESPLIT_STATE.lock().unwrap().sum_of_best_formatter.fraction.set_accuracy(accuracy);
+    pub fn sum_of_best_accuracy(&mut self) -> LiveSplitAccuracy {
+        self.sum_of_best_formatter.fraction.accuracy()
     }
-    pub fn current_pace_digits_format() -> LiveSplitDigitsFormat {
-        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.time.digits_format()
+    pub fn set_sum_of_best_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
+        self.sum_of_best_formatter.fraction.set_accuracy(accuracy); 
     }
-    pub fn set_current_pace_digits_format(current_pace_digits_format: LiveSplitDigitsFormat) {
-        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.time.set_digits_format(current_pace_digits_format);
+    pub fn current_pace_digits_format(&mut self) -> LiveSplitDigitsFormat {
+        self.current_pace_formatter.time.digits_format()
     }
-    pub fn current_pace_accuracy() -> LiveSplitAccuracy {
-        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.fraction.accuracy()
+    pub fn set_current_pace_digits_format(&mut self, current_pace_digits_format: LiveSplitDigitsFormat) {
+        self.current_pace_formatter.time.set_digits_format(current_pace_digits_format);
     }
-    pub fn set_current_pace_accuracy(accuracy: LiveSplitAccuracy) {
-        LIVESPLIT_STATE.lock().unwrap().current_pace_formatter.fraction.set_accuracy(accuracy);
+    pub fn current_pace_accuracy(&mut self) -> LiveSplitAccuracy {
+        self.current_pace_formatter.fraction.accuracy()
+    }
+    pub fn set_current_pace_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
+        self.current_pace_formatter.fraction.set_accuracy(accuracy);
+    }
+    pub fn total_playtime(&self) -> String {
+        self.total_playtime_formatter.format(self.livesplit_timer.total_playtime()).to_string()
+    }
+    pub fn sum_of_best(&self) -> String {
+        let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(self.livesplit_timer.run().segments(), 
+            true, true, TimingMethod::GameTime).unwrap_or(TimeSpan::zero());
+        self.sum_of_best_formatter.format(sum_of_best).to_string()
+    }
+    pub fn current_pace(&self, comparison: Comparison) -> String {
+        let comparison = match comparison {
+            Comparison::PersonalBest => personal_best::NAME,
+            Comparison::BestSegments => best_segments::NAME,
+            Comparison::BestSplitTimes => best_split_times::NAME,
+            Comparison::AverageSegments => average_segments::NAME,
+            Comparison::MedianSegments => median_segments::NAME,
+            Comparison::WorstSegments => worst_segments::NAME,
+            Comparison::BalancedPB => balanced_pb::NAME,
+            Comparison::LatestRun => latest_run::NAME,
+        };
+        let current_pace = livesplit_core::analysis::current_pace::calculate(&self.livesplit_timer.snapshot(), comparison);
+        self.current_pace_formatter.format(current_pace.0.unwrap_or(TimeSpan::zero())).to_string()
     }
 }
-impl Run {
-    pub fn game_name() -> String {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().game_name().to_owned()
+impl Run<'_> {
+    pub fn game_name(&self) -> String {
+        self.timer.run().game_name().to_owned()
     }
-    pub fn set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
-        let mut state = LIVESPLIT_STATE.lock().unwrap();
-        let mut run = state.timer.run().clone();
+    pub fn set_game_info(&mut self, game: Game, category: String, new_game_glitch: NewGameGlitch) {
+        let mut run = self.timer.run().clone();
         let game = match game {
             Game::Refunct => "Refunct",
             Game::RefunctCategoryExtensions => "Refunct Category Extensions",
@@ -235,25 +258,23 @@ impl Run {
             };
             run.metadata_mut().set_speedrun_com_variable("New Game Glitch", cat);
         }
-        state.timer.set_run(run).unwrap();
+        self.timer.set_run(run.clone()).expect("The provided `Run` contains no segments");
     }
-    pub fn category_name() -> String {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().category_name().to_owned()
+    pub fn category_name(&self) -> String {
+        self.timer.run().category_name().to_owned()
     }
-    pub fn segments() -> Vec<Segment> {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().segments().to_owned()
+    pub fn segments(&self) -> Vec<Segment> {
+        self.timer.run().segments().to_owned()
     }
-    pub fn create_segment(name: String) {
-        let mut state = LIVESPLIT_STATE.lock().unwrap();
-        let mut run = state.timer.run().clone();
+    pub fn create_segment(self, name: String) {
+        let mut run = self.timer.run().clone();
         run.push_segment(Segment::new(name));
-        state.timer.set_run(run).unwrap();
+        self.timer.set_run(run).unwrap();
     }
-    pub fn attempt_count() -> u32 {
-        LIVESPLIT_STATE.lock().unwrap().timer.run().clone().attempt_count()
+    pub fn attempt_count(&self) -> u32 {
+        self.timer.run().attempt_count()
     }
-    pub fn save_splits(user_input: &str) -> Result<(), SplitsSaveError> {
-        let state = LIVESPLIT_STATE.lock().unwrap();
+    pub fn save_splits(&self, user_input: &str) -> Result<(), SplitsSaveError> {
         let valid_splits_paths = VALID_SPLITS_PATHS.lock().unwrap();
         let path = Path::new(user_input);
         let (path, path_display) = match (path.is_relative(), valid_splits_paths.contains(path)) {
@@ -266,11 +287,11 @@ impl Run {
         };
         let file = File::create(&path)
             .map_err(|e| SplitsSaveError::CreationFailed(path_display.clone(), e.to_string()))?;
-        livesplit::save_timer(&state.timer, livesplit::IoWrite(BufWriter::new(file)))
+        livesplit::save_timer(self.timer, livesplit::IoWrite(BufWriter::new(file)))
             .map_err(|e| SplitsSaveError::SaveFailed(path_display.clone(), e.to_string()))?;
         Ok(())
     }
-    pub fn load_splits(user_input: &str) -> Result<(), SplitsLoadError> {
+    pub fn load_splits(&mut self, user_input: &str) -> Result<(), SplitsLoadError> {
         let path = Path::new(user_input);
         let (path, path_display) = match path.is_relative() {
             true => {
@@ -285,9 +306,8 @@ impl Run {
             .map_err(|e| SplitsLoadError::OpenFailed(path_display.to_owned(), e.to_string()))?;
         let parsed_run = composite::parse(&file, None)
             .map_err(|e| SplitsLoadError::ParseFailed(path_display.to_owned(), e.to_string()))?;
-        let mut state = LIVESPLIT_STATE.lock().unwrap();
-        state.timer.reset(true);
-        state.timer.set_run(parsed_run.run).unwrap();
+        let _ = self.timer.reset(true);
+        let _ = self.timer.set_run(parsed_run.run.clone());
         VALID_SPLITS_PATHS.lock().unwrap().insert(path);
         Ok(())
     }
@@ -309,54 +329,83 @@ impl Layout {
         LIVESPLIT_STATE.lock().unwrap().layout.general_settings().clone()
     }
 }
-impl TotalPlaytime {
-    pub fn total_playtime() -> String {
-        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        livesplit_state.total_playtime_formatter.format(livesplit_state.timer.total_playtime()).to_string()
-    }
+#[rebo::function("LiveSplit::start")]
+pub fn livesplit_start() {
+    Timer::start(&mut LIVESPLIT_STATE.lock().unwrap().timer);
 }
-impl SumOfBestSegments {
-    pub fn sum_of_best() -> String {
-        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        let segments = livesplit_state.timer.run().segments();
-        let sum_of_best = livesplit_core::analysis::sum_of_segments::calculate_best(segments, true, true, TimingMethod::GameTime)
-            .unwrap_or(TimeSpan::zero());
-        livesplit_state.sum_of_best_formatter.format(sum_of_best).to_string()
-    }
+#[rebo::function("LiveSplit::split")]
+pub fn livesplit_split() {
+    Timer::split(&mut LIVESPLIT_STATE.lock().unwrap().timer);
 }
-impl CurrentPace {
-    pub fn current_pace(comparison: Comparison) -> String {
-        let comparison = match comparison {
-            Comparison::PersonalBest => personal_best::NAME,
-            Comparison::BestSegments => best_segments::NAME,
-            Comparison::BestSplitTimes => best_split_times::NAME,
-            Comparison::AverageSegments => average_segments::NAME,
-            Comparison::MedianSegments => median_segments::NAME,
-            Comparison::WorstSegments => worst_segments::NAME,
-            Comparison::BalancedPB => balanced_pb::NAME,
-            Comparison::LatestRun => latest_run::NAME,
+#[rebo::function("LiveSplit::reset")]
+pub fn livesplit_reset(update_splits: bool) {
+    Timer::reset(&mut LIVESPLIT_STATE.lock().unwrap().timer, update_splits);
+}
+#[rebo::function("LiveSplit::get_game_time")]
+pub fn livesplit_get_game_time() -> f64 {
+    Timer::get_game_time(&LIVESPLIT_STATE.lock().unwrap().timer)
+}
+#[rebo::function("LiveSplit::set_game_time")]
+pub fn livesplit_set_game_time(time: f64) {
+    Timer::set_game_time(&mut LIVESPLIT_STATE.lock().unwrap().timer, time);
+}
+#[rebo::function("LiveSplit::pause_game_time")]
+pub fn livesplit_pause_game_time() {
+    Timer::pause_game_time(&mut LIVESPLIT_STATE.lock().unwrap().timer);
+}
+#[rebo::function("LiveSplit::create_segment")]
+pub fn livesplit_create_segment(name: String) {
+    Run::create_segment(Timer::run(&mut LIVESPLIT_STATE.lock().unwrap().timer), name);
+}
+#[rebo::function("LiveSplit::get_game_name")]
+pub fn livesplit_get_game_name() -> String {
+    Run::game_name(&Timer::run(&mut LIVESPLIT_STATE.lock().unwrap().timer))
+}
+#[rebo::function("LiveSplit::set_game_info")]
+pub fn livesplit_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let run = &mut Timer::run(&mut state.timer);
+    Run::set_game_info(run, game, category, new_game_glitch);
+}
+#[rebo::function("LiveSplit::get_category_name")]
+pub fn livesplit_get_category_name() -> String {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let run = &mut Timer::run(&mut state.timer);
+    Run::category_name(run)
+}
+#[rebo::function("LiveSplit::get_segments")]
+pub fn livesplit_get_segments() -> Vec<crate::threads::ue::rebo::rebo_init::Segment> {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let mut segments = Vec::new();
+    let run = &mut Timer::run(&mut state.timer);
+    for seg in run.segments() {
+        let segment = crate::threads::ue::rebo::rebo_init::Segment {
+            name: seg.name().to_owned(),
+            time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
+            best_time: seg.best_segment_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
         };
-        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        let current_pace = livesplit_core::analysis::current_pace::calculate(&livesplit_state.timer.snapshot(), comparison);
-        livesplit_state.current_pace_formatter.format(current_pace.0.unwrap_or(TimeSpan::zero())).to_string()
+        segments.push(segment);
     }
+    segments
 }
-impl CurrentPace {
-    pub fn current_pace(comparison: Comparison) -> String {
-        let comparison = match comparison {
-            Comparison::PersonalBest => personal_best::NAME,
-            Comparison::BestSegments => best_segments::NAME,
-            Comparison::BestSplitTimes => best_split_times::NAME,
-            Comparison::AverageSegments => average_segments::NAME,
-            Comparison::MedianSegments => median_segments::NAME,
-            Comparison::WorstSegments => worst_segments::NAME,
-            Comparison::BalancedPB => balanced_pb::NAME,
-            Comparison::LatestRun => latest_run::NAME,
-        };
-        let livesplit_state = LIVESPLIT_STATE.lock().unwrap();
-        let current_pace = livesplit_core::analysis::current_pace::calculate(&livesplit_state.timer.snapshot(), comparison);
-        livesplit_state.current_pace_formatter.format(current_pace.0.unwrap_or(TimeSpan::zero())).to_string()
-    }
+#[rebo::function("LiveSplit::get_attempt_count")]
+pub fn livesplit_get_attempt_count() -> u32 {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let run = &mut Timer::run(&mut state.timer);
+    Run::attempt_count(run)
+}
+#[rebo::function("LiveSplit::save_splits")]
+pub fn livesplit_save_splits(path: String) -> Result<(), SplitsSaveError> {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let run = &mut Timer::run(&mut state.timer);
+    Run::save_splits(run, &path)
+}
+#[rebo::function("LiveSplit::load_splits")]
+pub fn livesplit_load_splits(path: String) -> Result<(), SplitsLoadError> {
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    let run = &mut Timer::run(&mut state.timer);
+    Run::load_splits(run, &path)
 }
 #[rebo::function("LiveSplit::get_best_segment_color")]
 pub fn livesplit_get_best_segment_color() -> Color {
@@ -448,61 +497,76 @@ pub fn livesplit_set_text_color(color: Color) {
 }
 #[rebo::function("LiveSplit::get_total_playtime")]
 pub fn livesplit_get_total_playtime() -> String {
-    TotalPlaytime::total_playtime()
+    let state = LIVESPLIT_STATE.lock().unwrap();
+    Timer::total_playtime(&state.timer)
 }
 #[rebo::function("LiveSplit::get_total_playtime_digits_format")]
 pub fn livesplit_get_total_playtime_digits_format() -> DigitsFormat {
-    Timer::total_playtime_digits_format().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.total_playtime_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_total_playtime_digits_format")]
 pub fn livesplit_set_total_playtime_digits_format(digits_format: DigitsFormat) {
-    Timer::set_total_playtime_digits_format(digits_format.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_total_playtime_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_total_playtime_accuracy")]
 pub fn livesplit_get_total_playtime_accuracy() -> Accuracy {
-    Timer::total_playtime_accuracy().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.total_playtime_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_total_playtime_accuracy")]
 pub fn livesplit_set_total_playtime_accuracy(total_playtime_accuracy: Accuracy) {
-    Timer::set_total_playtime_accuracy(total_playtime_accuracy.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_total_playtime_accuracy(total_playtime_accuracy.into());
 }
 #[rebo::function("LiveSplit::get_sum_of_best_segments")]
 pub fn livesplit_get_sum_of_best_segments() -> String {
-    SumOfBestSegments::sum_of_best()
+    let state = LIVESPLIT_STATE.lock().unwrap();
+    Timer::sum_of_best(&state.timer)
 }
 #[rebo::function("LiveSplit::get_sum_of_best_digits_format")]
 pub fn livesplit_get_sum_of_best_digits_format() -> DigitsFormat {
-    Timer::sum_of_best_digits_format().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.sum_of_best_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_sum_of_best_digits_format")]
 pub fn livesplit_set_sum_of_best_digits_format(digits_format: DigitsFormat) {
-    Timer::set_sum_of_best_digits_format(digits_format.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_sum_of_best_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_sum_of_best_accuracy")]
 pub fn livesplit_get_sum_of_best_accuracy() -> Accuracy {
-    Timer::sum_of_best_accuracy().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.sum_of_best_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_sum_of_best_accuracy")]
 pub fn livesplit_set_sum_of_best_accuracy(sum_of_best_accuracy: Accuracy) {
-    Timer::set_sum_of_best_accuracy(sum_of_best_accuracy.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_sum_of_best_accuracy(sum_of_best_accuracy.into());
 }
 #[rebo::function("LiveSplit::get_current_pace")]
 pub fn livesplit_get_current_pace(comparison: Comparison) -> String {
-    CurrentPace::current_pace(comparison)
+    let state = LIVESPLIT_STATE.lock().unwrap();
+    Timer::current_pace(&state.timer, comparison)
 }
 #[rebo::function("LiveSplit::get_current_pace_digits_format")]
 pub fn livesplit_get_current_pace_digits_format() -> DigitsFormat {
-    Timer::current_pace_digits_format().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.current_pace_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_current_pace_digits_format")]
 pub fn livesplit_set_current_pace_digits_format(digits_format: DigitsFormat) {
-    Timer::set_current_pace_digits_format(digits_format.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_current_pace_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_current_pace_accuracy")]
 pub fn livesplit_get_current_pace_accuracy() -> Accuracy {
-    Timer::current_pace_accuracy().into()
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.current_pace_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_current_pace_accuracy")]
 pub fn livesplit_set_current_pace_accuracy(current_pace_accuracy: Accuracy) {
-    Timer::set_current_pace_accuracy(current_pace_accuracy.into());
+    let mut state = LIVESPLIT_STATE.lock().unwrap();
+    state.timer.set_current_pace_accuracy(current_pace_accuracy.into());
 }

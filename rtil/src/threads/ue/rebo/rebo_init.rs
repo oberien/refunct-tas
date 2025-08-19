@@ -14,15 +14,15 @@ use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
 use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport, ALiftBaseUE};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
-use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
+use super::{STATE, livesplit::{Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
 use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay, UWidgetBlueprintLibrary};
 use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
-use crate::threads::ue::rebo::livesplit::{livesplit_get_total_playtime_accuracy, livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_total_playtime_digits_format, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_get_total_playtime, livesplit_set_total_playtime_accuracy, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_total_playtime_digits_format, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color, Accuracy, DigitsFormat, livesplit_get_sum_of_best_segments, livesplit_get_sum_of_best_digits_format, livesplit_set_sum_of_best_digits_format, livesplit_get_sum_of_best_accuracy, livesplit_set_sum_of_best_accuracy, livesplit_get_current_pace, livesplit_get_current_pace_digits_format, livesplit_set_current_pace_digits_format, livesplit_get_current_pace_accuracy, livesplit_set_current_pace_accuracy, Comparison};
 use crate::threads::ue::iced_ui::{Backend, Clipboard, UiBackend};
+use crate::threads::ue::rebo::livesplit::{livesplit_start, livesplit_split, livesplit_reset, livesplit_get_game_time, livesplit_set_game_time, livesplit_pause_game_time, livesplit_create_segment, livesplit_get_total_playtime_accuracy, livesplit_get_game_name, livesplit_set_game_info, livesplit_get_category_name, livesplit_get_segments, livesplit_get_attempt_count, livesplit_save_splits, livesplit_load_splits, livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_total_playtime_digits_format, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_get_total_playtime, livesplit_set_total_playtime_accuracy, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_total_playtime_digits_format, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color, Accuracy, DigitsFormat, livesplit_get_sum_of_best_segments, livesplit_get_sum_of_best_digits_format, livesplit_set_sum_of_best_digits_format, livesplit_get_sum_of_best_accuracy, livesplit_set_sum_of_best_accuracy, livesplit_get_current_pace, livesplit_get_current_pace_digits_format, livesplit_set_current_pace_digits_format, livesplit_get_current_pace_accuracy, livesplit_set_current_pace_accuracy, Comparison};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -270,10 +270,10 @@ pub enum Disconnected {
 
 #[derive(rebo::ExternalType)]
 pub struct Segment {
-    name: String,
-    time: f64,
-    pb_time: f64,
-    best_time: f64,
+    pub name: String,
+    pub time: f64,
+    pub pb_time: f64,
+    pub best_time: f64,
 }
 
 /// Check internal state and channels to see if we should stop.
@@ -1565,72 +1565,6 @@ fn get_camera_mode() -> u8 {
 #[rebo::function("Tas::set_camera_mode")]
 fn set_camera_mode(mode: u8) {
     AMyCharacter::set_camera_mode(mode);
-}
-#[rebo::function("LiveSplit::start")]
-fn livesplit_start() {
-    Timer::start();
-}
-#[rebo::function("LiveSplit::split")]
-fn livesplit_split() {
-    Timer::split();
-}
-#[rebo::function("LiveSplit::reset")]
-fn livesplit_reset(update_splits: bool) {
-    Timer::reset(update_splits);
-}
-#[rebo::function("LiveSplit::get_game_time")]
-fn livesplit_get_game_time() -> f64 {
-    Timer::get_game_time()
-}
-#[rebo::function("LiveSplit::set_game_time")]
-fn livesplit_set_game_time(time: f64) {
-    Timer::set_game_time(time);
-}
-#[rebo::function("LiveSplit::pause_game_time")]
-fn livesplit_pause_game_time() {
-    Timer::pause_game_time();
-}
-#[rebo::function("LiveSplit::create_segment")]
-fn livesplit_create_segment(name: String) {
-    Run::create_segment(name);
-}
-#[rebo::function("LiveSplit::get_game_name")]
-fn livesplit_get_game_name() -> String {
-    Run::game_name()
-}
-#[rebo::function("LiveSplit::set_game_info")]
-fn livesplit_set_game_info(game: Game, category: String, new_game_glitch: NewGameGlitch) {
-    Run::set_game_info(game, category, new_game_glitch);
-}
-#[rebo::function("LiveSplit::get_category_name")]
-fn livesplit_get_category_name() -> String {
-    Run::category_name()
-}
-#[rebo::function("LiveSplit::get_segments")]
-fn livesplit_get_segments() -> Vec<Segment> {
-    let mut segments = Vec::new();
-    for seg in Run::segments() {
-        let segment = Segment {
-            name: seg.name().to_owned(),
-            time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
-            pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
-            best_time: seg.best_segment_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
-        };
-        segments.push(segment);
-    }
-    segments
-}
-#[rebo::function("LiveSplit::get_attempt_count")]
-fn livesplit_get_attempt_count() -> u32 {
-    Run::attempt_count()
-}
-#[rebo::function("LiveSplit::save_splits")]
-fn livesplit_save_splits(path: String) -> Result<(), SplitsSaveError> {
-    Run::save_splits(&path)
-}
-#[rebo::function("LiveSplit::load_splits")]
-fn livesplit_load_splits(path: String) -> Result<(), SplitsLoadError> {
-    Run::load_splits(&path)
 }
 #[rebo::function("Tas::set_game_rendering_enabled")]
 fn set_game_rendering_enabled(enable: bool) {
