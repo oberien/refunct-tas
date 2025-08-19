@@ -1,27 +1,31 @@
+use std::mem;
 use crate::{ArgsRef, RawHook, IsaAbi};
 use crate::args::{Args, LoadFromArgs, StoreToArgs};
 
+#[repr(transparent)]
 pub struct TypedHook<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
-    hook: &'static RawHook<IA, SafeHookContext<IA, F, T>>,
+    hook: RawHook<IA, TypedHookContext<IA, F, T>>,
 }
-struct SafeHookContext<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
-    safe_hook_function: F::BoxedFn,
+struct TypedHookContext<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
+    typed_hook_function: F::BoxedFn,
     user_context: T,
 }
 
 impl<IA: IsaAbi> TypedHook<IA, fn(), ()> {
     #[must_use]
-    pub unsafe fn create<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> TypedHook<IA, HF::RawFnWithoutHook, ()> {
+    pub unsafe fn create<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> &'static TypedHook<IA, HF::RawFnWithoutHook, ()> {
         unsafe { Self::with_context(orig_addr, hook_fn, ()) }
     }
     #[must_use]
-    pub unsafe fn with_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, user_context: T) -> TypedHook<IA, HF::RawFnWithoutHook, T> {
-        let context = SafeHookContext {
-            safe_hook_function: hook_fn.into_boxed_fn(),
+    pub unsafe fn with_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, user_context: T) -> &'static TypedHook<IA, HF::RawFnWithoutHook, T> {
+        let context = TypedHookContext {
+            typed_hook_function: hook_fn.into_boxed_fn(),
             user_context,
         };
-        TypedHook {
-            hook: unsafe { RawHook::with_context(orig_addr, hook_fn_for_hookable_function::<IA, HF::RawFnWithoutHook, T>, context) },
+        unsafe {
+            let hook = RawHook::with_context(orig_addr, hook_fn_for_hookable_function::<IA, HF::RawFnWithoutHook, T>, context);
+            // SAFETY: repr(transparent)
+            mem::transmute::<&'static RawHook<_, _>, &'static TypedHook<_, _, _>>(hook)
         }
     }
 }
@@ -30,7 +34,7 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
     pub fn enable(&self) {
         self.hook.enable()
     }
-    pub fn enabled(self) -> Self {
+    pub fn enabled(&self) -> &Self {
         self.hook.enable();
         self
     }
@@ -49,11 +53,12 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
     }
 }
 
-fn hook_fn_for_hookable_function<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static>(hook: &'static RawHook<IA, SafeHookContext<IA, F, T>>, mut args: ArgsRef<IA>) {
-    let SafeHookContext { safe_hook_function, user_context: _ } = hook.context();
+fn hook_fn_for_hookable_function<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static>(hook: &'static RawHook<IA, TypedHookContext<IA, F, T>>, mut args: ArgsRef<IA>) {
+    let TypedHookContext { typed_hook_function, user_context: _ } = hook.context();
     let args = args.load::<F::Args>();
-    let safe_hook = TypedHook { hook };
-    F::call(safe_hook_function, &safe_hook, F::Args::convert_output_to_owned(args));
+    // SAFETY: repr(transparent)
+    let typed_hook: &'static TypedHook<IA, F, T> = unsafe { mem::transmute(hook) };
+    F::call(typed_hook_function, &typed_hook, F::Args::convert_output_to_owned(args));
 }
 
 pub trait HookableFunction<IA: IsaAbi, T, Args>: 'static + Sync {

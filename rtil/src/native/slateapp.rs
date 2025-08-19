@@ -7,10 +7,10 @@ static SLATEAPP: AtomicPtr<FSlateApplicationUE> = AtomicPtr::new(std::ptr::null_
 pub enum FSlateApplicationUE {}
 
 pub struct FSlateApplication {
-    _tick: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE), ()>,
-    onkeydown: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
-    onkeyup: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
-    onrawmousemove: TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, i32), ()>,
+    _tick: &'static TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE), ()>,
+    onkeydown: &'static TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
+    onkeyup: &'static TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, u32, bool), ()>,
+    onrawmousemove: &'static TypedHook<RefunctIsaAbi, fn(*mut FSlateApplicationUE, i32, i32), ()>,
 }
 
 impl FSlateApplication {

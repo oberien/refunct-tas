@@ -80,8 +80,8 @@ pub struct Hooks {
     pub _amycharacter_forceduncreouch: &'static RawHook<RefunctIsaAbi, ()>,
     pub _tick: &'static RawHook<RefunctIsaAbi, ()>,
     pub aliftbase: ALiftBase,
-    pub _amyhud_drawhud: TypedHook<RefunctIsaAbi, fn(*mut AMyHud), ()>,
-    pub _ahud_drawmaterialsimple: TypedHook<RefunctIsaAbi, fn(*mut AHudUE, *mut UMaterialInterfaceUE, f32, f32, f32, f32, f32, bool), ()>,
+    pub _amyhud_drawhud: &'static TypedHook<RefunctIsaAbi, fn(*mut AMyHud), ()>,
+    pub _ahud_drawmaterialsimple: &'static TypedHook<RefunctIsaAbi, fn(*mut AHudUE, *mut UMaterialInterfaceUE, f32, f32, f32, f32, f32, bool), ()>,
     pub _ugameusersettings_applyresolutionsettings: &'static RawHook<RefunctIsaAbi, ()>,
     pub _uuserwidget_addtoscreen: &'static RawHook<RefunctIsaAbi, ()>,
     pub _amycharacter_tick: &'static RawHook<RefunctIsaAbi, ()>,
@@ -112,8 +112,8 @@ pub fn init() -> Hooks {
 
 pub enum ALiftBaseUE {}
 pub struct ALiftBase {
-    addbasedcharacter: TypedHook<RefunctIsaAbi, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>,
-    removebasedcharacter: TypedHook<RefunctIsaAbi, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>,
+    addbasedcharacter: &'static TypedHook<RefunctIsaAbi, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>,
+    removebasedcharacter: &'static TypedHook<RefunctIsaAbi, fn(*mut ALiftBaseUE, *mut AMyCharacterUE), ()>,
 }
 impl ALiftBase {
     fn hook() -> Self {
