@@ -5,11 +5,10 @@ pub struct LoadArgs<T: Args> {
     ctx: ArgsLoadContext,
 }
 impl<T: Args> LoadArgs<T> {
-    pub fn new(args: T, has_this_pointer: bool) -> Self {
+    pub fn new(args: T) -> Self {
         Self {
             args,
             ctx: ArgsLoadContext {
-                has_this_pointer,
                 int_args_consumed: 0,
                 float_args_consumed: 0,
             }
@@ -28,15 +27,11 @@ impl<T: Args> LoadArgs<T> {
 }
 
 pub struct ArgsLoadContext {
-    has_this_pointer: bool,
     int_args_consumed: usize,
     float_args_consumed: usize,
 }
 
 impl ArgsLoadContext {
-    pub fn has_this_pointer(&self) -> bool {
-        self.has_this_pointer
-    }
     pub fn int_args_consumed(&self) -> usize {
         self.int_args_consumed
     }

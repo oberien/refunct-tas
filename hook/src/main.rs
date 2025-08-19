@@ -12,7 +12,7 @@ type CurrentIsaAbi = I686_MSVC_Thiscall;
 
 fn main() {
     // let hook = unsafe { Hook::create(test_function as usize, custom_raw_hook::<CurrentIsaAbi, ()>) };
-    let hook = unsafe { TypedHook::with_this_pointer(test_function as usize, custom_typed_hook::<CurrentIsaAbi>) };
+    let hook = unsafe { TypedHook::create(test_function as usize, custom_typed_hook::<CurrentIsaAbi>) };
 
     test_function(1337);
     hook.enable();
@@ -31,13 +31,13 @@ fn custom_typed_hook<IA: IsaAbi>(hook: &TypedHook<IA, fn(u32), ()>, arg: u32) {
 }
 
 fn custom_raw_hook<IA: IsaAbi, T>(hook: &'static RawHook<IA, T>, mut args: ArgsRef<'_, IA>) {
-    let arg = args.without_this_pointer::<u32>();
+    let arg = args.load::<u32>();
     println!("from inside the hook; original argument: {arg}");
-    hook.call_original_function(&args);
-    let arg = args.without_this_pointer::<u32>();
+    unsafe { hook.call_original_function(&args) };
+    let arg = args.load::<u32>();
     println!("setting argument to 314");
     *arg = 314;
-    hook.call_original_function(&args);
+    unsafe { hook.call_original_function(&args) };
     println!("disabling the hook within the hook");
     hook.disable();
 }

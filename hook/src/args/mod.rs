@@ -24,17 +24,11 @@ impl<IA: IsaAbi> ArgsRef<'_, IA> {
     pub fn boxed(&self) -> ArgsBoxed<IA> where IA::Args: Clone {
         ArgsBoxed::new(self.args.clone())
     }
-    pub fn with_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
-        load_args::<T>(&mut self.args, true)
+    pub fn load<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
+        load_args::<T>(&mut self.args)
     }
-    pub fn without_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
-        load_args::<T>(&mut self.args, false)
-    }
-    pub fn store_with_this_pointer<T: StoreToArgs>(&mut self, val: T) {
-        store_args(&mut self.args, true, val)
-    }
-    pub fn store_without_this_pointer<T: StoreToArgs>(&mut self, val: T) {
-        store_args(&mut self.args, false, val)
+    pub fn store<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut self.args, val)
     }
 }
 impl<IA: IsaAbi> AsRef<IA::Args> for ArgsRef<'_, IA> {
@@ -48,17 +42,11 @@ impl<IA: IsaAbi> ArgsBoxed<IA> {
             args: Box::new(args),
         }
     }
-    pub fn with_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
-        load_args::<T>(&mut *self.args, true)
+    pub fn load<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
+        load_args::<T>(&mut *self.args)
     }
-    pub fn without_this_pointer<T: LoadFromArgs>(&mut self) -> T::Output<'_> {
-        load_args::<T>(&mut *self.args, false)
-    }
-    pub fn store_with_this_pointer<T: StoreToArgs>(&mut self, val: T) {
-        store_args(&mut *self.args, true, val)
-    }
-    pub fn store_without_this_pointer<T: StoreToArgs>(&mut self, val: T) {
-        store_args(&mut *self.args, false, val)
+    pub fn store<T: StoreToArgs>(&mut self, val: T) {
+        store_args(&mut *self.args, val)
     }
     pub fn as_args(&self) -> &IA::Args {
         &self.args
@@ -70,20 +58,18 @@ impl<IA: IsaAbi> AsRef<IA::Args> for ArgsBoxed<IA> {
     }
 }
 
-fn load_args<T: LoadFromArgs>(args: &mut impl Args, has_this_pointer: bool) -> T::Output<'_> {
+fn load_args<T: LoadFromArgs>(args: &mut impl Args) -> T::Output<'_> {
     // SAFETY: the lifetime is bound to &mut Args
     unsafe {
-        T::convert_pointer_to_arg(T::get_pointer_to_arg(&mut LoadArgs::new(args, has_this_pointer)))
+        T::convert_pointer_to_arg(T::get_pointer_to_arg(&mut LoadArgs::new(args)))
     }
 }
-fn store_args<T: StoreToArgs>(args: &mut impl Args, has_this_pointer: bool, val: T) {
-    val.store_to_args(&mut StoreArgs::new(args, has_this_pointer));
+fn store_args<T: StoreToArgs>(args: &mut impl Args, val: T) {
+    val.store_to_args(&mut StoreArgs::new(args));
 }
 
 pub unsafe trait Args {
     fn new() -> Self;
-    /// if `ctx.has_this_pointer`, the first returned integer argument must be the this-pointer
-    ///
     /// SAFETY: as long as different `ctx` are passed, each pointer returned by `next_int_arg` and
     ///        `next_float_arg` must point to a different memory location
     fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize;

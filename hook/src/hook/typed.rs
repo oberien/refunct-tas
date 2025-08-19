@@ -3,41 +3,25 @@ use crate::args::{Args, LoadFromArgs, StoreToArgs};
 
 pub struct TypedHook<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
     hook: &'static RawHook<IA, SafeHookContext<IA, F, T>>,
-    has_this_pointer: bool,
 }
 struct SafeHookContext<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> {
     safe_hook_function: F::BoxedFn,
-    has_this_pointer: bool,
     user_context: T,
 }
 
 impl<IA: IsaAbi> TypedHook<IA, fn(), ()> {
     #[must_use]
-    pub unsafe fn with_this_pointer<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> TypedHook<IA, HF::RawFnWithoutHook, ()> {
-        unsafe { Self::create(orig_addr, hook_fn, true, ()) }
+    pub unsafe fn create<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> TypedHook<IA, HF::RawFnWithoutHook, ()> {
+        unsafe { Self::with_context(orig_addr, hook_fn, ()) }
     }
     #[must_use]
-    pub unsafe fn without_this_pointer<Args, HF: HookableFunction<IA, (), Args>>(orig_addr: usize, hook_fn: HF) -> TypedHook<IA, HF::RawFnWithoutHook, ()> {
-        unsafe { Self::create(orig_addr, hook_fn, false, ()) }
-    }
-    #[must_use]
-    pub unsafe fn with_this_pointer_and_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, context: T) -> TypedHook<IA, HF::RawFnWithoutHook, T> {
-        unsafe { Self::create(orig_addr, hook_fn, true, context) }
-    }
-    #[must_use]
-    pub unsafe fn without_this_pointer_and_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, context: T) -> TypedHook<IA, HF::RawFnWithoutHook, T> {
-        unsafe { Self::create(orig_addr, hook_fn, false, context) }
-    }
-    #[must_use]
-    unsafe fn create<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, has_this_pointer: bool, user_context: T) -> TypedHook<IA, HF::RawFnWithoutHook, T> {
+    pub unsafe fn with_context<Args, HF: HookableFunction<IA, T, Args>, T: 'static>(orig_addr: usize, hook_fn: HF, user_context: T) -> TypedHook<IA, HF::RawFnWithoutHook, T> {
         let context = SafeHookContext {
             safe_hook_function: hook_fn.into_boxed_fn(),
-            has_this_pointer,
             user_context,
         };
         TypedHook {
             hook: unsafe { RawHook::with_context(orig_addr, hook_fn_for_hookable_function::<IA, HF::RawFnWithoutHook, T>, context) },
-            has_this_pointer,
         }
     }
 }
@@ -59,27 +43,16 @@ impl<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static> TypedHook<IA, F, T> {
     pub unsafe fn call_original_function(&self, args: F::Args) -> usize {
         let mut a = IA::Args::new();
         let mut a_ref = ArgsRef::<IA>::new(&mut a);
-        if self.has_this_pointer {
-            a_ref.store_with_this_pointer(args);
-        } else {
-            a_ref.store_without_this_pointer(args);
-        }
+        a_ref.store(args);
         unsafe { self.hook.call_original_function(a_ref); }
         a.return_value()
     }
 }
 
 fn hook_fn_for_hookable_function<IA: IsaAbi, F: RawFnWithoutHook<IA, T>, T: 'static>(hook: &'static RawHook<IA, SafeHookContext<IA, F, T>>, mut args: ArgsRef<IA>) {
-    let SafeHookContext { safe_hook_function, has_this_pointer, user_context: _ } = hook.context();
-    let args = if *has_this_pointer {
-        args.with_this_pointer::<F::Args>()
-    } else {
-        args.without_this_pointer::<F::Args>()
-    };
-    let safe_hook = TypedHook {
-        hook,
-        has_this_pointer: *has_this_pointer,
-    };
+    let SafeHookContext { safe_hook_function, user_context: _ } = hook.context();
+    let args = args.load::<F::Args>();
+    let safe_hook = TypedHook { hook };
     F::call(safe_hook_function, &safe_hook, F::Args::convert_output_to_owned(args));
 }
 

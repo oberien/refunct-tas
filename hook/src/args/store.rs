@@ -5,11 +5,10 @@ pub struct StoreArgs<T: Args> {
     ctx: ArgsStoreContext,
 }
 impl<T: Args> StoreArgs<T> {
-    pub fn new(args: T, has_this_pointer: bool) -> Self {
+    pub fn new(args: T) -> Self {
         Self {
             args,
             ctx: ArgsStoreContext {
-                has_this_pointer,
                 int_args_stored: 0,
                 float_args_stored: 0,
             }
@@ -26,15 +25,11 @@ impl<T: Args> StoreArgs<T> {
 }
 
 pub struct ArgsStoreContext {
-    has_this_pointer: bool,
     int_args_stored: usize,
     float_args_stored: usize,
 }
 
 impl ArgsStoreContext {
-    pub fn has_this_pointer(&self) -> bool {
-        self.has_this_pointer
-    }
     pub fn int_args_stored(&self) -> usize {
         self.int_args_stored
     }

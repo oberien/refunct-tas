@@ -17,10 +17,10 @@ impl FSlateApplication {
     pub(super) fn hook() -> FSlateApplication {
         unsafe {
             Self {
-                _tick: TypedHook::with_this_pointer(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook).enabled(),
-                onkeydown: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::Relaxed), on_key_down_hook).enabled(),
-                onkeyup: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONKEYUP.load(Ordering::Relaxed), on_key_up_hook).enabled(),
-                onrawmousemove: TypedHook::with_this_pointer(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::Relaxed), on_raw_mouse_move_hook).enabled(),
+                _tick: TypedHook::create(FSLATEAPPLICATION_TICK.load(Ordering::Relaxed), tick_hook).enabled(),
+                onkeydown: TypedHook::create(FSLATEAPPLICATION_ONKEYDOWN.load(Ordering::Relaxed), on_key_down_hook).enabled(),
+                onkeyup: TypedHook::create(FSLATEAPPLICATION_ONKEYUP.load(Ordering::Relaxed), on_key_up_hook).enabled(),
+                onrawmousemove: TypedHook::create(FSLATEAPPLICATION_ONRAWMOUSEMOVE.load(Ordering::Relaxed), on_raw_mouse_move_hook).enabled(),
             }
         }
     }

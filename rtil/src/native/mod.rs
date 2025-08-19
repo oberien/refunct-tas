@@ -84,7 +84,6 @@ pub struct Hooks {
     pub _ahud_drawmaterialsimple: TypedHook<RefunctIsaAbi, fn(*mut AHudUE, *mut UMaterialInterfaceUE, f32, f32, f32, f32, f32, bool), ()>,
     pub _ugameusersettings_applyresolutionsettings: &'static RawHook<RefunctIsaAbi, ()>,
     pub _uuserwidget_addtoscreen: &'static RawHook<RefunctIsaAbi, ()>,
-    // ...
     pub _amycharacter_tick: &'static RawHook<RefunctIsaAbi, ()>,
 }
 
@@ -102,8 +101,8 @@ pub fn init() -> Hooks {
             _amycharacter_forceduncreouch: RawHook::create(AMYCHARACTER_FORCEDUNCROUCH.load(Ordering::Relaxed), newgame::new_game_hook).enabled(),
             _tick: RawHook::create(UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE.load(Ordering::Relaxed), tick::tick_hook).enabled(),
             aliftbase: ALiftBase::hook(),
-            _amyhud_drawhud: TypedHook::with_this_pointer(AMYHUD_DRAWHUD.load(Ordering::Relaxed), hud::draw_hud_hook).enabled(),
-            _ahud_drawmaterialsimple: TypedHook::with_this_pointer(AHUD_DRAWMATERIALSIMPLE.load(Ordering::Relaxed), hud::draw_material_simple_hook).enabled(),
+            _amyhud_drawhud: TypedHook::create(AMYHUD_DRAWHUD.load(Ordering::Relaxed), hud::draw_hud_hook).enabled(),
+            _ahud_drawmaterialsimple: TypedHook::create(AHUD_DRAWMATERIALSIMPLE.load(Ordering::Relaxed), hud::draw_material_simple_hook).enabled(),
             _ugameusersettings_applyresolutionsettings: RawHook::create(UGAMEUSERSETTINGS_APPLYRESOLUTIONSETTINGS.load(Ordering::Relaxed), gameusersettings::apply_resolution_settings).enabled(),
             _uuserwidget_addtoscreen: RawHook::create(UUSERWIDGET_ADDTOSCREEN.load(Ordering::Relaxed), uworld::add_to_screen_hook).enabled(),
             _amycharacter_tick: RawHook::create(AMYCHARACTER_TICK.load(Ordering::Relaxed), character::tick_hook).enabled(),
@@ -120,8 +119,8 @@ impl ALiftBase {
     fn hook() -> Self {
         unsafe {
             Self {
-                addbasedcharacter: TypedHook::with_this_pointer(ALIFTBASE_ADDBASEDCHARACTER.load(Ordering::Relaxed), tick::add_based_character_hook).enabled(),
-                removebasedcharacter: TypedHook::with_this_pointer(ALIFTBASE_REMOVEBASEDCHARACTER.load(Ordering::Relaxed), tick::remove_based_character_hook).enabled(),
+                addbasedcharacter: TypedHook::create(ALIFTBASE_ADDBASEDCHARACTER.load(Ordering::Relaxed), tick::add_based_character_hook).enabled(),
+                removebasedcharacter: TypedHook::create(ALIFTBASE_REMOVEBASEDCHARACTER.load(Ordering::Relaxed), tick::remove_based_character_hook).enabled(),
             }
         }
     }

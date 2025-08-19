@@ -271,7 +271,7 @@ struct FUniqueNetIdSteam {
 }
 
 pub fn tick_hook<IA: IsaAbi>(hook: &'static RawHook<IA, ()>, mut args: ArgsRef<'_, IA>) {
-    let this = args.with_this_pointer::<*mut AMyCharacterUE>();
+    let this = args.load::<*mut AMyCharacterUE>();
     CURRENT_PLAYER.store(this, Ordering::SeqCst);
     let my_character = AMyCharacter::get_player();
     log!("Got AMyCharacter: {:p}", this);

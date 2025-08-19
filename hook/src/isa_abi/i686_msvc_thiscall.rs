@@ -43,35 +43,31 @@ unsafe impl Args for I686_MSVC_Thiscall_Args {
     }
     fn next_int_arg(&mut self, ctx: &ArgsLoadContext) -> *mut usize {
         assert_eq!(size_of::<usize>(), size_of::<u32>());
-        if ctx.has_this_pointer() && ctx.int_args_consumed() == 0 {
+        if ctx.int_args_consumed() == 0 {
             &raw mut self.ecx as *mut usize
         } else {
-            let index = ctx.int_args_consumed() + ctx.float_args_consumed() - ctx.has_this_pointer() as usize;
+            let index = ctx.int_args_consumed() + ctx.float_args_consumed() - 1;
             &raw mut self.other_args[index] as *mut usize
         }
     }
     fn next_float_arg(&mut self, ctx: &ArgsLoadContext) -> *mut f32 {
         assert_eq!(size_of::<usize>(), size_of::<u32>());
-        if ctx.has_this_pointer() {
-            assert!(ctx.int_args_consumed() > 0);
-        }
-        let index = ctx.int_args_consumed() + ctx.float_args_consumed() - ctx.has_this_pointer() as usize;
+        assert!(ctx.int_args_consumed() > 0, "must first consume the this-pointer as integer arg");
+        let index = ctx.int_args_consumed() + ctx.float_args_consumed() - 1;
         &raw mut self.other_args[index] as *mut f32
     }
 
     fn set_next_int_arg(&mut self, val: usize, ctx: &ArgsStoreContext) {
-        if ctx.has_this_pointer() && ctx.int_args_stored() == 0 {
+        if ctx.int_args_stored() == 0 {
             self.ecx = val as u32;
         } else {
-            let index = ctx.int_args_stored() + ctx.float_args_stored() - ctx.has_this_pointer() as usize;
+            let index = ctx.int_args_stored() + ctx.float_args_stored() - 1;
             self.other_args[index] = val as u32;
         }
     }
     fn set_next_float_arg(&mut self, val: f32, ctx: &ArgsStoreContext) {
-        if ctx.has_this_pointer() {
-            assert!(ctx.int_args_stored() > 0);
-        }
-        let index = ctx.int_args_stored() + ctx.float_args_stored() - ctx.has_this_pointer() as usize;
+        assert!(ctx.int_args_stored() > 0, "must first set the this-pointer as integer arg");
+        let index = ctx.int_args_stored() + ctx.float_args_stored() - 1;
         self.other_args[index] = val.to_bits();
     }
 
