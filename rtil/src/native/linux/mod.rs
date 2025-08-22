@@ -123,4 +123,7 @@ find! {
     UMATERIALINSTANCEDYNAMIC_SETSCALARPARAMETERVALUE, "^UMaterialInstanceDynamic::SetScalarParameterValue(FName, float)",
     UFONTBULKDATA_INITIALIZE, "^UFontBulkData::Initialize(void const*, int)",
     FVIEWPORT_SETGAMERENDERINGENABLED, "^FViewport::SetGameRenderingEnabled(bool, int)",
+    UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_GAMEONLY, "^UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController*)",
+    UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_UIONLYEX, "^UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController*, UWidget*, EMouseLockMode)",
+    APLAYERCONTROLLER_FLUSHPRESSEDKEYS, "^APlayerController::FlushPressedKeys()",
 }

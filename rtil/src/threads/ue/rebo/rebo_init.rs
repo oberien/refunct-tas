@@ -18,7 +18,7 @@ use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Timer, Run, Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
 use serde::{Serialize, Deserialize};
 use crate::threads::ue::{Suspend, UeEvent, rebo::YIELDER};
-use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay};
+use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEngine, TimeOfDay, UWidgetBlueprintLibrary};
 use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
@@ -192,6 +192,9 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(livesplit_get_current_pace_accuracy)
         .add_function(livesplit_set_current_pace_accuracy)
         .add_function(set_game_rendering_enabled)
+        .add_function(set_input_mode_game_only)
+        .add_function(set_input_mode_ui_only)
+        .add_function(flush_pressed_keys)
         .add_external_type(Location)
         .add_external_type(Rotation)
         .add_external_type(Velocity)
@@ -1602,4 +1605,16 @@ fn livesplit_load_splits(path: String) -> Result<(), SplitsLoadError> {
 #[rebo::function("Tas::set_game_rendering_enabled")]
 fn set_game_rendering_enabled(enable: bool) {
     FViewport::set_game_rendering_enabled(enable);
+}
+#[rebo::function("Tas::set_input_mode_game_only")]
+fn set_input_mode_game_only() {
+    UWidgetBlueprintLibrary::set_input_mode_game_only();
+}
+#[rebo::function("Tas::set_input_mode_ui_only")]
+fn set_input_mode_ui_only() {
+    UWidgetBlueprintLibrary::set_input_mode_ui_only();
+}
+#[rebo::function("Tas::flush_pressed_keys")]
+fn flush_pressed_keys() {
+    AMyCharacter::flush_pressed_keys();
 }
