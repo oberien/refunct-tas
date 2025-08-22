@@ -57,7 +57,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?SetGameRenderingEnabled@FViewport@@SAX_NH@Z","FVIEWPORT_SETGAMERENDERINGENABLED"),
     ("?SetInputMode_GameOnly@UWidgetBlueprintLibrary@@SAXPAVAPlayerController@@@Z", "UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_GAMEONLY"),
     ("?SetInputMode_UIOnlyEx@UWidgetBlueprintLibrary@@SAXPAVAPlayerController@@PAVUWidget@@W4EMouseLockMode@@@Z", "UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_UIONLYEX"),
-    ("??FlushPressedKeys@APlayerController@@UAEXXZ", "APLAYERCONTROLLER_FLUSHPRESSEDKEYS"),
+    ("?FlushPressedKeys@APlayerController@@UAEXXZ", "APLAYERCONTROLLER_FLUSHPRESSEDKEYS"),
 ];
 
 fn get_linux_level_pointer_path() -> String {
