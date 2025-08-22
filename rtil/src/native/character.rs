@@ -4,7 +4,7 @@ use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use hook::{ArgsRef, RawHook, IsaAbi};
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope};
+use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope, APLAYERCONTROLLER_FLUSHPRESSEDKEYS};
 use crate::native::reflection::UClass;
 use crate::native::uworld::CAMERA_INDEX;
 
@@ -12,6 +12,26 @@ static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct AMyCharacter(*mut AMyCharacterUE);
+
+#[repr(u8)]
+pub enum EMouseCursorType {
+    None,
+    Default,
+    TextEditBeam,
+    ResizeLeftRight,
+    ResizeUpDown,
+    ResizeSouthEast,
+    ResizeSouthWest,
+    CardinalCross,
+    Crosshairs,
+    Hand,
+    GrabHand,
+    GrabHandClosed,
+    SlashedCircle,
+    EyeDropper,
+    Custom,
+    TotalCursorCount,
+}
 
 // WARNING: somewhat unsound as some functions on AMyCharacter can only be called from
 // UE's update-loop thread. However, currently there's no way to ensure that it's constructed
@@ -27,7 +47,7 @@ impl AMyCharacter {
     fn root_component(&self) -> *mut USceneComponent {
         unsafe { (*self.0).root_component }
     }
-    fn controller(&self) -> *mut APlayerController {
+    pub fn controller(&self) -> *mut APlayerController {
         unsafe { (*self.0).controller }
     }
     pub fn movement(&self) -> *mut UCharacterMovementComponent {
@@ -165,6 +185,15 @@ impl AMyCharacter {
             });
         }
     }
+    pub fn flush_pressed_keys() {
+        let fun: extern "C" fn(this: *mut APlayerController)
+            = unsafe { ::std::mem::transmute(APLAYERCONTROLLER_FLUSHPRESSEDKEYS.load(Ordering::SeqCst)) };
+        fun(AMyCharacter::get_player().controller());
+    }
+    pub fn set_mouse_cursor(cursor: EMouseCursorType) {
+        let controller = unsafe { ObjectWrapper::new(AMyCharacter::get_player().controller() as *mut UObject) };
+        controller.get_field("CurrentMouseCursor").unwrap::<&Cell<u8>>().set(cursor as u8);
+    }
 }
 
 #[repr(C)]
@@ -238,7 +267,7 @@ pub struct UCharacterMovementComponent {
 }
 
 #[repr(C)]
-struct APlayerController {
+pub struct APlayerController {
     #[cfg(unix)] _pad: [u8; 0x3a8],
     #[cfg(windows)] _pad: [u8; 0x2c8],
     player_state: *mut APlayerState,
