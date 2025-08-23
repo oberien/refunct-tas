@@ -53,7 +53,7 @@ impl<IA: IsaAbi> FunctionDecoder<IA> {
     pub fn decode(&mut self) -> Instruction {
         let instruction = unsafe { self.decoder() }.decode();
         if instruction.is_invalid() {
-            panic!("decoded invalid instruction");
+            panic!("decoded invalid instruction: {instruction:?}");
         }
         self.addr += instruction.len();
         self.ip += instruction.len() as u64;
