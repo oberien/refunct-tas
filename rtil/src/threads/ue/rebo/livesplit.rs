@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
-use livesplit_core::{comparison::{personal_best, best_segments, best_split_times, average_segments, median_segments, worst_segments, balanced_pb, latest_run}, Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, GeneralLayoutSettings, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
+use livesplit_core::{comparison::{personal_best, best_segments, best_split_times, average_segments, median_segments, worst_segments, balanced_pb, latest_run}, Segment, TimeSpan, TimingMethod, Timer as LiveSplitTimer, Run as LiveSplitRun, Layout as LiveSplitLayout, run::{saver::livesplit, parser::composite}, Component, analysis::total_playtime::TotalPlaytime as LiveSplitTotalPlaytime};
 use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
 use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::TimeWithFraction};
-use super::rebo_init::Color;
+use super::rebo_init::{Color, Segment as LiveSplitSegment};
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
 static VALID_SPLITS_PATHS: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
@@ -129,6 +129,18 @@ pub enum SplitsLoadError {
     ParseFailed(String, String),
 }
 
+enum LiveSplitLayoutColor {
+    BestSegment,
+    AheadGainingTime,
+    AheadLosingTime,
+    BehindGainingTime,
+    BehindLosingTime,
+    NotRunning,
+    PersonalBest,
+    Paused,
+    Text,
+}
+
 impl LiveSplit {
     pub fn new() -> LiveSplit {
         let mut run = LiveSplitRun::new();
@@ -175,40 +187,40 @@ impl Timer {
     pub fn set_game_time(&mut self, time: f64) {
         let _ = self.livesplit_timer.set_game_time(TimeSpan::from_seconds(time));
     }
-    pub fn run(&mut self) -> Run {
+    pub fn run(&mut self) -> Run<'_> {
         Run { timer: &mut self.livesplit_timer }
     }
-    pub fn total_playtime_digits_format(&mut self) -> LiveSplitDigitsFormat {
+    pub fn total_playtime_digits_format(&self) -> LiveSplitDigitsFormat {
         self.total_playtime_formatter.time.digits_format()
     }
     pub fn set_total_playtime_digits_format(&mut self, total_playtime_digits_format: LiveSplitDigitsFormat) {
         self.total_playtime_formatter.time.set_digits_format(total_playtime_digits_format);
     }
-    pub fn total_playtime_accuracy(&mut self) -> LiveSplitAccuracy {
+    pub fn total_playtime_accuracy(&self) -> LiveSplitAccuracy {
         self.total_playtime_formatter.fraction.accuracy()
     }
     pub fn set_total_playtime_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
         self.total_playtime_formatter.fraction.set_accuracy(accuracy);
     }
-    pub fn sum_of_best_digits_format(&mut self) -> LiveSplitDigitsFormat {
+    pub fn sum_of_best_digits_format(&self) -> LiveSplitDigitsFormat {
         self.sum_of_best_formatter.time.digits_format()
     }
     pub fn set_sum_of_best_digits_format(&mut self, sum_of_best_digits_format: LiveSplitDigitsFormat) {
         self.sum_of_best_formatter.time.set_digits_format(sum_of_best_digits_format);
     }
-    pub fn sum_of_best_accuracy(&mut self) -> LiveSplitAccuracy {
+    pub fn sum_of_best_accuracy(&self) -> LiveSplitAccuracy {
         self.sum_of_best_formatter.fraction.accuracy()
     }
     pub fn set_sum_of_best_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
         self.sum_of_best_formatter.fraction.set_accuracy(accuracy); 
     }
-    pub fn current_pace_digits_format(&mut self) -> LiveSplitDigitsFormat {
+    pub fn current_pace_digits_format(&self) -> LiveSplitDigitsFormat {
         self.current_pace_formatter.time.digits_format()
     }
     pub fn set_current_pace_digits_format(&mut self, current_pace_digits_format: LiveSplitDigitsFormat) {
         self.current_pace_formatter.time.set_digits_format(current_pace_digits_format);
     }
-    pub fn current_pace_accuracy(&mut self) -> LiveSplitAccuracy {
+    pub fn current_pace_accuracy(&self) -> LiveSplitAccuracy {
         self.current_pace_formatter.fraction.accuracy()
     }
     pub fn set_current_pace_accuracy(&mut self, accuracy: LiveSplitAccuracy) {
@@ -266,7 +278,7 @@ impl Run<'_> {
     pub fn segments(&self) -> Vec<Segment> {
         self.timer.run().segments().to_owned()
     }
-    pub fn create_segment(self, name: String) {
+    pub fn create_segment(&mut self, name: String) {
         let mut run = self.timer.run().clone();
         run.push_segment(Segment::new(name));
         self.timer.set_run(run).unwrap();
@@ -325,8 +337,38 @@ impl Layout {
         layout.push(Component::SumOfBest(SumOfBest::new()));
         layout
     }
-    fn settings() -> GeneralLayoutSettings {
-        LIVESPLIT_STATE.lock().unwrap().layout.general_settings().clone()
+    fn get_color(color: LiveSplitLayoutColor) -> Color {
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        let settings = state.layout.general_settings_mut();
+        let color = match color {
+            LiveSplitLayoutColor::BestSegment => settings.best_segment_color,
+            LiveSplitLayoutColor::AheadGainingTime => settings.ahead_gaining_time_color,
+            LiveSplitLayoutColor::AheadLosingTime => settings.ahead_losing_time_color,
+            LiveSplitLayoutColor::BehindGainingTime => settings.behind_gaining_time_color,
+            LiveSplitLayoutColor::BehindLosingTime => settings.behind_losing_time_color,
+            LiveSplitLayoutColor::NotRunning => settings.not_running_color,
+            LiveSplitLayoutColor::PersonalBest => settings.personal_best_color,
+            LiveSplitLayoutColor::Paused => settings.paused_color,
+            LiveSplitLayoutColor::Text => settings.text_color,
+        };
+        Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    }
+    fn set_color(layout_color: LiveSplitLayoutColor, color: Color) {
+        let mut state = LIVESPLIT_STATE.lock().unwrap();
+        let settings = state.layout.general_settings_mut();
+        let col = match layout_color {
+            LiveSplitLayoutColor::BestSegment => &mut settings.best_segment_color,
+            LiveSplitLayoutColor::AheadGainingTime => &mut settings.ahead_gaining_time_color,
+            LiveSplitLayoutColor::AheadLosingTime => &mut settings.ahead_losing_time_color,
+            LiveSplitLayoutColor::BehindGainingTime => &mut settings.behind_gaining_time_color,
+            LiveSplitLayoutColor::BehindLosingTime => &mut settings.behind_losing_time_color,
+            LiveSplitLayoutColor::NotRunning => &mut settings.not_running_color,
+            LiveSplitLayoutColor::PersonalBest => &mut settings.personal_best_color,
+            LiveSplitLayoutColor::Paused => &mut settings.paused_color,
+            LiveSplitLayoutColor::Text => &mut settings.text_color,
+        };
+        let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
+        *col = color;
     }
 }
 #[rebo::function("LiveSplit::start")]
@@ -355,7 +397,7 @@ pub fn livesplit_pause_game_time() {
 }
 #[rebo::function("LiveSplit::create_segment")]
 pub fn livesplit_create_segment(name: String) {
-    Run::create_segment(Timer::run(&mut LIVESPLIT_STATE.lock().unwrap().timer), name);
+    Run::create_segment(&mut Timer::run(&mut LIVESPLIT_STATE.lock().unwrap().timer), name);
 }
 #[rebo::function("LiveSplit::get_game_name")]
 pub fn livesplit_get_game_name() -> String {
@@ -374,12 +416,12 @@ pub fn livesplit_get_category_name() -> String {
     Run::category_name(run)
 }
 #[rebo::function("LiveSplit::get_segments")]
-pub fn livesplit_get_segments() -> Vec<crate::threads::ue::rebo::rebo_init::Segment> {
+pub fn livesplit_get_segments() -> Vec<LiveSplitSegment> {
     let mut state = LIVESPLIT_STATE.lock().unwrap();
     let mut segments = Vec::new();
     let run = &mut Timer::run(&mut state.timer);
     for seg in run.segments() {
-        let segment = crate::threads::ue::rebo::rebo_init::Segment {
+        let segment = LiveSplitSegment {
             name: seg.name().to_owned(),
             time: seg.split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
             pb_time: seg.personal_best_split_time().game_time.unwrap_or_else(|| TimeSpan::from_seconds(999_999.)).total_seconds(),
@@ -409,164 +451,133 @@ pub fn livesplit_load_splits(path: String) -> Result<(), SplitsLoadError> {
 }
 #[rebo::function("LiveSplit::get_best_segment_color")]
 pub fn livesplit_get_best_segment_color() -> Color {
-    let color = Layout::settings().best_segment_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::BestSegment)
 }
 #[rebo::function("LiveSplit::set_best_segment_color")]
 pub fn livesplit_set_best_segment_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().best_segment_color = color;
+    Layout::set_color(LiveSplitLayoutColor::BestSegment, color);
 }
 #[rebo::function("LiveSplit::get_ahead_gaining_time_color")]
 pub fn livesplit_get_ahead_gaining_time_color() -> Color {
-    let color = Layout::settings().ahead_gaining_time_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::AheadGainingTime)
 }
 #[rebo::function("LiveSplit::set_ahead_gaining_time_color")]
 pub fn livesplit_set_ahead_gaining_time_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().ahead_gaining_time_color = color;
+    Layout::set_color(LiveSplitLayoutColor::AheadGainingTime, color);
 }
 #[rebo::function("LiveSplit::get_behind_gaining_time_color")]
 pub fn livesplit_get_behind_gaining_time_color() -> Color {
-    let color = Layout::settings().behind_gaining_time_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::BehindGainingTime)
 }
 #[rebo::function("LiveSplit::set_behind_gaining_time_color")]
 pub fn livesplit_set_behind_gaining_time_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().behind_gaining_time_color = color;
+    Layout::set_color(LiveSplitLayoutColor::BehindGainingTime, color);
+}
+#[rebo::function("LiveSplit::get_ahead_losing_time_color")]
+pub fn livesplit_get_ahead_losing_time_color() -> Color {
+    Layout::get_color(LiveSplitLayoutColor::AheadGainingTime)
+}
+#[rebo::function("LiveSplit::set_ahead_losing_time_color")]
+pub fn livesplit_set_ahead_losing_time_color(color: Color) {
+    Layout::set_color(LiveSplitLayoutColor::AheadLosingTime, color);
 }
 #[rebo::function("LiveSplit::get_behind_losing_time_color")]
 pub fn livesplit_get_behind_losing_time_color() -> Color {
-    let color = Layout::settings().behind_losing_time_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::BehindLosingTime)
 }
 #[rebo::function("LiveSplit::set_behind_losing_time_color")]
 pub fn livesplit_set_behind_losing_time_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().behind_losing_time_color = color;
+    Layout::set_color(LiveSplitLayoutColor::BehindLosingTime, color);
 }
 #[rebo::function("LiveSplit::get_not_running_color")]
 pub fn livesplit_get_not_running_color() -> Color {
-    let color = Layout::settings().not_running_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::NotRunning)
 }
 #[rebo::function("LiveSplit::set_not_running_color")]
 pub fn livesplit_set_not_running_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().not_running_color = color;
+    Layout::set_color(LiveSplitLayoutColor::NotRunning, color);
 }
 #[rebo::function("LiveSplit::get_personal_best_color")]
 pub fn livesplit_get_personal_best_color() -> Color {
-    let color = Layout::settings().personal_best_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::PersonalBest)
 }
 #[rebo::function("LiveSplit::livesplit_set_personal_best_color")]
 pub fn livesplit_set_personal_best_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().personal_best_color = color;
+    Layout::set_color(LiveSplitLayoutColor::PersonalBest, color);
 }
 #[rebo::function("LiveSplit::get_paused_color")]
 pub fn livesplit_get_paused_color() -> Color {
-    let color = Layout::settings().paused_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::Paused)
 }
 #[rebo::function("LiveSplit::set_paused_color")]
 pub fn livesplit_set_paused_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().paused_color = color;
+    Layout::set_color(LiveSplitLayoutColor::Paused, color);
 }
 #[rebo::function("LiveSplit::get_text_color")]
 pub fn livesplit_get_text_color() -> Color {
-    let color = Layout::settings().text_color;
-    Color { red: color.red, green: color.green, blue: color.blue, alpha: color.alpha }
+    Layout::get_color(LiveSplitLayoutColor::Text)
 }
 #[rebo::function("LiveSplit::set_text_color")]
 pub fn livesplit_set_text_color(color: Color) {
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.layout.general_settings_mut().text_color = color;
+    Layout::set_color(LiveSplitLayoutColor::Text, color);
 }
 #[rebo::function("LiveSplit::get_total_playtime")]
 pub fn livesplit_get_total_playtime() -> String {
-    let state = LIVESPLIT_STATE.lock().unwrap();
-    Timer::total_playtime(&state.timer)
+    Timer::total_playtime(&LIVESPLIT_STATE.lock().unwrap().timer)
 }
 #[rebo::function("LiveSplit::get_total_playtime_digits_format")]
 pub fn livesplit_get_total_playtime_digits_format() -> DigitsFormat {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.total_playtime_digits_format().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.total_playtime_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_total_playtime_digits_format")]
 pub fn livesplit_set_total_playtime_digits_format(digits_format: DigitsFormat) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_total_playtime_digits_format(digits_format.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_total_playtime_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_total_playtime_accuracy")]
 pub fn livesplit_get_total_playtime_accuracy() -> Accuracy {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.total_playtime_accuracy().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.total_playtime_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_total_playtime_accuracy")]
 pub fn livesplit_set_total_playtime_accuracy(total_playtime_accuracy: Accuracy) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_total_playtime_accuracy(total_playtime_accuracy.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_total_playtime_accuracy(total_playtime_accuracy.into());
 }
 #[rebo::function("LiveSplit::get_sum_of_best_segments")]
 pub fn livesplit_get_sum_of_best_segments() -> String {
-    let state = LIVESPLIT_STATE.lock().unwrap();
-    Timer::sum_of_best(&state.timer)
+    Timer::sum_of_best(&LIVESPLIT_STATE.lock().unwrap().timer)
 }
 #[rebo::function("LiveSplit::get_sum_of_best_digits_format")]
 pub fn livesplit_get_sum_of_best_digits_format() -> DigitsFormat {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.sum_of_best_digits_format().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.sum_of_best_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_sum_of_best_digits_format")]
 pub fn livesplit_set_sum_of_best_digits_format(digits_format: DigitsFormat) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_sum_of_best_digits_format(digits_format.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_sum_of_best_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_sum_of_best_accuracy")]
 pub fn livesplit_get_sum_of_best_accuracy() -> Accuracy {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.sum_of_best_accuracy().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.sum_of_best_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_sum_of_best_accuracy")]
 pub fn livesplit_set_sum_of_best_accuracy(sum_of_best_accuracy: Accuracy) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_sum_of_best_accuracy(sum_of_best_accuracy.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_sum_of_best_accuracy(sum_of_best_accuracy.into());
 }
 #[rebo::function("LiveSplit::get_current_pace")]
 pub fn livesplit_get_current_pace(comparison: Comparison) -> String {
-    let state = LIVESPLIT_STATE.lock().unwrap();
-    Timer::current_pace(&state.timer, comparison)
+    Timer::current_pace(&LIVESPLIT_STATE.lock().unwrap().timer, comparison)
 }
 #[rebo::function("LiveSplit::get_current_pace_digits_format")]
 pub fn livesplit_get_current_pace_digits_format() -> DigitsFormat {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.current_pace_digits_format().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.current_pace_digits_format().into()
 }
 #[rebo::function("LiveSplit::set_current_pace_digits_format")]
 pub fn livesplit_set_current_pace_digits_format(digits_format: DigitsFormat) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_current_pace_digits_format(digits_format.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_current_pace_digits_format(digits_format.into());
 }
 #[rebo::function("LiveSplit::get_current_pace_accuracy")]
 pub fn livesplit_get_current_pace_accuracy() -> Accuracy {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.current_pace_accuracy().into()
+    LIVESPLIT_STATE.lock().unwrap().timer.current_pace_accuracy().into()
 }
 #[rebo::function("LiveSplit::set_current_pace_accuracy")]
 pub fn livesplit_set_current_pace_accuracy(current_pace_accuracy: Accuracy) {
-    let mut state = LIVESPLIT_STATE.lock().unwrap();
-    state.timer.set_current_pace_accuracy(current_pace_accuracy.into());
+    LIVESPLIT_STATE.lock().unwrap().timer.set_current_pace_accuracy(current_pace_accuracy.into());
 }
