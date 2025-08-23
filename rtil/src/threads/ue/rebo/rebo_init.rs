@@ -377,7 +377,11 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
                 }
                 draw_hud(vm)?
             },
-            UeEvent::ApplyResolutionSettings => on_resolution_change(vm)?,
+            UeEvent::ApplyResolutionSettings => {
+                let (width, height) = AMyCharacter::get_player().get_viewport_size();
+                STATE.lock().unwrap().as_mut().unwrap().ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
+                on_resolution_change(vm)?
+            },
             UeEvent::AddToScreen => on_menu_open(vm)?,
         }
 
