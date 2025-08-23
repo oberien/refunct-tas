@@ -3,8 +3,10 @@ use std::ffi::c_void;
 use std::mem;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use hook::{ArgsRef, RawHook, IsaAbi};
+use iced::mouse::Interaction;
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
 use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope, APLAYERCONTROLLER_FLUSHPRESSEDKEYS};
+use crate::native::linux::APLAYERCONTROLLER_GETMOUSEPOSITION;
 use crate::native::reflection::UClass;
 use crate::native::uworld::CAMERA_INDEX;
 
@@ -13,7 +15,9 @@ static CURRENT_PLAYER: AtomicPtr<AMyCharacterUE> = AtomicPtr::new(std::ptr::null
 #[derive(Debug, PartialEq, Eq)]
 pub struct AMyCharacter(*mut AMyCharacterUE);
 
+#[derive(Debug, Copy, Clone)]
 #[repr(u8)]
+#[allow(unused)]
 pub enum EMouseCursorType {
     None,
     Default,
@@ -31,6 +35,31 @@ pub enum EMouseCursorType {
     EyeDropper,
     Custom,
     TotalCursorCount,
+}
+impl From<Interaction> for EMouseCursorType {
+    fn from(interaction: Interaction) -> Self {
+        match interaction {
+            Interaction::None => EMouseCursorType::Default,
+            Interaction::Idle => EMouseCursorType::Default,
+            Interaction::Pointer => EMouseCursorType::Hand,
+            Interaction::Grab => EMouseCursorType::GrabHand,
+            Interaction::Text => EMouseCursorType::TextEditBeam,
+            Interaction::Crosshair => EMouseCursorType::Crosshairs,
+            Interaction::Working => EMouseCursorType::SlashedCircle,
+            Interaction::Grabbing => EMouseCursorType::GrabHandClosed,
+            Interaction::ResizingHorizontally => EMouseCursorType::ResizeLeftRight,
+            Interaction::ResizingVertically => EMouseCursorType::ResizeUpDown,
+            Interaction::ResizingDiagonallyUp => EMouseCursorType::ResizeSouthEast,
+            Interaction::ResizingDiagonallyDown => EMouseCursorType::ResizeSouthWest,
+            Interaction::NotAllowed => EMouseCursorType::Default,
+            Interaction::ZoomIn => EMouseCursorType::Default,
+            Interaction::ZoomOut => EMouseCursorType::Default,
+            Interaction::Cell => EMouseCursorType::Default,
+            Interaction::Move => EMouseCursorType::Default,
+            Interaction::Copy => EMouseCursorType::Default,
+            Interaction::Help => EMouseCursorType::Default,
+        }
+    }
 }
 
 // WARNING: somewhat unsound as some functions on AMyCharacter can only be called from
@@ -186,13 +215,22 @@ impl AMyCharacter {
         }
     }
     pub fn flush_pressed_keys() {
-        let fun: extern "C" fn(this: *mut APlayerController)
+        let fun: extern_fn!(fn(this: *mut APlayerController))
             = unsafe { ::std::mem::transmute(APLAYERCONTROLLER_FLUSHPRESSEDKEYS.load(Ordering::SeqCst)) };
         fun(AMyCharacter::get_player().controller());
     }
     pub fn set_mouse_cursor(cursor: EMouseCursorType) {
         let controller = unsafe { ObjectWrapper::new(AMyCharacter::get_player().controller() as *mut UObject) };
         controller.get_field("CurrentMouseCursor").unwrap::<&Cell<u8>>().set(cursor as u8);
+    }
+    pub fn get_mouse_position() -> (f32, f32) {
+        let fun: extern_fn!(fn(this: *mut APlayerController, x: &mut f32, y: &mut f32)) = unsafe {
+            mem::transmute(APLAYERCONTROLLER_GETMOUSEPOSITION.load(Ordering::SeqCst))
+        };
+        let mut x = 0.;
+        let mut y = 0.;
+        fun(AMyCharacter::get_player().controller(), &mut x, &mut y);
+        (x, y)
     }
 }
 

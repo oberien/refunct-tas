@@ -79,6 +79,11 @@ find! {
     FSLATEAPPLICATION_ONKEYDOWN, "^FSlateApplication::OnKeyDown(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONKEYUP, "^FSlateApplication::OnKeyUp(int, unsigned int, bool)",
     FSLATEAPPLICATION_ONRAWMOUSEMOVE, "^FSlateApplication::OnRawMouseMove(int, int)",
+    FSLATEAPPLICATION_ONMOUSEMOVE, "^FSlateApplication::OnMouseMove()",
+    FSLATEAPPLICATION_ONMOUSEDOWN, "^FSlateApplication::OnMouseDown(TSharedPtr<FGenericWindow, (ESPMode)0> const&, EMouseButtons::Type, FVector2D)",
+    FSLATEAPPLICATION_ONMOUSEDOUBLECLICK, "^FSlateApplication::OnMouseDoubleClick(TSharedPtr<FGenericWindow, (ESPMode)0> const&, EMouseButtons::Type, FVector2D)",
+    FSLATEAPPLICATION_ONMOUSEUP, "^FSlateApplication::OnMouseUp(EMouseButtons::Type, FVector2D)",
+    FSLATEAPPLICATION_ONMOUSEWHEEL, "^FSlateApplication::OnMouseWheel(float, FVector2D)",
     FPLATFORMMISC_PUMPMESSAGES, "^FLinuxPlatformMisc::PumpMessages(bool)",
     UENGINE_UPDATETIMEANDHANDLEMAXTICKRATE, "^UEngine::UpdateTimeAndHandleMaxTickRate()",
     AMYCHARACTER_TICK, "^AMyCharacter::Tick(float)",
@@ -126,4 +131,5 @@ find! {
     UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_GAMEONLY, "^UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController*)",
     UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_UIONLYEX, "^UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(APlayerController*, UWidget*, EMouseLockMode)",
     APLAYERCONTROLLER_FLUSHPRESSEDKEYS, "^APlayerController::FlushPressedKeys()",
+    APLAYERCONTROLLER_GETMOUSEPOSITION, "^APlayerController::GetMousePosition(float&, float&)",
 }

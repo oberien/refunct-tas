@@ -10,7 +10,6 @@ protocol = { path = "../protocol" }
 once_cell = "1.9.0"
 byteorder = "1.4.3"
 backtrace = "0.3.64"
-#rtil_derive = { path = "../rtil_derive" }
 crossbeam-channel = "0.5.2"
 memoffset = "0.9.1"
 #rebo = { path = "../../rebo/rebo" }
@@ -32,6 +31,12 @@ atomic_float = "1.1.0"
 chrono = {  version = "0.4.39", features = ["serde"] }
 livesplit-core = "0.13.0"
 hook = { path = "../hook" }
+iced = { git = "https://github.com/iced-rs/iced", rev = "d5521f4230b15b69fd2f21c9c1eedf451972958d", features = ["advanced"] }
+iced_runtime = { git = "https://github.com/iced-rs/iced", rev = "d5521f4230b15b69fd2f21c9c1eedf451972958d" }
+iced_wgpu = { git = "https://github.com/iced-rs/iced", rev = "d5521f4230b15b69fd2f21c9c1eedf451972958d" }
+futures = "0.3.31"
+num-traits = "0.2.19"
+num-derive = "0.4.2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.119"
@@ -48,7 +53,7 @@ crate-type = ["dylib"]
 panic = 'abort'
 
 [profile.release]
-debug = true
+debug = "full"
 debug-assertions = true
 panic = 'abort'
 

@@ -15,6 +15,7 @@ use websocket::stream::sync::NetworkStream;
 use crate::threads::{StreamToRebo, ReboToStream};
 use crate::native::{AMyCharacter, FPlatformMisc, Hooks, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UWorld};
 use crate::threads::ue::{Suspend, UeEvent};
+use crate::threads::ue::iced_ui::Ui;
 
 mod rebo_init;
 mod livesplit;
@@ -30,6 +31,7 @@ thread_local! {
 
 struct State {
     hooks: Hooks,
+    ui: Ui,
 
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
@@ -49,6 +51,7 @@ struct State {
     player_minimap_image: RgbaImage,
     // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
     player_minimap_textures: HashMap<Rgba<u8>, UTexture2D>,
+    ui_texture: Option<UTexture2D>,
 }
 
 pub(super) fn poll(event: UeEvent) {
@@ -65,6 +68,11 @@ pub(super) fn poll(event: UeEvent) {
             }
             state.is_semaphore_acquired = true;
             state.minimap_texture = Some(UTexture2D::create(&state.minimap_image));
+            let (width, height) = AMyCharacter::get_player().get_viewport_size();
+            let (width, height) = (width.try_into().unwrap(), height.try_into().unwrap());
+            state.ui.resize(width, height);
+            let (_interaction, ui_image) = state.ui.draw();
+            state.ui_texture = Some(UTexture2D::create(&ui_image));
             log!("rebo continuing as all this* have been acquired");
         }
     }
@@ -146,6 +154,7 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
 
     *STATE.lock().unwrap() = Some(State {
         hooks,
+        ui: Ui::new(1920, 1080),
         is_semaphore_acquired: false,
         event_queue: VecDeque::new(),
         new_version_string: new_version.clone(),
@@ -162,6 +171,7 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
         minimap_image,
         player_minimap_image,
         player_minimap_textures: HashMap::new(),
+        ui_texture: None,
     });
 }
 

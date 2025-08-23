@@ -52,6 +52,7 @@ use crate::semaphore::Semaphore;
 pub use self::character::AMyCharacter;
 pub use self::slateapp::{
     FSlateApplication,
+    EMouseButtonsType,
 };
 pub use self::app::FApp;
 pub use self::memory::FMemory;

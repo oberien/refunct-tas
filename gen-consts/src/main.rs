@@ -12,6 +12,11 @@ const NAMES: &[(&str, &str)] = &[
     ("?OnKeyDown@FSlateApplication", "FSLATEAPPLICATION_ONKEYDOWN"),
     ("?OnKeyUp@FSlateApplication", "FSLATEAPPLICATION_ONKEYUP"),
     ("?OnRawMouseMove@FSlateApplication", "FSLATEAPPLICATION_ONRAWMOUSEMOVE"),
+    ("?OnMouseMove@FSlateApplication@@UAE_NXZ", "FSLATEAPPLICATION_ONMOUSEMOVE"),
+    ("?OnMouseDown@FSlateApplication@@UAE_NABV?$TSharedPtr@VFGenericWindow@@$0A@@@W4Type@EMouseButtons@@UFVector2D@@@Z", "FSLATEAPPLICATION_ONMOUSEDOWN"),
+    ("?OnMouseDoubleClick@FSlateApplication@@UAE_NABV?$TSharedPtr@VFGenericWindow@@$0A@@@W4Type@EMouseButtons@@UFVector2D@@@Z", "FSLATEAPPLICATION_ONMOUSEDOUBLECLICK"),
+    ("?OnMouseUp@FSlateApplication@@UAE_NW4Type@EMouseButtons@@UFVector2D@@@Z", "FSLATEAPPLICATION_ONMOUSEUP"),
+    ("?OnMouseWheel@FSlateApplication@@UAE_NMUFVector2D@@@Z", "FSLATEAPPLICATION_ONMOUSEWHEEL"),
     ("?PumpMessages@FWindowsPlatformMisc@@SAX_N@Z", "FPLATFORMMISC_PUMPMESSAGES"),
     ("?Tick@AMyCharacter", "AMYCHARACTER_TICK"),
     ("?ForcedUnCrouch@AMyCharacter", "AMYCHARACTER_FORCEDUNCROUCH"),
@@ -58,6 +63,7 @@ const NAMES: &[(&str, &str)] = &[
     ("?SetInputMode_GameOnly@UWidgetBlueprintLibrary@@SAXPAVAPlayerController@@@Z", "UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_GAMEONLY"),
     ("?SetInputMode_UIOnlyEx@UWidgetBlueprintLibrary@@SAXPAVAPlayerController@@PAVUWidget@@W4EMouseLockMode@@@Z", "UWIDGETBLUEPRINTLIBRARY_SETINPUTMODE_UIONLYEX"),
     ("?FlushPressedKeys@APlayerController@@UAEXXZ", "APLAYERCONTROLLER_FLUSHPRESSEDKEYS"),
+    ("?GetMousePosition@APlayerController@@QBE_NAAM0@Z", "APLAYERCONTROLLER_GETMOUSEPOSITION"),
 ];
 
 fn get_linux_level_pointer_path() -> String {

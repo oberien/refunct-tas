@@ -6,7 +6,6 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
-use clipboard::{ClipboardProvider, ClipboardContext};
 use image::Rgba;
 use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, Map, IncludeConfig};
 use itertools::Itertools;
@@ -23,6 +22,7 @@ use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
 use crate::threads::ue::rebo::livesplit::{livesplit_get_total_playtime_accuracy, livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_total_playtime_digits_format, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_get_total_playtime, livesplit_set_total_playtime_accuracy, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_total_playtime_digits_format, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color, Accuracy, DigitsFormat, livesplit_get_sum_of_best_segments, livesplit_get_sum_of_best_digits_format, livesplit_set_sum_of_best_digits_format, livesplit_get_sum_of_best_accuracy, livesplit_set_sum_of_best_accuracy, livesplit_get_current_pace, livesplit_get_current_pace_digits_format, livesplit_set_current_pace_digits_format, livesplit_get_current_pace_accuracy, livesplit_set_current_pace_accuracy, Comparison};
+use crate::threads::ue::iced_ui::Clipboard;
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -342,10 +342,41 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
             UeEvent::ElementReleased(index) => element_released(vm, index)?,
             UeEvent::NothingHappened => to_be_returned = Some(Step::Yield),
             UeEvent::NewGame => to_be_returned = Some(Step::NewGame),
-            UeEvent::KeyDown(key, char, repeat) => on_key_down(vm, key, char, repeat)?,
-            UeEvent::KeyUp(key, char, repeat) => on_key_up(vm, key, char, repeat)?,
-            UeEvent::MouseMove(x, y) => on_mouse_move(vm, x, y)?,
-            UeEvent::DrawHud => draw_hud(vm)?,
+            UeEvent::KeyDown(key, repeat) => {
+                let key = STATE.lock().unwrap().as_mut().unwrap().ui.key_pressed(key);
+                on_key_down(vm, key.raw_key_code, key.raw_character_code, repeat)?
+            },
+            UeEvent::KeyUp(key, repeat) => {
+                let key = STATE.lock().unwrap().as_mut().unwrap().ui.key_released(key);
+                on_key_up(vm, key.raw_key_code, key.raw_character_code, repeat)?
+            },
+            UeEvent::MouseMove(x, y) => {
+                let (absx, absy) = AMyCharacter::get_mouse_position();
+                STATE.lock().unwrap().as_mut().unwrap().ui.mouse_moved(absx as u32, absy as u32);
+                on_mouse_move(vm, x, y)?
+            },
+            UeEvent::MouseButtonDown(button) => {
+                STATE.lock().unwrap().as_mut().unwrap().ui.mouse_button_pressed(button.to_iced_button());
+            },
+            UeEvent::MouseButtonUp(button) => {
+                STATE.lock().unwrap().as_mut().unwrap().ui.mouse_button_released(button.to_iced_button());
+            },
+            UeEvent::MouseWheel(delta) => {
+                STATE.lock().unwrap().as_mut().unwrap().ui.mouse_wheel(delta);
+            },
+            UeEvent::DrawHud => {
+                {
+                    let mut state = STATE.lock().unwrap();
+                    let state = state.as_mut().unwrap();
+                    let (interaction, ui_image) = state.ui.draw();
+                    let ui_texture = state.ui_texture.as_mut().unwrap();
+                    ui_texture.set_image(&ui_image);
+                    // TODO: this doesn't work
+                    AMyCharacter::set_mouse_cursor(interaction.into());
+                    AMyHud::draw_texture_simple(ui_texture, 0., 0., 1., false);
+                }
+                draw_hud(vm)?
+            },
             UeEvent::ApplyResolutionSettings => on_resolution_change(vm)?,
             UeEvent::AddToScreen => on_menu_open(vm)?,
         }
@@ -1062,20 +1093,11 @@ fn is_linux() -> bool {
 }
 #[rebo::function("Tas::get_clipboard")]
 fn get_clipboard() -> String {
-    (|| {
-        let mut ctx: ClipboardContext = ClipboardProvider::new()?;
-        ctx.get_contents()
-    })().unwrap_or_default()
+    Clipboard::get().unwrap_or_default()
 }
 #[rebo::function("Tas::set_clipboard")]
 fn set_clipboard(content: String) {
-    let _ = (|| {
-        let mut ctx: ClipboardContext = match ClipboardProvider::new() {
-            Ok(ctx) => ctx,
-            Err(_) => return,
-        };
-        let _ = ctx.set_contents(content);
-    })();
+    Clipboard::set(content)
 }
 #[rebo::function("Tas::show_hud")]
 fn show_hud() {

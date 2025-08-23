@@ -8,6 +8,7 @@ use crate::native::character::APlayerController;
 pub enum UEngine {}
 pub enum FViewport {}
 pub enum UWidgetBlueprintLibrary {}
+#[allow(unused)]
 pub enum EMouseLockMode {
     DoNotLock,
     LockOnCapture,

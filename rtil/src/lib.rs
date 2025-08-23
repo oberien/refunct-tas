@@ -34,7 +34,7 @@ pub extern "C" fn initialize() {
             };
             let thread = thread::current();
             let name = thread.name().unwrap_or("<unnamed>");
-            log!("thread '{}' panicked at '{}'\nBacktrace: {:?}", name, msg, backtrace::Backtrace::new());
+            log!("thread '{}' panicked with '{}' at {:?}\nBacktrace: {:?}", name, msg, info.location(), backtrace::Backtrace::new());
         }));
         env_logger::init();
         log!("initialize");
