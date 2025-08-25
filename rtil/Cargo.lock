@@ -2148,7 +2148,7 @@ dependencies = [
 [[package]]
 name = "iced"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_core",
  "iced_debug",
@@ -2172,7 +2172,7 @@ dependencies = [
 [[package]]
 name = "iced_core"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "bitflags 2.9.1",
  "bytes 1.10.1",
@@ -2190,7 +2190,7 @@ dependencies = [
 [[package]]
 name = "iced_debug"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -2200,7 +2200,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "futures 0.3.31",
  "iced_core",
@@ -2213,7 +2213,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "bitflags 2.9.1",
  "bytemuck",
@@ -2231,7 +2231,7 @@ dependencies = [
 [[package]]
 name = "iced_program"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_graphics",
  "iced_runtime",
@@ -2240,7 +2240,7 @@ dependencies = [
 [[package]]
 name = "iced_renderer"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -2252,7 +2252,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "bytes 1.10.1",
  "iced_core",
@@ -2265,7 +2265,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -2281,7 +2281,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "bitflags 2.9.1",
  "bytemuck",
@@ -2300,7 +2300,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_renderer",
  "iced_runtime",
@@ -2314,7 +2314,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.14.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=d5521f4230b15b69fd2f21c9c1eedf451972958d#d5521f4230b15b69fd2f21c9c1eedf451972958d"
+source = "git+https://github.com/oberien/iced?rev=34095e0ba80c7ec946383cad607df420c35a53a2#34095e0ba80c7ec946383cad607df420c35a53a2"
 dependencies = [
  "iced_debug",
  "iced_program",
@@ -4540,6 +4540,7 @@ dependencies = [
  "hook",
  "iced",
  "iced_runtime",
+ "iced_tiny_skia",
  "iced_wgpu",
  "image",
  "itertools 0.14.0",
@@ -4556,6 +4557,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.12",
+ "tiny-skia",
  "ureq",
  "websocket",
  "winapi 0.3.9",

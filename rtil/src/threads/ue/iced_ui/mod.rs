@@ -3,12 +3,16 @@ use iced::widget::{button, column, text};
 use screenshot_ui::{Element, ScreenshotUiElement};
 
 mod screenshot_ui;
+mod backend;
 mod keyboard_input_mapper;
 
 pub use screenshot_ui::{ScreenshotUi, Clipboard};
 pub use keyboard_input_mapper::Key;
+pub use backend::Backend;
 
-pub type Ui = ScreenshotUi<Counter>;
+// pub type UiBackend = backend::TinySkiaBackend;
+pub type UiBackend = backend::WgpuBackend;
+pub type Ui = ScreenshotUi<UiBackend, Counter>;
 
 #[derive(Default)]
 pub struct Counter {
@@ -21,7 +25,7 @@ pub enum Message {
     Decrement,
 }
 
-impl ScreenshotUiElement for Counter {
+impl<B: Backend> ScreenshotUiElement<B> for Counter {
     type Message = Message;
     fn update(&mut self, message: Message) {
         match message {
@@ -34,7 +38,7 @@ impl ScreenshotUiElement for Counter {
         }
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<B, Self::Message> {
         column![
             button("Increment").on_press(Message::Increment),
             text(self.value).size(50),

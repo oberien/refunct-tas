@@ -15,7 +15,7 @@ use websocket::stream::sync::NetworkStream;
 use crate::threads::{StreamToRebo, ReboToStream};
 use crate::native::{AMyCharacter, FPlatformMisc, Hooks, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UWorld};
 use crate::threads::ue::{Suspend, UeEvent};
-use crate::threads::ue::iced_ui::Ui;
+use crate::threads::ue::iced_ui::{Backend, Ui, UiBackend};
 
 mod rebo_init;
 mod livesplit;
@@ -69,10 +69,9 @@ pub(super) fn poll(event: UeEvent) {
             state.is_semaphore_acquired = true;
             state.minimap_texture = Some(UTexture2D::create(&state.minimap_image));
             let (width, height) = AMyCharacter::get_player().get_viewport_size();
-            let (width, height) = (width.try_into().unwrap(), height.try_into().unwrap());
-            state.ui.resize(width, height);
+            state.ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
             let (_interaction, ui_image) = state.ui.draw();
-            state.ui_texture = Some(UTexture2D::create(&ui_image));
+            state.ui_texture = Some(UTexture2D::create_with_pixelformat(&ui_image, width, height, UiBackend::PIXEL_FORMAT));
             log!("rebo continuing as all this* have been acquired");
         }
     }

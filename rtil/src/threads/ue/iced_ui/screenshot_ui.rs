@@ -1,82 +1,43 @@
 use std::fmt::Debug;
 use std::mem;
-use image::RgbaImage;
 use clipboard::{ClipboardContext, ClipboardProvider};
-use iced::{Color, Event, Font, keyboard, mouse, Pixels, Point, Size, window};
+use iced::{Event, keyboard, mouse, Point, Size, window};
 use iced::advanced::clipboard::Kind;
+use iced::advanced::renderer::Style;
 use iced::mouse::{Button, Cursor, Interaction, ScrollDelta};
+use iced::theme::Theme;
 use iced_runtime::core::input_method;
 use iced_runtime::keyboard::Modifiers;
 use iced_runtime::user_interface::{Cache, State};
 use iced_runtime::UserInterface;
-use iced_wgpu::core::Theme;
-use iced_wgpu::{Engine, Renderer, wgpu};
-use iced_wgpu::core::renderer::Style;
-use iced_wgpu::graphics::Viewport;
+use crate::threads::ue::iced_ui::backend::Backend;
 use crate::threads::ue::iced_ui::keyboard_input_mapper::{Key, KeyboardState};
 
-pub type Element<Message> = iced::Element<'static, Message, Theme, Renderer>;
+pub type Element<B, Message> = iced::Element<'static, Message, Theme, <B as Backend>::Renderer>;
 
-pub struct ScreenshotUi<T: ScreenshotUiElement> {
+pub struct ScreenshotUi<B: Backend, T: ScreenshotUiElement<B>> {
+    backend: B,
     element: T,
-    renderer: Renderer,
     cache: Cache,
     events: Vec<Event>,
     messages: Vec<T::Message>,
-    size: (u32, u32),
+    width: u32,
+    height: u32,
     keyboard_state: KeyboardState,
     cursor: Cursor,
 }
-unsafe impl<T: ScreenshotUiElement + Send> Send for ScreenshotUi<T> {}
+unsafe impl<B: Backend, T: ScreenshotUiElement<B> + Send> Send for ScreenshotUi<B, T> {}
 
-impl<T: ScreenshotUiElement + Default + 'static> ScreenshotUi<T> {
+impl<B: Backend, T: ScreenshotUiElement<B> + Default + 'static> ScreenshotUi<B, T> {
     pub fn new(width: u32, height: u32) -> Self {
         Self::create(T::default(), width, height)
     }
 }
-impl<T: ScreenshotUiElement + 'static> ScreenshotUi<T> {
+impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
     pub fn create(element: T, width: u32, height: u32) -> Self {
-        // don't allow OpenGL due to a data race with eglMakeCurrent: https://stackoverflow.com/q/74085533
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::from_env().unwrap_or(wgpu::Backends::VULKAN | wgpu::Backends::METAL | wgpu::Backends::DX12),
-            ..Default::default()
-        });
-        let (adapter, device, queue) =
-            futures::executor::block_on(async {
-                let adapter = wgpu::util::initialize_adapter_from_env_or_default(
-                    &instance,
-                    None,
-                )
-                    .await
-                    .expect("Create adapter");
-
-                let (device, queue) = adapter
-                    .request_device(&wgpu::DeviceDescriptor::default())
-                    .await
-                    .expect("Request device");
-
-                (
-                    adapter,
-                    device,
-                    queue,
-                )
-            });
-        let engine = Engine::new(
-            &adapter,
-            device.clone(),
-            queue.clone(),
-            wgpu::TextureFormat::Rgba8UnormSrgb,
-            None,
-        );
-        let renderer = Renderer::new(
-            engine,
-            Font::default(),
-            Pixels::from(24),
-        );
-
         ScreenshotUi {
             element,
-            renderer,
+            backend: B::create(width, height),
             cache: Cache::new(),
             events: vec![
                 Event::Window(window::Event::Opened { position: Some(Point::new(0., 0.)), size: Size::new(width as f32, height as f32) }),
@@ -86,18 +47,22 @@ impl<T: ScreenshotUiElement + 'static> ScreenshotUi<T> {
                 Event::Keyboard(keyboard::Event::ModifiersChanged(Modifiers::empty())),
             ],
             messages: Vec::new(),
-            size: (width, height),
+            width,
+            height,
             keyboard_state: KeyboardState::new(),
             cursor: Cursor::default(),
+            // screenshot_buffers,
         }
     }
 
-    pub fn resize(&mut self, x: u32, y: u32) {
-        if self.size == (x, y) {
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if self.width == width && self.height == height {
             return;
         }
-        self.size = (x, y);
-        self.events.push(Event::Window(window::Event::Resized(Size::new(x as f32, y as f32))));
+        self.width = width;
+        self.height = height;
+        self.backend.size_changed(width, height);
+        self.events.push(Event::Window(window::Event::Resized(Size::new(width as f32, height as f32))));
     }
 
     pub fn key_pressed(&mut self, key: Key) -> Key {
@@ -133,22 +98,28 @@ impl<T: ScreenshotUiElement + 'static> ScreenshotUi<T> {
         self.events.push(Event::Mouse(mouse::Event::WheelScrolled { delta: ScrollDelta::Lines { x: 0., y: delta } }))
     }
 
-    fn build_user_interface(&mut self) -> UserInterface<'static, T::Message, Theme, Renderer> {
+    fn build_user_interface(&mut self) -> UserInterface<'static, T::Message, Theme, B::Renderer> {
         UserInterface::build(
             self.element.view(),
-            Size::new(self.size.0 as f32, self.size.1 as f32),
+            Size::new(self.width as f32, self.height as f32),
             mem::take(&mut self.cache),
-            &mut self.renderer,
+            self.backend.renderer(),
         )
     }
 
-    pub fn draw(&mut self) -> (Interaction, RgbaImage) {
+    pub fn draw(&mut self) -> (Interaction, Vec<u8>) {
+        let mut vec = vec![0u8; self.width as usize * self.height as usize * 4];
+        let interaction = self.draw_into(&mut vec);
+        (interaction, vec)
+    }
+
+    pub fn draw_into(&mut self, buf: &mut [u8]) -> Interaction {
         let mut user_interface = self.build_user_interface();
 
         let (state, _event_statuses) = user_interface.update(
             &self.events,
             self.cursor,
-            &mut self.renderer,
+            self.backend.renderer(),
             &mut Clipboard,
             &mut self.messages,
         );
@@ -162,7 +133,7 @@ impl<T: ScreenshotUiElement + 'static> ScreenshotUi<T> {
         }
 
         user_interface.draw(
-            &mut self.renderer,
+            self.backend.renderer(),
             &Theme::default(),
             &Style::default(),
             self.cursor,
@@ -171,28 +142,19 @@ impl<T: ScreenshotUiElement + 'static> ScreenshotUi<T> {
         self.cache = user_interface.into_cache();
         self.events.clear();
 
-        let buf = self.renderer.screenshot(
-            &Viewport::with_physical_size(Size::new(self.size.0, self.size.1), 1.),
-            Color::TRANSPARENT,
-        );
-        let interaction = match state {
+        self.backend.draw_into(self.width, self.height, buf);
+        match state {
             State::Outdated => Interaction::None,
             State::Updated { mouse_interaction, .. } => mouse_interaction,
-        };
-        (
-            interaction,
-            RgbaImage::from_vec(self.size.0, self.size.1, buf).unwrap(),
-        )
-
-        // TODO: clipboard
+        }
     }
 }
 
-pub trait ScreenshotUiElement {
+pub trait ScreenshotUiElement<B: Backend> {
     type Message: Debug;
     fn update(&mut self, message: Self::Message);
-    fn view(&self) -> Element<Self::Message>;
-    fn _view_borrowed(&self) -> iced::Element<'_, Self::Message, Theme, Renderer> {
+    fn view(&self) -> Element<B, Self::Message>;
+    fn _view_borrowed(&self) -> iced::Element<'_, Self::Message, Theme, B::Renderer> {
         self.view()
     }
 }

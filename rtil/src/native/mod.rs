@@ -60,7 +60,7 @@ pub use self::hud::{AMyHud, EBlendMode};
 pub use self::uworld::{UWorld, UGameplayStatics, TimeOfDay};
 pub use self::level_state::LevelState;
 pub use self::platform_misc::FPlatformMisc;
-pub use self::texture::UTexture2D;
+pub use self::texture::{UTexture2D, EPixelFormat};
 pub use self::gameinstance::UMyGameInstance;
 pub use self::reflection::*;
 pub use self::map_editor::*;

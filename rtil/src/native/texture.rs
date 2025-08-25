@@ -1,4 +1,5 @@
-use std::{mem, ptr};
+use std::{mem, ptr, slice};
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering;
 use image::RgbaImage;
 use crate::native::{FUNTYPEDBULKDATA_LOCK, FUNTYPEDBULKDATA_UNLOCK, UTEXTURE2D_CREATETRANSIENT, UTEXTURE2D_GETRUNNINGPLATFORMDATA, UTEXTURE2D_UPDATERESOURCE};
@@ -29,11 +30,11 @@ impl UTexture2D {
         fun(self.0)
     }
 
-    fn update_resource(&mut self) {
+    fn update_resource(texture: *mut UTexture2DUE) {
         let fun: extern_fn!(fn(
             this: *mut UTexture2DUE
         )) = unsafe { mem::transmute(UTEXTURE2D_UPDATERESOURCE.load(Ordering::SeqCst)) };
-        fun(self.0)
+        fun(texture)
     }
 
     pub fn width(&self) -> i32 {
@@ -50,27 +51,39 @@ impl UTexture2D {
     pub fn set_image(&mut self, image: &RgbaImage) {
         assert_eq!(self.width() as u32, image.width());
         assert_eq!(self.height() as u32, image.height());
+        self.set_image_raw(image)
+    }
+    pub fn set_image_raw(&mut self, image: &[u8]) {
+        self.as_mut_slice().copy_from_slice(image);
+    }
+
+    pub fn create(image: &RgbaImage) -> UTexture2D {
+        Self::create_with_pixelformat(image, image.width().try_into().unwrap(), image.height().try_into().unwrap(), EPixelFormat::R8G8B8A8)
+    }
+    pub fn create_with_pixelformat(image: &[u8], width: i32, height: i32, pixel_format: EPixelFormat) -> UTexture2D {
+        let texture = UTexture2D::create_transient(width, height, pixel_format);
+        log!("texture: {:p}", texture);
+        let mut texture = UTexture2D(texture);
+        texture.set_image_raw(image);
+        // mark texture as root-object to not be cleaned by the GC
+        texture.mark_as_root_object(true);
+        texture
+    }
+
+    pub fn as_mut_slice(&mut self) -> UTexture2DSliceMut<'_> {
         unsafe {
             let platform_data = self.get_running_platform_data();
             let mip_map = (&(**platform_data).mips)[0];
             let bulk_data = ptr::addr_of_mut!((*mip_map).bulk_data) as *mut FByteBulkData;
             let ptr = FByteBulkData::lock(bulk_data, EBulkDataLockFlags::LockReadWrite);
-            ptr::copy_nonoverlapping(image.as_raw().as_ptr(), ptr, image.as_raw().len());
-            FByteBulkData::unlock(bulk_data);
+            let len = self.width() as usize * self.height() as usize * 4;
+            let slice = slice::from_raw_parts_mut(ptr, len);
+            UTexture2DSliceMut {
+                texture: self.0,
+                slice,
+                bulk_data,
+            }
         }
-        self.update_resource();
-    }
-
-    pub fn create(image: &RgbaImage) -> UTexture2D {
-        let width = image.width().try_into().unwrap();
-        let height = image.height().try_into().unwrap();
-        let texture = UTexture2D::create_transient(width, height, EPixelFormat::R8G8B8A8);
-        log!("texture: {:p}", texture);
-        let mut texture = UTexture2D(texture);
-        texture.set_image(image);
-        // mark texture as root-object to not be cleaned by the GC
-        texture.mark_as_root_object(true);
-        texture
     }
 
     fn mark_as_root_object(&self, val: bool) {
@@ -82,6 +95,32 @@ impl Drop for UTexture2D {
     fn drop(&mut self) {
         // mark texture as non-root-object to be cleaned by the GC
         self.mark_as_root_object(false)
+    }
+}
+
+pub struct UTexture2DSliceMut<'a> {
+    texture: *mut UTexture2DUE,
+    slice: &'a mut [u8],
+    bulk_data: *mut FByteBulkData,
+}
+impl<'a> Deref for UTexture2DSliceMut<'a> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        self.slice
+    }
+}
+impl<'a> DerefMut for UTexture2DSliceMut<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.slice
+    }
+}
+impl<'a> Drop for UTexture2DSliceMut<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            FByteBulkData::unlock(self.bulk_data);
+            UTexture2D::update_resource(self.texture);
+        }
     }
 }
 

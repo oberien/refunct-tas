@@ -22,7 +22,7 @@ use opener;
 use chrono::{DateTime, Local};
 use livesplit_core::TimeSpan;
 use crate::threads::ue::rebo::livesplit::{livesplit_get_total_playtime_accuracy, livesplit_get_ahead_gaining_time_color, livesplit_get_behind_gaining_time_color, livesplit_get_behind_losing_time_color, livesplit_get_best_segment_color, livesplit_get_total_playtime_digits_format, livesplit_get_not_running_color, livesplit_get_paused_color, livesplit_get_personal_best_color, livesplit_get_text_color, livesplit_get_total_playtime, livesplit_set_total_playtime_accuracy, livesplit_set_ahead_gaining_time_color, livesplit_set_behind_gaining_time_color, livesplit_set_behind_losing_time_color, livesplit_set_best_segment_color, livesplit_set_total_playtime_digits_format, livesplit_set_not_running_color, livesplit_set_paused_color, livesplit_set_personal_best_color, livesplit_set_text_color, Accuracy, DigitsFormat, livesplit_get_sum_of_best_segments, livesplit_get_sum_of_best_digits_format, livesplit_set_sum_of_best_digits_format, livesplit_get_sum_of_best_accuracy, livesplit_set_sum_of_best_accuracy, livesplit_get_current_pace, livesplit_get_current_pace_digits_format, livesplit_set_current_pace_digits_format, livesplit_get_current_pace_accuracy, livesplit_set_current_pace_accuracy, Comparison};
-use crate::threads::ue::iced_ui::Clipboard;
+use crate::threads::ue::iced_ui::{Backend, Clipboard, UiBackend};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -368,9 +368,8 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
                 {
                     let mut state = STATE.lock().unwrap();
                     let state = state.as_mut().unwrap();
-                    let (interaction, ui_image) = state.ui.draw();
                     let ui_texture = state.ui_texture.as_mut().unwrap();
-                    ui_texture.set_image(&ui_image);
+                    let interaction = state.ui.draw_into(&mut *ui_texture.as_mut_slice());
                     // TODO: this doesn't work
                     AMyCharacter::set_mouse_cursor(interaction.into());
                     AMyHud::draw_texture_simple(ui_texture, 0., 0., 1., false);
@@ -379,7 +378,11 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
             },
             UeEvent::ApplyResolutionSettings => {
                 let (width, height) = AMyCharacter::get_player().get_viewport_size();
-                STATE.lock().unwrap().as_mut().unwrap().ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
+                let mut state = STATE.lock().unwrap();
+                let state = state.as_mut().unwrap();
+                state.ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
+                let (_, ui_image) = state.ui.draw();
+                state.ui_texture = Some(UTexture2D::create_with_pixelformat(&ui_image, width, height, UiBackend::PIXEL_FORMAT));
                 on_resolution_change(vm)?
             },
             UeEvent::AddToScreen => on_menu_open(vm)?,
