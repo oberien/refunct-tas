@@ -18,7 +18,7 @@ pub trait Backend: 'static {
 pub struct TinySkiaBackend {
     renderer: TinySkiaRenderer,
     clip_mask: tiny_skia::Mask,
-    buffer: Vec<u8>,
+    image_buffer: Vec<u8>,
 }
 
 impl Backend for TinySkiaBackend {
@@ -29,7 +29,7 @@ impl Backend for TinySkiaBackend {
         TinySkiaBackend {
             renderer: Renderer::new(Font::default(), Pixels::from(24)),
             clip_mask: tiny_skia::Mask::new(width, height).unwrap(),
-            buffer: vec![0u8; width as usize * height as usize * 4],
+            image_buffer: vec![0u8; width as usize * height as usize * 4],
         }
     }
 
@@ -38,15 +38,16 @@ impl Backend for TinySkiaBackend {
     }
 
     fn size_changed(&mut self, width: u32, height: u32) {
-        self.buffer.resize(width as usize * height as usize * 8, 0u8);
-        self.buffer.shrink_to_fit();
+        self.image_buffer.resize(width as usize * height as usize * 8, 0u8);
+        self.image_buffer.shrink_to_fit();
         self.clip_mask = tiny_skia::Mask::new(width, height).unwrap();
     }
 
     fn draw_into(&mut self, width: u32, height: u32, out_buf: &mut [u8]) {
+        self.image_buffer.fill(0);
         self.renderer.draw(
             &mut tiny_skia::PixmapMut::from_bytes(
-                &mut self.buffer,
+                &mut self.image_buffer,
                 width,
                 height,
             )
@@ -59,7 +60,7 @@ impl Backend for TinySkiaBackend {
             ))],
             Color::TRANSPARENT,
         );
-        out_buf.copy_from_slice(&self.buffer);
+        out_buf.copy_from_slice(&self.image_buffer);
     }
 }
 
@@ -67,6 +68,7 @@ impl Backend for TinySkiaBackend {
 pub struct WgpuBackend {
     renderer: WgpuRenderer,
     screenshot_buffers: WgpuScreenshotBuffers,
+    image_buffer: Vec<u8>,
 }
 
 impl Backend for WgpuBackend {
@@ -115,6 +117,7 @@ impl Backend for WgpuBackend {
         WgpuBackend {
             renderer,
             screenshot_buffers,
+            image_buffer: vec![0u8; width as usize * height as usize * 4],
         }
     }
 
@@ -123,16 +126,20 @@ impl Backend for WgpuBackend {
     }
 
     fn size_changed(&mut self, width: u32, height: u32) {
+        self.image_buffer.resize(width as usize * height as usize * 8, 0u8);
+        self.image_buffer.shrink_to_fit();
         self.screenshot_buffers = self.renderer.create_screenshot_buffers("rtil-screenshot-ui", &Viewport::with_physical_size(Size::new(width, height), 1.));
     }
 
     fn draw_into(&mut self, width: u32, height: u32, out_buf: &mut [u8]) {
+        self.image_buffer.fill(0);
         self.renderer.screenshot_into(
             &Viewport::with_physical_size(Size::new(width, height), 1.),
             Color::TRANSPARENT,
             &mut self.screenshot_buffers,
-            out_buf,
+            &mut self.image_buffer,
         );
+        out_buf.copy_from_slice(&self.image_buffer);
         // let vec = self.renderer.screenshot(
         //     &Viewport::with_physical_size(Size::new(width, height), 1.),
         //     Color::TRANSPARENT,
