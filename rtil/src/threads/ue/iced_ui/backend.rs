@@ -38,7 +38,7 @@ impl Backend for TinySkiaBackend {
     }
 
     fn size_changed(&mut self, width: u32, height: u32) {
-        self.image_buffer.resize(width as usize * height as usize * 8, 0u8);
+        self.image_buffer.resize(width as usize * height as usize * 4, 0u8);
         self.image_buffer.shrink_to_fit();
         self.clip_mask = tiny_skia::Mask::new(width, height).unwrap();
     }
@@ -91,7 +91,10 @@ impl Backend for WgpuBackend {
                     .expect("Create adapter");
 
                 let (device, queue) = adapter
-                    .request_device(&wgpu::DeviceDescriptor::default())
+                    .request_device(&wgpu::DeviceDescriptor {
+                        required_features: wgpu::Features::CLEAR_TEXTURE,
+                        ..Default::default()
+                    })
                     .await
                     .expect("Request device");
 
@@ -126,7 +129,7 @@ impl Backend for WgpuBackend {
     }
 
     fn size_changed(&mut self, width: u32, height: u32) {
-        self.image_buffer.resize(width as usize * height as usize * 8, 0u8);
+        self.image_buffer.resize(width as usize * height as usize * 4, 0u8);
         self.image_buffer.shrink_to_fit();
         self.screenshot_buffers = self.renderer.create_screenshot_buffers("rtil-screenshot-ui", &Viewport::with_physical_size(Size::new(width, height), 1.));
     }
