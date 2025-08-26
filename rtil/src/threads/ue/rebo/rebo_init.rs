@@ -378,11 +378,12 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
             },
             UeEvent::ApplyResolutionSettings => {
                 let (width, height) = AMyCharacter::get_player().get_viewport_size();
-                let mut state = STATE.lock().unwrap();
-                let state = state.as_mut().unwrap();
+                let mut lock = STATE.lock().unwrap();
+                let state = lock.as_mut().unwrap();
                 state.ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
                 let (_, ui_image) = state.ui.draw();
                 state.ui_texture = Some(UTexture2D::create_with_pixelformat(&ui_image, width, height, UiBackend::PIXEL_FORMAT));
+                drop(lock);
                 on_resolution_change(vm)?
             },
             UeEvent::AddToScreen => on_menu_open(vm)?,
