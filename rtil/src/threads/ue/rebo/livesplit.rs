@@ -167,7 +167,6 @@ impl LiveSplit {
         }
         splits_path
     }
-    
 }
 impl Timer {
     pub fn start(&mut self) {
@@ -274,7 +273,7 @@ impl Run<'_> {
             };
             run.metadata_mut().set_speedrun_com_variable("New Game Glitch", cat);
         }
-        self.timer.set_run(run.clone()).expect("The provided `Run` contains no segments");
+        self.timer.set_run(run).expect("The provided `Run` contains no segments");
     }
     pub fn category_name(&self) -> String {
         self.timer.run().category_name().to_owned()
@@ -323,7 +322,7 @@ impl Run<'_> {
         let parsed_run = composite::parse(&file, None)
             .map_err(|e| SplitsLoadError::ParseFailed(path_display.to_owned(), e.to_string()))?;
         let _ = self.timer.reset(true);
-        let _ = self.timer.set_run(parsed_run.run.clone());
+        let _ = self.timer.set_run(parsed_run.run);
         VALID_SPLITS_PATHS.lock().unwrap().insert(path);
         Ok(())
     }
@@ -441,8 +440,7 @@ pub fn livesplit_set_color(layout_color: LiveSplitLayoutColor, color: Color) {
         LiveSplitLayoutColor::Paused => &mut settings.paused_color,
         LiveSplitLayoutColor::Text => &mut settings.text_color,
     };
-    let color = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
-    *col = color;
+    *col = LiveSplitColor::rgba(color.red, color.green, color.blue, color.alpha);
 }
 #[rebo::function("LiveSplit::get_total_playtime")]
 pub fn livesplit_get_total_playtime() -> String {
