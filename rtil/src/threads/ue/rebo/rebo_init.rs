@@ -7,11 +7,11 @@ use std::path::PathBuf;
 use std::time::Duration;
 use crossbeam_channel::{Sender, TryRecvError};
 use image::Rgba;
-use rebo::{ExecError, ReboConfig, Stdlib, VmContext, Output, Value, DisplayValue, Map, IncludeConfig};
+use rebo::{DisplayValue, ExecError, IncludeConfig, Map, Output, ReboConfig, Span, Stdlib, Value, VmContext};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use websocket::{ClientBuilder, Message, OwnedMessage, WebSocketError};
-use crate::native::{AMyCharacter, AMyHud, FApp, LevelState, ObjectWrapper, UWorld, UGameplayStatics, UTexture2D, EBlendMode, LEVELS, ActorWrapper, LevelWrapper, KismetSystemLibrary, UMyGameInstance, ue::FVector, character::USceneComponent, UeScope, try_find_element_index, UObject, Level, ObjectIndex, UeObjectWrapperType, AActor, FViewport, ALiftBaseUE};
+use crate::native::{character::USceneComponent, try_find_element_index, ue::FVector, AActor, ALiftBaseUE, AMyCharacter, AMyHud, ActorWrapper, EBlendMode, FApp, FViewport, KismetSystemLibrary, Level, LevelState, LevelWrapper, ObjectIndex, ObjectWrapper, UGameplayStatics, UMyGameInstance, UObject, UTexture2D, UWorld, UeObjectWrapperType, UeScope, LEVELS};
 use protocol::{Request, Response};
 use crate::threads::{ReboToStream, StreamToRebo};
 use super::{STATE, livesplit::{Game, NewGameGlitch, SplitsSaveError, SplitsLoadError}};
@@ -22,6 +22,7 @@ use opener;
 use chrono::{DateTime, Local};
 use crate::threads::ue::rebo::livesplit;
 use crate::threads::ue::iced_ui::{Backend, Clipboard, UiBackend};
+use crate::threads::ue::iced_ui::rebo_elements::{IcedButton, IcedColumn, IcedElement, IcedRow, IcedText, IcedWindow};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
     let mut cfg = ReboConfig::new()
@@ -212,12 +213,19 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_external_type(livesplit::Accuracy)
         .add_external_type(livesplit::Comparison)
         .add_external_type(livesplit::LiveSplitLayoutColor)
+        .add_external_type(IcedWindow)
+        .add_external_type(IcedElement)
+        .add_external_type(IcedButton)
+        .add_external_type(IcedText)
+        .add_external_type(IcedRow)
+        .add_external_type(IcedColumn)
         .add_required_rebo_function(element_pressed)
         .add_required_rebo_function(element_released)
         .add_required_rebo_function(on_key_down)
         .add_required_rebo_function(on_key_up)
         .add_required_rebo_function(on_mouse_move)
         .add_required_rebo_function(draw_hud)
+        .add_required_rebo_function(ui_view)
         .add_required_rebo_function(player_joined_multiplayer_room)
         .add_required_rebo_function(player_left_multiplayer_room)
         .add_required_rebo_function(player_moved)
@@ -304,13 +312,13 @@ fn print(..: _) {
 
 #[rebo::function(raw("Tas::step"))]
 fn step() -> Step {
-    step_internal(vm, Suspend::Return)?
+    step_internal(vm, expr_span, Suspend::Return)?
 }
 #[rebo::function(raw("Tas::yield_"))]
 fn step_yield() -> Step {
-    step_internal(vm, Suspend::Yield)?
+    step_internal(vm, expr_span, Suspend::Yield)?
 }
-fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result<Step, ExecError<'i>> {
+fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, expr_span: Span, suspend: Suspend) -> Result<Step, ExecError<'i>> {
     // get level state before and after we advance the UE frame to see changes created by Refunct itself
     let old_level_state = LevelState::get();
 
@@ -351,15 +359,24 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, suspend: Suspend) -> Result
                 STATE.lock().unwrap().as_mut().unwrap().ui.mouse_wheel(delta);
             },
             UeEvent::DrawHud => {
+                // handle events
+                loop {
+                    let Ok(function) = STATE.lock().unwrap().as_mut().unwrap().ui_rx.try_recv() else { break };
+                    vm.call_bound_function(function, expr_span)?;
+                }
+                // draw new iced UI
+                let windows = ui_view(vm)?;
                 {
                     let mut state = STATE.lock().unwrap();
                     let state = state.as_mut().unwrap();
+                    *state.ui_windows.lock().unwrap() = windows;
                     let ui_texture = state.ui_texture.as_mut().unwrap();
                     let interaction = state.ui.draw_into(&mut *ui_texture.as_mut_slice());
                     // TODO: this doesn't work
                     AMyCharacter::set_mouse_cursor(interaction.into());
                     AMyHud::draw_texture_simple(ui_texture, 0., 0., 1., false);
                 }
+                // draw old UI
                 draw_hud(vm)?
             },
             UeEvent::ApplyResolutionSettings => {
@@ -422,6 +439,7 @@ extern "rebo" {
     fn on_key_up(key_code: i32, character_code: u32, is_repeat: bool);
     fn on_mouse_move(x: i32, y: i32);
     fn draw_hud();
+    fn ui_view() -> Vec<IcedWindow>;
     fn player_joined_multiplayer_room(id: u32, name: String, col: Color, loc: Location, rot: Rotation);
     fn player_left_multiplayer_room(id: u32);
     fn player_moved(id: u32, loc: Location, rot: Rotation);
@@ -694,7 +712,7 @@ fn restart_game() {
 #[rebo::function(raw("Tas::wait_for_new_game"))]
 fn wait_for_new_game() {
     loop {
-        match step_internal(vm, Suspend::Return)? {
+        match step_internal(vm, expr_span, Suspend::Return)? {
             Step::Tick => continue,
             Step::NewGame => break,
             Step::Yield => unreachable!("step_internal(StepKind::Step) returned Yield"),

@@ -1,21 +1,23 @@
 use std::{ptr, thread};
-use std::collections::{HashSet, HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
-use std::sync::Mutex;
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
 use std::cell::{Cell, RefCell};
 use corosensei::{CoroutineResult, Yielder};
 
-use crossbeam_channel::{Sender, Receiver};
+use crossbeam_channel::{Receiver, Sender};
 use image::{Rgba, RgbaImage};
 use once_cell::sync::Lazy;
+use rebo::BoundFunctionValue;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
-use crate::threads::{StreamToRebo, ReboToStream};
-use crate::native::{AMyCharacter, FPlatformMisc, Hooks, REBO_DOESNT_START_SEMAPHORE, UTexture2D, UWorld};
+use crate::threads::{ReboToStream, StreamToRebo};
+use crate::native::{AMyCharacter, FPlatformMisc, Hooks, UTexture2D, UWorld, REBO_DOESNT_START_SEMAPHORE};
 use crate::threads::ue::{Suspend, UeEvent};
-use crate::threads::ue::iced_ui::{Backend, Ui, UiBackend};
+use crate::threads::ue::iced_ui::{Backend, ReboUi, Ui, UiBackend};
+use crate::threads::ue::iced_ui::rebo_elements::IcedWindow;
 
 mod rebo_init;
 mod livesplit;
@@ -32,6 +34,8 @@ thread_local! {
 struct State {
     hooks: Hooks,
     ui: Ui,
+    ui_rx: mpsc::Receiver<BoundFunctionValue<()>>,
+    ui_windows: Arc<Mutex<Vec<IcedWindow>>>,
 
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
@@ -150,10 +154,14 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
     }
     let player_minimap_image = image::load_from_memory(PLAYER_MINIMAP).unwrap().to_rgba8();
 
+    let ui_windows = Arc::new(Mutex::new(Vec::new()));
+    let (ui_tx, ui_rx) = mpsc::channel();
 
     *STATE.lock().unwrap() = Some(State {
         hooks,
-        ui: Ui::new(1920, 1080),
+        ui: Ui::new(ReboUi::new(Arc::clone(&ui_windows), ui_tx), 1920, 1080),
+        ui_rx,
+        ui_windows,
         is_semaphore_acquired: false,
         event_queue: VecDeque::new(),
         new_version_string: new_version.clone(),

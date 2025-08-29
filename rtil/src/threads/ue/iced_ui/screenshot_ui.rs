@@ -28,13 +28,8 @@ pub struct ScreenshotUi<B: Backend, T: ScreenshotUiElement<B>> {
 }
 unsafe impl<B: Backend, T: ScreenshotUiElement<B> + Send> Send for ScreenshotUi<B, T> {}
 
-impl<B: Backend, T: ScreenshotUiElement<B> + Default + 'static> ScreenshotUi<B, T> {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self::create(T::default(), width, height)
-    }
-}
 impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
-    pub fn create(element: T, width: u32, height: u32) -> Self {
+    pub fn new(element: T, width: u32, height: u32) -> Self {
         ScreenshotUi {
             element,
             backend: B::create(width, height),

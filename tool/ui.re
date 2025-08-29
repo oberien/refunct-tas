@@ -120,6 +120,13 @@ fn on_key_down(key_code: int, character_code: int, is_repeat: bool) {
     if key.to_small() == KEY_M.to_small() && !TAS_STATE.step_frame_mode && UI_STACK.len() == 1 {
         enter_ui(create_base_menu());
     }
+    if key.to_small() == KEY_N.to_small() {
+        Tas::set_input_mode_ui_only();
+        Tas::flush_pressed_keys();
+    }
+    if key.to_small() == KEY_S.to_small() {
+        Tas::set_input_mode_game_only();
+    }
     match UI_STACK.last() {
         Option::Some(ui) => ui.onkey(key, chr),
         Option::None => (),
@@ -171,6 +178,45 @@ fn draw_hud() {
         Option::None => (),
     }
     draw_log_messages();
+}
+fn ui_view() -> List<IcedWindow> {
+    static mut TEST_WINDOW_STATE = TestWindowState {
+        x: 40.,
+        y: 100.,
+        width: 500.,
+        height: 500.,
+        counter: 0,
+    };
+    struct TestWindowState {
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        counter: int,
+    }
+    let window = IcedWindow {
+        id: "test-window",
+        title: "Test Window",
+        x: TEST_WINDOW_STATE.x,
+        y: TEST_WINDOW_STATE.y,
+        width: TEST_WINDOW_STATE.width,
+        height: TEST_WINDOW_STATE.height,
+        element: IcedElement::Button(IcedButton {
+            label: f"{TEST_WINDOW_STATE.counter}",
+            on_press: fn() { TEST_WINDOW_STATE.counter += 1 },
+        }),
+        on_move: fn(x: float, y: float) {
+            TEST_WINDOW_STATE.x = x;
+            TEST_WINDOW_STATE.y = y;
+        },
+        on_resize: fn(width: float, height: float) {
+            TEST_WINDOW_STATE.width = width;
+            TEST_WINDOW_STATE.height = height;
+        },
+    };
+    List::of(
+        window
+    )
 }
 
 fn on_resolution_change() {
