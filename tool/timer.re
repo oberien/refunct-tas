@@ -39,6 +39,10 @@ impl TimerState {
     }
 }
 
+fn get_pb_chance() -> string {
+    f"{LiveSplit::get_pb_chance():0.1}%"
+}
+
 static TIMER_COMPONENT = Component {
     id: TIMER_COMPONENT_ID,
     conflicts_with: List::of(TIMER_COMPONENT_ID),

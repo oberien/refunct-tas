@@ -251,12 +251,8 @@ impl Timer {
         let current_pace = current_pace::calculate(&self.livesplit_timer.snapshot(), comparison);
         self.current_pace_formatter.format(current_pace.0.unwrap_or(TimeSpan::zero())).to_string()
     }
-    pub fn pb_chance(&self) -> String {
-        let chance = pb_chance::for_timer(&self.livesplit_timer.snapshot()).0 * 100.;
-        match chance {
-            c if c >= 0.01 && c < 10. => format!("{:.2}%", c),
-            c => format!("{:.0}%", c),
-        }
+    pub fn pb_chance(&self) -> f64 {
+        pb_chance::for_timer(&self.livesplit_timer.snapshot()).0 * 100.
     }
 }
 impl Run<'_> {
@@ -510,6 +506,6 @@ pub fn livesplit_set_current_pace_accuracy(current_pace_accuracy: Accuracy) {
     LIVESPLIT_STATE.lock().unwrap().timer.set_current_pace_accuracy(current_pace_accuracy.into());
 }
 #[rebo::function("LiveSplit::get_pb_chance")]
-pub fn get_pb_chance() -> String {
+pub fn get_pb_chance() -> f64 {
     LIVESPLIT_STATE.lock().unwrap().timer.pb_chance()
 }
