@@ -7,7 +7,7 @@ use livesplit_core::{comparison::{personal_best, best_segments, best_split_times
 use livesplit_core::component::{CurrentPace as LiveSplitCurrentPace, DetailedTimer, PbChance, PossibleTimeSave, PreviousSegment, Splits, SumOfBest, Title};
 use livesplit_core::settings::Color as LiveSplitColor;
 use livesplit_core::timing::formatter::{Accuracy as LiveSplitAccuracy, DigitsFormat as LiveSplitDigitsFormat, TimeFormatter, timer::TimeWithFraction};
-use livesplit_core::analysis::{sum_of_segments, current_pace};
+use livesplit_core::analysis::{sum_of_segments, current_pace, pb_chance};
 use super::rebo_init::{Color, Segment};
 
 static LIVESPLIT_STATE: LazyLock<Mutex<LiveSplit>> = LazyLock::new(|| Mutex::new(LiveSplit::new()));
@@ -250,6 +250,9 @@ impl Timer {
         };
         let current_pace = current_pace::calculate(&self.livesplit_timer.snapshot(), comparison);
         self.current_pace_formatter.format(current_pace.0.unwrap_or(TimeSpan::zero())).to_string()
+    }
+    pub fn pb_chance(&self) -> f64 {
+        pb_chance::for_timer(&self.livesplit_timer.snapshot()).0 * 100.
     }
 }
 impl Run<'_> {
@@ -501,4 +504,8 @@ pub fn livesplit_get_current_pace_accuracy() -> Accuracy {
 #[rebo::function("LiveSplit::set_current_pace_accuracy")]
 pub fn livesplit_set_current_pace_accuracy(current_pace_accuracy: Accuracy) {
     LIVESPLIT_STATE.lock().unwrap().timer.set_current_pace_accuracy(current_pace_accuracy.into());
+}
+#[rebo::function("LiveSplit::get_pb_chance")]
+pub fn get_pb_chance() -> f64 {
+    LIVESPLIT_STATE.lock().unwrap().timer.pb_chance()
 }
