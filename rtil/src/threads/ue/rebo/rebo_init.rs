@@ -177,6 +177,7 @@ pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
         .add_function(livesplit::livesplit_set_current_pace_digits_format)
         .add_function(livesplit::livesplit_get_current_pace_accuracy)
         .add_function(livesplit::livesplit_set_current_pace_accuracy)
+        .add_function(livesplit::get_pb_chance)
         .add_function(set_game_rendering_enabled)
         .add_function(set_input_mode_game_only)
         .add_function(set_input_mode_ui_only)
