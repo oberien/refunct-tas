@@ -16,19 +16,22 @@ pub struct IcedWindow {
     pub on_resize: TypedFunctionValue<fn(f32, f32)>,
 }
 impl IcedWindow {
-    pub fn update(&mut self, state: &mut IcedWindowState, message: &IcedWindowMessage) {
-        if self.id != message.window_id {
-            return;
-        }
-        match message.kind {
-            IcedWindowMessageKind::TitlePressed => state.title_pressed = true,
-            IcedWindowMessageKind::TitleReleased => state.title_pressed = false,
-            IcedWindowMessageKind::ResizePressed => state.resize_pressed = true,
-            IcedWindowMessageKind::ResizeReleased => state.resize_pressed = false,
+    pub fn update(&self, state: &mut IcedWindowState, message: &IcedWindowMessage) {
+        match message {
+            IcedWindowMessage::TitlePressed(id) => if *id == self.id {
+                state.title_pressed = true
+            },
+            IcedWindowMessage::ResizePressed(id) => if *id == self.id {
+                state.resize_pressed = true
+            },
+            IcedWindowMessage::WindowReleased => {
+                state.title_pressed = false;
+                state.resize_pressed = false;
+            },
         }
     }
     #[must_use]
-    pub fn mouse_moved(&mut self, state: &mut IcedWindowState, delta: Vector) -> Option<BoundFunctionValue<()>> {
+    pub fn mouse_moved(&self, state: &mut IcedWindowState, delta: Vector) -> Option<BoundFunctionValue<()>> {
         if state.title_pressed {
             Some(self.on_move.clone().bind((self.x + delta.x, self.y + delta.y)))
         } else if state.resize_pressed {
@@ -49,12 +52,10 @@ impl IcedWindow {
                                 container(
                                     text(self.title.clone())
                                 ).center_x(Length::Fill),
-                            ).on_press(IcedWindowMessage { window_id: self.id.clone(), kind: IcedWindowMessageKind::TitlePressed })
-                            .on_release(IcedWindowMessage { window_id: self.id.clone(), kind: IcedWindowMessageKind::TitleReleased }),
+                            ).on_press(IcedWindowMessage::TitlePressed(self.id.clone())),
                             mouse_area(
                                 text("+")
-                            ).on_press(IcedWindowMessage { window_id: self.id.clone(), kind: IcedWindowMessageKind::ResizePressed })
-                            .on_release(IcedWindowMessage { window_id: self.id.clone(), kind: IcedWindowMessageKind::ResizeReleased }),
+                            ).on_press(IcedWindowMessage::ResizePressed(self.id.clone()))
                         ]).map(Message::WindowMessage)
                     ).style(|_| container::Style::default().background(color!(0xaaaaaa)))
                     .width(Length::Fill)
@@ -70,16 +71,12 @@ pub struct IcedWindowState {
     resize_pressed: bool,
 }
 #[derive(Debug, Clone)]
-pub struct IcedWindowMessage {
-    window_id: String,
-    kind: IcedWindowMessageKind,
-}
-#[derive(Debug, Clone, Copy)]
-pub enum IcedWindowMessageKind {
-    TitlePressed,
-    TitleReleased,
-    ResizePressed,
-    ResizeReleased,
+pub enum IcedWindowMessage {
+    // window-id
+    TitlePressed(String),
+    // window-id
+    ResizePressed(String),
+    WindowReleased,
 }
 
 #[derive(rebo::ExternalType, Debug)]

@@ -82,6 +82,7 @@ where screenshot_ui::Element<B, Message>: From<Stack<'static, Message, Theme, Re
             }).chain(iter::once(
                 mouse_area(container(text("")).width(Length::Fill).height(Length::Fill))
                     .on_move(Message::MouseMoved)
+                    .on_release(Message::WindowMessage(IcedWindowMessage::WindowReleased))
                     .into()
             ))
         ).width(Length::Fill).height(Length::Fill).into();
