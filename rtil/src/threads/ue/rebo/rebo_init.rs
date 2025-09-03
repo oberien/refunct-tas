@@ -21,7 +21,7 @@ use crate::native::{ElementIndex, ElementType, ue::{FRotator, FLinearColor}, UEn
 use opener;
 use chrono::{DateTime, Local};
 use crate::threads::ue::rebo::livesplit;
-use crate::threads::ue::iced_ui::{Backend, Clipboard, UiBackend};
+use crate::threads::ue::iced_ui::Clipboard;
 use crate::threads::ue::iced_ui::rebo_elements::{IcedButton, IcedColumn, IcedElement, IcedRow, IcedText, IcedWindow};
 
 pub fn create_config(rebo_stream_tx: Sender<ReboToStream>) -> ReboConfig {
@@ -362,7 +362,7 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, expr_span: Span, suspend: S
             UeEvent::DrawHud => {
                 // handle events
                 loop {
-                    let Ok(function) = STATE.lock().unwrap().as_mut().unwrap().ui_rx.try_recv() else { break };
+                    let Some(function) = STATE.lock().unwrap().as_mut().unwrap().ui.next_ui_event() else { break };
                     vm.call_bound_function(function, expr_span)?;
                 }
                 // draw new iced UI
@@ -370,24 +370,18 @@ fn step_internal<'i>(vm: &mut VmContext<'i, '_, '_>, expr_span: Span, suspend: S
                 {
                     let mut state = STATE.lock().unwrap();
                     let state = state.as_mut().unwrap();
-                    *state.ui_windows.lock().unwrap() = windows;
-                    let ui_texture = state.ui_texture.as_mut().unwrap();
-                    let interaction = state.ui.draw_into(&mut *ui_texture.as_mut_slice());
+                    state.ui.set_windows(windows);
+                    let lock = state.ui.texture();
                     // TODO: this doesn't work
-                    AMyCharacter::set_mouse_cursor(interaction.into());
-                    AMyHud::draw_texture_simple(ui_texture, 0., 0., 1., false);
+                    AMyCharacter::set_mouse_cursor(lock.interaction.into());
+                    AMyHud::draw_texture_simple(&lock.texture, 0., 0., 1., false);
                 }
                 // draw old UI
                 draw_hud(vm)?
             },
             UeEvent::ApplyResolutionSettings => {
                 let (width, height) = AMyCharacter::get_player().get_viewport_size();
-                let mut lock = STATE.lock().unwrap();
-                let state = lock.as_mut().unwrap();
-                state.ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
-                let (_, ui_image) = state.ui.draw();
-                state.ui_texture = Some(UTexture2D::create_with_pixelformat(&ui_image, width, height, UiBackend::PIXEL_FORMAT));
-                drop(lock);
+                STATE.lock().unwrap().as_mut().unwrap().ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
                 on_resolution_change(vm)?
             },
             UeEvent::AddToScreen => on_menu_open(vm)?,

@@ -11,27 +11,23 @@ use iced_runtime::keyboard::Modifiers;
 use iced_runtime::user_interface::{Cache, State};
 use iced_runtime::UserInterface;
 use crate::threads::ue::iced_ui::backend::Backend;
-use crate::threads::ue::iced_ui::keyboard_input_mapper::{Key, KeyboardState};
 
 pub type Element<B, Message> = iced::Element<'static, Message, Theme, <B as Backend>::Renderer>;
 
-pub struct ScreenshotUi<B: Backend, T: ScreenshotUiElement<B>> {
+pub struct ScreenshotUi<B: Backend, Message> {
     backend: B,
-    element: T,
     cache: Cache,
     events: Vec<Event>,
-    messages: Vec<T::Message>,
+    messages: Vec<Message>,
     width: u32,
     height: u32,
-    keyboard_state: KeyboardState,
     cursor: Cursor,
 }
-unsafe impl<B: Backend, T: ScreenshotUiElement<B> + Send> Send for ScreenshotUi<B, T> {}
+unsafe impl<B: Backend, Message> Send for ScreenshotUi<B, Message> {}
 
-impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
-    pub fn new(element: T, width: u32, height: u32) -> Self {
+impl<B: Backend, Message> ScreenshotUi<B, Message> {
+    pub fn new(width: u32, height: u32) -> Self {
         ScreenshotUi {
-            element,
             backend: B::create(width, height),
             cache: Cache::new(),
             events: vec![
@@ -44,12 +40,17 @@ impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
             messages: Vec::new(),
             width,
             height,
-            keyboard_state: KeyboardState::new(),
             cursor: Cursor::default(),
             // screenshot_buffers,
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+    pub fn height(&self) -> u32 {
+        self.height
+    }
     pub fn resize(&mut self, width: u32, height: u32) {
         if self.width == width && self.height == height {
             return;
@@ -60,21 +61,8 @@ impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
         self.events.push(Event::Window(window::Event::Resized(Size::new(width as f32, height as f32))));
     }
 
-    pub fn key_pressed(&mut self, key: Key) -> Key {
-        let (key, evt1, evt2) = self.keyboard_state.key_pressed(key);
-        self.events.push(Event::Keyboard(evt1));
-        if let Some(evt2) = evt2 {
-            self.events.push(Event::Keyboard(evt2));
-        }
-        key
-    }
-    pub fn key_released(&mut self, key: Key) -> Key {
-        let (key, evt1, evt2) = self.keyboard_state.key_released(key);
-        self.events.push(Event::Keyboard(evt1));
-        if let Some(evt2) = evt2 {
-            self.events.push(Event::Keyboard(evt2));
-        }
-        key
+    pub fn event(&mut self, event: Event) {
+        self.events.push(event);
     }
 
     pub fn mouse_moved(&mut self, screen_x: u32, screen_y: u32) {
@@ -93,23 +81,25 @@ impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
         self.events.push(Event::Mouse(mouse::Event::WheelScrolled { delta: ScrollDelta::Lines { x: 0., y: delta } }))
     }
 
-    fn build_user_interface(&mut self) -> UserInterface<'static, T::Message, Theme, B::Renderer> {
+    fn build_user_interface<T>(&mut self, element: &T) -> UserInterface<'static, T::Message, Theme, B::Renderer>
+        where T: ScreenshotUiElement<B, Message = Message>
+    {
         UserInterface::build(
-            self.element.view(),
+            element.view(),
             Size::new(self.width as f32, self.height as f32),
             mem::take(&mut self.cache),
             self.backend.renderer(),
         )
     }
 
-    pub fn draw(&mut self) -> (Interaction, Vec<u8>) {
+    pub fn draw<T: ScreenshotUiElement<B, Message = Message>>(&mut self, element: &mut T) -> (Interaction, Vec<u8>) {
         let mut vec = vec![0u8; self.width as usize * self.height as usize * 4];
-        let interaction = self.draw_into(&mut vec);
+        let interaction = self.draw_into(element, &mut vec);
         (interaction, vec)
     }
 
-    pub fn draw_into(&mut self, buf: &mut [u8]) -> Interaction {
-        let mut user_interface = self.build_user_interface();
+    pub fn draw_into<T: ScreenshotUiElement<B, Message = Message>>(&mut self, element: &mut T, buf: &mut [u8]) -> Interaction {
+        let mut user_interface = self.build_user_interface(element);
 
         let (state, _event_statuses) = user_interface.update(
             &self.events,
@@ -121,10 +111,10 @@ impl<B: Backend, T: ScreenshotUiElement<B> + 'static> ScreenshotUi<B, T> {
 
         if !self.messages.is_empty() {
             for message in self.messages.drain(..) {
-                self.element.update(message);
+                element.update(message);
             }
             self.cache = user_interface.into_cache();
-            user_interface = self.build_user_interface();
+            user_interface = self.build_user_interface(element);
         }
 
         user_interface.draw(

@@ -1,7 +1,7 @@
 use std::{ptr, thread};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::Mutex;
 use std::time::Duration;
 use std::cell::{Cell, RefCell};
 use corosensei::{CoroutineResult, Yielder};
@@ -9,15 +9,13 @@ use corosensei::{CoroutineResult, Yielder};
 use crossbeam_channel::{Receiver, Sender};
 use image::{Rgba, RgbaImage};
 use once_cell::sync::Lazy;
-use rebo::BoundFunctionValue;
 use websocket::sync::Client;
 use websocket::stream::sync::NetworkStream;
 
 use crate::threads::{ReboToStream, StreamToRebo};
 use crate::native::{AMyCharacter, FPlatformMisc, Hooks, UTexture2D, UWorld, REBO_DOESNT_START_SEMAPHORE};
 use crate::threads::ue::{Suspend, UeEvent};
-use crate::threads::ue::iced_ui::{Backend, ReboUi, Ui, UiBackend};
-use crate::threads::ue::iced_ui::rebo_elements::IcedWindow;
+use crate::threads::ue::iced_ui::ReboUi;
 
 mod rebo_init;
 mod livesplit;
@@ -33,9 +31,7 @@ thread_local! {
 
 struct State {
     hooks: Hooks,
-    ui: Ui,
-    ui_rx: mpsc::Receiver<BoundFunctionValue<()>>,
-    ui_windows: Arc<Mutex<Vec<IcedWindow>>>,
+    ui: ReboUi,
 
     is_semaphore_acquired: bool,
     event_queue: VecDeque<UeEvent>,
@@ -55,7 +51,6 @@ struct State {
     player_minimap_image: RgbaImage,
     // will keep textures forever, even if the player doesn't exist anymore, but each texture is only a few MB
     player_minimap_textures: HashMap<Rgba<u8>, UTexture2D>,
-    ui_texture: Option<UTexture2D>,
 }
 
 pub(super) fn poll(event: UeEvent) {
@@ -74,8 +69,6 @@ pub(super) fn poll(event: UeEvent) {
             state.minimap_texture = Some(UTexture2D::create(&state.minimap_image));
             let (width, height) = AMyCharacter::get_player().get_viewport_size();
             state.ui.resize(width.try_into().unwrap(), height.try_into().unwrap());
-            let (_interaction, ui_image) = state.ui.draw();
-            state.ui_texture = Some(UTexture2D::create_with_pixelformat(&ui_image, width, height, UiBackend::PIXEL_FORMAT));
             log!("rebo continuing as all this* have been acquired");
         }
     }
@@ -154,14 +147,9 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
     }
     let player_minimap_image = image::load_from_memory(PLAYER_MINIMAP).unwrap().to_rgba8();
 
-    let ui_windows = Arc::new(Mutex::new(Vec::new()));
-    let (ui_tx, ui_rx) = mpsc::channel();
-
     *STATE.lock().unwrap() = Some(State {
         hooks,
-        ui: Ui::new(ReboUi::new(Arc::clone(&ui_windows), ui_tx), 1920, 1080),
-        ui_rx,
-        ui_windows,
+        ui: ReboUi::start(),
         is_semaphore_acquired: false,
         event_queue: VecDeque::new(),
         new_version_string: new_version.clone(),
@@ -178,7 +166,6 @@ pub fn init(stream_rebo_rx: Receiver<StreamToRebo>, rebo_stream_tx: Sender<ReboT
         minimap_image,
         player_minimap_image,
         player_minimap_textures: HashMap::new(),
-        ui_texture: None,
     });
 }
 

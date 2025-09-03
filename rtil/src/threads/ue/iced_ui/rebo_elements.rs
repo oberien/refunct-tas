@@ -3,7 +3,7 @@ use iced::widget::{button, container, pin, row, text, vertical_space, Column, Ro
 use rebo::{BoundFunctionValue, TypedFunctionValue};
 use crate::threads::ue::iced_ui::{Element, Message, Renderer, Theme};
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub struct IcedWindow {
     pub id: String,
     pub title: String,
@@ -79,7 +79,7 @@ pub enum IcedWindowMessage {
     WindowReleased,
 }
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub enum IcedElement {
     Button(IcedButton),
     Text(IcedText),
@@ -97,7 +97,7 @@ impl IcedElement {
     }
 }
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub struct IcedButton {
     pub label: String,
     pub on_press: TypedFunctionValue<fn()>,
@@ -110,7 +110,7 @@ impl IcedButton {
     }
 }
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub struct IcedText {
     pub text: String,
 }
@@ -121,7 +121,7 @@ impl IcedText {
     }
 }
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub struct IcedRow {
     pub elements: Vec<IcedElement>,
 }
@@ -134,7 +134,7 @@ impl IcedRow {
     }
 }
 
-#[derive(rebo::ExternalType, Debug)]
+#[derive(rebo::ExternalType, Debug, Clone)]
 pub struct IcedColumn {
     pub elements: Vec<IcedElement>,
 }
