@@ -58,7 +58,7 @@ impl<T> Receiver<T> {
     }
 
     /// Consumes the element if there is one, otherwise waits for the next element
-    pub fn read_clone(&self) -> Result<T, ()> where T: Clone {
+    pub fn _read_clone(&self) -> Result<T, ()> where T: Clone {
         if self.shared.tx_closed.load(Ordering::Relaxed) {
             return Err(());
         }

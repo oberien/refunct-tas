@@ -9,7 +9,7 @@ use rebo::BoundFunctionValue;
 use screenshot_ui::ScreenshotUiElement;
 use crate::native::UTexture2D;
 use crate::threads::ue::iced_ui::keyboard_input_mapper::KeyboardState;
-use crate::threads::ue::iced_ui::rebo_elements::{IcedButton, IcedElement, IcedWindow, IcedWindowMessage, IcedWindowState};
+use crate::threads::ue::iced_ui::rebo_elements::{IcedWindow, IcedWindowMessage, IcedWindowState};
 use crate::threads::ue::iced_ui::screenshot_ui::ScreenshotUi;
 use crate::watch;
 
@@ -22,7 +22,7 @@ pub use screenshot_ui::Clipboard;
 pub use keyboard_input_mapper::Key;
 pub use backend::Backend;
 
-// pub type UiBackend = backend::TinySkiaBackend;
+// type UiBackend = backend::TinySkiaBackend;
 type UiBackend = backend::WgpuBackend;
 type Theme = iced::Theme;
 type Renderer = <UiBackend as Backend>::Renderer;
@@ -187,7 +187,7 @@ impl ReboUiThreadState {
                     ui_event_tx: &self.ui_event_tx,
                 };
 
-                let interaction = self.screenshot_ui.draw_into(&mut element, &mut *self.current_ue_texture.as_mut_slice());
+                // let interaction = self.screenshot_ui.draw_into(&mut element, &mut *self.current_ue_texture.as_mut_slice());
                 let (interaction, buffer) = self.screenshot_ui.draw(&mut element);
                 self.current_ue_texture.as_mut_slice().copy_from_slice(&buffer);
                 let mut lock = self.ue_texture.lock().unwrap();
