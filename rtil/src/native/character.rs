@@ -5,8 +5,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use hook::{ArgsRef, RawHook, IsaAbi};
 use iced::mouse::Interaction;
 use crate::native::ue::{FVector, FRotator, FString, UeU64};
-use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope, APLAYERCONTROLLER_FLUSHPRESSEDKEYS};
-use crate::native::linux::APLAYERCONTROLLER_GETMOUSEPOSITION;
+use crate::native::{AMYCHARACTER_STATICCLASS, REBO_DOESNT_START_SEMAPHORE, APLAYERCONTROLLER_GETVIEWPORTSIZE, ActorWrapper, ObjectWrapper, StructValueWrapper, BoolValueWrapper, AMYCHARACTER_UNDERWATERCHANGED, UObject, UeScope, APLAYERCONTROLLER_FLUSHPRESSEDKEYS, APLAYERCONTROLLER_GETMOUSEPOSITION};
 use crate::native::reflection::UClass;
 use crate::native::uworld::CAMERA_INDEX;
 
