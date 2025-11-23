@@ -18,6 +18,7 @@ include "misc.re";
 include "mapeditor.re";
 include "world_options.re";
 include "player.re";
+include "autosplitter.re";
 
 static mut NEW_VERSION: Option<string> = Tas::new_version_string();
 
